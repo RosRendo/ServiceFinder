@@ -1,0 +1,72 @@
+name: Expo App CI
+
+on:
+  push:
+    paths:
+      - 'frontend-expo/**'
+      - '.github/workflows/expo-ci.yml'
+  pull_request:
+    paths:
+      - 'frontend-expo/**'
+
+jobs:
+  lint-and-test:
+    name: Lint & Test Expo
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: frontend-expo
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend-expo/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Linter
+        run: npm run lint
+
+      - name: Run Tests
+        run: npm test
+
+  publish-update:
+    name: Publish EAS Update
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    defaults:
+      run:
+        working-directory: frontend-expo
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend-expo/package-lock.json
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish EAS Update
+        run: eas update --branch production --message "Automated update via CI"

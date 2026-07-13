@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skills Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:#0f0f1a;color:#e2e8f0;min-height:100vh;padding:20px}
+h1{text-align:center;font-size:2rem;font-weight:800;background:linear-gradient(135deg,#f59e0b,#ef4444,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.subtitle{text-align:center;color:#94a3b8;margin-bottom:30px;font-size:.9rem}
+.tabs{display:flex;gap:8px;justify-content:center;margin-bottom:24px;flex-wrap:wrap}
+.tab{padding:8px 20px;border-radius:99px;border:1px solid #334155;background:#1e293b;color:#94a3b8;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s}
+.tab.active,.tab:hover{background:#f59e0b;color:#000;border-color:#f59e0b}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.card{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:20px;transition:transform .2s,box-shadow .2s;cursor:pointer}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.card.done{border-color:#10b981;background:linear-gradient(135deg,#1e293b,#052e16)}
+.card.urgent{border-color:#f59e0b;background:linear-gradient(135deg,#1e293b,#1c1400)}
+.card.month2{border-color:#8b5cf6;background:linear-gradient(135deg,#1e293b,#1a0e2e)}
+.card.later{border-color:#475569;opacity:.7}
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.7rem;font-weight:700;margin-bottom:10px;letter-spacing:.05em}
+.badge.done{background:#10b981;color:#fff}
+.badge.urgent{background:#f59e0b;color:#000}
+.badge.month2{background:#8b5cf6;color:#fff}
+.badge.month3{background:#3b82f6;color:#fff}
+.badge.later{background:#475569;color:#fff}
+.card-title{font-size:1.1rem;font-weight:800;margin-bottom:6px}
+.card-sub{font-size:.8rem;color:#94a3b8;margin-bottom:12px}
+.hours{font-size:.8rem;font-weight:700;color:#f59e0b;margin-bottom:10px}
+.topics{list-style:none}
+.topics li{font-size:.82rem;color:#cbd5e1;padding:4px 0;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:6px}
+.topics li::before{content:"›";color:#f59e0b;font-weight:700}
+.card.done .topics li::before{content:"✓";color:#10b981}
+.progress-bar{height:6px;background:#0f172a;border-radius:99px;margin-top:12px;overflow:hidden}
+.progress-fill{height:100%;border-radius:99px;transition:width 1s ease}
+.section-label{grid-column:1/-1;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#64748b;padding:8px 0 4px;border-top:1px solid #1e293b;margin-top:8px}
+.roadmap{display:flex;flex-direction:column;gap:0}
+.month-block{border-left:3px solid #334155;padding-left:20px;margin-left:12px;padding-bottom:24px;position:relative}
+.month-block::before{content:"";width:14px;height:14px;border-radius:50%;background:#334155;position:absolute;left:-8px;top:0}
+.month-block.active::before{background:#f59e0b;box-shadow:0 0 12px #f59e0b}
+.month-title{font-size:1rem;font-weight:800;color:#f59e0b;margin-bottom:4px}
+.month-sub{font-size:.8rem;color:#64748b;margin-bottom:12px}
+.week-item{background:#1e293b;border:1px solid #1e3a5f;border-radius:10px;padding:12px;margin-bottom:8px}
+.week-title{font-size:.85rem;font-weight:700;color:#38bdf8;margin-bottom:6px}
+.task-list{list-style:none}
+.task-list li{font-size:.8rem;color:#cbd5e1;padding:3px 0;display:flex;align-items:center;gap:6px;cursor:pointer}
+.task-list li input[type=checkbox]{accent-color:#f59e0b;width:14px;height:14px;cursor:pointer}
+.task-list li.checked{color:#475569;text-decoration:line-through}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:16px;text-align:center}
+.stat-num{font-size:1.8rem;font-weight:800;color:#f59e0b}
+.stat-label{font-size:.75rem;color:#64748b;margin-top:2px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<h1>🚀 Skills Gap Dashboard</h1>
+<p class="subtitle">Full-Stack → Enterprise Architect · 90-Day Roadmap</p>
+
+<div class="stat-row">
+  <div class="stat"><div class="stat-num" id="s1">6</div><div class="stat-label">Skills Mastered</div></div>
+  <div class="stat"><div class="stat-num" id="s2">0%</div><div class="stat-label">Gap Progress</div></div>
+  <div class="stat"><div class="stat-num">158h</div><div class="stat-label">Total Learning</div></div>
+  <div class="stat"><div class="stat-num">90d</div><div class="stat-label">To Enterprise</div></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('overview')">Overview</div>
+  <div class="tab" onclick="show('roadmap')">90-Day Roadmap</div>
+  <div class="tab" onclick="show('tasks')">Task Checklist</div>
+</div>
+
+<!-- OVERVIEW -->
+<div id="overview">
+<div class="grid">
+  <div class="section-label">✅ CURRENT SKILLS — YOU ALREADY HAVE THESE</div>
+
+  <div class="card done">
+    <span class="badge done">✅ MASTERED</span>
+    <div class="card-title">🎨 Design & UX/UI</div>
+    <div class="card-sub">Figma · UX Research · Design Systems</div>
+    <ul class="topics">
+      <li>Beautiful interfaces & prototyping</li>
+      <li>WCAG accessibility compliance</li>
+      <li>Responsive mobile/web design</li>
+      <li>User research & testing</li>
+    </ul>
+    <div class="progress-bar"><div class="progress-fill" style="width:95%;background:#10b981"></div></div>
+  </div>
+
+  <div class="card done">
+    <span class="badge done">✅ MASTERED</span>
+    <div class="card-title">⚛️ Frontend</div>
+    <div class="card-sub">React · Next.js · TypeScript</div>
+    <ul class="topics">
+      <li>TypeScript for full type safety</li>
+      <li>State management (Redux/Zustand)</li>
+      <li>Performance optimization & SEO</li>
+      <li>Accessibility implementation</li>
+    </ul>
+    <div class="progress-bar"><div class="progress-fill" style="width:90%;background:#10b981"></div></div>
+  </div>
+
+  <div class="card done">
+    <span class="badge done">✅ MASTERED</span>
+    <div class="card-title">🔧 Backend</div>
+    <div class="card-sub">Node.js · NestJS · REST APIs</div>
+    <ul class="topics">
+      <li>Scalable API architecture</li>
+      <li>JWT authentication & guards</li>
+      <li>Rate limiting & input validation</li>
+      <li>Business logic implementation</li>
+    </ul>
+    <div class="progress-bar"><div class="progress-fill" style="width:85%;background:#10b981"></div></div>
+  </div>
+
+  <div class="card done">
+    <span class="badge done">✅ MASTERED</span>
+    <div class="card-title">🗄️ Database</div>
+    <div class="card-sub">PostgreSQL · SQL · Prisma ORM</div>
+    <ul class="topics">
+      <li>Data modeling & schema design</li>
+      <li>Complex JOINs & subqueries</li>
+      <li>Indexes & ACID transactions</li>
+      <li>Migrations & type-safe queries</li>
+    </ul>
+    <div class="progress-bar"><div class="progress-fill" style="width:80%;background:#10b981"></div></div>
+  </div>
+
+  <div class="section-label">🔴 GAPS — LEARN IN THIS ORDER (Weeks 1–12)</div>
+
+  <div class="card urgent">
+    <span class="badge urgent">🔴 WEEK 1-2 · HIGHEST PRIORITY</span>
+    <div class="card-title">🐳 DevOps / Operations</div>
+    <div class="card-sub">Deploy reliably · Monitor · Recover fast</div>
+    <div class="hours">⏱ 40 hours total · Start NOW</div>
+    <ul class="topics">
+      <li>Docker — containerize frontend + backend</li>
+      <li>GitHub Actions — auto CI/CD pipeline</li>
+      <li>Railway/Render — cloud deployment</li>
+      <li>Sentry — error tracking in production</li>
+      <li>Basic Linux — SSH, file system, services</li>
+    </ul>
+    <div class="progress-bar"><div class="progress-fill" style="width:5%;background:#f59e0b" id="devops-bar"></div></div>
+  </div>
+
+  <div class="card urgent">
+    <span class="badge urgent">🟡 WEEK 3-4 · HIGH PRIORITY</span>
+    <div class="card-title">⚡ System Design</div>
+    <div class="card-sub">Handle 100x traffic · Scale smart</div>
+    <div class="hours">⏱ 57 hours total · Month 2</div>
+    <ul class="topics">
+      <li>Redis caching — 10x faster responses</li>
+      <li>Database index optimization</li>
+      <li>API pagination, versioning, filtering</li>
+      <li>Bull queues — async background jobs</li>
+      <li>Load testing with k6</li>
+    </ul>
+    <div class="progress-bar"><div class="progress-fill" style="width:0%;background:#f59e0b"></div></div>
+  </div>
+
+  <div class="card month2">
+    <span class="badge month2">🟣 MONTH 2 · MEDIUM PRIORITY</span>
+    <div class="card-title">🔒 Security at Scale</div>
+    <div class="card-sub">Beyond JWT · Compliance ready</div>
+    <div class="hours">⏱ 20 hours total · Month 2</div>
+    <ul class="topics">
+      <li>Secrets management (no hardcoded keys)</li>
+      <li>Audit logging — who/what/when/where</li>
+      <li>OWASP Top 10 review & fixes</li>
+      <li>API rate limiting per user/IP</li>
+      <li>Incident response playbook</li>
+    </ul>
+    <div class="progress-bar"><div class="progress-fill" style="width:20%;background:#8b5cf6"></div></div>
+  </div>
+
+  <div class="card month2">
+    <span class="badge month3">🔵 MONTH 3 · MEDIUM PRIORITY</span>
+    <div class="card-title">📊 Reliability / SRE</div>
+    <div class="card-sub">99.9% uptime · Detect before users do</div>
+    <div class="hours">⏱ 61 hours total · Month 3</div>
+    <ul class="topics">
+      <li>Datadog/Prometheus metrics setup</li>
+      <li>Alerting rules (CPU, errors, latency)</li>
+      <li>Centralized log aggregation</li>
+      <li>On-call rotation & runbooks</li>
+      <li>Incident simulation drills</li>
+    </ul>
+    <div class="progress-bar"><div class="progress-fill" style="width:0%;background:#3b82f6"></div></div>
+  </div>
+
+  <div class="card later">
+    <span class="badge later">⚪ MONTH 6+ · WHEN TEAM > 2</span>
+    <div class="card-title">👥 Team Leadership</div>
+    <div class="card-sub">Manage people · Delegate · Grow</div>
+    <ul class="topics">
+      <li>1-on-1s & performance feedback</li>
+      <li>Clear goal setting & OKRs</li>
+      <li>Conflict resolution</li>
+      <li>Hiring & onboarding process</li>
+    </ul>
+  </div>
+
+  <div class="card later">
+    <span class="badge later">⚫ YEAR 2+ · SKIP FOR NOW</span>
+    <div class="card-title">📈 Data Engineering</div>
+    <div class="card-sub">Only needed at 1M+ users</div>
+    <ul class="topics">
+      <li>Snowflake / BigQuery warehousing</li>
+      <li>Apache Airflow ETL pipelines</li>
+      <li>Kafka real-time streaming</li>
+      <li>Data lake architecture</li>
+    </ul>
+  </div>
+</div>
+</div>
+
+<!-- ROADMAP -->
+<div id="roadmap" class="hidden">
+<div class="roadmap" style="max-width:700px;margin:0 auto">
+
+  <div class="month-block active">
+    <div class="month-title">📅 Month 1 — Operations Mastery (40h)</div>
+    <div class="month-sub">Goal: Deploy your code reliably to production</div>
+    <div class="week-item">
+      <div class="week-title">Week 1 — Docker + CI/CD (15h)</div>
+      <ul class="topics">
+        <li>Day 1-2: Build Dockerfile for backend & frontend (4h)</li>
+        <li>Day 3-4: GitHub Actions — auto test + deploy pipeline (4h)</li>
+        <li>Day 5: Basic Linux — SSH, services, permissions (3h)</li>
+      </ul>
+    </div>
+    <div class="week-item">
+      <div class="week-title">Week 2 — Cloud + Monitoring (11h)</div>
+      <ul class="topics">
+        <li>Day 1-2: Deploy to Railway — HTTPS + domain (3h)</li>
+        <li>Day 3-4: Add Sentry + uptime monitoring (2h)</li>
+        <li>Day 5: Practice incident — break it, fix it, document (2h)</li>
+      </ul>
+    </div>
+    <div class="week-item">
+      <div class="week-title">Week 3-4 — Linux + DB Ops (14h)</div>
+      <ul class="topics">
+        <li>Linux fundamentals deep dive (4h)</li>
+        <li>Database backups + read replicas (2h)</li>
+        <li>Connection pooling setup (1h)</li>
+        <li>Disaster recovery drill (3h)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="month-block">
+    <div class="month-title">📅 Month 2 — System Design (57h)</div>
+    <div class="month-sub">Goal: Handle 100x current traffic</div>
+    <div class="week-item">
+      <div class="week-title">Week 1 — Performance (19h)</div>
+      <ul class="topics">
+        <li>Slow query analysis + index creation (5h)</li>
+        <li>Redis cache implementation (4h)</li>
+        <li>Load testing with k6 (3h)</li>
+      </ul>
+    </div>
+    <div class="week-item">
+      <div class="week-title">Week 2 — API Design (13h)</div>
+      <ul class="topics">
+        <li>API versioning + pagination patterns (4h)</li>
+        <li>Swagger/OpenAPI documentation (3h)</li>
+        <li>Error handling standards (2h)</li>
+      </ul>
+    </div>
+    <div class="week-item">
+      <div class="week-title">Week 3 — Async Processing (13h)</div>
+      <ul class="topics">
+        <li>Bull queue message system (3h)</li>
+        <li>Background jobs — email, notifications (4h)</li>
+        <li>Retry logic + dead letter queues (2h)</li>
+      </ul>
+    </div>
+    <div class="week-item">
+      <div class="week-title">Week 4 — Capacity Planning (12h)</div>
+      <ul class="topics">
+        <li>Load calculation + bottleneck ID (3h)</li>
+        <li>Scaling strategy document (4h)</li>
+        <li>Cost calculation + presentation (2h)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="month-block">
+    <div class="month-title">📅 Month 3 — Security + Reliability (61h)</div>
+    <div class="month-sub">Goal: 99.9% uptime + enterprise security</div>
+    <div class="week-item">
+      <div class="week-title">Week 1 — Security Hardening (14h)</div>
+      <ul class="topics">
+        <li>Secrets management — move all to env (2h)</li>
+        <li>Audit logging implementation (4h)</li>
+        <li>OWASP Top 10 review + fixes (3h)</li>
+        <li>Incident response playbook (3h)</li>
+      </ul>
+    </div>
+    <div class="week-item">
+      <div class="week-title">Week 2 — Monitoring (16h)</div>
+      <ul class="topics">
+        <li>App + infra metrics (Datadog/Prometheus) (6h)</li>
+        <li>Alerting rules — CPU, errors, latency (3h)</li>
+        <li>Business metrics dashboard (2h)</li>
+      </ul>
+    </div>
+    <div class="week-item">
+      <div class="week-title">Week 3 — On-Call + Runbooks (17h)</div>
+      <ul class="topics">
+        <li>Write 5 critical runbooks (10h)</li>
+        <li>On-call rotation setup (1h)</li>
+        <li>Incident simulation + review (2h)</li>
+      </ul>
+    </div>
+    <div class="week-item">
+      <div class="week-title">Week 4 — Final Hardening (14h)</div>
+      <ul class="topics">
+        <li>Security audit of codebase (4h)</li>
+        <li>Penetration testing basics (2h)</li>
+        <li>Compliance checklist + docs (3h)</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- TASKS -->
+<div id="tasks" class="hidden">
+<div style="max-width:700px;margin:0 auto">
+  <div class="week-item" style="margin-bottom:12px">
+    <div class="week-title">🔴 This Week — Docker & CI/CD</div>
+    <ul class="task-list" id="t1">
+      <li><input type="checkbox" onchange="checkTask(this)"> Build Dockerfile for NestJS backend</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Build Dockerfile for Next.js frontend</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Create docker-compose.yml and test locally</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Write .github/workflows/test.yml</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Write .github/workflows/deploy.yml</li>
+    </ul>
+  </div>
+  <div class="week-item" style="margin-bottom:12px">
+    <div class="week-title">🟡 Week 2 — Cloud Deployment</div>
+    <ul class="task-list">
+      <li><input type="checkbox" onchange="checkTask(this)"> Create Railway account and deploy app</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Configure custom domain + HTTPS</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Set all environment variables in production</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Add Sentry for error tracking</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Set up uptime monitoring (UptimeRobot free)</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Practice: manually crash + fix + write runbook</li>
+    </ul>
+  </div>
+  <div class="week-item" style="margin-bottom:12px">
+    <div class="week-title">🟣 Month 2 — Performance</div>
+    <ul class="task-list">
+      <li><input type="checkbox" onchange="checkTask(this)"> Run EXPLAIN ANALYZE on top 5 slow queries</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Add missing database indexes</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Install Redis and implement first cache</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Add API versioning (/api/v1/)</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Implement cursor-based pagination</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Add Bull queue for email sending</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Load test with k6 — 1000 concurrent users</li>
+    </ul>
+  </div>
+  <div class="week-item" style="margin-bottom:12px">
+    <div class="week-title">🔵 Month 3 — Security & Reliability</div>
+    <ul class="task-list">
+      <li><input type="checkbox" onchange="checkTask(this)"> Audit all secrets — none in code</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Implement audit logging (login, delete, payment)</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Review OWASP Top 10 against codebase</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Write incident response playbook</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Setup Datadog or Prometheus metrics</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Write 5 runbooks (DB down, high CPU, disk full…)</li>
+      <li><input type="checkbox" onchange="checkTask(this)"> Run full incident simulation drill</li>
+    </ul>
+  </div>
+
+  <div style="text-align:center;margin-top:20px;padding:16px;background:#1e293b;border-radius:12px;border:1px solid #334155">
+    <div style="font-size:1.5rem;font-weight:800;color:#f59e0b" id="pct">0% complete</div>
+    <div style="font-size:.8rem;color:#64748b;margin-top:4px">Keep going — you're 90 days from enterprise 🚀</div>
+    <div class="progress-bar" style="margin-top:12px;height:10px">
+      <div class="progress-fill" id="overall-bar" style="width:0%;background:linear-gradient(90deg,#f59e0b,#ef4444)"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+function show(id){
+  ['overview','roadmap','tasks'].forEach(s=>document.getElementById(s).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active',['overview','roadmap','tasks'][i]===id);
+  });
+}
+function checkTask(cb){
+  const li=cb.parentElement;
+  li.classList.toggle('checked',cb.checked);
+  updateProgress();
+}
+function updateProgress(){
+  const all=document.querySelectorAll('.task-list input[type=checkbox]');
+  const done=[...all].filter(c=>c.checked).length;
+  const pct=Math.round(done/all.length*100);
+  document.getElementById('pct').textContent=pct+'% complete';
+  document.getElementById('overall-bar').style.width=pct+'%';
+  document.getElementById('s2').textContent=pct+'%';
+}
+// Load saved state
+window.onload=()=>{
+  const saved=JSON.parse(localStorage.getItem('skills-tasks')||'[]');
+  document.querySelectorAll('.task-list input').forEach((cb,i)=>{
+    if(saved[i]){cb.checked=true;cb.parentElement.classList.add('checked');}
+  });
+  updateProgress();
+};
+// Save on change
+document.addEventListener('change',()=>{
+  const states=[...document.querySelectorAll('.task-list input')].map(c=>c.checked);
+  localStorage.setItem('skills-tasks',JSON.stringify(states));
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: service-finder-gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - service-finder-net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: rosrendo/servicefinder-frontend:${TAG:-latest}
+    container_name: service-finder-frontend
+    hostname: frontend
+    environment:
+      - NODE_ENV=production
+    networks:
+      - service-finder-net
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend-nest
+      dockerfile: Dockerfile
+    image: rosrendo/servicefinder-backend:${TAG:-latest}
+    container_name: service-finder-backend
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: ${DATABASE_URL:-mysql://root:zipmu3-cEcsak-jifqyf@mysql-db:3306/servicefinder}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+    networks:
+      - service-finder-net
+    restart: unless-stopped
+    depends_on:
+      - mysql-db
+      - redis
+
+  mysql-db:
+    image: mariadb:10.11
+    container_name: service-finder-db
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-zipmu3-cEcsak-jifqyf}
+      MYSQL_DATABASE: servicefinder
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - service-finder-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-zipmu3-cEcsak-jifqyf}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: service-finder-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - service-finder-net
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  service-finder-net:
+    driver: bridge

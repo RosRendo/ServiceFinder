@@ -1,0 +1,1127 @@
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  ConflictException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateBookingDto } from './dto/create-booking.dto';
+import { validateTransition } from '../common/status-transitions.util';
+import { BookingsGateway } from './bookings.gateway';
+import { AdminGateway } from '../admin/admin.gateway';
+import { SettingsService } from '../settings/settings.service';
+import * as fs from 'fs';
+import * as path from 'path';
+import { AnalyticsService } from '../analytics/analytics.service';
+import { NotificationsService } from '../notifications/notifications.service';
+
+@Injectable()
+export class BookingsService {
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => BookingsGateway))
+    private bookingsGateway: BookingsGateway,
+    @Inject(forwardRef(() => AdminGateway))
+    private adminGateway: AdminGateway,
+    private settingsService: SettingsService,
+    private analytics: AnalyticsService,
+    private notificationsService: NotificationsService,
+  ) {}
+
+  async getAllBookings(query: any, user: any) {
+    const {
+      customerId,
+      companyId,
+      status,
+      staffId,
+      page = 1,
+      limit = 10,
+    } = query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const where: any = {};
+
+    if (user.role === 'customer') {
+      where.customerId = BigInt(user.id);
+    } else if (customerId) {
+      where.customerId = BigInt(customerId);
+    }
+
+    if (user.role === 'company_admin') {
+      const company = await this.prisma.company.findFirst({
+        where: { ownerId: BigInt(user.id) },
+      });
+      if (!company) throw new ForbiddenException('You do not own a company');
+      where.companyId = company.id;
+    } else if (companyId) {
+      where.companyId = BigInt(companyId);
+    }
+
+    if (status && status !== 'all') {
+      where.status = status.includes(',') ? { in: status.split(',') } : status;
+    }
+
+    if (staffId) where.assignedStaffId = BigInt(staffId);
+
+    const [bookings, total] = await Promise.all([
+      this.prisma.booking.findMany({
+        where,
+        skip: Number(skip),
+        take: Number(limit),
+        include: {
+          customer: {
+            select: { id: true, fullName: true, email: true, phone: true },
+          },
+          company: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              email: true,
+              logoUrl: true,
+            },
+          },
+          service: {
+            include: { serviceType: { include: { category: true } } },
+          },
+          assignedStaff: {
+            include: {
+              user: { select: { id: true, fullName: true, phone: true } },
+            },
+          },
+          payment: true,
+          review: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.booking.count({ where }),
+    ]);
+
+    return {
+      bookings: bookings.map((b) => this.serializeBooking(b)),
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit)),
+      },
+    };
+  }
+
+  async getBookingById(id: bigint, user: any) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id },
+      include: {
+        customer: {
+          select: { id: true, fullName: true, email: true, phone: true },
+        },
+        company: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            address: true,
+            ownerId: true,
+            logoUrl: true,
+          },
+        },
+        service: { include: { serviceType: { include: { category: true } } } },
+        assignedStaff: {
+          include: {
+            user: {
+              select: { id: true, fullName: true, phone: true, email: true },
+            },
+          },
+        },
+        payment: true,
+        review: true,
+        cancellation: true,
+        statusLogs: { orderBy: { changedAt: 'desc' } },
+      },
+    });
+
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    if (user.role === 'customer' && booking.customerId !== BigInt(user.id)) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    return { booking: this.serializeBooking(booking) };
+  }
+
+  async createBooking(dto: CreateBookingDto, user: any) {
+    const service = await this.prisma.service.findUnique({
+      where: { id: BigInt(dto.serviceId) },
+    });
+
+    if (!service) throw new NotFoundException('Service not found');
+    if (!service.isActive)
+      throw new BadRequestException('Service is not available');
+
+    const start = new Date(`${dto.bookingDate}T${dto.startTime}:00Z`);
+    const end = new Date(start.getTime() + service.durationMin * 60000);
+
+    const platformFeePercent = await this.settingsService.getSettingNumber(
+      'PLATFORM_FEE_PERCENT',
+      10,
+    );
+    const companySplitPercent = await this.settingsService.getSettingNumber(
+      'COMPANY_SPLIT_PERCENT',
+      31,
+    );
+    // Staff split is remainder
+    const staffSplitPercent = 100 - platformFeePercent - companySplitPercent;
+
+    const basePrice = Number(service.basePrice);
+    const totalPrice = basePrice;
+
+    // Split formula on base price
+    // Customer pays basePrice (totalPrice). Platform fee is taken from the basePrice.
+    const platformFee = Number(
+      (basePrice * (platformFeePercent / 100)).toFixed(2),
+    );
+
+    // Split formula on base price
+    const companyEarnings = Number(
+      (basePrice * (companySplitPercent / 100)).toFixed(2),
+    );
+    const staffEarnings = Number(
+      (basePrice * (staffSplitPercent / 100)).toFixed(2),
+    );
+
+    const booking = (await this.prisma.booking.create({
+      data: {
+        customerId: BigInt(user.id),
+        companyId: BigInt(dto.companyId),
+        serviceId: BigInt(dto.serviceId),
+        bookingDate: new Date(dto.bookingDate),
+        startTime: start,
+        endTime: end,
+        serviceAddress: dto.serviceAddress || '',
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        customerNotes: dto.notes || '',
+        totalPrice,
+        platformFee,
+        companyEarnings,
+        staffEarnings,
+        status: 'pending' as any,
+      },
+      include: {
+        customer: {
+          select: { id: true, fullName: true, email: true, phone: true },
+        },
+        company: {
+          select: { id: true, name: true, ownerId: true, logoUrl: true },
+        },
+        service: true,
+      },
+    })) as any;
+
+    // Status log
+    await this.prisma.bookingStatusLog.create({
+      data: {
+        bookingId: booking.id,
+        newStatus: 'pending',
+        changedBy: BigInt(user.id),
+      },
+    });
+
+    // Notify company owner & customer
+    if (booking.company?.ownerId) {
+      await this.notificationsService.notifyBookingCreated(
+        BigInt(user.id),
+        booking.company.ownerId,
+        booking.service.name,
+        booking.id.toString(),
+      );
+    }
+
+    this.analytics.captureEvent(user.id.toString(), 'booking_created', {
+      bookingId: booking.id.toString(),
+      serviceId: booking.serviceId.toString(),
+      companyId: booking.companyId.toString(),
+      totalPrice,
+    });
+
+    const result = {
+      success: true,
+      message: 'Booking created successfully',
+      data: {
+        id: booking.id.toString(),
+        customerId: booking.customerId.toString(),
+        companyId: booking.companyId.toString(),
+        serviceId: booking.serviceId.toString(),
+        bookingDate: booking.bookingDate,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        serviceAddress: booking.serviceAddress,
+        latitude: booking.latitude,
+        longitude: booking.longitude,
+        basePrice,
+        totalPrice: Number(booking.totalPrice),
+        platformFee: Number(booking.platformFee),
+        companyEarnings: Number(booking.companyEarnings),
+        staffEarnings: Number(booking.staffEarnings),
+        status: booking.status,
+        customer: {
+          ...booking.customer,
+          id: booking.customer.id.toString(),
+        },
+        company: {
+          ...booking.company,
+          id: booking.company.id.toString(),
+          ownerId: booking.company.ownerId.toString(),
+        },
+        service: {
+          ...booking.service,
+          id: booking.service.id.toString(),
+          companyId: booking.service.companyId.toString(),
+          serviceTypeId: booking.service.serviceTypeId.toString(),
+        },
+        createdAt: booking.createdAt,
+        updatedAt: booking.updatedAt,
+      },
+    };
+
+    // Broadcast new booking to Admin KPI dashboard
+    this.adminGateway.broadcastKpiUpdate('new_booking', {
+      id: booking.id.toString(),
+      totalPrice: Number(booking.totalPrice),
+    });
+
+    return result;
+  }
+
+  async updateBookingStatus(id: bigint, status: string, user: any) {
+    const booking = await this.findOrFail(id);
+    validateTransition(booking.status, status);
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.booking.update({
+        where: { id },
+        data: { status: status as any },
+        include: { customer: true, company: true, service: true },
+      });
+      await tx.bookingStatusLog.create({
+        data: {
+          bookingId: id,
+          oldStatus: booking.status,
+          newStatus: status,
+          changedBy: BigInt(user.id),
+        },
+      });
+      return u;
+    });
+
+    // Notify customer
+    if (updated.customerId) {
+      await this.notificationsService.notifyBookingStatusChanged(
+        updated.customerId,
+        status,
+        updated.service.name,
+        id.toString(),
+      );
+    }
+
+    const result = {
+      message: 'Booking status updated successfully',
+      booking: this.serializeBooking(updated),
+    };
+
+    this.bookingsGateway.broadcastBookingUpdate(
+      id.toString(),
+      status,
+      result.booking,
+    );
+
+    // Broadcast status change to Admin dashboard
+    this.adminGateway.broadcastKpiUpdate('booking_status_changed', {
+      id: id.toString(),
+      status,
+    });
+
+    return result;
+  }
+
+  async assignStaff(id: bigint, staffId: string, user: any) {
+    const booking = await this.findOrFail(id, true);
+
+    if (!['pending', 'confirmed'].includes(booking.status)) {
+      throw new BadRequestException(
+        'Can only assign staff to pending or confirmed bookings',
+      );
+    }
+
+    const staff = await this.prisma.companyStaff.findFirst({
+      where: {
+        id: BigInt(staffId),
+        companyId: booking.companyId,
+        status: 'active',
+      },
+      include: { user: true },
+    });
+
+    if (!staff)
+      throw new BadRequestException(
+        'Staff not found or not active in this company',
+      );
+
+    const timeOff = await this.prisma.availabilitySlot.findFirst({
+      where: {
+        staffId: staff.id,
+        isAvailable: false,
+        date: booking.bookingDate,
+      },
+    });
+
+    if (timeOff) {
+      throw new BadRequestException(
+        'Staff member is on time off and unavailable for this date',
+      );
+    }
+
+    // Check for overlapping bookings
+    const overlapping = await this.prisma.booking.findFirst({
+      where: {
+        assignedStaffId: staff.id,
+        id: { not: booking.id },
+        status: { in: ['pending', 'confirmed', 'in_progress'] },
+        bookingDate: booking.bookingDate,
+        startTime: { lt: booking.endTime },
+        endTime: { gt: booking.startTime },
+      },
+    });
+
+    if (overlapping) {
+      throw new ConflictException(
+        'Staff member already has a booking that overlaps with this time',
+      );
+    }
+
+    const company = await this.prisma.company.findUnique({
+      where: { id: booking.companyId },
+      select: { walletBalance: true },
+    });
+
+    const staffDebtLimit = await this.settingsService.getSettingNumber(
+      'STAFF_DEBT_LIMIT',
+      -50,
+    );
+    const companyDebtLimit = await this.settingsService.getSettingNumber(
+      'COMPANY_DEBT_LIMIT',
+      -200,
+    );
+
+    if (Number(staff.walletBalance) < staffDebtLimit) {
+      throw new ForbiddenException(
+        `Staff member's wallet balance is below the debt limit of $${Math.abs(staffDebtLimit)}. Cannot assign new jobs.`,
+      );
+    }
+
+    if (company && Number(company.walletBalance) < companyDebtLimit) {
+      throw new ForbiddenException(
+        `Company's wallet balance is below the debt limit of $${Math.abs(companyDebtLimit)}. Cannot assign new jobs.`,
+      );
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.booking.update({
+        where: { id },
+        data: { assignedStaffId: BigInt(staffId) },
+        include: {
+          customer: true,
+          company: true,
+          service: true,
+          assignedStaff: { include: { user: true } },
+        },
+      });
+
+      await tx.bookingStatusLog.create({
+        data: {
+          bookingId: id,
+          oldStatus: booking.status,
+          newStatus: booking.status,
+          changedBy: BigInt(user.id),
+        },
+      });
+
+      return u;
+    });
+
+    // Send notifications outside the transaction to avoid timeout
+    await this.notificationsService
+      .createNotification(
+        staff.userId,
+        'new_assignment',
+        'New Job Assignment',
+        `You have been assigned to a ${updated.service.name} job`,
+        { bookingId: id.toString() },
+      )
+      .catch((e) =>
+        console.warn('Notification create failed (staff):', e?.message),
+      );
+
+    await this.notificationsService
+      .createNotification(
+        booking.customerId,
+        'staff_assigned',
+        'Staff Assigned',
+        `${staff.user.fullName} has been assigned to your booking`,
+        { bookingId: id.toString() },
+      )
+      .catch((e) =>
+        console.warn('Notification create failed (customer):', e?.message),
+      );
+
+    const result = {
+      success: true,
+      message: 'Staff assigned successfully',
+      booking: this.serializeBooking(updated),
+    };
+
+    this.bookingsGateway.broadcastBookingUpdate(
+      id.toString(),
+      booking.status,
+      result.booking,
+    );
+
+    return result;
+  }
+
+  async startJob(id: bigint, userId: bigint) {
+    const staff = await this.prisma.companyStaff.findFirst({
+      where: { userId },
+    });
+    if (!staff) throw new ForbiddenException('You are not registered as staff');
+
+    const booking = await this.findOrFail(id, true);
+
+    if (
+      !booking.assignedStaffId ||
+      booking.assignedStaffId.toString() !== staff.id.toString()
+    ) {
+      throw new BadRequestException('You are not assigned to this booking');
+    }
+
+    validateTransition(booking.status, 'in_progress');
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.booking.update({
+        where: { id },
+        data: {
+          status: 'in_progress',
+          actualStartTime: new Date(),
+          progressPercent: 0,
+        },
+        include: {
+          customer: true,
+          company: true,
+          service: true,
+          assignedStaff: true,
+        },
+      });
+
+      await tx.bookingStatusLog.create({
+        data: {
+          bookingId: id,
+          oldStatus: booking.status,
+          newStatus: 'in_progress',
+          changedBy: userId,
+        },
+      });
+
+      return u;
+    });
+
+    await this.notificationsService
+      .notifyBookingStatusChanged(
+        booking.customerId,
+        'in_progress',
+        updated.service.name,
+        id.toString(),
+      )
+      .catch((e) =>
+        console.warn('Notification create failed (in_progress):', e?.message),
+      );
+
+    const result = {
+      success: true,
+      message: 'Job started successfully',
+      booking: this.serializeBooking(updated),
+    };
+
+    this.bookingsGateway.broadcastBookingUpdate(
+      id.toString(),
+      'in_progress',
+      result.booking,
+    );
+
+    // Broadcast status change to Admin dashboard
+    this.adminGateway.broadcastKpiUpdate('booking_status_changed', {
+      id: id.toString(),
+      status: 'in_progress',
+    });
+
+    return result;
+  }
+
+  async updateProgress(
+    id: bigint,
+    userId: bigint,
+    progressPercent: number,
+    staffNotes?: string,
+  ) {
+    if (progressPercent < 0 || progressPercent > 100) {
+      throw new BadRequestException(
+        'progressPercent must be between 0 and 100',
+      );
+    }
+
+    const staff = await this.prisma.companyStaff.findFirst({
+      where: { userId },
+    });
+    if (!staff) throw new ForbiddenException('You are not registered as staff');
+
+    const booking = await this.findOrFail(id, true);
+
+    if (
+      !booking.assignedStaffId ||
+      booking.assignedStaffId.toString() !== staff.id.toString()
+    ) {
+      throw new BadRequestException('You are not assigned to this booking');
+    }
+
+    if (booking.status !== 'in_progress') {
+      throw new BadRequestException(
+        'Can only update progress for in-progress bookings',
+      );
+    }
+
+    const updateData: any = { progressPercent };
+    if (staffNotes !== undefined) updateData.staffNotes = staffNotes;
+
+    const updated = await this.prisma.booking.update({
+      where: { id },
+      data: updateData,
+      include: { customer: true, service: true, assignedStaff: true },
+    });
+
+    if ([25, 50, 75].includes(progressPercent)) {
+      await this.notificationsService
+        .createNotification(
+          booking.customerId,
+          'progress_update',
+          'Service Progress Update',
+          `Your service is ${progressPercent}% complete`,
+          { bookingId: id.toString() },
+        )
+        .catch((e) =>
+          console.warn('Notification create failed (progress):', e?.message),
+        );
+    }
+
+    const result = {
+      success: true,
+      message: 'Progress updated successfully',
+      booking: this.serializeBooking(updated),
+    };
+
+    this.bookingsGateway.broadcastBookingUpdate(
+      id.toString(),
+      booking.status,
+      result.booking,
+    );
+
+    return result;
+  }
+
+  async completeJob(id: bigint, userId: bigint) {
+    const staff = await this.prisma.companyStaff.findFirst({
+      where: { userId },
+    });
+    if (!staff) throw new ForbiddenException('You are not registered as staff');
+
+    const booking = await this.findOrFail(id, true);
+
+    if (
+      !booking.assignedStaffId ||
+      booking.assignedStaffId.toString() !== staff.id.toString()
+    ) {
+      throw new BadRequestException('You are not assigned to this booking');
+    }
+
+    validateTransition(booking.status, 'completed');
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.booking.update({
+        where: { id },
+        data: {
+          status: 'completed',
+          actualEndTime: new Date(),
+          progressPercent: 100,
+        },
+        include: {
+          customer: true,
+          company: true,
+          service: true,
+          assignedStaff: true,
+          payment: true,
+        },
+      });
+
+      await tx.bookingStatusLog.create({
+        data: {
+          bookingId: id,
+          oldStatus: booking.status,
+          newStatus: 'completed',
+          changedBy: userId,
+        },
+      });
+
+      await this.processJobCompletionPayments(tx, u, staff, id);
+
+      return u;
+    });
+
+    await this.notificationsService
+      .notifyBookingStatusChanged(
+        booking.customerId,
+        'completed',
+        updated.service.name,
+        id.toString(),
+      )
+      .catch((e) =>
+        console.warn('Notification create failed (completed):', e?.message),
+      );
+
+    const result = {
+      success: true,
+      message: 'Job completed successfully',
+      booking: this.serializeBooking(updated),
+    };
+
+    this.bookingsGateway.broadcastBookingUpdate(
+      id.toString(),
+      'completed',
+      result.booking,
+    );
+
+    // Broadcast completion to Admin KPI metrics
+    this.adminGateway.broadcastKpiUpdate('booking_status_changed', {
+      id: id.toString(),
+      status: 'completed',
+    });
+
+    return result;
+  }
+
+  async cancelBooking(id: bigint, reason: string | undefined, user: any) {
+    const booking = await this.findOrFail(id);
+
+    if (booking.customerId !== BigInt(user.id) && user.role !== 'admin') {
+      throw new ForbiddenException('Access denied');
+    }
+
+    if (booking.status === 'cancelled' || booking.status === 'completed') {
+      throw new BadRequestException('Cannot cancel this booking');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      validateTransition(booking.status, 'cancelled');
+
+      const u = await tx.booking.update({
+        where: { id },
+        data: { status: 'cancelled' },
+        include: {
+          customer: true,
+          company: {
+            select: { id: true, name: true, ownerId: true, logoUrl: true },
+          },
+          service: true,
+        },
+      });
+
+      await tx.bookingStatusLog.create({
+        data: {
+          bookingId: id,
+          oldStatus: booking.status,
+          newStatus: 'cancelled',
+          changedBy: BigInt(user.id),
+        },
+      });
+
+      await tx.cancellation.create({
+        data: {
+          bookingId: id,
+          cancelledBy: BigInt(user.id),
+          reason: reason || null,
+        },
+      });
+
+      return u;
+    });
+
+    // Notifications
+    if (user.role === 'customer' && updated.company?.ownerId) {
+      await this.notificationsService
+        .createNotification(
+          updated.company.ownerId,
+          'booking_cancelled',
+          'Booking Cancelled',
+          `A customer has cancelled booking #${id}. Reason: ${reason || 'None provided'}`,
+          { bookingId: id.toString() },
+        )
+        .catch((e) =>
+          console.warn('Notification create failed (cancelled):', e?.message),
+        );
+    } else if (user.role !== 'customer') {
+      await this.notificationsService
+        .notifyBookingStatusChanged(
+          booking.customerId,
+          'cancelled',
+          updated.service.name,
+          id.toString(),
+        )
+        .catch((e) =>
+          console.warn('Notification create failed (cancelled):', e?.message),
+        );
+    }
+
+    const result = {
+      message: 'Booking cancelled successfully',
+      booking: this.serializeBooking(updated),
+    };
+
+    this.bookingsGateway.broadcastBookingUpdate(
+      id.toString(),
+      'cancelled',
+      result.booking,
+    );
+
+    // Broadcast cancellation to Admin dashboard
+    this.adminGateway.broadcastKpiUpdate('booking_cancelled', {
+      id: id.toString(),
+    });
+
+    return result;
+  }
+
+  async getMyAssignedBookings(userId: bigint, query: any) {
+    const staff = await this.prisma.companyStaff.findFirst({
+      where: { userId },
+    });
+    if (!staff) throw new ForbiddenException('You are not registered as staff');
+
+    const { status, page = 1, limit = 10 } = query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const where: any = { assignedStaffId: staff.id };
+    if (status) {
+      where.status = status.includes(',') ? { in: status.split(',') } : status;
+    }
+
+    const [bookings, total] = await Promise.all([
+      this.prisma.booking.findMany({
+        where,
+        skip: Number(skip),
+        take: Number(limit),
+        include: {
+          customer: { select: { id: true, fullName: true, phone: true } },
+          company: { select: { id: true, name: true, logoUrl: true } },
+          service: {
+            include: { serviceType: { include: { category: true } } },
+          },
+          payment: {
+            select: {
+              id: true,
+              bookingId: true,
+              userId: true,
+              amount: true,
+              status: true,
+              method: true,
+            },
+          },
+        },
+        orderBy: { bookingDate: 'asc' },
+      }),
+      this.prisma.booking.count({ where }),
+    ]);
+
+    return {
+      bookings: bookings.map((b) => this.serializeBooking(b)),
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit)),
+      },
+    };
+  }
+
+  // ─── Private Helpers ───────────────────────────────────────────────────────
+
+  private async findOrFail(id: bigint, includeRelations = false) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id },
+      include: includeRelations
+        ? {
+            customer: true,
+            company: {
+              select: { id: true, name: true, ownerId: true, logoUrl: true },
+            },
+            service: true,
+            assignedStaff: { include: { user: true } },
+            payment: true,
+          }
+        : undefined,
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return booking;
+  }
+
+  private async processJobCompletionPayments(tx: any, u: any, staff: any, id: bigint) {
+    // Auto-confirm cash payment on completion
+    if (u.payment && u.payment.method === 'cash') {
+      if (u.payment.status === 'pending') {
+        await tx.payment.update({
+          where: { id: u.payment.id },
+          data: { status: 'paid', paidAt: new Date() },
+        });
+      }
+    }
+
+    const platformFee = Number(u.platformFee || 0);
+    const companyEarnings = Number(u.companyEarnings || 0);
+    const staffEarnings = Number(u.staffEarnings || 0);
+
+    if (u.payment && u.payment.method === 'cash') {
+      // Staff collected the cash (100%).
+      // They owe the Company (companyEarnings) and Platform (platformFee).
+      const staffOwes = companyEarnings + platformFee;
+
+      if (staffOwes > 0) {
+        await tx.walletTransaction.create({
+          data: {
+            staffId: staff.id,
+            amount: staffOwes,
+            type: 'debit',
+            description: `Cash collection deduction for booking #${id} (Owed to Company & Platform)`,
+            bookingId: id,
+          },
+        });
+        await tx.companyStaff.update({
+          where: { id: staff.id },
+          data: { walletBalance: { decrement: staffOwes } },
+        });
+      }
+
+      // Company owes Platform (platformFee) because Staff will hand the cash to Company
+      if (platformFee > 0) {
+        await tx.transaction.create({
+          data: {
+            ownerType: 'company',
+            ownerId: u.companyId,
+            amount: platformFee,
+            type: 'debit',
+            category: 'commission',
+            description: `Platform fee deduction for cash booking #${id}`,
+            bookingId: id,
+          },
+        });
+        await tx.company.update({
+          where: { id: u.companyId },
+          data: { walletBalance: { decrement: platformFee } },
+        });
+      }
+    } else {
+      // Admin collected the funds (Card/Online).
+      // Admin owes Company (companyEarnings)
+      if (companyEarnings > 0) {
+        await tx.transaction.create({
+          data: {
+            ownerType: 'company',
+            ownerId: u.companyId,
+            amount: companyEarnings,
+            type: 'credit',
+            category: 'service_payment',
+            description: `Earnings credited for non-cash booking #${id}`,
+            bookingId: id,
+          },
+        });
+        await tx.company.update({
+          where: { id: u.companyId },
+          data: { walletBalance: { increment: companyEarnings } },
+        });
+      }
+
+      // Admin owes Staff (staffEarnings)
+      if (staffEarnings > 0) {
+        await tx.walletTransaction.create({
+          data: {
+            staffId: staff.id,
+            amount: staffEarnings,
+            type: 'credit',
+            description: `Earnings credited for non-cash booking #${id}`,
+            bookingId: id,
+          },
+        });
+        await tx.companyStaff.update({
+          where: { id: staff.id },
+          data: { walletBalance: { increment: staffEarnings } },
+        });
+      }
+    }
+  }
+
+  private serializeBigIntFields(result: any) {
+    const bigintFields = ['id', 'customerId', 'companyId', 'serviceId', 'assignedStaffId'];
+    for (const f of bigintFields) {
+      if (result[f] != null) result[f] = result[f].toString();
+    }
+  }
+
+  private serializeRelatedEntities(result: any) {
+    if (result.customer?.id) {
+      result.customer = { ...result.customer, id: result.customer.id.toString() };
+    }
+    if (result.company?.id) {
+      result.company = {
+        ...result.company,
+        id: result.company.id.toString(),
+        ownerId: result.company.ownerId?.toString(),
+      };
+    }
+    if (result.service?.id) {
+      result.service = {
+        ...result.service,
+        id: result.service.id.toString(),
+        companyId: result.service.companyId?.toString(),
+        serviceTypeId: result.service.serviceTypeId?.toString(),
+        basePrice: result.service.basePrice ? Number(result.service.basePrice) : null,
+      };
+    }
+    if (result.assignedStaff?.id) {
+      const staff = result.assignedStaff;
+      result.assignedStaff = {
+        ...staff,
+        id: staff.id.toString(),
+        userId: staff.userId?.toString(),
+        companyId: staff.companyId?.toString(),
+        fullName: staff.user?.fullName ?? staff.fullName ?? null,
+        phone: staff.user?.phone ?? staff.phone ?? null,
+        email: staff.user?.email ?? staff.email ?? null,
+        avatar: staff.user?.avatar ?? staff.avatar ?? null,
+        user: staff.user ? { ...staff.user, id: staff.user.id?.toString() } : null,
+      };
+    }
+  }
+
+  private serializeOptionalRecords(result: any) {
+    if (result.payment?.id) {
+      result.payment = {
+        ...result.payment,
+        id: result.payment.id.toString(),
+        bookingId: result.payment.bookingId?.toString(),
+        userId: result.payment.userId?.toString(),
+        amount: result.payment.amount ? Number(result.payment.amount) : null,
+      };
+    }
+    if (result.review?.id) {
+      result.review = {
+        ...result.review,
+        id: result.review.id.toString(),
+        bookingId: result.review.bookingId?.toString(),
+        customerId: result.review.customerId?.toString(),
+      };
+    }
+    if (result.cancellation?.id) {
+      result.cancellation = {
+        ...result.cancellation,
+        id: result.cancellation.id.toString(),
+        bookingId: result.cancellation.bookingId?.toString(),
+        cancelledBy: result.cancellation.cancelledBy?.toString(),
+      };
+    }
+    if (result.statusLogs) {
+      result.statusLogs = result.statusLogs.map((l: any) => ({
+        ...l,
+        id: l.id?.toString(),
+        bookingId: l.bookingId?.toString(),
+        changedBy: l.changedBy?.toString(),
+      }));
+    }
+  }
+
+  private serializeBooking(b: any): any {
+    if (!b) return null;
+    const result: any = { ...b };
+    
+    this.serializeBigIntFields(result);
+    this.serializeRelatedEntities(result);
+    this.serializeOptionalRecords(result);
+
+    if (result.totalPrice != null) result.totalPrice = Number(result.totalPrice);
+    if (result.platformFee != null) result.platformFee = Number(result.platformFee);
+    if (result.companyEarnings != null) result.companyEarnings = Number(result.companyEarnings);
+    if (result.staffEarnings != null) result.staffEarnings = Number(result.staffEarnings);
+      
+    return result;
+  }
+
+  async uploadBookingPhoto(
+    bookingId: bigint,
+    file: any,
+    photoType: 'before' | 'after',
+    user: any,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const fileExt = path.extname(file.originalname) || '.jpg';
+    const fileName = `booking_${bookingId}_${photoType}_${Date.now()}${fileExt}`;
+    const filePath = path.join(uploadDir, fileName);
+    fs.writeFileSync(filePath, file.buffer);
+    const imageUrl = `/uploads/${fileName}`;
+
+    // Update booking staff notes with photo URL
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    let notesObj: any = {};
+    try {
+      notesObj = JSON.parse(booking.staffNotes || '{}');
+    } catch (e) {
+      notesObj = { text: booking.staffNotes };
+    }
+
+    notesObj[photoType] = imageUrl;
+
+    await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        staffNotes: JSON.stringify(notesObj),
+      },
+    });
+
+    return {
+      success: true,
+      imageUrl,
+      photoType,
+    };
+  }
+}

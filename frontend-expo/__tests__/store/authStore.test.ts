@@ -1,0 +1,222 @@
+// Mock AsyncStorage before any imports
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
+// Mock axios
+jest.mock('axios', () => {
+  const mockAxios: any = {
+    create: jest.fn(() => mockAxios),
+    get: jest.fn(),
+    post: jest.fn(),
+    interceptors: {
+      request: { use: jest.fn() },
+      response: { use: jest.fn() },
+    },
+    defaults: { headers: { common: {} } },
+  };
+  return { default: mockAxios, ...mockAxios };
+});
+
+// Mock expo-router
+jest.mock('expo-router', () => ({ useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: jest.fn() }) }));
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+Platform.OS = 'ios';
+
+import { useAuthStore } from '../../store/authStore';
+import { api } from '../../store/authStore';
+
+const mockUser = {
+  id: '1',
+  email: 'test@example.com',
+  role: 'customer' as const,
+  name: 'Test User',
+};
+
+describe('authStore', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Reset the store state to defaults
+    useAuthStore.setState({ user: null, isLoading: true });
+  });
+
+  // ─── login ────────────────────────────────────────────────────────────────
+
+  describe('login', () => {
+    it('should save token to AsyncStorage and set user on successful login', async () => {
+      (api.post as jest.Mock).mockResolvedValueOnce({
+        data: { token: 'mock-jwt-token', user: mockUser },
+      });
+
+      await useAuthStore.getState().login('test@example.com', 'Password1!');
+
+      expect(api.post).toHaveBeenCalledWith('/api/auth/login', {
+        email: 'test@example.com',
+        password: 'Password1!',
+      });
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith('authToken', 'mock-jwt-token');
+      expect(useAuthStore.getState().user).toEqual(mockUser);
+    });
+
+    it('should throw and NOT set user on failed login', async () => {
+      (api.post as jest.Mock).mockRejectedValueOnce(new Error('Invalid credentials'));
+
+      await expect(
+        useAuthStore.getState().login('bad@example.com', 'wrongpassword')
+      ).rejects.toThrow('Invalid credentials');
+
+      expect(useAuthStore.getState().user).toBeNull();
+    });
+  });
+
+  // ─── register ─────────────────────────────────────────────────────────────
+
+  describe('register', () => {
+    it('should register a user, save token and set user state', async () => {
+      (api.post as jest.Mock).mockResolvedValueOnce({
+        data: { token: 'register-token', user: mockUser },
+      });
+
+      await useAuthStore.getState().register('Test User', 'test@example.com', 'Password1!');
+
+      expect(api.post).toHaveBeenCalledWith('/api/auth/register', {
+        name: 'Test User',
+        email: 'test@example.com',
+        password: 'Password1!',
+        role: 'customer',
+      });
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith('authToken', 'register-token');
+      expect(useAuthStore.getState().user).toEqual(mockUser);
+    });
+
+    it('should default role to "customer" when no role provided', async () => {
+      (api.post as jest.Mock).mockResolvedValueOnce({
+        data: { token: 'tk', user: mockUser },
+      });
+
+      await useAuthStore.getState().register('Test', 'test@example.com', 'Password1!');
+
+      expect(api.post).toHaveBeenCalledWith(
+        '/api/auth/register',
+        expect.objectContaining({ role: 'customer' })
+      );
+    });
+  });
+
+  // ─── googleLogin ──────────────────────────────────────────────────────────
+
+  describe('googleLogin', () => {
+    it('should set user and save token on successful Google login', async () => {
+      const googleUser = { ...mockUser, email: 'google@gmail.com' };
+      (api.post as jest.Mock).mockResolvedValueOnce({
+        data: { token: 'google-token', user: googleUser },
+      });
+
+      await useAuthStore.getState().googleLogin('google_id_token');
+
+      expect(api.post).toHaveBeenCalledWith('/api/auth/google', {
+        token: 'google_id_token',
+        role: 'customer',
+      });
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith('authToken', 'google-token');
+      expect(useAuthStore.getState().user).toEqual(googleUser);
+    });
+  });
+
+  // ─── facebookLogin ────────────────────────────────────────────────────────
+
+  describe('facebookLogin', () => {
+    it('should set user and save token on successful Facebook login', async () => {
+      const fbUser = { ...mockUser, email: 'fb@facebook.com' };
+      (api.post as jest.Mock).mockResolvedValueOnce({
+        data: { token: 'fb-token', user: fbUser },
+      });
+
+      await useAuthStore.getState().facebookLogin('fb_access_token');
+
+      expect(api.post).toHaveBeenCalledWith('/api/auth/facebook', {
+        token: 'fb_access_token',
+        role: 'customer',
+      });
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith('authToken', 'fb-token');
+      expect(useAuthStore.getState().user).toEqual(fbUser);
+    });
+  });
+
+  // ─── checkAuth ────────────────────────────────────────────────────────────
+
+  describe('checkAuth', () => {
+    it('should restore user from valid stored token', async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('stored-token');
+      (api.get as jest.Mock).mockResolvedValueOnce({ data: { data: mockUser } });
+
+      await useAuthStore.getState().checkAuth();
+
+      expect(useAuthStore.getState().user).toEqual(mockUser);
+      expect(useAuthStore.getState().isLoading).toBe(false);
+    });
+
+    it('should clear user and set isLoading=false when no token in storage', async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(null);
+
+      await useAuthStore.getState().checkAuth();
+
+      expect(useAuthStore.getState().user).toBeNull();
+      expect(useAuthStore.getState().isLoading).toBe(false);
+    });
+
+    it('should clear auth on 401 from /api/auth/me', async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('expired-token');
+      const error: any = new Error('Unauthorized');
+      error.response = { status: 401 };
+      (api.get as jest.Mock).mockRejectedValueOnce(error);
+
+      await useAuthStore.getState().checkAuth();
+
+      expect(AsyncStorage.removeItem).toHaveBeenCalledWith('authToken');
+      expect(useAuthStore.getState().user).toBeNull();
+      expect(useAuthStore.getState().isLoading).toBe(false);
+    });
+
+    it('should NOT clear user on network error (keep cached state)', async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('valid-token');
+      const networkError = new Error('Network Error');
+      // No .response property = network error
+      (api.get as jest.Mock).mockRejectedValueOnce(networkError);
+
+      // Pre-set user to simulate cached state
+      useAuthStore.setState({ user: mockUser });
+      await useAuthStore.getState().checkAuth();
+
+      // User should still be set (network errors don't log out)
+      expect(useAuthStore.getState().user).toEqual(mockUser);
+      expect(useAuthStore.getState().isLoading).toBe(false);
+    });
+  });
+
+  // ─── logout ───────────────────────────────────────────────────────────────
+
+  describe('logout', () => {
+    it('should clear token from storage and set user to null', async () => {
+      useAuthStore.setState({ user: mockUser });
+      (api.post as jest.Mock).mockResolvedValueOnce({});
+
+      await useAuthStore.getState().logout();
+
+      expect(AsyncStorage.removeItem).toHaveBeenCalledWith('authToken');
+      expect(useAuthStore.getState().user).toBeNull();
+    });
+
+    it('should still clear local state even if server logout call fails', async () => {
+      useAuthStore.setState({ user: mockUser });
+      (api.post as jest.Mock).mockRejectedValueOnce(new Error('Network Error'));
+
+      await useAuthStore.getState().logout();
+
+      expect(AsyncStorage.removeItem).toHaveBeenCalledWith('authToken');
+      expect(useAuthStore.getState().user).toBeNull();
+    });
+  });
+});

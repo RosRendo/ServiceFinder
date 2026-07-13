@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Allow: /explore
+Allow: /explore/*
+
+# Disallow authenticated & private dashboards
+Disallow: /customer/
+Disallow: /company/
+Disallow: /staff/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /booking/
+Disallow: /api/
+
+# Disallow common bot traps
+Disallow: /*.json$
+Disallow: /*?*page=
+
+Sitemap: https://service-finder-five.vercel.app/sitemap.xml

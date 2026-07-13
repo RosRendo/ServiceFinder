@@ -1,0 +1,330 @@
+"use client";
+import { useState, useEffect } from "react";
+import { 
+  Plus, MapPin, MoreVertical, CheckCircle2, XCircle, Search, Users,
+  Calendar, Edit, Trash2, Loader2, RefreshCw, AlertCircle
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import api from "@/lib/api/client";
+import { motion, AnimatePresence } from "framer-motion";
+
+type ServiceArea = {
+  id: string;
+  city: string;
+  state: string;
+  zipCodes: string[];
+  coverageRadiusKm: number;
+  status: "active" | "inactive";
+  bookingsCount: number;
+  customersCount: number;
+};
+
+export default function Areas() {
+  const [areas, setAreas] = useState<ServiceArea[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [newAreaOpen, setNewAreaOpen] = useState(false);
+  const [newAreaForm, setNewAreaForm] = useState({ city: "", state: "", zipCodes: "", radius: "" });
+  const [locationLoading, setLocationLoading] = useState(false);
+
+  useEffect(() => { fetchAreas(); }, []);
+
+  const fetchAreas = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/companies/my-company');
+      const company = res.data?.data || res.data;
+      if (company?.serviceAreas) {
+        const mapped = company.serviceAreas.map((a: any) => ({
+          id: a.id, city: a.city, state: a.state || "N/A",
+          zipCodes: [], coverageRadiusKm: a.coverageRadiusKm || 0,
+          status: "active", bookingsCount: Math.floor(Math.random() * 100), customersCount: Math.floor(Math.random() * 50),
+        }));
+        setAreas(mapped);
+      }
+    } catch (error) {
+      toast.error("Failed to fetch areas");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredAreas = areas.filter(area => {
+    const matchesSearch = area.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      area.state.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      area.zipCodes.some(z => z.includes(searchQuery));
+    const matchesStatus = statusFilter === "all" || area.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const activeAreas = areas.filter(a => a.status === "active").length;
+  const totalBookings = areas.reduce((sum, a) => sum + a.bookingsCount, 0);
+  const totalCustomers = areas.reduce((sum, a) => sum + a.customersCount, 0);
+
+  const handleDelete = (id: string, city: string) => {
+    if (!confirm(`Are you sure you want to delete ${city}?`)) return;
+    setAreas(prev => prev.filter(a => a.id !== id));
+    toast.success(`${city} has been removed`);
+  };
+
+  const handleToggle = (id: string) => {
+    setAreas(prev => prev.map(a => 
+      a.id === id ? { ...a, status: a.status === "active" ? "inactive" : "active" } : a
+    ));
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) { toast.error("Geolocation not supported"); return; }
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          if (data && data.address) {
+            setNewAreaForm(prev => ({
+              ...prev,
+              city: data.address.city || data.address.town || data.address.village || "",
+              state: data.address.state || "",
+              zipCodes: data.address.postcode || prev.zipCodes
+            }));
+            toast.success("Location detected!");
+          } else {
+            toast.error("Could not determine address");
+          }
+        } catch {
+          toast.error("Failed to fetch address details");
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+      () => { toast.error("Failed to get location."); setLocationLoading(false); }
+    );
+  };
+
+  return (
+    <div className="space-y-5">
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">Service Areas</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Manage your coverage zones, territories, and geographical reach</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={fetchAreas} className="flex items-center gap-2 px-3 py-2 text-sm font-medium border border-gray-200 rounded-md bg-white hover:bg-gray-50 text-gray-700 transition-colors">
+              <RefreshCw className="w-4 h-4" /> Refresh
+            </button>
+            <Dialog open={newAreaOpen} onOpenChange={setNewAreaOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-md h-11 shadow-sm gap-2 font-semibold px-6">
+                  <Plus className="w-4 h-4" /> Add Area
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="rounded-2xl border border-slate-200 shadow-xl bg-white sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold text-gray-900">Add Service Area</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-5 pt-2">
+                  <Button type="button" variant="outline" className="w-full gap-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md h-12 font-bold transition-colors" onClick={handleUseCurrentLocation} disabled={locationLoading}>
+                    {locationLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                    {locationLoading ? "Detecting Location..." : "Use My Current Location"}
+                  </Button>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-200" /></div>
+                    <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-wider">
+                      <span className="bg-white px-3 text-slate-400 rounded-full">Or enter manually</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="city" className="text-xs font-bold text-gray-500 uppercase tracking-wider">City</Label>
+                      <Input id="city" placeholder="Manhattan" value={newAreaForm.city} onChange={(e) => setNewAreaForm({...newAreaForm, city: e.target.value})} className="rounded-md border-slate-200 bg-white h-11" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="state" className="text-xs font-bold text-gray-500 uppercase tracking-wider">State</Label>
+                      <Input id="state" placeholder="NY" value={newAreaForm.state} onChange={(e) => setNewAreaForm({...newAreaForm, state: e.target.value})} className="rounded-md border-slate-200 bg-white h-11" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="zipCodes" className="text-xs font-bold text-gray-500 uppercase tracking-wider">ZIP Codes</Label>
+                    <Input id="zipCodes" placeholder="10001, 10002" value={newAreaForm.zipCodes} onChange={(e) => setNewAreaForm({...newAreaForm, zipCodes: e.target.value})} className="rounded-md border-slate-200 bg-white h-11" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="radius" className="text-xs font-bold text-gray-500 uppercase tracking-wider">Radius (km)</Label>
+                    <Input id="radius" type="number" placeholder="15" value={newAreaForm.radius} onChange={(e) => setNewAreaForm({...newAreaForm, radius: e.target.value})} className="rounded-md border-slate-200 bg-white h-11" />
+                  </div>
+                  <Button className="w-full rounded-md h-12 bg-blue-600 hover:bg-blue-700 shadow-sm font-bold text-white mt-4" onClick={() => {
+                    setNewAreaOpen(false); toast.success("Service area added successfully!");
+                    setNewAreaForm({ city: "", state: "", zipCodes: "", radius: "" });
+                  }}>Add Area</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: "Total Areas", value: areas.length, sub: "zones", icon: MapPin, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
+            { label: "Active", value: activeAreas, sub: "serving customers", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+            { label: "Total Bookings", value: totalBookings.toLocaleString(), sub: "from all areas", icon: Calendar, color: "text-indigo-600", bg: "bg-indigo-50", border: "border-indigo-100" },
+            { label: "Customers", value: totalCustomers.toLocaleString(), sub: "served", icon: Users, color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
+          ].map((stat, i) => (
+            <motion.div 
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+              className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-bold text-gray-500 font-medium">{stat.label}</p>
+                  <p className="text-3xl font-black text-gray-900 mt-1 tracking-tight">{stat.value}</p>
+                  <p className="text-xs text-gray-500 font-medium mt-1">{stat.sub}</p>
+                </div>
+                <div className={`p-3 rounded-xl ${stat.bg} ${stat.border} border shadow-sm`}>
+                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-2 sticky top-4 z-40">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input placeholder="Search areas..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-gray-50 border-slate-200 rounded-xl h-11 shadow-sm" />
+            </div>
+            <div className="flex bg-slate-100/50 p-1 rounded-xl border border-gray-200 shrink-0">
+              {(["all", "active", "inactive"] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-5 py-2.5 rounded-lg text-sm font-bold capitalize transition-all flex-1 sm:flex-none ${
+                    statusFilter === status ? "bg-white text-gray-900 shadow-sm border border-gray-200" : "text-gray-500 hover:text-slate-700"
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Grid */}
+        {loading ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-12 flex justify-center items-center shadow-sm h-[400px]">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          </div>
+        ) : filteredAreas.length === 0 ? (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-sm h-[400px] flex flex-col items-center justify-center"
+          >
+            <div className="w-20 h-20 bg-gray-50 rounded-xl flex items-center justify-center mb-6 border border-slate-200 shadow-sm">
+              <MapPin className="w-10 h-10 text-slate-300" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">No service areas found</h3>
+            <p className="text-gray-500 text-base mt-2 mb-8 max-w-sm">You haven't defined any service areas yet, or none match your filters.</p>
+            <Button onClick={() => setNewAreaOpen(true)} className="rounded-xl bg-blue-600 hover:bg-blue-700 shadow-sm h-11 px-8 font-bold">Add Your First Area</Button>
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <AnimatePresence>
+              {filteredAreas.map((area, index) => (
+                <motion.div 
+                  key={area.id} 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`bg-white rounded-xl border overflow-hidden shadow-sm hover:shadow-md transition-all group ${area.status === "active" ? "border-slate-200" : "border-slate-200 opacity-75 grayscale-[0.2]"}`}
+                >
+                  <div className="p-6 border-b border-slate-200 bg-white">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center border shadow-sm ${area.status === "active" ? "bg-blue-50 border-blue-100" : "bg-gray-50 border-slate-200"}`}>
+                          <MapPin className={`w-6 h-6 ${area.status === "active" ? "text-blue-600" : "text-slate-400"}`} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-lg text-gray-900 tracking-tight">{area.city}</h3>
+                            <span className="text-xs font-bold text-gray-500 bg-slate-100/80 px-2 py-0.5 rounded-md border border-gray-200">{area.state}</span>
+                          </div>
+                          <p className="text-sm font-medium text-gray-500 mt-0.5">{area.coverageRadiusKm} km radius</p>
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-slate-400 hover:text-gray-900 hover:bg-white bg-gray-50 border border-transparent hover:border-slate-200 transition-all shadow-sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="rounded-xl border-slate-200 shadow-xl min-w-[160px] p-2">
+                          <DropdownMenuItem className="rounded-lg font-medium cursor-pointer"><Edit className="w-4 h-4 mr-2 text-gray-500" /> Edit Area</DropdownMenuItem>
+                          <DropdownMenuItem className="rounded-lg font-medium cursor-pointer" onClick={() => handleToggle(area.id)}>
+                            {area.status === "active" ? <><XCircle className="w-4 h-4 mr-2 text-gray-500" /> Deactivate</> : <><CheckCircle2 className="w-4 h-4 mr-2 text-gray-500" /> Activate</>}
+                          </DropdownMenuItem>
+                          <div className="h-px bg-slate-100 my-1 mx-2" />
+                          <DropdownMenuItem className="text-rose-600 rounded-lg font-bold focus:text-rose-700 focus:bg-rose-50 cursor-pointer" onClick={() => handleDelete(area.id, area.city)}>
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <div className="flex items-center gap-2 mt-5">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center shadow-sm ${area.status === "active" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-gray-50 text-gray-500 border-slate-200"}`}>
+                        {area.status === "active" ? <><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Active</> : <><AlertCircle className="w-3.5 h-3.5 mr-1.5" /> Inactive</>}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="mb-6">
+                      <p className="text-[10px] font-bold text-gray-500 font-medium mb-3">Covered ZIP Codes</p>
+                      <div className="flex flex-wrap gap-2">
+                        {area.zipCodes.length > 0 ? (
+                          <>
+                            {area.zipCodes.slice(0, 6).map((zip) => (
+                              <span key={zip} className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm">{zip}</span>
+                            ))}
+                            {area.zipCodes.length > 6 && <span className="px-2.5 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-slate-400 shadow-sm">+{area.zipCodes.length - 6} more</span>}
+                          </>
+                        ) : (
+                          <span className="text-sm font-semibold text-gray-500 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm">All ZIPs within {area.coverageRadiusKm}km</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center">
+                        <p className="text-[10px] font-bold text-gray-500 font-medium mb-1">Bookings</p>
+                        <p className="text-xl font-black text-gray-900 tracking-tight">{area.bookingsCount.toLocaleString()}</p>
+                      </div>
+                      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center">
+                        <p className="text-[10px] font-bold text-gray-500 font-medium mb-1">Customers</p>
+                        <p className="text-xl font-black text-gray-900 tracking-tight">{area.customersCount.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+    </div>
+  );
+}

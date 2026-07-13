@@ -1,0 +1,168 @@
+# ============================================
+# ROOT .gitignore - Service Finder Platform
+# ============================================
+
+# ============================================
+# Node.js / npm / yarn
+# ============================================
+node_modules/
+npm-debug.log*
+npm-error.log*
+yarn-debug.log*
+yarn-error.log*
+yarn.lock
+.pnp
+.pnp.js
+
+# ============================================
+# Environment Variables (SENSITIVE!)
+# ============================================
+.env
+.env.local
+.env.*.local
+.env.production.local
+.env.development.local
+.env.test.local
+
+# ============================================
+# IDE & Editor
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+.vim/
+
+# ============================================
+# Build & Distribution
+# ============================================
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+.turbo/
+
+# ============================================
+# Next.js
+# ============================================
+/.next/
+/out/
+
+# ============================================
+# React Native / Expo
+# ============================================
+.expo/
+expo-env.d.ts
+.expo-shared/
+dist/
+web-build/
+.metro-health-check*
+
+# ============================================
+# Android Build
+# ============================================
+android/.gradle/
+android/local.properties
+android/.DS_Store
+android/app/debug/
+android/app/release/
+*.jks
+*.keystore
+
+# ============================================
+# iOS Build
+# ============================================
+ios/Pods/
+ios/Podfile.lock
+*.xcarchive
+*.ipa
+*.app
+
+# ============================================
+# NestJS / Backend
+# ============================================
+dist/
+coverage/
+.nyc_output/
+
+# ============================================
+# Prisma
+# ============================================
+prisma/migrations/dev.db
+prisma/dev.db
+
+# ============================================
+# Testing
+# ============================================
+/coverage
+.nyc_output/
+*.lcov
+test-results/
+playwright-report/
+
+# ============================================
+# Logs
+# ============================================
+logs/
+*.log
+
+# ============================================
+# OS Files
+# ============================================
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+._*
+
+# ============================================
+# Docker
+# ============================================
+.docker/
+docker-compose.override.yml
+
+# ============================================
+# Miscellaneous
+# ============================================
+*.bak
+*.tmp
+temp/
+.cache/
+.turbo/
+dist-ssr/
+
+# ============================================
+# Platform Specific
+# ============================================
+*.orig.*
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.kotlin/
+
+# ============================================
+# Uploads (if stored locally)
+# ============================================
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# ============================================
+# Certificates & Keys (SECURITY)
+# ============================================
+*.pem
+*.crt
+*.key
+
+# ============================================
+# Local Development
+# ============================================
+.vercel/
+.eslintcache

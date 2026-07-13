@@ -1,0 +1,6 @@
+flask==3.0.0
+ultralytics==8.2.10
+numpy==1.26.4
+opencv-python-headless==4.9.0.80
+pillow==10.3.0
+requests==2.31.0

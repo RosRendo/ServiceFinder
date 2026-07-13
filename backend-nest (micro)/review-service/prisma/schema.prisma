@@ -1,0 +1,41 @@
+// REVIEW SERVICE — Prisma Schema (PostgreSQL)
+// Owns: reviews, saved_items
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Review {
+  id             BigInt  @id @default(autoincrement())
+  // Cross-service IDs — no FK constraints
+  bookingId      BigInt  @unique @map("booking_id")
+  customerId     BigInt  @map("customer_id")
+  companyRating  Int     @map("company_rating")
+  companyComment String? @map("company_comment")
+  staffId        BigInt? @map("staff_id")
+  staffRating    Int?    @map("staff_rating")
+  staffComment   String? @map("staff_comment")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([bookingId])
+  @@index([customerId])
+  @@map("reviews")
+}
+
+model SavedItem {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt   @map("user_id")
+  itemType  String   @map("item_type") @db.VarChar(20) // "company" or "service"
+  itemId    BigInt   @map("item_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, itemType, itemId])
+  @@index([userId])
+  @@map("saved_items")
+}

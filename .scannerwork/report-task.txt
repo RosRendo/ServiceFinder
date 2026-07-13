@@ -1,0 +1,6 @@
+projectKey=ServiceFinder
+serverUrl=http://localhost:9000
+serverVersion=26.6.0.123539
+dashboardUrl=http://localhost:9000/dashboard?id=ServiceFinder
+ceTaskId=03ce4daf-d518-4491-b69e-93e788fe5664
+ceTaskUrl=http://localhost:9000/api/ce/task?id=03ce4daf-d518-4491-b69e-93e788fe5664

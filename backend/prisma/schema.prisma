@@ -1,0 +1,581 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  customer
+  company_admin
+  staff
+  admin
+}
+
+enum UserStatus {
+  active
+  inactive
+  suspended
+}
+
+enum StaffRole {
+  cleaner
+  supervisor
+}
+
+enum StaffStatus {
+  active
+  inactive
+}
+
+enum VerificationStatus {
+  pending
+  verified
+  rejected
+}
+
+enum CategoryStatus {
+  active
+  inactive
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  in_progress
+  completed
+  cancelled
+}
+
+enum PaymentMethod {
+  cash
+  card
+  wallet
+  paypal
+  bank
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum ServiceRequestStatus {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+model User {
+  id             BigInt          @id @default(autoincrement())
+  fullName       String          @map("full_name") @db.VarChar(100)
+  email          String          @unique @db.VarChar(150)
+  phone          String?         @db.VarChar(20)
+  avatar         String?
+  passwordHash   String          @map("password_hash") @db.VarChar(255)
+  passwordResets PasswordReset[]
+  role           UserRole
+  status         UserStatus      @default(active)
+  lastLoginAt    DateTime?       @map("last_login_at")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  ownedCompanies           Company[]                 @relation("CompanyOwner")
+  staffMemberships         CompanyStaff[]
+  bookingsAsCustomer       Booking[]                 @relation("CustomerBookings")
+  payments                 Payment[]
+  reviews                  Review[]
+  notifications            Notification[]
+  auditLogs                AuditLog[]
+  statusChanges            BookingStatusLog[]
+  cancellationsMade        Cancellation[]            @relation("CancelledBy")
+  serviceRequestsMade      ServiceRequest[]          @relation("CustomerRequests")
+  conversationParticipants ConversationParticipant[]
+  messages                 Message[]
+  savedItems               SavedItem[]
+
+  @@map("users")
+}
+
+model Company {
+  id                 BigInt             @id @default(autoincrement())
+  name               String             @db.VarChar(150)
+  description        String?            @db.Text
+  registrationNumber String?            @map("registration_number") @db.VarChar(50)
+  address            String?            @db.Text
+  city               String?            @db.VarChar(100)
+  latitude           Decimal?           @db.Decimal(10, 7)
+  longitude          Decimal?           @db.Decimal(10, 7)
+  phone              String?            @db.VarChar(20)
+  email              String?            @db.VarChar(150)
+  ownerId            BigInt             @map("owner_id")
+  verificationStatus VerificationStatus @default(pending) @map("verification_status")
+  logoUrl            String?
+  coverImageUrl      String?
+  establishedYear    Int?
+  cardHighlights     Json               @default("[]")
+  detailHighlights   Json               @default("[]")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  owner             User                  @relation("CompanyOwner", fields: [ownerId], references: [id])
+  staff             CompanyStaff[]
+  services          Service[]
+  serviceAreas      ServiceArea[]
+  availabilitySlots AvailabilitySlot[]
+  bookings          Booking[]
+  ratingSummary     CompanyRatingSummary?
+  serviceRequests   ServiceRequest[]
+
+  @@index([ownerId], map: "fk_company_owner")
+  @@map("companies")
+}
+
+model CompanyStaff {
+  id        BigInt      @id @default(autoincrement())
+  companyId BigInt      @map("company_id")
+  userId    BigInt      @map("user_id")
+  role      StaffRole
+  status    StaffStatus @default(active)
+
+  // Relations
+  company           Company            @relation(fields: [companyId], references: [id])
+  user              User               @relation(fields: [userId], references: [id])
+  availabilitySlots AvailabilitySlot[]
+  assignedRequests  ServiceRequest[]   @relation("AssignedStaff")
+  approvedRequests  ServiceRequest[]   @relation("ApprovedBy")
+  rejectedRequests  ServiceRequest[]   @relation("RejectedBy")
+
+  assignedBookings Booking[] @relation("AssignedBookings")
+  reviews          Review[]  @relation("StaffReviews")
+
+  createdAt DateTime @default(now())
+
+  @@unique([companyId, userId])
+  @@index([companyId], map: "fk_staff_company")
+  @@index([userId], map: "fk_staff_user")
+  @@map("company_staff")
+}
+
+model Category {
+  id           BigInt         @id @default(autoincrement())
+  name         String         @db.VarChar(100)
+  slug         String         @unique @db.VarChar(100)
+  description  String?        @db.Text
+  icon         String?        @db.VarChar(50)
+  imageUrl     String?        @map("image_url") @db.Text
+  status       CategoryStatus @default(active)
+  displayOrder Int            @default(0) @map("display_order")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  serviceTypes ServiceType[]
+
+  @@index([slug])
+  @@map("categories")
+}
+
+model ServiceType {
+  id           BigInt         @id @default(autoincrement())
+  categoryId   BigInt         @map("category_id")
+  name         String         @db.VarChar(150)
+  slug         String         @unique @db.VarChar(150)
+  description  String?        @db.Text
+  icon         String?        @db.VarChar(50)
+  imageUrl        String?        @db.Text
+  status       CategoryStatus @default(active)
+  displayOrder Int            @default(0) @map("display_order")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  category Category  @relation(fields: [categoryId], references: [id])
+  services Service[]
+
+  @@index([categoryId], map: "fk_servicetype_category")
+  @@index([slug])
+  @@map("service_types")
+}
+
+model Service {
+  id            BigInt  @id @default(autoincrement())
+  companyId     BigInt  @map("company_id")
+  serviceTypeId BigInt  @map("service_type_id")
+  name          String  @db.VarChar(150)
+  image         String?
+  description   String? @db.Text
+  basePrice     Decimal @map("base_price") @db.Decimal(10, 2)
+  features      Json?
+  durationMin   Int     @map("duration_min")
+  durationMax   Int?    @map("duration_max")
+
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  company         Company          @relation(fields: [companyId], references: [id])
+  serviceType     ServiceType      @relation(fields: [serviceTypeId], references: [id])
+  bookings        Booking[]
+  serviceRequests ServiceRequest[]
+
+  @@index([companyId], map: "fk_service_company")
+  @@index([serviceTypeId], map: "fk_service_servicetype")
+  @@map("services")
+}
+
+model ServiceArea {
+  id               BigInt @id @default(autoincrement())
+  companyId        BigInt @map("company_id")
+  city             String @db.VarChar(100)
+  coverageRadiusKm Int?   @map("coverage_radius_km")
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId], map: "fk_area_company")
+  @@map("service_areas")
+}
+
+model ServiceRequest {
+  id              BigInt  @id @default(autoincrement())
+  customerId      BigInt  @map("customer_id")
+  companyId       BigInt  @map("company_id")
+  serviceId       BigInt  @map("service_id")
+  assignedStaffId BigInt? @map("assigned_staff_id")
+
+  requestedDate  DateTime  @map("requested_date") @db.Date
+  requestedTime  DateTime? @map("requested_time") @db.Time
+  serviceAddress String    @map("service_address") @db.Text
+  latitude       Decimal?  @db.Decimal(10, 7)
+  longitude      Decimal?  @db.Decimal(10, 7)
+
+  status ServiceRequestStatus @default(pending)
+  notes  String?              @db.Text
+
+  // Approval/Rejection tracking
+  approvedAt      DateTime? @map("approved_at")
+  approvedBy      BigInt?   @map("approved_by")
+  rejectedAt      DateTime? @map("rejected_at")
+  rejectedBy      BigInt?   @map("rejected_by")
+  rejectionReason String?   @map("rejection_reason") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  customer      User          @relation("CustomerRequests", fields: [customerId], references: [id])
+  company       Company       @relation(fields: [companyId], references: [id])
+  service       Service       @relation(fields: [serviceId], references: [id])
+  assignedStaff CompanyStaff? @relation("AssignedStaff", fields: [assignedStaffId], references: [id])
+  approver      CompanyStaff? @relation("ApprovedBy", fields: [approvedBy], references: [id])
+  rejecter      CompanyStaff? @relation("RejectedBy", fields: [rejectedBy], references: [id])
+
+  @@index([customerId], map: "fk_request_customer")
+  @@index([companyId], map: "fk_request_company")
+  @@index([serviceId], map: "fk_request_service")
+  @@index([assignedStaffId], map: "fk_request_assigned_staff")
+  @@index([approvedBy], map: "fk_request_approved_by")
+  @@index([rejectedBy], map: "fk_request_rejected_by")
+  @@map("service_requests")
+}
+
+model AvailabilitySlot {
+  id          BigInt   @id @default(autoincrement())
+  companyId   BigInt   @map("company_id")
+  staffId     BigInt?  @map("staff_id")
+  date        DateTime @db.Date
+  startTime   DateTime @map("start_time") @db.Time
+  endTime     DateTime @map("end_time") @db.Time
+  isAvailable Boolean  @default(true) @map("is_available")
+
+  // Relations
+  company Company       @relation(fields: [companyId], references: [id])
+  staff   CompanyStaff? @relation(fields: [staffId], references: [id])
+
+  @@index([companyId], map: "fk_slot_company")
+  @@index([staffId], map: "fk_slot_staff")
+  @@map("availability_slots")
+}
+
+model Booking {
+  id              BigInt        @id @default(autoincrement())
+  customerId      BigInt        @map("customer_id")
+  companyId       BigInt        @map("company_id")
+  serviceId       BigInt        @map("service_id")
+  assignedStaffId BigInt?       @map("assigned_staff_id")
+  bookingDate     DateTime      @map("booking_date") @db.Date
+  startTime       DateTime      @map("start_time") @db.Time
+  endTime         DateTime      @map("end_time") @db.Time
+  actualStartTime DateTime?     @map("actual_start_time")
+  actualEndTime   DateTime?     @map("actual_end_time")
+  serviceAddress  String        @map("service_address") @db.Text
+  latitude        Decimal?      @db.Decimal(10, 7)
+  longitude       Decimal?      @db.Decimal(10, 7)
+  status          BookingStatus @default(pending)
+  progressPercent Int           @default(0) @map("progress_percent")
+  staffNotes      String?       @map("staff_notes") @db.Text
+  totalPrice      Decimal       @map("total_price") @db.Decimal(10, 2)
+  platformFee     Decimal       @db.Decimal(10, 2)
+  companyEarnings Decimal       @db.Decimal(10, 2)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  customer      User               @relation("CustomerBookings", fields: [customerId], references: [id])
+  company       Company            @relation(fields: [companyId], references: [id])
+  service       Service            @relation(fields: [serviceId], references: [id])
+  assignedStaff CompanyStaff?      @relation("AssignedBookings", fields: [assignedStaffId], references: [id])
+  statusLogs    BookingStatusLog[]
+  payment       Payment?
+  review        Review?
+  cancellation  Cancellation?
+  invoice       Invoice?
+
+  @@index([customerId], map: "fk_booking_customer")
+  @@index([companyId], map: "fk_booking_company")
+  @@index([serviceId], map: "fk_booking_service")
+  @@index([assignedStaffId], map: "fk_booking_assigned_staff")
+  @@map("bookings")
+}
+
+model BookingStatusLog {
+  id        BigInt   @id @default(autoincrement())
+  bookingId BigInt   @map("booking_id")
+  oldStatus String?  @map("old_status") @db.VarChar(50)
+  newStatus String?  @map("new_status") @db.VarChar(50)
+  changedBy BigInt?  @map("changed_by")
+  changedAt DateTime @default(now()) @map("changed_at")
+
+  // Relations
+  booking Booking @relation(fields: [bookingId], references: [id])
+  user    User?   @relation(fields: [changedBy], references: [id])
+
+  @@index([bookingId], map: "fk_log_booking")
+  @@index([changedBy], map: "fk_log_user")
+  @@map("booking_status_log")
+}
+
+model Payment {
+  id             BigInt        @id @default(autoincrement())
+  bookingId      BigInt        @unique @map("booking_id")
+  userId         BigInt        @map("user_id")
+  method         PaymentMethod
+  amount         Decimal       @db.Decimal(10, 2)
+  currency       String        @default("USD") @db.VarChar(10)
+  status         PaymentStatus @default(pending)
+  transactionRef String?       @map("transaction_ref") @db.VarChar(100)
+  paidAt         DateTime?     @map("paid_at")
+
+  // Relations
+  booking Booking @relation(fields: [bookingId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([bookingId], map: "fk_payment_booking")
+  @@index([userId], map: "fk_payment_user")
+  @@map("payments")
+}
+
+model Review {
+  id         BigInt @id @default(autoincrement())
+  bookingId  BigInt @unique @map("booking_id")
+  customerId BigInt @map("customer_id")
+
+  // Company Review
+  companyRating  Int     @map("company_rating") @db.Int
+  companyComment String? @map("company_comment") @db.Text
+
+  // Staff Review  
+  staffId      BigInt? @map("staff_id")
+  staffRating  Int?    @map("staff_rating") @db.Int
+  staffComment String? @map("staff_comment") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  booking  Booking       @relation(fields: [bookingId], references: [id])
+  customer User          @relation(fields: [customerId], references: [id])
+  staff    CompanyStaff? @relation("StaffReviews", fields: [staffId], references: [id])
+
+  @@index([staffId])
+  @@index([bookingId], map: "fk_review_booking")
+  @@index([customerId], map: "fk_review_customer")
+  @@map("reviews")
+}
+
+model Cancellation {
+  id          BigInt   @id @default(autoincrement())
+  bookingId   BigInt   @unique @map("booking_id")
+  cancelledBy BigInt   @map("cancelled_by")
+  reason      String?  @db.Text
+  cancelledAt DateTime @default(now()) @map("cancelled_at")
+
+  // Relations
+  booking Booking @relation(fields: [bookingId], references: [id])
+  user    User    @relation("CancelledBy", fields: [cancelledBy], references: [id])
+
+  @@index([bookingId], map: "fk_cancel_booking")
+  @@index([cancelledBy], map: "fk_cancel_user")
+  @@map("cancellations")
+}
+
+model CompanyRatingSummary {
+  companyId     BigInt   @id @map("company_id")
+  averageRating Decimal? @map("average_rating") @db.Decimal(3, 2)
+  totalReviews  Int      @default(0) @map("total_reviews")
+  lastUpdated   DateTime @default(now()) @map("last_updated")
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId], map: "fk_rating_company")
+  @@map("company_ratings_summary")
+}
+
+model Notification {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt   @map("user_id")
+  title     String   @db.VarChar(200)
+  body      String   @db.Text
+  type      String   @default("info") @db.VarChar(50)
+  isRead    Boolean  @default(false) @map("is_read")
+  link      String?  @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "fk_notify_user")
+  @@map("notifications")
+}
+
+model Conversation {
+  id        BigInt   @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             BigInt   @id @default(autoincrement())
+  conversationId BigInt   @map("conversation_id")
+  userId         BigInt   @map("user_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([conversationId, userId])
+  @@index([userId], map: "fk_conversation_participant_user")
+  @@index([conversationId], map: "fk_conversation_participant_conversation")
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             BigInt   @id @default(autoincrement())
+  conversationId BigInt   @map("conversation_id")
+  senderId       BigInt   @map("sender_id")
+  content        String   @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  sender       User         @relation(fields: [senderId], references: [id])
+
+  @@index([conversationId], map: "fk_message_conversation")
+  @@index([senderId], map: "fk_message_sender")
+  @@map("messages")
+}
+
+model Invoice {
+  id            BigInt   @id @default(autoincrement())
+  bookingId     BigInt   @unique @map("booking_id")
+  invoiceNumber String   @map("invoice_number") @db.VarChar(50)
+  issuedAt      DateTime @default(now()) @map("issued_at")
+  totalAmount   Decimal  @map("total_amount") @db.Decimal(10, 2)
+
+  // Relations
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId], map: "fk_invoice_booking")
+  @@map("invoices")
+}
+
+model SystemSetting {
+  id        BigInt   @id @default(autoincrement())
+  keyName   String   @unique @map("key_name") @db.VarChar(100)
+  value     String?  @db.Text
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  userId     BigInt?  @map("user_id")
+  action     String?  @db.VarChar(150)
+  entityType String?  @map("entity_type") @db.VarChar(100)
+  entityId   BigInt?  @map("entity_id")
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "fk_audit_user")
+  @@map("audit_logs")
+}
+
+model PasswordReset {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt   @map("user_id")
+  code      String   @db.VarChar(6)
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "fk_password_reset_user")
+  @@index([code], map: "idx_code")
+  @@map("password_resets")
+}
+
+model SavedItem {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt   @map("user_id")
+  itemType  String   @map("item_type") @db.VarChar(20) // "company" or "service"
+  itemId    BigInt   @map("item_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemType, itemId])
+  @@index([userId], map: "fk_saved_user")
+  @@index([itemType, itemId], map: "idx_saved_item")
+  @@map("saved_items")
+}

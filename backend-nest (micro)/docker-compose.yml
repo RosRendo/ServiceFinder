@@ -1,0 +1,278 @@
+# ============================================================
+# ServiceFinder Microservices — Local Development
+# ============================================================
+# Usage:
+#   docker-compose up -d          → start all services
+#   docker-compose logs -f auth-service → view auth logs
+#   docker-compose down -v        → stop + remove volumes
+# ============================================================
+
+services:
+
+  # ─── Databases ─────────────────────────────────────────────
+
+  auth-db:
+    image: postgres:16-alpine
+    container_name: sf_auth_db
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: sf_user
+      POSTGRES_PASSWORD: sf_password
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sf_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  company-db:
+    image: postgres:16-alpine
+    container_name: sf_company_db
+    environment:
+      POSTGRES_DB: company_db
+      POSTGRES_USER: sf_user
+      POSTGRES_PASSWORD: sf_password
+    volumes:
+      - company_db_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sf_user -d company_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  booking-db:
+    image: postgres:16-alpine
+    container_name: sf_booking_db
+    environment:
+      POSTGRES_DB: booking_db
+      POSTGRES_USER: sf_user
+      POSTGRES_PASSWORD: sf_password
+    volumes:
+      - booking_db_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sf_user -d booking_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  payment-db:
+    image: postgres:16-alpine
+    container_name: sf_payment_db
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: sf_user
+      POSTGRES_PASSWORD: sf_password
+    volumes:
+      - payment_db_data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sf_user -d payment_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  review-db:
+    image: postgres:16-alpine
+    container_name: sf_review_db
+    environment:
+      POSTGRES_DB: review_db
+      POSTGRES_USER: sf_user
+      POSTGRES_PASSWORD: sf_password
+    volumes:
+      - review_db_data:/var/lib/postgresql/data
+    ports:
+      - "5437:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sf_user -d review_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis (Shared Cache) ───────────────────────────────────
+
+  redis:
+    image: redis:7-alpine
+    container_name: sf_redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Microservices ──────────────────────────────────────────
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: sf_auth_service
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      NODE_ENV: development
+      DATABASE_URL: postgresql://sf_user:sf_password@auth-db:5432/auth_db
+      JWT_SECRET: dev_jwt_secret_change_in_production
+      JWT_EXPIRES_IN: 7d
+      REDIS_URL: redis://redis:6379
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  company-service:
+    build:
+      context: ./company-service
+      dockerfile: Dockerfile
+    container_name: sf_company_service
+    ports:
+      - "3004:3004"
+    environment:
+      PORT: 3004
+      NODE_ENV: development
+      DATABASE_URL: postgresql://sf_user:sf_password@company-db:5432/company_db
+      JWT_SECRET: dev_jwt_secret_change_in_production
+      REDIS_URL: redis://redis:6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+    depends_on:
+      company-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  booking-service:
+    build:
+      context: ./booking-service
+      dockerfile: Dockerfile
+    container_name: sf_booking_service
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      NODE_ENV: development
+      DATABASE_URL: postgresql://sf_user:sf_password@booking-db:5432/booking_db
+      JWT_SECRET: dev_jwt_secret_change_in_production
+      REDIS_URL: redis://redis:6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      COMPANY_SERVICE_URL: http://company-service:3004
+      NOTIFICATION_SERVICE_URL: http://notification-service:3005
+    depends_on:
+      booking-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    container_name: sf_payment_service
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      NODE_ENV: development
+      DATABASE_URL: postgresql://sf_user:sf_password@payment-db:5432/payment_db
+      JWT_SECRET: dev_jwt_secret_change_in_production
+      REDIS_URL: redis://redis:6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      BOOKING_SERVICE_URL: http://booking-service:3003
+      NOTIFICATION_SERVICE_URL: http://notification-service:3005
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID}
+      PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET}
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      payment-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  review-service:
+    build:
+      context: ./review-service
+      dockerfile: Dockerfile
+    container_name: sf_review_service
+    ports:
+      - "3006:3006"
+    environment:
+      PORT: 3006
+      NODE_ENV: development
+      DATABASE_URL: postgresql://sf_user:sf_password@review-db:5432/review_db
+      JWT_SECRET: dev_jwt_secret_change_in_production
+      REDIS_URL: redis://redis:6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      BOOKING_SERVICE_URL: http://booking-service:3003
+    depends_on:
+      review-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: sf_notification_service
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+      NODE_ENV: development
+      JWT_SECRET: dev_jwt_secret_change_in_production
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      FRONTEND_URL: http://localhost:3000
+    restart: unless-stopped
+
+  # ─── Nginx API Gateway ──────────────────────────────────────
+
+  nginx:
+    image: nginx:alpine
+    container_name: sf_api_gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - company-service
+      - booking-service
+      - payment-service
+      - review-service
+      - notification-service
+    restart: unless-stopped
+
+# ─── Volumes ────────────────────────────────────────────────
+
+volumes:
+  auth_db_data:
+  company_db_data:
+  booking_db_data:
+  payment_db_data:
+  review_db_data:
+  redis_data:
