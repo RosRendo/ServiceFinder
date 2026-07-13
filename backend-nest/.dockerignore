@@ -1,7 +1,7 @@
 .git
 .gitignore
 node_modules/
-dist/
+# dist/ (Allowed to copy to Docker)
 coverage/
 logs/
 .env
