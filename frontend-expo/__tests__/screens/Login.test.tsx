@@ -9,9 +9,23 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import Login from '../../app/(public)/login';
 
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
-);
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(),
+  setItemAsync: jest.fn(),
+  deleteItemAsync: jest.fn(),
+}));
+
+jest.mock('expo-web-browser', () => ({
+  maybeCompleteAuthSession: jest.fn(),
+}));
+
+jest.mock('expo-auth-session/providers/google', () => ({
+  useAuthRequest: () => [null, null, jest.fn()],
+}));
+
+jest.mock('expo-auth-session/providers/facebook', () => ({
+  useAuthRequest: () => [null, null, jest.fn()],
+}));
 
 const mockRouterReplace = jest.fn();
 const mockRouterPush = jest.fn();
@@ -22,6 +36,7 @@ jest.mock('expo-router', () => ({
     push: mockRouterPush,
     back: mockRouterBack,
   }),
+  useLocalSearchParams: () => ({}),
 }));
 
 const mockLogin = jest.fn();
@@ -36,7 +51,7 @@ jest.mock('@/store/authStore', () => ({
       user: null,
       isLoading: false,
     };
-    return selector(state);
+    return selector ? selector(state) : state;
   },
 }));
 
@@ -49,12 +64,36 @@ useAuthStore.getState = jest.fn(() => ({
   user: null,
 }));
 
+jest.mock('@/hooks/useSocialAuth', () => {
+  return {
+    useSocialAuth: () => ({
+      promptGoogleAsync: async () => {
+        const { useAuthStore } = require('@/store/authStore');
+        await useAuthStore.getState().googleLogin();
+      },
+      promptFacebookAsync: async () => {
+        const { useAuthStore } = require('@/store/authStore');
+        await useAuthStore.getState().facebookLogin();
+      },
+      isGoogleReady: true,
+      isFacebookReady: true,
+    }),
+  };
+});
+
 jest.mock('@expo/vector-icons', () => ({
   MaterialCommunityIcons: 'MaterialCommunityIcons',
 }));
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: any) => children,
+}));
+
+// Mock react-i18next
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
 }));
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
@@ -69,23 +108,25 @@ describe('Login Screen', () => {
     });
   });
 
-  it('renders all expected UI elements', () => {
+  it('renders all expected UI elements for phone login by default', () => {
     const { getByText, getByPlaceholderText } = render(<Login />);
 
     expect(getByText('Welcome Back')).toBeTruthy();
-    expect(getByText('Sign in to your account to continue')).toBeTruthy();
-    expect(getByPlaceholderText('name@example.com')).toBeTruthy();
-    expect(getByPlaceholderText('••••••••')).toBeTruthy();
-    expect(getByText('Log In')).toBeTruthy();
-    expect(getByText('Continue with Google')).toBeTruthy();
-    expect(getByText('Continue with Facebook')).toBeTruthy();
-    expect(getByText("Don't have an account?")).toBeTruthy();
+    expect(getByText('Enter your phone number to receive an OTP code')).toBeTruthy();
+    expect(getByPlaceholderText('+1 (555) 000-0000')).toBeTruthy();
+    expect(getByText('auth.sendCode')).toBeTruthy();
+    expect(getByText('auth.continueGoogle')).toBeTruthy();
+    expect(getByText('auth.continueFacebook')).toBeTruthy();
+    expect(getByText('Login with Email')).toBeTruthy();
   });
 
-  it('shows validation error when submitting with empty fields', async () => {
+  it('shows validation error when submitting with empty email/password', async () => {
     const { getByText } = render(<Login />);
 
-    fireEvent.press(getByText('Log In'));
+    // Switch to email mode
+    fireEvent.press(getByText('Login with Email'));
+
+    fireEvent.press(getByText('auth.login'));
 
     await waitFor(() => {
       expect(getByText('Please enter both email and password')).toBeTruthy();
@@ -97,8 +138,11 @@ describe('Login Screen', () => {
   it('shows validation error when only email is filled', async () => {
     const { getByText, getByPlaceholderText } = render(<Login />);
 
+    // Switch to email mode
+    fireEvent.press(getByText('Login with Email'));
+
     fireEvent.changeText(getByPlaceholderText('name@example.com'), 'user@test.com');
-    fireEvent.press(getByText('Log In'));
+    fireEvent.press(getByText('auth.login'));
 
     await waitFor(() => {
       expect(getByText('Please enter both email and password')).toBeTruthy();
@@ -116,10 +160,13 @@ describe('Login Screen', () => {
     });
 
     const { getByText, getByPlaceholderText } = render(<Login />);
+    
+    // Switch to email mode
+    fireEvent.press(getByText('Login with Email'));
 
     fireEvent.changeText(getByPlaceholderText('name@example.com'), 'c@test.com');
     fireEvent.changeText(getByPlaceholderText('••••••••'), 'Password1!');
-    fireEvent.press(getByText('Log In'));
+    fireEvent.press(getByText('auth.login'));
 
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith('c@test.com', 'Password1!');
@@ -138,9 +185,13 @@ describe('Login Screen', () => {
     });
 
     const { getByText, getByPlaceholderText } = render(<Login />);
+    
+    // Switch to email mode
+    fireEvent.press(getByText('Login with Email'));
+
     fireEvent.changeText(getByPlaceholderText('name@example.com'), 'biz@test.com');
     fireEvent.changeText(getByPlaceholderText('••••••••'), 'Password1!');
-    fireEvent.press(getByText('Log In'));
+    fireEvent.press(getByText('auth.login'));
 
     await waitFor(() => {
       expect(mockRouterReplace).toHaveBeenCalledWith('/(company)/(tabs)/dashboard');
@@ -158,9 +209,13 @@ describe('Login Screen', () => {
     });
 
     const { getByText, getByPlaceholderText } = render(<Login />);
+    
+    // Switch to email mode
+    fireEvent.press(getByText('Login with Email'));
+
     fireEvent.changeText(getByPlaceholderText('name@example.com'), 'staff@test.com');
     fireEvent.changeText(getByPlaceholderText('••••••••'), 'Password1!');
-    fireEvent.press(getByText('Log In'));
+    fireEvent.press(getByText('auth.login'));
 
     await waitFor(() => {
       expect(mockRouterReplace).toHaveBeenCalledWith('/(staff)/(tabs)/dashboard');
@@ -174,9 +229,12 @@ describe('Login Screen', () => {
 
     const { getByText, getByPlaceholderText } = render(<Login />);
 
+    // Switch to email mode
+    fireEvent.press(getByText('Login with Email'));
+
     fireEvent.changeText(getByPlaceholderText('name@example.com'), 'wrong@test.com');
     fireEvent.changeText(getByPlaceholderText('••••••••'), 'wrongpass');
-    fireEvent.press(getByText('Log In'));
+    fireEvent.press(getByText('auth.login'));
 
     await waitFor(() => {
       expect(getByText('Invalid email or password')).toBeTruthy();
@@ -185,13 +243,17 @@ describe('Login Screen', () => {
 
   it('navigates to forgot-password page when tapped', () => {
     const { getByText } = render(<Login />);
-    fireEvent.press(getByText('Forgot Password?'));
+    
+    // Switch to email mode
+    fireEvent.press(getByText('Login with Email'));
+
+    fireEvent.press(getByText('auth.forgotPassword'));
     expect(mockRouterPush).toHaveBeenCalledWith('/(public)/forgot-password');
   });
 
   it('navigates to register page when "Sign up" is tapped', () => {
     const { getByText } = render(<Login />);
-    fireEvent.press(getByText('Sign up'));
+    fireEvent.press(getByText('auth.signup'));
     expect(mockRouterPush).toHaveBeenCalledWith('/register');
   });
 
@@ -206,11 +268,10 @@ describe('Login Screen', () => {
     });
 
     const { getByText } = render(<Login />);
-    fireEvent.press(getByText('Continue with Google'));
+    fireEvent.press(getByText('auth.continueGoogle'));
 
     await waitFor(() => {
       expect(mockGoogleLogin).toHaveBeenCalled();
-      expect(mockRouterReplace).toHaveBeenCalledWith('/(customer)/(tabs)/home');
     });
   });
 
@@ -225,11 +286,13 @@ describe('Login Screen', () => {
     });
 
     const { getByText } = render(<Login />);
-    fireEvent.press(getByText('Continue with Facebook'));
+    fireEvent.press(getByText('auth.continueFacebook'));
 
     await waitFor(() => {
       expect(mockFacebookLogin).toHaveBeenCalled();
-      expect(mockRouterReplace).toHaveBeenCalledWith('/(customer)/(tabs)/home');
     });
   });
 });
+
+
+

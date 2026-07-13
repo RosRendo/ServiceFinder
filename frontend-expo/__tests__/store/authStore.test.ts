@@ -1,12 +1,14 @@
-// Mock AsyncStorage before any imports
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// Mock SecureStore before any imports
+import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 import { useAuthStore , api } from '../../store/authStore';
 
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
-);
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(),
+  setItemAsync: jest.fn(),
+  deleteItemAsync: jest.fn(),
+}));
 
 // Mock axios
 jest.mock('axios', () => {
@@ -55,7 +57,7 @@ describe('authStore', () => {
         email: 'test@example.com',
         password: 'Password1!',
       });
-      expect(AsyncStorage.setItem).toHaveBeenCalledWith('authToken', 'mock-jwt-token');
+      expect(SecureStore.setItemAsync).toHaveBeenCalledWith('authToken', 'mock-jwt-token');
       expect(useAuthStore.getState().user).toEqual(mockUser);
     });
 
@@ -81,12 +83,12 @@ describe('authStore', () => {
       await useAuthStore.getState().register('Test User', 'test@example.com', 'Password1!');
 
       expect(api.post).toHaveBeenCalledWith('/api/auth/register', {
-        name: 'Test User',
+        fullName: 'Test User',
         email: 'test@example.com',
         password: 'Password1!',
         role: 'customer',
       });
-      expect(AsyncStorage.setItem).toHaveBeenCalledWith('authToken', 'register-token');
+      expect(SecureStore.setItemAsync).toHaveBeenCalledWith('authToken', 'register-token');
       expect(useAuthStore.getState().user).toEqual(mockUser);
     });
 
@@ -119,7 +121,7 @@ describe('authStore', () => {
         token: 'google_id_token',
         role: 'customer',
       });
-      expect(AsyncStorage.setItem).toHaveBeenCalledWith('authToken', 'google-token');
+      expect(SecureStore.setItemAsync).toHaveBeenCalledWith('authToken', 'google-token');
       expect(useAuthStore.getState().user).toEqual(googleUser);
     });
   });
@@ -139,7 +141,7 @@ describe('authStore', () => {
         token: 'fb_access_token',
         role: 'customer',
       });
-      expect(AsyncStorage.setItem).toHaveBeenCalledWith('authToken', 'fb-token');
+      expect(SecureStore.setItemAsync).toHaveBeenCalledWith('authToken', 'fb-token');
       expect(useAuthStore.getState().user).toEqual(fbUser);
     });
   });
@@ -148,7 +150,7 @@ describe('authStore', () => {
 
   describe('checkAuth', () => {
     it('should restore user from valid stored token', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('stored-token');
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce('stored-token');
       (api.get as jest.Mock).mockResolvedValueOnce({ data: { data: mockUser } });
 
       await useAuthStore.getState().checkAuth();
@@ -158,7 +160,7 @@ describe('authStore', () => {
     });
 
     it('should clear user and set isLoading=false when no token in storage', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(null);
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(null);
 
       await useAuthStore.getState().checkAuth();
 
@@ -167,20 +169,20 @@ describe('authStore', () => {
     });
 
     it('should clear auth on 401 from /api/auth/me', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('expired-token');
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce('expired-token');
       const error: any = new Error('Unauthorized');
       error.response = { status: 401 };
       (api.get as jest.Mock).mockRejectedValueOnce(error);
 
       await useAuthStore.getState().checkAuth();
 
-      expect(AsyncStorage.removeItem).toHaveBeenCalledWith('authToken');
+      expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('authToken');
       expect(useAuthStore.getState().user).toBeNull();
       expect(useAuthStore.getState().isLoading).toBe(false);
     });
 
     it('should NOT clear user on network error (keep cached state)', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('valid-token');
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce('valid-token');
       const networkError = new Error('Network Error');
       // No .response property = network error
       (api.get as jest.Mock).mockRejectedValueOnce(networkError);
@@ -204,7 +206,7 @@ describe('authStore', () => {
 
       await useAuthStore.getState().logout();
 
-      expect(AsyncStorage.removeItem).toHaveBeenCalledWith('authToken');
+      expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('authToken');
       expect(useAuthStore.getState().user).toBeNull();
     });
 
@@ -214,7 +216,7 @@ describe('authStore', () => {
 
       await useAuthStore.getState().logout();
 
-      expect(AsyncStorage.removeItem).toHaveBeenCalledWith('authToken');
+      expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('authToken');
       expect(useAuthStore.getState().user).toBeNull();
     });
   });
