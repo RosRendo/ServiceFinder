@@ -11,10 +11,16 @@ spec:
           containers:
           - name: backup
             image: mariadb:10.11
+            env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: password
             command:
             - /bin/sh
             - -c
-            - "mysqldump -h mysql -u root -pzipmu3-cEcsak-jifqyf servicefinder > /backup/servicefinder_$(date +\\%Y\\%m\\%d).sql"
+            - "mysqldump -h mysql -u root -p${MYSQL_ROOT_PASSWORD} servicefinder > /backup/servicefinder_$(date +\\%Y\\%m\\%d).sql"
             volumeMounts:
             - name: backup-volume
               mountPath: /backup

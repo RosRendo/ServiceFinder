@@ -2,7 +2,7 @@ const { PrismaClient } = require("@prisma/client");
 const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 
-const dbUrl = process.env.DATABASE_URL || "mysql://root:zipmu3-cEcsak-jifqyf@localhost:3306/servicefinder";
+const dbUrl = process.env.DATABASE_URL || "mysql://root:local_dev_password@localhost:3306/servicefinder";
 
 const prisma = new PrismaClient({
   datasourceUrl: dbUrl,

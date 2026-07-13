@@ -22,7 +22,10 @@ spec:
         image: rosrendo/servicefinder-backend:latest
         env:
         - name: DATABASE_URL
-          value: "mysql://root:zipmu3-cEcsak-jifqyf@mysql:3306/servicefinder"
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: url
         - name: REDIS_URL
           value: "redis://redis:6379"
         ports:

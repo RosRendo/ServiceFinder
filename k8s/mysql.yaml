@@ -16,7 +16,10 @@ spec:
         image: mariadb:10.11
         env:
         - name: MYSQL_ROOT_PASSWORD
-          value: "zipmu3-cEcsak-jifqyf"
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: password
         - name: MYSQL_DATABASE
           value: "servicefinder"
         ports:

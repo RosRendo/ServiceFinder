@@ -24,7 +24,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: ${DATABASE_URL:-mysql://root:zipmu3-cEcsak-jifqyf@mysql-db:3306/servicefinder}
+      DATABASE_URL: ${DATABASE_URL:-mysql://root:local_dev_password@mysql-db:3306/servicefinder}
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET}
     networks:
@@ -39,7 +39,7 @@ services:
     container_name: service-finder-db
     command: --default-authentication-plugin=mysql_native_password
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-zipmu3-cEcsak-jifqyf}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-local_dev_password}
       MYSQL_DATABASE: servicefinder
     volumes:
       - mysql_data:/var/lib/mysql
@@ -47,7 +47,7 @@ services:
       - service-finder-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-zipmu3-cEcsak-jifqyf}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-local_dev_password}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -63,59 +63,59 @@ services:
       - service-finder-net
     restart: unless-stopped
 
-  loki:
-    image: grafana/loki:latest
-    container_name: service-finder-loki
-    ports:
-      - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - service-finder-net
-    restart: unless-stopped
-
-  promtail:
-    image: grafana/promtail:latest
-    container_name: service-finder-promtail
-    volumes:
-      - /var/log:/var/log
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./nginx/promtail-config.yml:/etc/promtail/config.yml
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - service-finder-net
-    restart: unless-stopped
-    depends_on:
-      - loki
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: service-finder-grafana
-    ports:
-      - "3001:3000"
-    volumes:
-      - ./nginx/grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
-    environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
-    networks:
-      - service-finder-net
-    restart: unless-stopped
-    depends_on:
-      - loki
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: service-finder-prometheus
-    ports:
-      - "9090:9090"
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-    volumes:
-      - ./nginx/prometheus.yml:/etc/prometheus/prometheus.yml
-    networks:
-      - service-finder-net
-    restart: unless-stopped
+#  loki:
+#    image: grafana/loki:latest
+#    container_name: service-finder-loki
+#    ports:
+#      - "3100:3100"
+#    command: -config.file=/etc/loki/local-config.yaml
+#    networks:
+#      - service-finder-net
+#    restart: unless-stopped
+#
+#  promtail:
+#    image: grafana/promtail:latest
+#    container_name: service-finder-promtail
+#    volumes:
+#      - /var/log:/var/log
+#      - /var/run/docker.sock:/var/run/docker.sock
+#      - ./nginx/promtail-config.yml:/etc/promtail/config.yml
+#    command: -config.file=/etc/promtail/config.yml
+#    networks:
+#      - service-finder-net
+#    restart: unless-stopped
+#    depends_on:
+#      - loki
+#
+#  grafana:
+#    image: grafana/grafana:latest
+#    container_name: service-finder-grafana
+#    ports:
+#      - "3001:3000"
+#    volumes:
+#      - ./nginx/grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+#    environment:
+#      - GF_AUTH_ANONYMOUS_ENABLED=true
+#      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+#      - GF_AUTH_DISABLE_LOGIN_FORM=true
+#    networks:
+#      - service-finder-net
+#    restart: unless-stopped
+#    depends_on:
+#      - loki
+#
+#  prometheus:
+#    image: prom/prometheus:latest
+#    container_name: service-finder-prometheus
+#    ports:
+#      - "9090:9090"
+#    command:
+#      - --config.file=/etc/prometheus/prometheus.yml
+#    volumes:
+#      - ./nginx/prometheus.yml:/etc/prometheus/prometheus.yml
+#    networks:
+#      - service-finder-net
+#    restart: unless-stopped
 
 volumes:
   mysql_data:
