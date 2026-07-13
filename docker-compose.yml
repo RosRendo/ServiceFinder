@@ -21,12 +21,13 @@ services:
     container_name: service-finder-backend
     ports:
       - "5000:5000"
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       PORT: 5000
       DATABASE_URL: ${DATABASE_URL:-mysql://root:local_dev_password@mysql-db:3306/servicefinder}
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET}
     networks:
       - service-finder-net
     restart: unless-stopped
