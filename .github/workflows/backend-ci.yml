@@ -46,6 +46,32 @@ jobs:
       - name: Run Tests with Coverage
         run: npm run test:cov
 
+      - name: Start Database and Cache
+        run: docker compose up -d mysql-db redis
+        working-directory: ../
+
+      - name: Wait for MySQL
+        run: npx wait-on tcp:127.0.0.1:3306
+
+      - name: Run Migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: "mysql://root:local_dev_password@127.0.0.1:3306/servicefinder"
+
+      - name: Build Backend
+        run: npm run build
+
+      - name: Start Backend in Background
+        run: npm run start:prod &
+        env:
+          DATABASE_URL: "mysql://root:local_dev_password@127.0.0.1:3306/servicefinder"
+          REDIS_URL: "redis://127.0.0.1:6379"
+          JWT_SECRET: "ci_pipeline_secret_test"
+          PORT: 5000
+
+      - name: Wait for API to start
+        run: npx wait-on http://127.0.0.1:5000/api/health
+
       - name: Install Newman
         run: npm install -g newman
 
