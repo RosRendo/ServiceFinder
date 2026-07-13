@@ -89,7 +89,7 @@ jobs:
         continue-on-error: true
 
       - name: OWASP ZAP Baseline Scan (DAST)
-        uses: zaproxy/action-baseline@v0.10.0
+        uses: zaproxy/action-baseline@v0.14.0
         with:
           target: 'http://localhost:5000' # Update this to your staging URL if applicable
           fail_action: false # Set to true to break the build on high alerts
