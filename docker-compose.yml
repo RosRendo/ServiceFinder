@@ -26,31 +26,31 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: ${DATABASE_URL:-mysql://root:local_dev_password@mysql-db:3306/servicefinder}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://root:local_dev_password@postgres-db:5432/servicefinder}
       REDIS_URL: redis://redis:6379
     networks:
       - service-finder-net
     restart: unless-stopped
     depends_on:
-      - mysql-db
+      - postgres-db
       - redis
 
-  mysql-db:
-    image: mariadb:10.11
+  postgres-db:
+    image: postgres:15-alpine
     container_name: service-finder-db
-    command: --default-authentication-plugin=mysql_native_password
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-local_dev_password}
-      MYSQL_DATABASE: servicefinder
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-local_dev_password}
+      POSTGRES_DB: servicefinder
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - service-finder-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-local_dev_password}"]
+      test: ["CMD-SHELL", "pg_isready -U root -d servicefinder"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -121,7 +121,7 @@ services:
 #    restart: unless-stopped
 
 volumes:
-  mysql_data:
+  postgres_data:
   redis_data:
 
 networks:
