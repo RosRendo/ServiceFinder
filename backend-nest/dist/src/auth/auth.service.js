@@ -51,6 +51,7 @@ const config_1 = require("@nestjs/config");
 const bcrypt = __importStar(require("bcryptjs"));
 const uuid_1 = require("uuid");
 const google_auth_library_1 = require("google-auth-library");
+const twilio_1 = require("twilio");
 const audit_logs_service_1 = require("../audit-logs/audit-logs.service");
 const mfa_service_1 = require("./mfa.service");
 const analytics_service_1 = require("../analytics/analytics.service");
@@ -63,6 +64,7 @@ let AuthService = class AuthService {
     mfaService;
     analytics;
     googleClient;
+    twilioClient;
     constructor(prisma, jwtService, mailService, configService, auditLogs, mfaService, analytics) {
         this.prisma = prisma;
         this.jwtService = jwtService;
@@ -72,6 +74,11 @@ let AuthService = class AuthService {
         this.mfaService = mfaService;
         this.analytics = analytics;
         this.googleClient = new google_auth_library_1.OAuth2Client(this.configService.get('GOOGLE_CLIENT_ID'));
+        const twilioSid = this.configService.get('TWILIO_ACCOUNT_SID');
+        const twilioToken = this.configService.get('TWILIO_AUTH_TOKEN');
+        if (twilioSid && twilioToken) {
+            this.twilioClient = new twilio_1.Twilio(twilioSid, twilioToken);
+        }
     }
     generateToken(userId) {
         return this.jwtService.sign({ userId: userId.toString() });
@@ -302,7 +309,7 @@ let AuthService = class AuthService {
     }
     async sendOtp(dto) {
         const { phone } = dto;
-        const code = '123456';
+        const code = this.generateCode();
         const expiresAt = new Date();
         expiresAt.setMinutes(expiresAt.getMinutes() + 10);
         await this.prisma.otpCode.updateMany({
@@ -316,7 +323,25 @@ let AuthService = class AuthService {
                 expiresAt,
             },
         });
-        return { message: 'OTP sent successfully (Use 123456 for testing)' };
+        if (this.twilioClient) {
+            try {
+                await this.twilioClient.messages.create({
+                    body: `Your ServiceFinder verification code is: ${code}`,
+                    from: this.configService.get('TWILIO_PHONE_NUMBER'),
+                    to: phone,
+                });
+                return { message: 'OTP sent successfully via SMS' };
+            }
+            catch (error) {
+                console.error('Failed to send Twilio SMS:', error);
+                console.log(`[DEV MODE] OTP for ${phone} is: ${code}`);
+                return { message: `Failed to send SMS, but code generated (check server logs)` };
+            }
+        }
+        else {
+            console.log(`[DEV MODE] Twilio not configured. OTP for ${phone} is: ${code}`);
+            return { message: `OTP generated successfully (Dev Mode - Check server logs for code)` };
+        }
     }
     async verifyOtp(dto) {
         const { phone, code } = dto;

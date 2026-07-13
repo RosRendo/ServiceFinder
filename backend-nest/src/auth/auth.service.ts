@@ -12,6 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
+import { Twilio } from 'twilio';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -29,6 +30,7 @@ import { AnalyticsService } from '../analytics/analytics.service';
 @Injectable()
 export class AuthService {
   private googleClient: OAuth2Client;
+  private twilioClient: Twilio;
 
   constructor(
     private prisma: PrismaService,
@@ -42,6 +44,11 @@ export class AuthService {
     this.googleClient = new OAuth2Client(
       this.configService.get<string>('GOOGLE_CLIENT_ID'),
     );
+    const twilioSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
+    const twilioToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
+    if (twilioSid && twilioToken) {
+      this.twilioClient = new Twilio(twilioSid, twilioToken);
+    }
   }
 
   /** Generate a short-lived access token (15 min) */
@@ -340,9 +347,10 @@ export class AuthService {
 
   async sendOtp(dto: SendOtpDto) {
     const { phone } = dto;
-    // For demo purposes, we will hardcode the OTP to "123456"
-    // In production, integrate Twilio/MessageBird here.
-    const code = '123456';
+    
+    // Generate a real 6-digit code
+    const code = this.generateCode();
+    
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 10);
 
@@ -360,7 +368,26 @@ export class AuthService {
       },
     });
 
-    return { message: 'OTP sent successfully (Use 123456 for testing)' };
+    // Send SMS via Twilio if configured
+    if (this.twilioClient) {
+      try {
+        await this.twilioClient.messages.create({
+          body: `Your ServiceFinder verification code is: ${code}`,
+          from: this.configService.get<string>('TWILIO_PHONE_NUMBER'),
+          to: phone,
+        });
+        return { message: 'OTP sent successfully via SMS' };
+      } catch (error) {
+        console.error('Failed to send Twilio SMS:', error);
+        // Fallback for development if Twilio fails
+        console.log(`[DEV MODE] OTP for ${phone} is: ${code}`);
+        return { message: `Failed to send SMS, but code generated (check server logs)` };
+      }
+    } else {
+      // Fallback if no Twilio keys are provided
+      console.log(`[DEV MODE] Twilio not configured. OTP for ${phone} is: ${code}`);
+      return { message: `OTP generated successfully (Dev Mode - Check server logs for code)` };
+    }
   }
 
   async verifyOtp(dto: VerifyOtpDto) {

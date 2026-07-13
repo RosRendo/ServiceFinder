@@ -23,6 +23,7 @@ export declare class AuthService {
     private mfaService;
     private analytics;
     private googleClient;
+    private twilioClient;
     constructor(prisma: PrismaService, jwtService: JwtService, mailService: MailService, configService: ConfigService, auditLogs: AuditLogsService, mfaService: MfaService, analytics: AnalyticsService);
     generateToken(userId: bigint): string;
     generateRefreshToken(userId: bigint): Promise<string>;
