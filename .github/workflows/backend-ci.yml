@@ -117,7 +117,9 @@ jobs:
             pm2 delete service-finder-api || true
             
             # 2. Build and restart the Docker services using sudo and older docker-compose syntax
-            sudo docker-compose up -d --build
+            sudo docker-compose down --remove-orphans || true
+            sudo docker rm -f service-finder-db || true
+            sudo docker-compose up -d --build --remove-orphans
             
             # 3. Run Prisma Migrations securely inside the running backend container
             sudo docker exec service-finder-backend npx prisma migrate deploy
