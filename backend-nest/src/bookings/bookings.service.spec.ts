@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BookingsService } from './bookings.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BookingsGateway } from './bookings.gateway';
 import { AdminGateway } from '../admin/admin.gateway';
@@ -67,6 +68,15 @@ describe('BookingsService', () => {
           },
         },
         { provide: AnalyticsService, useValue: { captureEvent: jest.fn() } },
+        { 
+          provide: NotificationsService, 
+          useValue: { 
+            sendPushNotification: jest.fn(), 
+            sendInAppNotification: jest.fn(),
+            notifyBookingCreated: jest.fn(),
+            notifyBookingStatusChange: jest.fn()
+          } 
+        },
       ],
     }).compile();
 
@@ -150,7 +160,6 @@ describe('BookingsService', () => {
 
       mockPrismaService.booking.create.mockResolvedValueOnce(mockBooking);
       mockPrismaService.bookingStatusLog.create.mockResolvedValueOnce({});
-      mockPrismaService.notification.create.mockResolvedValueOnce({});
 
       const result = await service.createBooking(dto, mockUser);
 
@@ -162,7 +171,6 @@ describe('BookingsService', () => {
           data: expect.objectContaining({ newStatus: 'pending' }),
         }),
       );
-      expect(mockPrismaService.notification.create).toHaveBeenCalled();
     });
   });
 

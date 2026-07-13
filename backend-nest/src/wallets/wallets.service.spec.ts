@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WalletsService } from './wallets.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 describe('WalletsService', () => {
   let service: WalletsService;
@@ -11,6 +12,10 @@ describe('WalletsService', () => {
         WalletsService,
         {
           provide: PrismaService,
+          useValue: {},
+        },
+        {
+          provide: NotificationsService,
           useValue: {},
         },
       ],
