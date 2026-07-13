@@ -1,0 +1,568 @@
+import { ReviewsService } from './reviews.service';
+import { CreateReviewDto } from './dto/create-review.dto';
+import { UpdateReviewDto } from './dto/update-review.dto';
+export declare class ReviewsController {
+    private readonly reviewsService;
+    constructor(reviewsService: ReviewsService);
+    getAllReviews(query: any): Promise<{
+        reviews: {
+            id: string;
+            bookingId: string;
+            customerId: string;
+            staffId: string | undefined;
+            customer: {
+                id: string;
+                fullName: string;
+                avatar: string | null;
+            };
+            booking: {
+                id: string;
+                company: {
+                    id: string;
+                    name: string;
+                };
+                service: {
+                    name: string;
+                };
+                bookingDate: Date;
+            };
+            staff: {
+                id: string;
+                user: {
+                    fullName: string;
+                };
+            } | null;
+            createdAt: Date;
+            companyRating: number;
+            companyComment: string | null;
+            staffRating: number | null;
+            staffComment: string | null;
+        }[];
+        pagination: {
+            total: number;
+            page: number;
+            limit: number;
+            pages: number;
+        };
+    }>;
+    getMyReviews(req: any): Promise<{
+        reviews: {
+            id: string;
+            bookingId: string;
+            customerId: string;
+            staffId: string | undefined;
+            booking: {
+                id: string;
+                customerId: string;
+                companyId: string;
+                serviceId: string;
+                assignedStaffId: string | undefined;
+                company: {
+                    id: string;
+                    ownerId: string;
+                    name: string;
+                    description: string | null;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    email: string | null;
+                    phone: string | null;
+                    registrationNumber: string | null;
+                    address: string | null;
+                    city: string | null;
+                    latitude: import("@prisma/client/runtime/library").Decimal | null;
+                    longitude: import("@prisma/client/runtime/library").Decimal | null;
+                    verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+                    logoUrl: string | null;
+                    coverImageUrl: string | null;
+                    verificationDocumentUrl: string | null;
+                    establishedYear: number | null;
+                    cardHighlights: import("@prisma/client/runtime/library").JsonValue;
+                    detailHighlights: import("@prisma/client/runtime/library").JsonValue;
+                    subscriptionStatus: string;
+                    trialEndsAt: Date | null;
+                    nextBillingDate: Date | null;
+                    walletBalance: import("@prisma/client/runtime/library").Decimal;
+                };
+                service: {
+                    id: string;
+                    companyId: string;
+                    serviceTypeId: string;
+                    name: string;
+                    description: string | null;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    discountPrice: import("@prisma/client/runtime/library").Decimal | null;
+                    image: string | null;
+                    basePrice: import("@prisma/client/runtime/library").Decimal;
+                    features: import("@prisma/client/runtime/library").JsonValue | null;
+                    durationMin: number;
+                    durationMax: number | null;
+                    isActive: boolean;
+                };
+                status: import(".prisma/client").$Enums.BookingStatus;
+                createdAt: Date;
+                updatedAt: Date;
+                latitude: import("@prisma/client/runtime/library").Decimal | null;
+                longitude: import("@prisma/client/runtime/library").Decimal | null;
+                bookingDate: Date;
+                startTime: Date;
+                endTime: Date;
+                actualStartTime: Date | null;
+                actualEndTime: Date | null;
+                serviceAddress: string;
+                progressPercent: number;
+                staffNotes: string | null;
+                totalPrice: import("@prisma/client/runtime/library").Decimal;
+                platformFee: import("@prisma/client/runtime/library").Decimal;
+                companyEarnings: import("@prisma/client/runtime/library").Decimal;
+                staffEarnings: import("@prisma/client/runtime/library").Decimal;
+                customerNotes: string | null;
+            };
+            staff: {
+                id: string;
+                userId: string;
+                companyId: string;
+                user: {
+                    id: string;
+                    status: import(".prisma/client").$Enums.UserStatus;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    email: string | null;
+                    phone: string | null;
+                    fullName: string;
+                    avatar: string | null;
+                    passwordHash: string | null;
+                    role: import(".prisma/client").$Enums.UserRole;
+                    lastLoginAt: Date | null;
+                    pushToken: string | null;
+                    mfaEnabled: boolean;
+                    mfaSecret: string | null;
+                    emailNotificationsEnabled: boolean;
+                    pushNotificationsEnabled: boolean;
+                };
+                status: import(".prisma/client").$Enums.StaffStatus;
+                createdAt: Date;
+                role: import(".prisma/client").$Enums.StaffRole;
+                walletBalance: import("@prisma/client/runtime/library").Decimal;
+                creditLimit: import("@prisma/client/runtime/library").Decimal;
+            } | null;
+            createdAt: Date;
+            companyRating: number;
+            companyComment: string | null;
+            staffRating: number | null;
+            staffComment: string | null;
+        }[];
+    }>;
+    getReviewsByCompany(companyId: string, page: number, limit: number): Promise<{
+        reviews: {
+            id: string;
+            bookingId: string;
+            customerId: string;
+            staffId: string | undefined;
+            customer: {
+                id: string;
+                fullName: string;
+                avatar: string | null;
+            };
+            booking: {
+                id: string;
+                service: {
+                    id: string;
+                    name: string;
+                };
+                bookingDate: Date;
+            };
+            staff: {
+                id: string;
+                user: {
+                    fullName: string;
+                };
+            } | null;
+            createdAt: Date;
+            companyRating: number;
+            companyComment: string | null;
+            staffRating: number | null;
+            staffComment: string | null;
+        }[];
+        pagination: {
+            total: number;
+            page: number;
+            limit: number;
+            pages: number;
+        };
+    }>;
+    getReviewsByStaff(staffId: string, page: number, limit: number): Promise<{
+        reviews: {
+            id: string;
+            bookingId: string;
+            customerId: string;
+            staffId: string | undefined;
+            customer: {
+                id: string;
+                fullName: string;
+                avatar: string | null;
+            };
+            booking: {
+                id: string;
+                service: {
+                    id: string;
+                    name: string;
+                };
+                bookingDate: Date;
+            };
+            createdAt: Date;
+            companyRating: number;
+            companyComment: string | null;
+            staffRating: number | null;
+            staffComment: string | null;
+        }[];
+        ratingSummary: {
+            averageRating: number | null;
+            totalReviews: any;
+        };
+        pagination: {
+            total: number;
+            page: number;
+            limit: number;
+            pages: number;
+        };
+    }>;
+    getReviewById(id: string): Promise<{
+        review: {
+            id: string;
+            bookingId: string;
+            customerId: string;
+            staffId: string | undefined;
+            customer: {
+                id: string;
+                email: string | null;
+                fullName: string;
+                avatar: string | null;
+            };
+            booking: {
+                id: string;
+                customerId: string;
+                companyId: string;
+                serviceId: string;
+                assignedStaffId: string | undefined;
+                company: {
+                    id: string;
+                    ownerId: string;
+                    name: string;
+                    description: string | null;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    email: string | null;
+                    phone: string | null;
+                    registrationNumber: string | null;
+                    address: string | null;
+                    city: string | null;
+                    latitude: import("@prisma/client/runtime/library").Decimal | null;
+                    longitude: import("@prisma/client/runtime/library").Decimal | null;
+                    verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+                    logoUrl: string | null;
+                    coverImageUrl: string | null;
+                    verificationDocumentUrl: string | null;
+                    establishedYear: number | null;
+                    cardHighlights: import("@prisma/client/runtime/library").JsonValue;
+                    detailHighlights: import("@prisma/client/runtime/library").JsonValue;
+                    subscriptionStatus: string;
+                    trialEndsAt: Date | null;
+                    nextBillingDate: Date | null;
+                    walletBalance: import("@prisma/client/runtime/library").Decimal;
+                };
+                service: {
+                    id: string;
+                    companyId: string;
+                    serviceTypeId: string;
+                    name: string;
+                    description: string | null;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    discountPrice: import("@prisma/client/runtime/library").Decimal | null;
+                    image: string | null;
+                    basePrice: import("@prisma/client/runtime/library").Decimal;
+                    features: import("@prisma/client/runtime/library").JsonValue | null;
+                    durationMin: number;
+                    durationMax: number | null;
+                    isActive: boolean;
+                };
+                status: import(".prisma/client").$Enums.BookingStatus;
+                createdAt: Date;
+                updatedAt: Date;
+                latitude: import("@prisma/client/runtime/library").Decimal | null;
+                longitude: import("@prisma/client/runtime/library").Decimal | null;
+                bookingDate: Date;
+                startTime: Date;
+                endTime: Date;
+                actualStartTime: Date | null;
+                actualEndTime: Date | null;
+                serviceAddress: string;
+                progressPercent: number;
+                staffNotes: string | null;
+                totalPrice: import("@prisma/client/runtime/library").Decimal;
+                platformFee: import("@prisma/client/runtime/library").Decimal;
+                companyEarnings: import("@prisma/client/runtime/library").Decimal;
+                staffEarnings: import("@prisma/client/runtime/library").Decimal;
+                customerNotes: string | null;
+            };
+            staff: {
+                id: string;
+                userId: string;
+                companyId: string;
+                user: {
+                    id: string;
+                    status: import(".prisma/client").$Enums.UserStatus;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    email: string | null;
+                    phone: string | null;
+                    fullName: string;
+                    avatar: string | null;
+                    passwordHash: string | null;
+                    role: import(".prisma/client").$Enums.UserRole;
+                    lastLoginAt: Date | null;
+                    pushToken: string | null;
+                    mfaEnabled: boolean;
+                    mfaSecret: string | null;
+                    emailNotificationsEnabled: boolean;
+                    pushNotificationsEnabled: boolean;
+                };
+                status: import(".prisma/client").$Enums.StaffStatus;
+                createdAt: Date;
+                role: import(".prisma/client").$Enums.StaffRole;
+                walletBalance: import("@prisma/client/runtime/library").Decimal;
+                creditLimit: import("@prisma/client/runtime/library").Decimal;
+            } | null;
+            createdAt: Date;
+            companyRating: number;
+            companyComment: string | null;
+            staffRating: number | null;
+            staffComment: string | null;
+        };
+    }>;
+    createReview(createReviewDto: CreateReviewDto, req: any): Promise<{
+        success: boolean;
+        message: string;
+        review: {
+            id: string;
+            bookingId: string;
+            customerId: string;
+            staffId: string | undefined;
+            booking: {
+                id: string;
+                customerId: string;
+                companyId: string;
+                serviceId: string;
+                assignedStaffId: string | undefined;
+                company: {
+                    id: string;
+                    ownerId: string;
+                    name: string;
+                    description: string | null;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    email: string | null;
+                    phone: string | null;
+                    registrationNumber: string | null;
+                    address: string | null;
+                    city: string | null;
+                    latitude: import("@prisma/client/runtime/library").Decimal | null;
+                    longitude: import("@prisma/client/runtime/library").Decimal | null;
+                    verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+                    logoUrl: string | null;
+                    coverImageUrl: string | null;
+                    verificationDocumentUrl: string | null;
+                    establishedYear: number | null;
+                    cardHighlights: import("@prisma/client/runtime/library").JsonValue;
+                    detailHighlights: import("@prisma/client/runtime/library").JsonValue;
+                    subscriptionStatus: string;
+                    trialEndsAt: Date | null;
+                    nextBillingDate: Date | null;
+                    walletBalance: import("@prisma/client/runtime/library").Decimal;
+                };
+                service: {
+                    id: string;
+                    companyId: string;
+                    serviceTypeId: string;
+                    name: string;
+                    description: string | null;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    discountPrice: import("@prisma/client/runtime/library").Decimal | null;
+                    image: string | null;
+                    basePrice: import("@prisma/client/runtime/library").Decimal;
+                    features: import("@prisma/client/runtime/library").JsonValue | null;
+                    durationMin: number;
+                    durationMax: number | null;
+                    isActive: boolean;
+                };
+                status: import(".prisma/client").$Enums.BookingStatus;
+                createdAt: Date;
+                updatedAt: Date;
+                latitude: import("@prisma/client/runtime/library").Decimal | null;
+                longitude: import("@prisma/client/runtime/library").Decimal | null;
+                bookingDate: Date;
+                startTime: Date;
+                endTime: Date;
+                actualStartTime: Date | null;
+                actualEndTime: Date | null;
+                serviceAddress: string;
+                progressPercent: number;
+                staffNotes: string | null;
+                totalPrice: import("@prisma/client/runtime/library").Decimal;
+                platformFee: import("@prisma/client/runtime/library").Decimal;
+                companyEarnings: import("@prisma/client/runtime/library").Decimal;
+                staffEarnings: import("@prisma/client/runtime/library").Decimal;
+                customerNotes: string | null;
+            };
+            staff: {
+                id: string;
+                userId: string;
+                companyId: string;
+                user: {
+                    id: string;
+                    status: import(".prisma/client").$Enums.UserStatus;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    email: string | null;
+                    phone: string | null;
+                    fullName: string;
+                    avatar: string | null;
+                    passwordHash: string | null;
+                    role: import(".prisma/client").$Enums.UserRole;
+                    lastLoginAt: Date | null;
+                    pushToken: string | null;
+                    mfaEnabled: boolean;
+                    mfaSecret: string | null;
+                    emailNotificationsEnabled: boolean;
+                    pushNotificationsEnabled: boolean;
+                };
+                status: import(".prisma/client").$Enums.StaffStatus;
+                createdAt: Date;
+                role: import(".prisma/client").$Enums.StaffRole;
+                walletBalance: import("@prisma/client/runtime/library").Decimal;
+                creditLimit: import("@prisma/client/runtime/library").Decimal;
+            } | null;
+            createdAt: Date;
+            companyRating: number;
+            companyComment: string | null;
+            staffRating: number | null;
+            staffComment: string | null;
+        };
+    }>;
+    updateReview(id: string, updateReviewDto: UpdateReviewDto, req: any): Promise<{
+        success: boolean;
+        message: string;
+        review: {
+            id: string;
+            bookingId: string;
+            customerId: string;
+            staffId: string | undefined;
+            booking: {
+                id: string;
+                customerId: string;
+                companyId: string;
+                serviceId: string;
+                assignedStaffId: string | undefined;
+                company: {
+                    id: string;
+                    ownerId: string;
+                    name: string;
+                    description: string | null;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    email: string | null;
+                    phone: string | null;
+                    registrationNumber: string | null;
+                    address: string | null;
+                    city: string | null;
+                    latitude: import("@prisma/client/runtime/library").Decimal | null;
+                    longitude: import("@prisma/client/runtime/library").Decimal | null;
+                    verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+                    logoUrl: string | null;
+                    coverImageUrl: string | null;
+                    verificationDocumentUrl: string | null;
+                    establishedYear: number | null;
+                    cardHighlights: import("@prisma/client/runtime/library").JsonValue;
+                    detailHighlights: import("@prisma/client/runtime/library").JsonValue;
+                    subscriptionStatus: string;
+                    trialEndsAt: Date | null;
+                    nextBillingDate: Date | null;
+                    walletBalance: import("@prisma/client/runtime/library").Decimal;
+                };
+                service: {
+                    id: string;
+                    companyId: string;
+                    serviceTypeId: string;
+                    name: string;
+                    description: string | null;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    discountPrice: import("@prisma/client/runtime/library").Decimal | null;
+                    image: string | null;
+                    basePrice: import("@prisma/client/runtime/library").Decimal;
+                    features: import("@prisma/client/runtime/library").JsonValue | null;
+                    durationMin: number;
+                    durationMax: number | null;
+                    isActive: boolean;
+                };
+                status: import(".prisma/client").$Enums.BookingStatus;
+                createdAt: Date;
+                updatedAt: Date;
+                latitude: import("@prisma/client/runtime/library").Decimal | null;
+                longitude: import("@prisma/client/runtime/library").Decimal | null;
+                bookingDate: Date;
+                startTime: Date;
+                endTime: Date;
+                actualStartTime: Date | null;
+                actualEndTime: Date | null;
+                serviceAddress: string;
+                progressPercent: number;
+                staffNotes: string | null;
+                totalPrice: import("@prisma/client/runtime/library").Decimal;
+                platformFee: import("@prisma/client/runtime/library").Decimal;
+                companyEarnings: import("@prisma/client/runtime/library").Decimal;
+                staffEarnings: import("@prisma/client/runtime/library").Decimal;
+                customerNotes: string | null;
+            };
+            staff: {
+                id: string;
+                userId: string;
+                companyId: string;
+                user: {
+                    id: string;
+                    status: import(".prisma/client").$Enums.UserStatus;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    email: string | null;
+                    phone: string | null;
+                    fullName: string;
+                    avatar: string | null;
+                    passwordHash: string | null;
+                    role: import(".prisma/client").$Enums.UserRole;
+                    lastLoginAt: Date | null;
+                    pushToken: string | null;
+                    mfaEnabled: boolean;
+                    mfaSecret: string | null;
+                    emailNotificationsEnabled: boolean;
+                    pushNotificationsEnabled: boolean;
+                };
+                status: import(".prisma/client").$Enums.StaffStatus;
+                createdAt: Date;
+                role: import(".prisma/client").$Enums.StaffRole;
+                walletBalance: import("@prisma/client/runtime/library").Decimal;
+                creditLimit: import("@prisma/client/runtime/library").Decimal;
+            } | null;
+            createdAt: Date;
+            companyRating: number;
+            companyComment: string | null;
+            staffRating: number | null;
+            staffComment: string | null;
+        };
+    }>;
+    deleteReview(id: string, req: any): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+}
