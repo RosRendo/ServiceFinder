@@ -109,11 +109,15 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           # Navigate to the project directory on the VPS
           script: |
-            cd /var/www/Service_Finder/backend-nest
+            cd /var/www/Service_Finder
             git pull origin main
-            npm ci --legacy-peer-deps
-            # Force resolve the broken migration from Jun 20th so Prisma stops crashing
-            npx prisma migrate resolve --applied 20260608060916_latest || true
-            npx prisma migrate deploy || echo "Migration deploy failed but continuing"
-            # Use ecosystem config for zero-downtime reloads
-            pm2 start ecosystem.config.js || pm2 reload service-finder-api
+            
+            # 1. Clean up old PM2 processes to free up port 5000 (if they exist)
+            pm2 stop service-finder-api || true
+            pm2 delete service-finder-api || true
+            
+            # 2. Build and restart the Docker services (Nginx, Postgres, Redis, Backend)
+            docker compose up -d --build
+            
+            # 3. Run Prisma Migrations securely inside the running backend container
+            docker exec service-finder-backend npx prisma migrate deploy
