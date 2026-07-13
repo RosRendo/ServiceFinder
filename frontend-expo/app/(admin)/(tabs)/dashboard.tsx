@@ -21,6 +21,17 @@ const T = {
   purple: "#8B5CF6", blue: "#3B82F6",
 };
 
+
+const HERO_SHADOW = Platform.select({
+  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
+  android: { elevation: 8 },
+});
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
+
 export default function AdminDashboard() {
   const router = useRouter();
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
@@ -79,7 +90,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={openSidebar} style={s.menuBtn}>
+          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <View>
@@ -264,7 +275,7 @@ const s = StyleSheet.create({
   revenueCard: {
     backgroundColor: T.accent, borderRadius: 24, padding: 24,
     overflow: "hidden", borderWidth: 1, borderColor: T.border, shadowColor: T.accent,
-  },
+    ...HERO_SHADOW },
   revenueHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
   revenueSubtitle: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "600", marginBottom: 2 },
   revenueGmv: { color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: "500" },
@@ -275,7 +286,8 @@ const s = StyleSheet.create({
   revenueDecor2: { position: "absolute", bottom: -20, right: 40, width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(255,255,255,0.05)" },
 
   queueGrid: { flexDirection: "row", gap: 12 },
-  queueCard: { flex: 1, backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border },
+  queueCard: { flex: 1, backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border,
+    ...CARD_SHADOW },
   queueIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 12 },
   queueCount: { fontSize: 22, fontWeight: "800", color: T.text1, marginBottom: 2 },
   queueLabel: { fontSize: 12, fontWeight: "600", color: T.text3 },
@@ -288,21 +300,24 @@ const s = StyleSheet.create({
   viewAllBtn: { fontSize: 13, fontWeight: "700", color: T.accentMid, marginBottom: 2 },
 
   healthGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  healthCard: { width: "48%", backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border },
+  healthCard: { width: "48%", backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border,
+    ...CARD_SHADOW },
   healthIconRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
   healthIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   healthTrend: { fontSize: 12, fontWeight: "800", marginTop: 4 },
   healthValue: { fontSize: 24, fontWeight: "800", color: T.text1, marginBottom: 2 },
   healthLabel: { fontSize: 12, fontWeight: "600", color: T.text3 },
 
-  chartCard: { backgroundColor: T.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.border },
+  chartCard: { backgroundColor: T.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.border,
+    ...CARD_SHADOW },
   chartBars: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 160 },
   chartCol: { alignItems: "center", flex: 1, height: "100%", justifyContent: "flex-end" },
   chartBar: { width: 12, borderRadius: 6, marginBottom: 8 },
   chartDay: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase" },
 
   recentList: { gap: 12 },
-  recentItem: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: T.border, gap: 12 },
+  recentItem: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: T.border, gap: 12,
+    ...CARD_SHADOW },
   statusIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   recentInfo: { flex: 1 },
   recentName: { fontSize: 15, fontWeight: "800", color: T.text1, marginBottom: 2 },

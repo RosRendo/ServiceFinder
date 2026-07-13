@@ -15,7 +15,10 @@ const T = {
   gold: "#F59E0B"
 };
 
-const SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 interface Review {
   id: string;
@@ -125,7 +128,7 @@ const s = StyleSheet.create({
   listContent: { padding: 24, paddingBottom: 100 },
   card: {
     backgroundColor: T.surface, borderRadius: 16, padding: 16, marginBottom: 16,
-    borderWidth: 1, borderColor: T.border, ...SHADOW,
+    borderWidth: 1, borderColor: T.border, ...CARD_SHADOW,
   },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
   targetName: { fontSize: 16, fontWeight: "800", color: T.text1, flex: 1 },
@@ -133,7 +136,7 @@ const s = StyleSheet.create({
   starsRow: { flexDirection: "row", gap: 2, marginBottom: 12 },
   commentText: { fontSize: 14, color: T.text2, lineHeight: 20 },
   emptyState: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
-  emptyIconBox: { width: 96, height: 96, borderRadius: 48, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", marginBottom: 24, borderWidth: 1, borderColor: T.border, ...SHADOW },
+  emptyIconBox: { width: 96, height: 96, borderRadius: 48, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", marginBottom: 24, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   emptyTitle: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 8 },
   emptyDesc: { fontSize: 15, color: T.text3, textAlign: "center", lineHeight: 22 },
 });

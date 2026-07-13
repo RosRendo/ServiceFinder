@@ -24,7 +24,10 @@ const T = {
   gold: "#F59E0B", success: "#00A699", tag: "#F3F4F6",
 };
 
-const SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 interface Address {
   id: string;
@@ -184,7 +187,7 @@ const s = StyleSheet.create({
   content: { flex: 1 },
   listContent: { padding: 24, paddingBottom: 100 },
 
-  card: { backgroundColor: T.surface, borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: T.border, ...SHADOW },
+  card: { backgroundColor: T.surface, borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
   cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
   iconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: T.accentLight, alignItems: "center", justifyContent: "center" },
@@ -198,9 +201,9 @@ const s = StyleSheet.create({
   addressText: { fontSize: 14, color: T.text2, lineHeight: 20, marginLeft: 44 },
 
   emptyState: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
-  emptyIconBox: { width: 96, height: 96, borderRadius: 48, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", marginBottom: 24, borderWidth: 1, borderColor: T.border, ...SHADOW },
+  emptyIconBox: { width: 96, height: 96, borderRadius: 48, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", marginBottom: 24, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   emptyTitle: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 8 },
   emptyDesc: { fontSize: 15, color: T.text3, textAlign: "center", lineHeight: 22, marginBottom: 32 },
-  btnPrimary: { backgroundColor: T.accent, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 32, ...SHADOW },
+  btnPrimary: { backgroundColor: T.accent, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 32, ...CARD_SHADOW },
   btnPrimaryText: { fontSize: 16, fontWeight: "800", color: "#fff" },
 });

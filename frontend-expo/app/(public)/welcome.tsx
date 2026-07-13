@@ -1,8 +1,8 @@
 /**
  * Welcome Screen — Onboarding Carousel
  */
-import React, { useRef, useState } from "react";
-import { View, Text, StyleSheet, Animated, Pressable, ScrollView, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import React, { useRef, useState, useEffect } from "react";
+import { View, Text, StyleSheet, Animated, Pressable, ScrollView, Dimensions, NativeSyntheticEvent, NativeScrollEvent, Platform, Easing } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -16,6 +16,16 @@ const T = {
   text1: "#111827", text2: "#8E8E93", text3: "#C7C7CC",
   googleRed: "#DB4437",
 };
+
+const HERO_SHADOW = Platform.select({
+  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
+  android: { elevation: 8 },
+});
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 const SLIDES_KEYS = [
   {
@@ -46,6 +56,24 @@ function PressBtn({ onPress, style, children }: { onPress: () => void, style?: a
   );
 }
 
+// ─── Animated Floating Icon ───────────────────────────────────
+function AnimatedFloatIcon({ icon }: { icon: string }) {
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -8, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  return (
+    <Animated.View style={[s.iconWrapper, { transform: [{ translateY: floatAnim }] }]}>
+      <MaterialCommunityIcons name={icon as any} size={56} color={T.surface} />
+    </Animated.View>
+  );
+}
+
 export default function WelcomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -73,9 +101,7 @@ export default function WelcomeScreen() {
           >
             {SLIDES_KEYS.map((slide, idx) => (
               <View key={idx} style={s.slide}>
-                <View style={s.iconWrapper}>
-                  <MaterialCommunityIcons name={slide.icon as any} size={56} color={T.surface} />
-                </View>
+                <AnimatedFloatIcon icon={slide.icon} />
                 <Text style={s.title}>{t(slide.titleKey)}</Text>
                 <Text style={s.subtitle}>{t(slide.subtitleKey)}</Text>
               </View>
@@ -112,7 +138,7 @@ const s = StyleSheet.create({
   container: { flex: 1, justifyContent: "space-between" },
   carouselWrapper: { flex: 1 },
   slide: { width, flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 24 },
-  iconWrapper: { width: 100, height: 100, borderRadius: 32, backgroundColor: T.accent, alignItems: "center", justifyContent: "center", marginBottom: 36 },
+  iconWrapper: { width: 100, height: 100, borderRadius: 32, backgroundColor: T.accent, alignItems: "center", justifyContent: "center", marginBottom: 36, ...HERO_SHADOW },
   title: { fontSize: 34, fontWeight: "700", color: T.text1, letterSpacing: -0.8, marginBottom: 16, textAlign: "center" },
   subtitle: { fontSize: 17, fontWeight: "400", color: T.text2, textAlign: "center", lineHeight: 24, paddingHorizontal: 16 },
   
@@ -124,6 +150,6 @@ const s = StyleSheet.create({
   btnPrimary: { flexDirection: "row", width: "100%", backgroundColor: T.accent, borderRadius: 14, paddingVertical: 18, alignItems: "center", justifyContent: "center" },
   btnPrimaryText: { fontSize: 17, fontWeight: "600", color: T.surface, letterSpacing: 0.2 },
   
-  btnGoogle: { flexDirection: "row", width: "100%", backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, borderRadius: 14, paddingVertical: 18, alignItems: "center", justifyContent: "center" },
+  btnGoogle: { flexDirection: "row", width: "100%", backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, borderRadius: 14, paddingVertical: 18, alignItems: "center", justifyContent: "center", ...CARD_SHADOW },
   btnGoogleText: { fontSize: 17, fontWeight: "600", color: T.text1, letterSpacing: 0.2 },
 });

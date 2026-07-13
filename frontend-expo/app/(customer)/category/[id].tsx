@@ -37,7 +37,10 @@ const T = {
   tag: "#F7F7F7",
 };
 
-const SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -616,7 +619,7 @@ const s = StyleSheet.create({
 
   // Search
   searchSection: { paddingHorizontal: 24, marginBottom: 16 },
-  searchBox: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 14, height: 48, paddingHorizontal: 12, gap: 8, borderWidth: 1, borderColor: T.border, ...SHADOW },
+  searchBox: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 14, height: 48, paddingHorizontal: 12, gap: 8, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   searchInput: { flex: 1, fontSize: 15, color: T.text1, fontWeight: "500" },
 
   // Sections
@@ -627,7 +630,7 @@ const s = StyleSheet.create({
   limitedBadge: { fontSize: 10, fontWeight: "800", color: T.gold, letterSpacing: 1 },
 
   // Company Card List
-  companyCard: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 16, padding: 12, borderWidth: 1, borderColor: T.border, ...SHADOW, gap: 12 },
+  companyCard: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 16, padding: 12, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW, gap: 12 },
   companyImg: { width: 64, height: 64, borderRadius: 12, backgroundColor: T.accentLight },
   companyInfo: { flex: 1, justifyContent: "center" },
   companyNameRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 },
@@ -645,7 +648,7 @@ const s = StyleSheet.create({
   tagText: { fontSize: 9, fontWeight: "800", color: T.text2, letterSpacing: 0.5 },
 
   // Featured Service Card
-  featuredCard: { backgroundColor: T.surface, borderRadius: 24, overflow: "hidden", borderWidth: 1, borderColor: T.border, ...SHADOW },
+  featuredCard: { backgroundColor: T.surface, borderRadius: 24, overflow: "hidden", borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   featuredImg: { width: "100%", height: 160, backgroundColor: T.accentLight },
   featuredBody: { padding: 20 },
   featuredTopRow: { flexDirection: "row", alignItems: "flex-start", gap: 16, marginBottom: 16 },

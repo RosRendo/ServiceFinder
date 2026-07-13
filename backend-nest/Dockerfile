@@ -13,7 +13,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install all dependencies (including devDependencies needed for build)
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # Generate Prisma Client
 RUN DATABASE_URL="mysql://dummy" npx prisma generate
@@ -42,7 +42,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install only production dependencies to keep the image small
-RUN npm ci --only=production
+RUN npm install --omit=dev --legacy-peer-deps
 
 # Generate Prisma Client (required for production)
 RUN DATABASE_URL="mysql://dummy" npx prisma generate

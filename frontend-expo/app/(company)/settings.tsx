@@ -35,7 +35,15 @@ const T = {
   error: "#E31C5F",
 };
 
-const SHADOW = {};
+const HERO_SHADOW = Platform.select({
+  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
+  android: { elevation: 8 },
+});
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 export default function Settings() {
   const router = useRouter();
@@ -251,7 +259,8 @@ const s = StyleSheet.create({
   },
   changeLogoText: { fontSize: 14, fontWeight: "700", color: T.accentMid },
 
-  section: { backgroundColor: T.surface, padding: 20, borderRadius: 16,  },
+  section: { backgroundColor: T.surface, padding: 20, borderRadius: 16,
+    ...CARD_SHADOW, borderWidth: 1, borderColor: T.border },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
   sectionTitle: { fontSize: 16, fontWeight: "800", color: T.text1 },
 

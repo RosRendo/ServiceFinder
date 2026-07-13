@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   ScrollView, View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, StyleSheet, Animated, Keyboard, Platform, Pressable, Image
+  ActivityIndicator, StyleSheet, Animated, Keyboard, Platform, Pressable, Image, KeyboardAvoidingView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -29,6 +29,33 @@ const T = {
   success: Theme.colors.success,
   successBg: Theme.colors.successBg,
 };
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
+
+// ─── Animated Error Banner ───────────────────────────────────
+function AnimatedErrorBanner({ error }: { error: string }) {
+  const slideAnim = useRef(new Animated.Value(-20)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(slideAnim, { toValue: 0, tension: 60, friction: 8, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true })
+    ]).start();
+  }, [error]);
+
+  if (!error) return null;
+
+  return (
+    <Animated.View style={[s.errorBox, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <MaterialCommunityIcons name="alert-circle" size={20} color={T.error} />
+      <Text style={s.errorText}>{error}</Text>
+    </Animated.View>
+  );
+}
 
 export default function Login() {
   const router = useRouter();
@@ -166,12 +193,13 @@ export default function Login() {
 
   return (
     <SafeAreaView style={s.root}>
-      <ScrollView
-        contentContainerStyle={s.container}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={s.container}
+          keyboardShouldPersistTaps="always"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
         {/* Back Button */}
         <TouchableOpacity style={s.backBtn} onPress={() => {
           if (step === "otp") setStep("phone");
@@ -195,12 +223,7 @@ export default function Login() {
         </View>
 
         {/* Error Banner */}
-        {!!error && (
-          <View style={s.errorBox}>
-            <MaterialCommunityIcons name="alert-circle" size={20} color={T.error} />
-            <Text style={s.errorText}>{error}</Text>
-          </View>
-        )}
+        <AnimatedErrorBanner error={error} />
         
         {step === "otp" && !error && (
           <View style={[s.errorBox, { backgroundColor: T.successBg, borderColor: "rgba(16,185,129,0.2)" }]}>
@@ -454,6 +477,7 @@ export default function Login() {
           )}
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -472,16 +496,16 @@ const s = StyleSheet.create({
   fieldGroup: { marginBottom: 24 },
   inputLabel: { fontSize: 12, fontWeight: "600", color: T.text2, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, marginLeft: 4 },
   inputWrapper: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 12, paddingHorizontal: 16, height: 56, borderWidth: 1, borderColor: "transparent", gap: 12 },
-  inputWrapperFocused: { borderColor: T.accent, backgroundColor: "#fff" },
+  inputWrapperFocused: { borderColor: T.accent, backgroundColor: "#fff", ...CARD_SHADOW },
   input: { flex: 1, fontSize: 17, color: T.text1, fontWeight: "400" },
 
-  btnPrimary: { width: "100%", backgroundColor: T.accent, borderRadius: 14, paddingVertical: 18, alignItems: "center", marginTop: 12 },
+  btnPrimary: { width: "100%", backgroundColor: T.accent, borderRadius: 14, paddingVertical: 18, alignItems: "center", marginTop: 12, ...CARD_SHADOW },
   btnPrimaryText: { fontSize: 17, fontWeight: "600", color: "#fff", letterSpacing: 0.2 },
 
   hiddenInput: { position: "absolute", width: 1, height: 1, opacity: 0 },
   otpContainer: { flexDirection: "row", justifyContent: "space-between", width: "100%", marginTop: 8 },
   otpBox: { flex: 1, height: 64, marginHorizontal: 4, backgroundColor: T.surface, borderWidth: 1, borderColor: "transparent", borderRadius: 12, justifyContent: "center", alignItems: "center" },
-  otpBoxFocused: { borderColor: T.accent, backgroundColor: "#fff" },
+  otpBoxFocused: { borderColor: T.accent, backgroundColor: "#fff", ...CARD_SHADOW },
   otpText: { fontSize: 28, fontWeight: "600", color: T.text1 },
 
   dividerBox: { flexDirection: "row", alignItems: "center", marginVertical: 32 },
@@ -489,9 +513,9 @@ const s = StyleSheet.create({
   dividerText: { marginHorizontal: 16, fontSize: 12, fontWeight: "600", color: T.text3, letterSpacing: 1 },
 
   socialGroup: { flexDirection: "row", gap: 12 },
-  btnSocialGoogle: { flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: T.border, borderRadius: 14, paddingVertical: 16 },
+  btnSocialGoogle: { flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: T.border, borderRadius: 14, paddingVertical: 16, ...CARD_SHADOW },
   btnSocialGoogleText: { fontSize: 16, fontWeight: "600", color: T.text1 },
-  btnSocialFacebook: { flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, backgroundColor: "#1877F2", borderRadius: 14, paddingVertical: 16 },
+  btnSocialFacebook: { flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, backgroundColor: "#1877F2", borderRadius: 14, paddingVertical: 16, ...CARD_SHADOW },
   btnSocialFacebookText: { fontSize: 16, fontWeight: "600", color: "#fff" },
 
   forgotBtn: { alignSelf: "flex-end", marginTop: 16 },

@@ -89,7 +89,10 @@ const T = {
   tag: "#F3F4F6",
 };
 
-const SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 // ─────────────────────────────────────────────────────────────
 // UI COMPONENTS
@@ -499,7 +502,7 @@ const s = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: T.border,
-    ...SHADOW,
+    ...CARD_SHADOW,
     gap: 12,
   },
   resultImgBox: {

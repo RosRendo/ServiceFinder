@@ -1,4 +1,9 @@
 // Mock AsyncStorage before any imports
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
+import { useAuthStore , api } from '../../store/authStore';
+
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
@@ -20,13 +25,7 @@ jest.mock('axios', () => {
 
 // Mock expo-router
 jest.mock('expo-router', () => ({ useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: jest.fn() }) }));
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 Platform.OS = 'ios';
-
-import { useAuthStore } from '../../store/authStore';
-import { api } from '../../store/authStore';
 
 const mockUser = {
   id: '1',

@@ -22,7 +22,14 @@ const T = {
   gold: "#FFB800", success: "#00A699",
 };
 
-const SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10 },
+  android: { elevation: 2 },
+});
+const HERO_SHADOW = Platform.select({
+  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
+  android: { elevation: 8 },
+});
 
 // ─── PressRow component ──────────────────────────────────────
 function PressRow({ onPress, children, style }: { onPress: () => void; children: React.ReactNode; style?: any }) {
@@ -51,7 +58,7 @@ function MenuGroup({ title, items }: { title: string; items: MenuItem[] }) {
   return (
     <View style={s.menuGroup}>
       <Text style={s.menuGroupTitle}>{title}</Text>
-      <View style={[s.menuCard, SHADOW]}>
+      <View style={[s.menuCard, CARD_SHADOW]}>
         {items.map((item, index) => (
           <PressRow key={item.id} onPress={item.onPress}>
             <View style={[s.menuRow, index < items.length - 1 && s.menuRowBorder]}>
@@ -168,7 +175,7 @@ export default function ProfileScreen() {
 
         {/* ── HERO CARD ────────────────────────────────────────── */}
         <View style={s.heroPad}>
-          <View style={[s.heroCard, SHADOW]}>
+          <View style={[s.heroCard, HERO_SHADOW]}>
             {/* Background decorative circles */}
             <View style={s.heroCircle1} />
             <View style={s.heroCircle2} />

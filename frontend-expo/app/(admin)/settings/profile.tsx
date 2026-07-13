@@ -27,7 +27,15 @@ const T = {
   successBg: "#ECFDF5", successText: "#065F46",
 };
 
-const SHADOW = {};
+const HERO_CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
+  android: { elevation: 8 },
+});
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -383,13 +391,13 @@ const s = StyleSheet.create({
 
   saveBtn: {
     backgroundColor: T.accent, borderRadius: 16, height: 56,
-    alignItems: "center", justifyContent: "center", ...SHADOW,
+    alignItems: "center", justifyContent: "center", ...CARD_SHADOW,
   },
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { fontSize: 16, fontWeight: "800", color: "#fff" },
 
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 24 },
-  modalContent: { width: "100%", backgroundColor: T.surface, borderRadius: 24, padding: 24, ...SHADOW },
+  modalContent: { width: "100%", backgroundColor: T.surface, borderRadius: 24, padding: 24, ...CARD_SHADOW },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   modalTitle: { fontSize: 20, fontWeight: "800", color: T.text1 },
   modalCloseBtn: { padding: 4 },

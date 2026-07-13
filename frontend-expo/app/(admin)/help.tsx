@@ -37,7 +37,7 @@ export default function Help() {
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 py-4 bg-surface border-b border-outline-variant/10">
         <View className="flex-row items-center gap-4 flex-1">
-          <TouchableOpacity onPress={openSidebar} className="active:scale-95 p-2 -ml-2">
+          <TouchableOpacity onPress={() => openSidebar(true)} className="active:scale-95 p-2 -ml-2">
             <MaterialCommunityIcons name="menu" size={28} color="#002045" />
           </TouchableOpacity>
           <Text className="text-lg font-bold text-primary font-headline">

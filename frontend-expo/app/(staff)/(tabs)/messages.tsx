@@ -24,7 +24,7 @@ const CARD_SHADOW = Platform.select({
   android: { elevation: 2 },
 });
 
-function SkeletonBone({ width, height, radius = 8 }: { width: number | string; height: number; radius?: number }) {
+function SkeletonBone({ width, height, radius = 8 }: { width: any; height: number; radius?: number }) {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(

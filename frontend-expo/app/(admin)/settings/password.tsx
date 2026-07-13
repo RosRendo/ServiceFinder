@@ -23,7 +23,15 @@ const T = {
   successBg: "#D1FAE5", successText: "#065F46"
 };
 
-const SHADOW = {};
+const HERO_CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
+  android: { elevation: 8 },
+});
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
@@ -233,7 +241,7 @@ const s = StyleSheet.create({
 
   saveBtn: {
     backgroundColor: T.accent, borderRadius: 16, height: 56,
-    alignItems: "center", justifyContent: "center", ...SHADOW,
+    alignItems: "center", justifyContent: "center", ...CARD_SHADOW,
   },
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { fontSize: 16, fontWeight: "800", color: "#fff" },

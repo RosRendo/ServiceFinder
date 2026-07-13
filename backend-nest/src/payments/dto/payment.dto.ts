@@ -7,7 +7,7 @@ export class CreatePaymentDto {
 
   @IsString()
   @IsNotEmpty()
-  @IsIn(['card', 'cash', 'bank', 'paypal', 'wallet'])
+  @IsIn(['card', 'cash', 'bank', 'wallet'])
   method: string;
 
   @IsString()
@@ -38,7 +38,7 @@ export class CompletePaymentDto {
 
   @IsString()
   @IsNotEmpty()
-  @IsIn(['cash', 'bank', 'paypal', 'wallet'])
+  @IsIn(['cash', 'bank', 'wallet'])
   method: string;
 }
 
@@ -50,20 +50,4 @@ export class ConfirmCashDto {
   @IsString()
   @IsOptional()
   staffNotes?: string;
-}
-
-export class PaypalOrderDto {
-  @IsString()
-  @IsNotEmpty()
-  bookingId: string;
-}
-
-export class CapturePaypalDto {
-  @IsString()
-  @IsNotEmpty()
-  orderID: string;
-
-  @IsString()
-  @IsNotEmpty()
-  bookingId: string;
 }

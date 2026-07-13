@@ -24,8 +24,6 @@ import {
   CheckoutSessionDto,
   CompletePaymentDto,
   ConfirmCashDto,
-  PaypalOrderDto,
-  CapturePaypalDto,
 } from './dto/payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -143,29 +141,4 @@ export class PaymentsController {
     return this.paymentsService.confirmCashReceived(dto, req.user);
   }
 
-  // ─── PayPal ────────────────────────────────────────────────────────────────
-
-  @UseGuards(JwtAuthGuard)
-  @Post('paypal/create-order')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create PayPal Order' })
-  @ApiResponse({
-    status: 201,
-    description: 'PayPal order created successfully.',
-  })
-  createPaypalOrder(@Body() dto: PaypalOrderDto, @Request() req) {
-    return this.paymentsService.createPaypalOrder(dto, req.user);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('paypal/capture-order')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Capture PayPal Order' })
-  @ApiResponse({
-    status: 200,
-    description: 'PayPal order captured successfully.',
-  })
-  capturePaypalOrder(@Body() dto: CapturePaypalDto, @Request() req) {
-    return this.paymentsService.capturePaypalOrder(dto, req.user);
-  }
 }

@@ -16,7 +16,10 @@ const T = {
   text1: "#111827", text2: "#717171", text3: "#B0B0B0",
 };
 
-const SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 interface ServiceDetail {
@@ -309,7 +312,7 @@ export default function ServiceModalScreen() {
       </Animated.ScrollView>
 
       {/* Sticky Bottom Bar */}
-      <View style={[s.bottomBar, SHADOW, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <View style={[s.bottomBar, CARD_SHADOW, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <View style={s.bottomPriceInfo}>
           <Text style={s.bottomPrice}>${total.toFixed(2)}</Text>
           <Text style={s.bottomSub}>Total (incl. taxes)</Text>

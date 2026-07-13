@@ -1,14 +1,18 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback , useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, ActivityIndicator, Image, Platform, RefreshControl,
-} from 'react-native';
+ Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore, api } from '@/store/authStore';
 import { useFocusEffect } from 'expo-router';
 import { useSidebarStore } from '@/store/sidebarStore';
 import * as ImagePicker from 'expo-image-picker';
+
+import { Theme } from "@/constants/theme";
+
+
 
 // ── Theme — exactly matches dashboard ───────────────────────────────────────
 const T = {
@@ -29,10 +33,6 @@ const T = {
   errorLight:   '#FEF2F2',
 };
 
-import { Theme } from "@/constants/theme";
-import { useRef, useEffect } from 'react';
-import { Animated } from 'react-native';
-
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
   android: { elevation: 2 },
@@ -43,7 +43,7 @@ const HERO_SHADOW = Platform.select({
   android: { elevation: 8 },
 });
 
-function SkeletonBone({ width, height, radius = 8 }: { width: number | string; height: number; radius?: number }) {
+function SkeletonBone({ width, height, radius = 8 }: { width: any; height: number; radius?: number }) {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(

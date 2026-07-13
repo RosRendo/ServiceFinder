@@ -4,6 +4,11 @@
  */
 
 // ─── Mocks (must be before imports) ────────────────────────────────────────
+// ─── Imports ────────────────────────────────────────────────────────────────
+import React from 'react';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import Login from '../../app/(public)/login';
+
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
@@ -51,11 +56,6 @@ jest.mock('@expo/vector-icons', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: any) => children,
 }));
-
-// ─── Imports ────────────────────────────────────────────────────────────────
-import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import Login from '../../app/(public)/login';
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 describe('Login Screen', () => {

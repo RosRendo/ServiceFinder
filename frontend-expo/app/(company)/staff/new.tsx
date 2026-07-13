@@ -18,7 +18,15 @@ const T = {
   success: "#00A699",
 };
 
-const SHADOW = {};
+const HERO_SHADOW = Platform.select({
+  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
+  android: { elevation: 8 },
+});
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 const ROLES = [
   { key: "worker",     label: "Worker",     icon: "hammer-wrench",          desc: "Field technician or cleaner" },

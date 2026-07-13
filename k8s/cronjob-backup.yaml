@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-backup
+spec:
+  schedule: "0 2 * * *" # Run at 2 AM every day
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: mariadb:10.11
+            command:
+            - /bin/sh
+            - -c
+            - "mysqldump -h mysql -u root -pzipmu3-cEcsak-jifqyf servicefinder > /backup/servicefinder_$(date +\\%Y\\%m\\%d).sql"
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backup
+          restartPolicy: OnFailure
+          volumes:
+          - name: backup-volume
+            hostPath:
+              path: /var/backups/mysql
+              type: DirectoryOrCreate

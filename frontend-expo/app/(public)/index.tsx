@@ -1,17 +1,29 @@
 /**
  * Language Selection Screen — Dedicated First Screen
  */
-import React, { useRef } from "react";
-import { View, Text, StyleSheet, Animated, Pressable } from "react-native";
+import React, { useRef, useEffect, useState } from "react";
+import { View, Text, StyleSheet, Animated, Pressable, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+import { useTranslation } from 'react-i18next';
 
 const T = {
   bg: "#FFFFFF", surface: "#FFFFFF", border: "#E5E5EA",
   accent: "#0A192F", accentLight: "#F5F5F5",
   text1: "#111827", text2: "#8E8E93", text3: "#C7C7CC",
 };
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
+
+const HERO_SHADOW = Platform.select({
+  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
+  android: { elevation: 8 },
+});
 
 function LangBtn({ title, subtitle, icon, onPress }: { title: string, subtitle: string, icon: string, onPress: () => void }) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -20,7 +32,7 @@ function LangBtn({ title, subtitle, icon, onPress }: { title: string, subtitle: 
   
   return (
     <Pressable onPress={onPress} onPressIn={pressIn} onPressOut={pressOut}>
-      <Animated.View style={[s.langCard, { transform: [{ scale }] }]}>
+      <Animated.View style={[s.langCard, { transform: [{ scale }] }, CARD_SHADOW]}>
         <View style={s.langIconWrapper}>
           <Text style={s.flagIcon}>{icon}</Text>
         </View>
@@ -34,8 +46,6 @@ function LangBtn({ title, subtitle, icon, onPress }: { title: string, subtitle: 
   );
 }
 
-import { useTranslation } from 'react-i18next';
-
 export default function LanguageSelectionScreen() {
   const router = useRouter();
   const { i18n } = useTranslation();
@@ -45,13 +55,23 @@ export default function LanguageSelectionScreen() {
     router.push("/welcome");
   };
 
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -8, duration: 2000, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 2000, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
   return (
     <SafeAreaView style={s.root}>
       <View style={s.container}>
         <View style={s.headerWrapper}>
-          <View style={s.iconWrapper}>
+          <Animated.View style={[s.iconWrapper, { transform: [{ translateY: floatAnim }] }, HERO_SHADOW]}>
             <MaterialCommunityIcons name="translate" size={48} color={T.surface} />
-          </View>
+          </Animated.View>
           <Text style={s.title}>Choose your language</Text>
           <Text style={s.subtitle}>ជ្រើសរើសភាសារបស់អ្នក</Text>
         </View>
@@ -91,14 +111,9 @@ const s = StyleSheet.create({
     alignItems: "center", 
     backgroundColor: T.surface, 
     borderWidth: 2, 
-    borderColor: T.border, 
+    borderColor: "transparent", 
     borderRadius: 20, 
     padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   langIconWrapper: { 
     width: 48, 

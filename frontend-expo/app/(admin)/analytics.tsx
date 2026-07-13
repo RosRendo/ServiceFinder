@@ -105,7 +105,7 @@ export default function Analytics() {
     <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
       <View className="flex-row items-center justify-between px-6 py-4 bg-surface border-b border-surface-container">
         <View className="flex-row items-center gap-4 flex-1">
-          <TouchableOpacity onPress={openSidebar} className="active:scale-95 p-2 -ml-2">
+          <TouchableOpacity onPress={() => openSidebar(true)} className="active:scale-95 p-2 -ml-2">
             <MaterialCommunityIcons name="menu" size={28} color="#002045" />
           </TouchableOpacity>
           <Text className="text-lg font-bold text-primary font-headline">Analytics Dashboard</Text>

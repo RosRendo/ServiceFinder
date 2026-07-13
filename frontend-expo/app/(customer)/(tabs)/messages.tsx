@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback , useEffect, useRef} from "react";
 import {
   ScrollView, Text, View, TouchableOpacity, TextInput,
-  ActivityIndicator, RefreshControl, StyleSheet, Platform,
+  ActivityIndicator, RefreshControl, StyleSheet, Platform, Animated, Easing
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -16,7 +16,10 @@ const T = {
   success: "#00A699",
 };
 
-const SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 interface Conversation {
   id: string;
@@ -35,6 +38,28 @@ const formatTime = (iso: string, t: any) => {
   if (diffDays < 7) return d.toLocaleDateString([], { weekday: "short" });
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 };
+
+// ─── Animated Empty State ──────────────────────────────────────
+function AnimatedChatEmpty({ title, sub }: { title: string; sub: string }) {
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -8, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  return (
+    <View style={s.emptyWrap}>
+      <Animated.View style={[s.emptyIcon, { transform: [{ translateY: floatAnim }] }]}>
+        <MaterialCommunityIcons name="chat-outline" size={40} color={T.text3} />
+      </Animated.View>
+      <Text style={s.emptyTitle}>{title}</Text>
+      <Text style={s.emptySub}>{sub}</Text>
+    </View>
+  );
+}
 
 export default function MessagesScreen() {
   const router = useRouter();
@@ -109,21 +134,12 @@ export default function MessagesScreen() {
             <ActivityIndicator size="large" color={T.accent} />
           </View>
         ) : filtered.length === 0 ? (
-          <View style={s.emptyWrap}>
-            <View style={s.emptyIcon}>
-              <MaterialCommunityIcons name="chat-outline" size={40} color={T.text3} />
-            </View>
-            <Text style={s.emptyTitle}>
-              {search ? t('messages.noResultsFound') : t('messages.noConversationsYet')}
-            </Text>
-            <Text style={s.emptySub}>
-              {search
-                ? t('messages.noConversationsMatching', { term: search })
-                : t('messages.tapMessageToStart')}
-            </Text>
-          </View>
+          <AnimatedChatEmpty
+            title={search ? t('messages.noResultsFound') : t('messages.noConversationsYet')}
+            sub={search ? t('messages.noConversationsMatching', { term: search }) : t('messages.tapMessageToStart')}
+          />
         ) : (
-          <View style={[s.listCard, SHADOW]}>
+          <View style={[s.listCard, CARD_SHADOW]}>
             {filtered.map((c, index) => {
               const initials = c.otherUser?.fullName?.charAt(0)?.toUpperCase() ?? "?";
               const hasUnread = (c.unreadCount ?? 0) > 0;
@@ -201,6 +217,7 @@ const s = StyleSheet.create({
     marginHorizontal: 16, marginBottom: 12,
     backgroundColor: T.surface, borderRadius: 14, borderWidth: 1, borderColor: T.border,
     paddingHorizontal: 14, paddingVertical: 12,
+    ...CARD_SHADOW,
   },
   searchInput: { flex: 1, fontSize: 15, color: T.text1, fontWeight: "500" },
 

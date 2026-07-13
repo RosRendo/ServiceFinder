@@ -87,7 +87,7 @@ export default function Users() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={openSidebar} style={s.menuBtn}>
+          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>{t('adminUsers.title')}</Text>
@@ -193,6 +193,12 @@ export default function Users() {
   );
 }
 
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
+
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   header: {
@@ -224,7 +230,7 @@ const s = StyleSheet.create({
   emptyText: { fontSize: 16, fontWeight: "700", color: T.text1 },
   emptySubText: { fontSize: 14, color: T.text3, marginTop: 4, textAlign: "center", paddingHorizontal: 32 },
 
-  userCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border },
+  userCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border , ...CARD_SHADOW },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
   avatar: { width: 48, height: 48, borderRadius: 16, backgroundColor: T.bg },
   cardHeaderInfo: { flex: 1 },

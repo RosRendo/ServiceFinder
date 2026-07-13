@@ -110,7 +110,7 @@ export default function SystemMonitoringScreen() {
     <SafeAreaView className="flex-1 bg-surface" edges={["top", "left", "right"]}>
       <View className="flex-row items-center justify-between px-6 py-4 border-b border-surface-container">
         <View className="flex-row items-center gap-4">
-          <TouchableOpacity onPress={openSidebar} className="p-2 -ml-2">
+          <TouchableOpacity onPress={() => openSidebar(true)} className="p-2 -ml-2">
             <MaterialCommunityIcons name="menu" size={28} color="#002045" />
           </TouchableOpacity>
           <Text className="text-lg font-bold text-primary font-headline">System Status</Text>

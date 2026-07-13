@@ -258,6 +258,12 @@ export default function Companies() {
   );
 }
 
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
+
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   header: {
@@ -289,7 +295,7 @@ const s = StyleSheet.create({
   emptyText: { fontSize: 16, fontWeight: "700", color: T.text1 },
   emptySubText: { fontSize: 14, color: T.text3, marginTop: 4, textAlign: "center", paddingHorizontal: 32 },
 
-  companyCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border },
+  companyCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border , ...CARD_SHADOW },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
   logoWrap: { width: 52, height: 52, borderRadius: 12, backgroundColor: T.bg, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   logo: { width: "100%", height: "100%" },

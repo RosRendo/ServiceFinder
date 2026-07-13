@@ -1,0 +1,26 @@
+version: 2
+updates:
+  # Maintain dependencies for npm (backend)
+  - package-ecosystem: "npm"
+    directory: "/backend-nest"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    
+  # Maintain dependencies for npm (frontend)
+  - package-ecosystem: "npm"
+    directory: "/frontend-expo"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    
+  # Maintain dependencies for Docker
+  - package-ecosystem: "docker"
+    directory: "/backend-nest"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"

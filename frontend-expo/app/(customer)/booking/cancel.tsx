@@ -15,7 +15,10 @@ const T = {
   error: "#E31C5F", errorBg: "#FEF2F2", errorBorder: "#FCA5A5",
 };
 
-const SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 const CANCELLATION_REASONS = [
   "Schedule conflict",
@@ -130,7 +133,7 @@ export default function CancelBookingScreen() {
       </ScrollView>
 
       {/* Footer */}
-      <View style={[s.footer, SHADOW]}>
+      <View style={[s.footer, CARD_SHADOW]}>
         <TouchableOpacity onPress={() => router.back()} style={s.keepBtn} activeOpacity={0.85}>
           <Text style={s.keepBtnText}>Keep Booking</Text>
         </TouchableOpacity>

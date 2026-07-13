@@ -520,8 +520,15 @@ export default function Home() {
 // ─────────────────────────────────────────────────────────────
 // STYLES  (8pt grid enforced throughout)
 // ─────────────────────────────────────────────────────────────
-const SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
+const HERO_SHADOW = Platform.select({
+  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
+  android: { elevation: 8 },
+});
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
 
@@ -568,6 +575,7 @@ const s = StyleSheet.create({
     borderRadius: 20, backgroundColor: T.accent, padding: 24,
     overflow: "hidden", minHeight: 140,
     flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between",
+    ...HERO_SHADOW,
   },
   heroCircle1: {
     position: "absolute", width: 200, height: 200, borderRadius: 100,
@@ -614,6 +622,7 @@ const s = StyleSheet.create({
   serviceCard: {
     width: 152, backgroundColor: T.surface, borderRadius: 16,
     overflow: "hidden", borderWidth: 1, borderColor: T.border,
+    ...CARD_SHADOW,
   },
   serviceImgBox: { width: 152, height: 130, backgroundColor: T.accentLight },
   priceBadge: {
@@ -630,6 +639,7 @@ const s = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: 12,
     backgroundColor: T.surface, borderRadius: 16, padding: 16,
     borderWidth: 1, borderColor: T.border,
+    ...CARD_SHADOW,
   },
   providerLogo: { width: 56, height: 56, borderRadius: 14, backgroundColor: T.accentLight },
   providerNameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
@@ -650,6 +660,7 @@ const s = StyleSheet.create({
     flexDirection: "row", justifyContent: "space-around",
     backgroundColor: T.surface, borderRadius: 16, padding: 20,
     borderWidth: 1, borderColor: T.border,
+    ...CARD_SHADOW,
   },
   trustItem: { alignItems: "center", gap: 8 },
   trustIconBox: {

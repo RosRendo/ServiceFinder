@@ -25,7 +25,10 @@ const T = {
   info: "#000000", purple: "#000000",
 };
 
-const SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 const TICKET_SHADOW = {};
 
 // ─── Types ─────────────────────────────────────────────────────────────────

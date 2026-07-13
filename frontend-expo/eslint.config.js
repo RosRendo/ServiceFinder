@@ -10,7 +10,8 @@ module.exports = defineConfig([
       "react/no-unescaped-entities": "off",
       "react-hooks/exhaustive-deps": "off",
       "@typescript-eslint/no-unused-vars": "off",
-      "@typescript-eslint/no-require-imports": "off"
+      "@typescript-eslint/no-require-imports": "off",
+      "import/no-unresolved": "off"
     }
   },
 ]);

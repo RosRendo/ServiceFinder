@@ -21,7 +21,10 @@ const T = {
   blueBg: "#F7F7F7", blueText: "#1D4ED8",
 };
 
-const SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 interface CompanyPin {
   id: string;
@@ -227,7 +230,7 @@ export default function MapViewScreen() {
   return (
     <View style={s.root}>
       {/* Top App Bar */}
-      <SafeAreaView edges={["top"]} style={[s.header, SHADOW]}>
+      <SafeAreaView edges={["top"]} style={[s.header, CARD_SHADOW]}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn} activeOpacity={0.8}>
             <MaterialCommunityIcons name="arrow-left" size={24} color={T.accent} />
@@ -298,7 +301,7 @@ export default function MapViewScreen() {
         {/* Floating info pill */}
         {!isLoading && companies.length > 0 && (
           <View style={s.pillOverlay} pointerEvents="none">
-            <View style={[s.infoPill, SHADOW]}>
+            <View style={[s.infoPill, CARD_SHADOW]}>
               <MaterialCommunityIcons name="map-marker-multiple" size={16} color={T.accent} />
               <Text style={s.infoPillText}>
                 {companies.length} provider{companies.length !== 1 ? "s" : ""} nearby
@@ -310,7 +313,7 @@ export default function MapViewScreen() {
         {/* No-data overlay */}
         {!isLoading && companies.length === 0 && (
           <View style={s.emptyOverlay}>
-            <View style={[s.emptyCard, SHADOW]}>
+            <View style={[s.emptyCard, CARD_SHADOW]}>
               <View style={s.emptyIconBox}>
                 <MaterialCommunityIcons name="map-marker-off" size={32} color={T.text3} />
               </View>
@@ -344,7 +347,7 @@ function AnimatedCard({ company, onClose, onNavigate }: { company: CompanyPin; o
   }, [company.id]);
 
   return (
-    <Animated.View style={[s.cardOverlay, SHADOW, { transform: [{ translateY: anim }] }]}>
+    <Animated.View style={[s.cardOverlay, CARD_SHADOW, { transform: [{ translateY: anim }] }]}>
       <TouchableOpacity onPress={onClose} style={s.closeBtn} activeOpacity={0.8}>
         <MaterialCommunityIcons name="close" size={18} color={T.text1} />
       </TouchableOpacity>

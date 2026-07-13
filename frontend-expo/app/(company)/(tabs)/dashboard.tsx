@@ -31,7 +31,15 @@ const T = {
   info: Theme.colors.info,
 };
 
-const SHADOW = {};
+const HERO_SHADOW = Platform.select({
+  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
+  android: { elevation: 8 },
+});
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 function PressCard({ onPress, style, children }: { onPress: () => void; style?: any; children: React.ReactNode; }) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -261,7 +269,7 @@ const s = StyleSheet.create({
   contentPad: { paddingHorizontal: 24, paddingTop: 8 },
   loadingBox: { paddingVertical: 80, alignItems: "center" },
 
-  heroCard: { backgroundColor: T.accent, borderRadius: 24, padding: 24, marginBottom: 16, borderWidth: 1, borderColor: T.border, overflow: "hidden" },
+  heroCard: { backgroundColor: T.accent, borderRadius: 24, padding: 24, marginBottom: 16, overflow: "visible", ...HERO_SHADOW },
   heroHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 20 },
   heroIconWrap: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
   heroLabel: { flex: 1, fontSize: 13, fontWeight: "700", color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: 1 },
@@ -272,12 +280,12 @@ const s = StyleSheet.create({
 
   kpiGrid: { gap: 16, marginBottom: 24 },
   kpiRow: { flexDirection: "row", gap: 16 },
-  kpiCard: { flex: 1, backgroundColor: T.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.border },
+  kpiCard: { flex: 1, backgroundColor: T.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   kpiLabel: { fontSize: 12, fontWeight: "700", color: T.text3, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 },
   kpiValue: { fontSize: 26, fontWeight: "800", color: T.text1 },
   kpiSubLabel: { fontSize: 12, fontWeight: "600", color: T.text3, marginTop: 6 },
 
-  chartCard: { backgroundColor: T.surface, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: T.border, marginBottom: 32 },
+  chartCard: { backgroundColor: T.surface, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: T.border, marginBottom: 32, ...CARD_SHADOW },
   chartHeader: { marginBottom: 24 },
   sectionTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
   chartSub: { fontSize: 13, fontWeight: "500", color: T.text3, marginTop: 4 },
@@ -298,7 +306,7 @@ const s = StyleSheet.create({
   emptyBox: { alignItems: "center", paddingVertical: 40, gap: 12, backgroundColor: T.surface, borderRadius: 20, borderWidth: 1, borderColor: T.border },
   emptyText: { color: T.text3, fontWeight: "600", fontSize: 14 },
   
-  activityCard: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 20, padding: 16, gap: 16, borderWidth: 1, borderColor: T.border },
+  activityCard: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 20, padding: 16, gap: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   activityIconBox: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   activityInfo: { flex: 1, gap: 4 },
   activityTitle: { fontSize: 15, fontWeight: "800", color: T.text1 },

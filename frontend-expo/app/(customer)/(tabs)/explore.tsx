@@ -40,7 +40,10 @@ const T = {
   tag: "#F7F7F7",
 };
 
-const SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 // ─────────────────────────────────────────────────────────────
 // ICON MAP
@@ -99,6 +102,25 @@ function PressCard({ onPress, style, children }: {
 // ─────────────────────────────────────────────────────────────
 // SKELETON PLACEHOLDERS
 // ─────────────────────────────────────────────────────────────
+function AnimatedExploreEmpty({ icon, title, body }: { icon: string; title: string; body: string }) {
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -8, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  return (
+    <View style={s.emptyState}>
+      <Animated.Text style={[s.emptyIcon, { transform: [{ translateY: floatAnim }] }]}>{icon}</Animated.Text>
+      <Text style={s.emptyTitle}>{title}</Text>
+      <Text style={s.emptyBody}>{body}</Text>
+    </View>
+  );
+}
+
 function CompanyCardsSkeleton() {
   return (
     <View style={{ flexDirection: "row", paddingHorizontal: 24, gap: 12 }}>
@@ -431,11 +453,11 @@ export default function Explore() {
             {isLoading && companies.length === 0 ? (
               <View style={{ marginTop: 16 }}><CompanyCardsSkeleton /></View>
             ) : companies.length === 0 ? (
-              <View style={s.emptyState}>
-                <Text style={s.emptyIcon}>🏢</Text>
-                <Text style={s.emptyTitle}>{t('explore.noCompaniesYet')}</Text>
-                <Text style={s.emptyBody}>{t('explore.checkBackSoonCompanies')}</Text>
-              </View>
+              <AnimatedExploreEmpty 
+                  icon="🔍" 
+                  title={t('explore.noResultsFound')} 
+                  body={t('explore.tryAdjustingFilters')} 
+                />
             ) : (
               <ScrollView
                 horizontal
@@ -513,11 +535,11 @@ export default function Explore() {
               {isLoading && companies.length === 0 ? (
                 <ServiceListSkeleton />
               ) : companies.length === 0 ? (
-                <View style={s.emptyState}>
-                  <Text style={s.emptyIcon}>📍</Text>
-                  <Text style={s.emptyTitle}>{t('explore.noNearbyProviders')}</Text>
-                  <Text style={s.emptyBody}>{t('explore.tryExpandingSearch')}</Text>
-                </View>
+                <AnimatedExploreEmpty 
+                  icon="📍" 
+                  title={t('explore.noNearbyProviders')} 
+                  body={t('explore.tryExpandingSearch')} 
+                />
               ) : (
                 companies.slice(0, 5).map((company, i) => (
                   <FadeIn key={company.id} delay={i * 100}>
@@ -595,6 +617,7 @@ const s = StyleSheet.create({
   companyCard: {
     width: 200, backgroundColor: T.surface, borderRadius: 16,
     overflow: "hidden", borderWidth: 1, borderColor: T.border,
+    ...CARD_SHADOW,
   },
   companyCover: { width: 200, height: 116, backgroundColor: T.accentLight },
   ratingBadge: {
@@ -619,6 +642,7 @@ const s = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: 12,
     backgroundColor: T.surface, borderRadius: 16, padding: 12,
     borderWidth: 1, borderColor: T.border,
+    ...CARD_SHADOW,
   },
   serviceImgBox: {
     width: 80, height: 80, borderRadius: 12, backgroundColor: T.accentLight,
@@ -640,6 +664,7 @@ const s = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: 12,
     backgroundColor: T.surface, borderRadius: 16, padding: 12,
     borderWidth: 1, borderColor: T.border,
+    ...CARD_SHADOW,
   },
   nearbyLogo: { width: 80, height: 80, borderRadius: 12, backgroundColor: T.accentLight },
   nearbyNameRow: { flexDirection: "row", alignItems: "center", gap: 4 },

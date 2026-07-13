@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   ScrollView, Text, View, TouchableOpacity,
   Alert, RefreshControl, StyleSheet,
-  Animated, Pressable, Platform,
+  Animated, Pressable, Platform, Easing
 } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -35,8 +35,14 @@ const T = {
   cancelled: "#E31C5F", cancelledBg: "#FCE8EE",
 };
 
-const SHADOW = {};
-const TICKET_SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },
+  android: { elevation: 4 },
+});
+const TICKET_SHADOW = Platform.select({
+  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 20 },
+  android: { elevation: 8 },
+});
 
 // ─── Types ───────────────────────────────────────────────────
 type BookingStatus = "pending" | "confirmed" | "in_progress" | "completed" | "cancelled" | "rejected";
@@ -273,6 +279,28 @@ function BookingCard({ booking, onCancel, index }: { booking: Booking; onCancel:
   );
 }
 
+// ─── Animated Empty Icon ─────────────────────────────────────
+function AnimatedEmptyIcon({ activeTab }: { activeTab: string }) {
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -12, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  return (
+    <Animated.View style={[s.emptyIconBox, { transform: [{ translateY: floatAnim }] }]}>
+      <MaterialCommunityIcons
+        name={activeTab === "upcoming" ? "calendar-blank" : activeTab === "past" ? "calendar-check-outline" : "calendar-remove-outline"}
+        size={56}
+        color="#FFFFFF"
+      />
+    </Animated.View>
+  );
+}
+
 // ─── Main Screen ─────────────────────────────────────────────
 export default function BookingsScreen() {
   const router = useRouter();
@@ -372,13 +400,7 @@ export default function BookingsScreen() {
         ) : bookings.length === 0 ? (
           /* Empty State */
           <Animated.View style={s.emptyState}>
-            <View style={s.emptyIconBox}>
-              <MaterialCommunityIcons
-                name={activeTab === "upcoming" ? "calendar-blank" : activeTab === "past" ? "calendar-check-outline" : "calendar-remove-outline"}
-                size={56}
-                color="#FFFFFF"
-              />
-            </View>
+              <AnimatedEmptyIcon activeTab={activeTab} />
             <Text style={s.emptyTitle}>
               {activeTab === "upcoming" ? t('book.noUpcomingBookings') :
                activeTab === "past" ? t('book.noCompletedBookings') : t('book.noCancelledBookings')}
@@ -455,9 +477,9 @@ const s = StyleSheet.create({
   tabText: { fontSize: 14, fontWeight: "600", color: T.text2 },
   tabTextActive: { color: T.accent, fontWeight: "800" },
 
-  // Booking Card (Clean Style)
   bookingCard: {
     backgroundColor: T.surface, borderRadius: 20, overflow: "hidden", padding: 16,
+    ...TICKET_SHADOW,
   },
   cardTop: { flexDirection: "row", gap: 16 },
   cardImgBox: {

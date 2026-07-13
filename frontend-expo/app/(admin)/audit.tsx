@@ -117,7 +117,7 @@ export default function AuditLogs() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={openSidebar} style={s.menuBtn}>
+          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>Audit Logs</Text>
@@ -189,6 +189,12 @@ export default function AuditLogs() {
   );
 }
 
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
+
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   header: {
@@ -221,7 +227,7 @@ const s = StyleSheet.create({
   listContent: { padding: 16, paddingBottom: 60, gap: 12 },
   loadingBox: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  card: { backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border },
+  card: { backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border , ...CARD_SHADOW },
   cardTopRow: { flexDirection: "row", alignItems: "flex-start" },
   iconBox: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", marginRight: 12 },
   cardInfo: { flex: 1 },

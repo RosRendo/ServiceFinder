@@ -18,7 +18,15 @@ const T = {
   info: "#3B82F6", purple: "#8B5CF6",
 };
 
-const SHADOW = {};
+const HERO_SHADOW = Platform.select({
+  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
+  android: { elevation: 8 },
+});
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; accent: string }> = {
   pending:     { label: "Pending",     color: "#92400E", bg: "#FEF3C7", accent: T.warning },
@@ -245,8 +253,8 @@ const s = StyleSheet.create({
   emptySubtitle: { fontSize: 14, fontWeight: "500", color: T.text3 },
 
   bookingCard: {
-    backgroundColor: T.surface, borderRadius: 14, padding: 14,
-    borderLeftWidth: 3, borderWidth: 1, borderColor: T.border,
+    backgroundColor: T.surface, borderRadius: 20, padding: 16,
+    borderLeftWidth: 4, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW
   },
   cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
   cardTopLeft: { flex: 1 },

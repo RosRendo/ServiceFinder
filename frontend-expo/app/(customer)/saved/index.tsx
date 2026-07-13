@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Image } from "expo-image";
-import { ScrollView, Text, View, TouchableOpacity, RefreshControl, StyleSheet, Alert } from "react-native";
+import {  ScrollView, Text, View, TouchableOpacity, RefreshControl, StyleSheet, Alert , Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -41,7 +41,10 @@ const T = {
   error: "#ED6B6B"
 };
 
-const SHADOW = {}; // Flat design
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 export default function SavedScreen() {
   const router = useRouter();
@@ -254,7 +257,7 @@ const s = StyleSheet.create({
   exploreBtnText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
 
   // Service Card
-  serviceCard: { backgroundColor: T.surface, borderRadius: 16, borderWidth: 1, borderColor: T.border, overflow: "hidden", ...SHADOW },
+  serviceCard: { backgroundColor: T.surface, borderRadius: 16, borderWidth: 1, borderColor: T.border, overflow: "hidden", ...CARD_SHADOW },
   serviceImageWrap: { width: "100%", height: 140, backgroundColor: T.accentLight, alignItems: "center", justifyContent: "center" },
   heartBtn: { position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.9)", alignItems: "center", justifyContent: "center" },
   serviceBody: { padding: 16 },
@@ -266,7 +269,7 @@ const s = StyleSheet.create({
   servicePrice: { fontSize: 16, fontWeight: "800", color: T.accent },
 
   // Company Card
-  companyCard: { flexDirection: "row", backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border, gap: 16, ...SHADOW },
+  companyCard: { flexDirection: "row", backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border, gap: 16, ...CARD_SHADOW },
   companyLogoWrap: { width: 64, height: 64, borderRadius: 12, backgroundColor: T.accentLight, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   companyInitial: { fontSize: 24, fontWeight: "800", color: T.text3 },
   companyBody: { flex: 1, justifyContent: "center" },

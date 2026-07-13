@@ -1,10 +1,10 @@
 /**
  * Register Screen — Premium Redesign
  */
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   ScrollView, View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, StyleSheet, Keyboard, Platform,
+  ActivityIndicator, StyleSheet, Keyboard, Platform, Animated, KeyboardAvoidingView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -18,6 +18,33 @@ const T = {
   text1: "#111827", text2: "#8E8E93", text3: "#C7C7CC",
   error: "#FF3B30", errorBg: "#FFE5E5",
 };
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
+
+// ─── Animated Error Banner ───────────────────────────────────
+function AnimatedErrorBanner({ error }: { error: string }) {
+  const slideAnim = useRef(new Animated.Value(-20)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.spring(slideAnim, { toValue: 0, tension: 60, friction: 8, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true })
+    ]).start();
+  }, [error]);
+
+  if (!error) return null;
+
+  return (
+    <Animated.View style={[s.errorBox, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <MaterialCommunityIcons name="alert-circle" size={20} color={T.error} />
+      <Text style={s.errorText}>{error}</Text>
+    </Animated.View>
+  );
+}
 
 export default function Register() {
   const router = useRouter();
@@ -54,12 +81,13 @@ export default function Register() {
 
   return (
     <SafeAreaView style={s.root}>
-      <ScrollView
-        contentContainerStyle={s.container}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={s.container}
+          keyboardShouldPersistTaps="always"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
         {/* Back Button */}
         <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
           <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
@@ -72,12 +100,7 @@ export default function Register() {
         </View>
 
         {/* Error Banner */}
-        {!!error && (
-          <View style={s.errorBox}>
-            <MaterialCommunityIcons name="alert-circle" size={20} color={T.error} />
-            <Text style={s.errorText}>{error}</Text>
-          </View>
-        )}
+        <AnimatedErrorBanner error={error} />
 
         {/* Full Name */}
         <View style={s.fieldGroup}>
@@ -200,6 +223,7 @@ export default function Register() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -218,14 +242,14 @@ const s = StyleSheet.create({
   fieldGroup: { marginBottom: 24 },
   inputLabel: { fontSize: 12, fontWeight: "600", color: T.text2, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, marginLeft: 4 },
   inputWrapper: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 12, paddingHorizontal: 16, height: 56, borderWidth: 1, borderColor: "transparent", gap: 12 },
-  inputWrapperFocused: { borderColor: T.accent, backgroundColor: "#fff" },
+  inputWrapperFocused: { borderColor: T.accent, backgroundColor: "#fff", ...CARD_SHADOW },
   input: { flex: 1, fontSize: 17, color: T.text1, fontWeight: "400" },
 
   strengthRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, paddingHorizontal: 4 },
   strengthBar: { flex: 1, height: 4, borderRadius: 2 },
   strengthText: { fontSize: 11, fontWeight: "600", color: T.text3, minWidth: 52 },
 
-  btnPrimary: { width: "100%", backgroundColor: T.accent, borderRadius: 14, paddingVertical: 18, alignItems: "center", marginTop: 12 },
+  btnPrimary: { width: "100%", backgroundColor: T.accent, borderRadius: 14, paddingVertical: 18, alignItems: "center", marginTop: 12, ...CARD_SHADOW },
   btnPrimaryText: { fontSize: 17, fontWeight: "600", color: "#fff", letterSpacing: 0.2 },
 
   terms: { fontSize: 13, color: T.text3, textAlign: "center", marginTop: 20, lineHeight: 20 },

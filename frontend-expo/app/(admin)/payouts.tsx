@@ -160,7 +160,7 @@ export default function AdminPayoutsScreen() {
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={openSidebar} style={s.menuBtn}>
+          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>Payouts</Text>

@@ -1,8 +1,8 @@
 /**
  * Forgot Password Screen — Premium Redesign
  */
-import React, { useState, useRef } from "react";
-import { ScrollView, View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Keyboard } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import { ScrollView, View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Keyboard, Platform, Animated, Easing, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -16,6 +16,51 @@ const T = {
   error: "#EF4444", errorBg: "#FEF2F2",
   success: "#10B981", successBg: "#ECFDF5",
 };
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
+
+// ─── Animated Error Banner ───────────────────────────────────
+function AnimatedErrorBanner({ error }: { error: string }) {
+  const slideAnim = useRef(new Animated.Value(-20)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.spring(slideAnim, { toValue: 0, tension: 60, friction: 8, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true })
+    ]).start();
+  }, [error]);
+
+  if (!error) return null;
+
+  return (
+    <Animated.View style={[s.errorBox, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <MaterialCommunityIcons name="alert-circle" size={20} color={T.error} />
+      <Text style={s.errorText}>{error}</Text>
+    </Animated.View>
+  );
+}
+
+// ─── Animated Hero Icon ──────────────────────────────────────
+function AnimatedHeroIcon({ icon }: { icon: string }) {
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -8, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  return (
+    <Animated.View style={[s.heroIconWrap, { transform: [{ translateY: floatAnim }] }]}>
+      <MaterialCommunityIcons name={icon as any} size={40} color={T.accent} />
+    </Animated.View>
+  );
+}
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -52,30 +97,27 @@ export default function ForgotPassword() {
 
   return (
     <SafeAreaView style={s.root}>
-      <ScrollView
-        contentContainerStyle={s.container}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={s.container}
+          keyboardShouldPersistTaps="always"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
         {/* Back Button */}
         <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
           <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
         </TouchableOpacity>
 
         {/* Header */}
+        <AnimatedHeroIcon icon="lock-reset" />
         <View style={s.header}>
           <Text style={s.title}>{t('auth.resetPassword')}</Text>
           <Text style={s.subtitle}>{t('auth.resetSubtitle')}</Text>
         </View>
 
         {/* Error Banner */}
-        {!!error && (
-          <View style={s.errorBox}>
-            <MaterialCommunityIcons name="alert-circle" size={20} color={T.error} />
-            <Text style={s.errorText}>{error}</Text>
-          </View>
-        )}
+        <AnimatedErrorBanner error={error} />
 
         {/* Success Banner */}
         {success ? (
@@ -142,6 +184,7 @@ export default function ForgotPassword() {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -150,6 +193,7 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   container: { flexGrow: 1, paddingHorizontal: 24, justifyContent: "center", paddingTop: 60, paddingBottom: 40 },
   backBtn: { position: "absolute", top: 16, left: 8, zIndex: 10, padding: 8 },
+  heroIconWrap: { width: 80, height: 80, borderRadius: 24, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", marginBottom: 20, ...CARD_SHADOW },
   header: { marginBottom: 32 },
   title: { fontSize: 32, fontWeight: "800", color: T.text1, letterSpacing: -0.5, marginBottom: 12 },
   subtitle: { fontSize: 16, color: T.text2, fontWeight: "500", lineHeight: 24 },
@@ -165,10 +209,10 @@ const s = StyleSheet.create({
   fieldGroup: { marginBottom: 24 },
   inputLabel: { fontSize: 11, fontWeight: "800", color: T.text2, letterSpacing: 1, marginBottom: 8, marginLeft: 4 },
   inputWrapper: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 14, paddingHorizontal: 16, height: 56, borderWidth: 1.5, borderColor: T.border, gap: 12 },
-  inputWrapperFocused: { borderColor: T.accent, backgroundColor: "#fff" },
+  inputWrapperFocused: { borderColor: T.accent, backgroundColor: "#fff", ...CARD_SHADOW },
   input: { flex: 1, fontSize: 16, color: T.text1, fontWeight: "500" },
 
-  btnPrimary: { width: "100%", backgroundColor: T.accent, borderRadius: 16, paddingVertical: 18, alignItems: "center" },
+  btnPrimary: { width: "100%", backgroundColor: T.accent, borderRadius: 16, paddingVertical: 18, alignItems: "center", ...CARD_SHADOW },
   btnPrimaryText: { fontSize: 16, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
 
   btnSecondary: { width: "100%", backgroundColor: "transparent", borderRadius: 16, paddingVertical: 18, alignItems: "center" },

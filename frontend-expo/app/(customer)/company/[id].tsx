@@ -38,7 +38,10 @@ const T = {
   tag: "#F7F7F7",
 };
 
-const SHADOW = {};
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -644,7 +647,7 @@ const s = StyleSheet.create({
   emptyText: { fontSize: 14, color: T.text3 },
 
   // Services
-  serviceCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border, ...SHADOW, flexDirection: "row", gap: 16 },
+  serviceCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW, flexDirection: "row", gap: 16 },
   serviceCardFeatured: { backgroundColor: T.accent, borderColor: T.accent },
   serviceTitle: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 6 },
   serviceTitleFeatured: { color: "#fff" },
@@ -666,7 +669,7 @@ const s = StyleSheet.create({
   serviceImg: { width: 88, height: 88, borderRadius: 12, backgroundColor: T.accentLight },
 
   // Reviews
-  reviewsSummaryCard: { backgroundColor: T.surface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: T.border, ...SHADOW, flexDirection: "row", gap: 24, marginBottom: 16 },
+  reviewsSummaryCard: { backgroundColor: T.surface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW, flexDirection: "row", gap: 24, marginBottom: 16 },
   reviewsSummaryLeft: { alignItems: "center", justifyContent: "center" },
   ratingMassive: { fontSize: 36, fontWeight: "800", color: T.text1 },
   starsRow: { flexDirection: "row", gap: 2, marginVertical: 4 },
@@ -677,7 +680,7 @@ const s = StyleSheet.create({
   barTrack: { flex: 1, height: 6, backgroundColor: T.border, borderRadius: 3 },
   barFill: { height: 6, backgroundColor: T.accent, borderRadius: 3 },
 
-  reviewItemCard: { backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border, ...SHADOW },
+  reviewItemCard: { backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   reviewItemHeader: { flexDirection: "row", gap: 12, marginBottom: 12 },
   reviewerAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: T.tag, alignItems: "center", justifyContent: "center" },
   reviewerName: { fontSize: 13, fontWeight: "700", color: T.text1 },
@@ -689,7 +692,7 @@ const s = StyleSheet.create({
   galleryImg: { width: "31.5%", aspectRatio: 1, borderRadius: 12, backgroundColor: T.accentLight },
 
   // Info Cards (Location & About)
-  infoCard: { backgroundColor: T.surface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: T.border, ...SHADOW, marginBottom: 16 },
+  infoCard: { backgroundColor: T.surface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW, marginBottom: 16 },
   infoRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
   infoTitle: { fontSize: 15, fontWeight: "800", color: T.text1, flex: 1 },
   infoDesc: { fontSize: 13, color: T.text2, marginTop: 4 },
