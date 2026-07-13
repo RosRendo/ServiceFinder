@@ -48,7 +48,7 @@ jobs:
 
       - name: Start Database and Cache
         run: docker compose up -d mysql-db redis
-        working-directory: ../
+        working-directory: ./
 
       - name: Wait for MySQL
         run: npx wait-on tcp:127.0.0.1:3306
