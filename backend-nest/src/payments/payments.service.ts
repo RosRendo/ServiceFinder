@@ -503,7 +503,6 @@ export class PaymentsService {
     };
   }
 
-
   // ─── Serialize ─────────────────────────────────────────────────────────────
 
   private serializePayment(p: any): any {

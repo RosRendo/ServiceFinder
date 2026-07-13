@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PayoutRequestDto, ProcessPayoutDto } from './dto/financials.dto';
 
@@ -24,8 +29,11 @@ export class FinancialsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const balance = transactions.reduce((sum, tx) => sum + Number(tx.amount), 0);
-    
+    const balance = transactions.reduce(
+      (sum, tx) => sum + Number(tx.amount),
+      0,
+    );
+
     // Also fetch pending payouts to show reserved balance
     const payouts = await this.prisma.payoutRequest.findMany({
       where: { ownerType: 'company', ownerId: company.id },
@@ -33,24 +41,24 @@ export class FinancialsService {
     });
 
     const pendingAmount = payouts
-      .filter(p => p.status === 'pending')
+      .filter((p) => p.status === 'pending')
       .reduce((sum, req) => sum + Number(req.amount), 0);
 
     return {
       balance: balance,
       pendingWithdrawals: pendingAmount,
-      payouts: payouts.map(p => ({
+      payouts: payouts.map((p) => ({
         ...p,
         id: p.id.toString(),
         ownerId: p.ownerId.toString(),
-        amount: Number(p.amount)
+        amount: Number(p.amount),
       })),
-      transactions: transactions.map(t => ({
+      transactions: transactions.map((t) => ({
         ...t,
         id: t.id.toString(),
         ownerId: t.ownerId.toString(),
         bookingId: t.bookingId?.toString(),
-        amount: Number(t.amount)
+        amount: Number(t.amount),
       })),
     };
   }
@@ -70,7 +78,10 @@ export class FinancialsService {
       const transactions = await tx.transaction.findMany({
         where: { ownerType: 'company', ownerId: company.id },
       });
-      const balance = transactions.reduce((sum, t) => sum + Number(t.amount), 0);
+      const balance = transactions.reduce(
+        (sum, t) => sum + Number(t.amount),
+        0,
+      );
 
       if (balance < dto.amount) {
         throw new BadRequestException('Insufficient balance.');
@@ -86,7 +97,7 @@ export class FinancialsService {
           accountName: dto.accountName,
           accountNumber: dto.accountNumber,
           status: 'pending',
-        }
+        },
       });
 
       // 3. Deduct the amount immediately (pending deduction)
@@ -98,14 +109,14 @@ export class FinancialsService {
           type: 'debit',
           category: 'payout',
           description: `Withdrawal request #${request.id}`,
-        }
+        },
       });
 
       return {
         ...request,
         id: request.id.toString(),
         ownerId: request.ownerId.toString(),
-        amount: Number(request.amount)
+        amount: Number(request.amount),
       };
     });
   }
@@ -117,11 +128,11 @@ export class FinancialsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return requests.map(r => ({
+    return requests.map((r) => ({
       ...r,
       id: r.id.toString(),
       ownerId: r.ownerId.toString(),
-      amount: Number(r.amount)
+      amount: Number(r.amount),
     }));
   }
 
@@ -141,7 +152,7 @@ export class FinancialsService {
         data: {
           status: dto.status,
           adminNotes: dto.adminNotes,
-        }
+        },
       });
 
       // 2. If rejected, refund the wallet
@@ -154,7 +165,7 @@ export class FinancialsService {
             type: 'credit',
             category: 'refund',
             description: `Refund for rejected payout request #${request.id}`,
-          }
+          },
         });
       }
 
@@ -162,7 +173,7 @@ export class FinancialsService {
         ...updated,
         id: updated.id.toString(),
         ownerId: updated.ownerId.toString(),
-        amount: Number(updated.amount)
+        amount: Number(updated.amount),
       };
     });
   }

@@ -140,5 +140,4 @@ export class PaymentsController {
   confirmCashReceived(@Body() dto: ConfirmCashDto, @Request() req) {
     return this.paymentsService.confirmCashReceived(dto, req.user);
   }
-
 }

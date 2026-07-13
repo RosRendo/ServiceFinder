@@ -13,7 +13,7 @@ export class AdminService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
-  ) { }
+  ) {}
 
   async getAnalytics() {
     const [
@@ -300,7 +300,9 @@ export class AdminService {
     const company = await this.prisma.company.findUnique({
       where: { id: BigInt(id) },
       include: {
-        owner: { select: { id: true, fullName: true, email: true, phone: true } },
+        owner: {
+          select: { id: true, fullName: true, email: true, phone: true },
+        },
         staff: true,
         services: true,
       },
@@ -335,20 +337,27 @@ export class AdminService {
   async updateCompany(id: bigint, dto: UpdateCompanyAdminDto) {
     const dataToUpdate: any = {};
     if (dto.name !== undefined) dataToUpdate.name = dto.name;
-    if (dto.description !== undefined) dataToUpdate.description = dto.description;
+    if (dto.description !== undefined)
+      dataToUpdate.description = dto.description;
     if (dto.address !== undefined) dataToUpdate.address = dto.address;
     if (dto.city !== undefined) dataToUpdate.city = dto.city;
     if (dto.phone !== undefined) dataToUpdate.phone = dto.phone;
     if (dto.email !== undefined) dataToUpdate.email = dto.email;
     if (dto.logoUrl !== undefined) dataToUpdate.logoUrl = dto.logoUrl;
-    if (dto.coverImageUrl !== undefined) dataToUpdate.coverImageUrl = dto.coverImageUrl;
-    if (dto.verificationDocumentUrl !== undefined) dataToUpdate.verificationDocumentUrl = dto.verificationDocumentUrl;
-    if (dto.registrationNumber !== undefined) dataToUpdate.registrationNumber = dto.registrationNumber;
-    if (dto.establishedYear !== undefined) dataToUpdate.establishedYear = dto.establishedYear;
+    if (dto.coverImageUrl !== undefined)
+      dataToUpdate.coverImageUrl = dto.coverImageUrl;
+    if (dto.verificationDocumentUrl !== undefined)
+      dataToUpdate.verificationDocumentUrl = dto.verificationDocumentUrl;
+    if (dto.registrationNumber !== undefined)
+      dataToUpdate.registrationNumber = dto.registrationNumber;
+    if (dto.establishedYear !== undefined)
+      dataToUpdate.establishedYear = dto.establishedYear;
     if (dto.latitude !== undefined) dataToUpdate.latitude = dto.latitude;
     if (dto.longitude !== undefined) dataToUpdate.longitude = dto.longitude;
-    if (dto.cardHighlights !== undefined) dataToUpdate.cardHighlights = dto.cardHighlights;
-    if (dto.detailHighlights !== undefined) dataToUpdate.detailHighlights = dto.detailHighlights;
+    if (dto.cardHighlights !== undefined)
+      dataToUpdate.cardHighlights = dto.cardHighlights;
+    if (dto.detailHighlights !== undefined)
+      dataToUpdate.detailHighlights = dto.detailHighlights;
 
     const company = await this.prisma.company.update({
       where: { id },
@@ -362,9 +371,7 @@ export class AdminService {
       });
 
       const existingIds = existingServices.map((s) => s.id.toString());
-      const payloadIds = dto.services
-        .filter((s) => s.id)
-        .map((s) => s.id!);
+      const payloadIds = dto.services.filter((s) => s.id).map((s) => s.id!);
 
       const toDelete = existingIds.filter((id) => !payloadIds.includes(id));
       const toUpdate = dto.services.filter((s) => s.id);
@@ -511,7 +518,10 @@ export class AdminService {
           status: dto.status,
           adminDecision: dto.adminDecision,
           refundAmount: dto.refundAmount || 0,
-          resolvedAt: dto.status === 'resolved' || dto.status === 'closed' ? new Date() : null,
+          resolvedAt:
+            dto.status === 'resolved' || dto.status === 'closed'
+              ? new Date()
+              : null,
         },
       });
 
@@ -526,7 +536,7 @@ export class AdminService {
             category: 'refund',
             description: `Refund for dispute #${dispute.id} (Booking #${dispute.bookingId})`,
             bookingId: dispute.bookingId,
-          }
+          },
         });
       }
 
@@ -594,18 +604,18 @@ export class AdminService {
         staffId: p.staffId?.toString(),
         company: p.company
           ? {
-            ...p.company,
-            id: p.company.id.toString(),
-            ownerId: p.company.ownerId?.toString(),
-          }
+              ...p.company,
+              id: p.company.id.toString(),
+              ownerId: p.company.ownerId?.toString(),
+            }
           : null,
         staff: p.staff
           ? {
-            ...p.staff,
-            id: p.staff.id.toString(),
-            companyId: p.staff.companyId?.toString(),
-            userId: p.staff.userId?.toString(),
-          }
+              ...p.staff,
+              id: p.staff.id.toString(),
+              companyId: p.staff.companyId?.toString(),
+              userId: p.staff.userId?.toString(),
+            }
           : null,
       })),
       meta: { total, page: Number(page), limit: take },
@@ -672,7 +682,7 @@ export class AdminService {
       let createdServices: any[] = [];
       if (dto.services && dto.services.length > 0) {
         await tx.service.createMany({
-          data: dto.services.map(s => ({
+          data: dto.services.map((s) => ({
             companyId: company.id,
             serviceTypeId: BigInt(s.typeId),
             name: s.name,
@@ -682,7 +692,9 @@ export class AdminService {
             isActive: true,
           })),
         });
-        createdServices = await tx.service.findMany({ where: { companyId: company.id } });
+        createdServices = await tx.service.findMany({
+          where: { companyId: company.id },
+        });
       } else if (dto.serviceName && dto.serviceTypeId) {
         const service = await tx.service.create({
           data: {

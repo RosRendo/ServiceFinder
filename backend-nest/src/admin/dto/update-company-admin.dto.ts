@@ -1,4 +1,11 @@
-import { IsOptional, IsString, IsNumber, IsArray, ValidateNested, IsNotEmpty } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsArray,
+  ValidateNested,
+  IsNotEmpty,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpdateServiceDto {

@@ -1558,7 +1558,9 @@ export class CompaniesService {
   }
 
   async addStaffAvailability(userId: bigint, staffId: bigint, dto: any) {
-    const company = await this.prisma.company.findFirst({ where: { ownerId: userId } });
+    const company = await this.prisma.company.findFirst({
+      where: { ownerId: userId },
+    });
     if (!company) throw new NotFoundException('Company not found');
 
     const staff = await this.prisma.companyStaff.findFirst({
@@ -1599,7 +1601,9 @@ export class CompaniesService {
   }
 
   async generateStaffAvailability(userId: bigint, staffId: bigint, dto: any) {
-    const company = await this.prisma.company.findFirst({ where: { ownerId: userId } });
+    const company = await this.prisma.company.findFirst({
+      where: { ownerId: userId },
+    });
     if (!company) throw new NotFoundException('Company not found');
 
     const staff = await this.prisma.companyStaff.findFirst({
@@ -1609,7 +1613,7 @@ export class CompaniesService {
 
     const startDate = new Date(dto.startDate);
     const endDate = new Date(dto.endDate);
-    
+
     // Validate dates
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       throw new BadRequestException('Invalid date format');
@@ -1619,15 +1623,24 @@ export class CompaniesService {
     const daysOff = dto.daysOff || [0, 6]; // Default weekends off
 
     // Iterate through days
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    for (
+      let d = new Date(startDate);
+      d <= endDate;
+      d.setDate(d.getDate() + 1)
+    ) {
       if (daysOff.includes(d.getDay())) continue;
 
       const currentDate = new Date(d);
-      
+
       // Parse times correctly
       const baseStart = new Date(dto.startTime);
       const startTime = new Date(currentDate);
-      startTime.setUTCHours(baseStart.getUTCHours(), baseStart.getUTCMinutes(), 0, 0);
+      startTime.setUTCHours(
+        baseStart.getUTCHours(),
+        baseStart.getUTCMinutes(),
+        0,
+        0,
+      );
 
       const baseEnd = new Date(dto.endTime);
       const endTime = new Date(currentDate);
@@ -1665,16 +1678,25 @@ export class CompaniesService {
     return { message: `${slots.length} slots generated successfully` };
   }
 
-  async getStaffAvailability(userId: bigint, staffId: bigint, startDateStr?: string, endDateStr?: string) {
-    const company = await this.prisma.company.findFirst({ where: { ownerId: userId } });
+  async getStaffAvailability(
+    userId: bigint,
+    staffId: bigint,
+    startDateStr?: string,
+    endDateStr?: string,
+  ) {
+    const company = await this.prisma.company.findFirst({
+      where: { ownerId: userId },
+    });
     // Also allow company_staff to query their own
     let companyId = company?.id;
 
     if (!companyId) {
-       const userStaff = await this.prisma.companyStaff.findFirst({ where: { userId } });
-       if (userStaff) {
-         companyId = userStaff.companyId;
-       }
+      const userStaff = await this.prisma.companyStaff.findFirst({
+        where: { userId },
+      });
+      if (userStaff) {
+        companyId = userStaff.companyId;
+      }
     }
 
     if (!companyId) throw new NotFoundException('Company not found');
@@ -1685,7 +1707,7 @@ export class CompaniesService {
     if (!staff) throw new NotFoundException('Staff not found');
 
     const where: any = { staffId };
-    
+
     if (startDateStr && endDateStr) {
       where.date = {
         gte: new Date(startDateStr),
@@ -1698,7 +1720,7 @@ export class CompaniesService {
       orderBy: { date: 'asc' },
     });
 
-    return slots.map(s => ({
+    return slots.map((s) => ({
       ...s,
       id: s.id.toString(),
       companyId: s.companyId.toString(),
@@ -1707,7 +1729,9 @@ export class CompaniesService {
   }
 
   async removeStaffAvailability(userId: bigint, slotId: bigint) {
-    const company = await this.prisma.company.findFirst({ where: { ownerId: userId } });
+    const company = await this.prisma.company.findFirst({
+      where: { ownerId: userId },
+    });
     if (!company) throw new NotFoundException('Company not found');
 
     const slot = await this.prisma.availabilitySlot.findFirst({

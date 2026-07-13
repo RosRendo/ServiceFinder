@@ -148,7 +148,8 @@ export class AdminController {
   @ApiOperation({ summary: 'Resolve a dispute' })
   resolveDispute(
     @Param('id') id: string,
-    @Body() dto: { status: string; adminDecision: string; refundAmount?: number },
+    @Body()
+    dto: { status: string; adminDecision: string; refundAmount?: number },
   ) {
     return this.adminService.resolveDispute(+id, dto);
   }

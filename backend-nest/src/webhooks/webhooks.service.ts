@@ -8,8 +8,10 @@ export class WebhooksService {
   constructor(private readonly prisma: PrismaService) {}
 
   async handleKhqrPayment(payload: any) {
-    this.logger.log(`Received KHQR Webhook payload: ${JSON.stringify(payload)}`);
-    
+    this.logger.log(
+      `Received KHQR Webhook payload: ${JSON.stringify(payload)}`,
+    );
+
     // In a real scenario, you'd verify the signature of the webhook here.
     const { bookingId, transactionRef, status, amount } = payload;
 
@@ -22,7 +24,7 @@ export class WebhooksService {
       // 1. Find the Booking and Payment
       const booking = await tx.booking.findUnique({
         where: { id: BigInt(bookingId) },
-        include: { company: true }
+        include: { company: true },
       });
 
       if (!booking) {
@@ -30,17 +32,17 @@ export class WebhooksService {
       }
 
       const payment = await tx.payment.findUnique({
-        where: { bookingId: booking.id }
+        where: { bookingId: booking.id },
       });
 
       if (!payment) {
-         this.logger.error(`No payment record found for booking ${bookingId}`);
-         return { received: true, status: 'error' };
+        this.logger.error(`No payment record found for booking ${bookingId}`);
+        return { received: true, status: 'error' };
       }
 
       if (payment.status === 'paid') {
-         this.logger.log(`Payment for booking ${bookingId} is already paid.`);
-         return { received: true, status: 'already_processed' };
+        this.logger.log(`Payment for booking ${bookingId} is already paid.`);
+        return { received: true, status: 'already_processed' };
       }
 
       // 2. Mark Payment as Paid
@@ -50,13 +52,13 @@ export class WebhooksService {
           status: 'paid',
           transactionRef: transactionRef || `KHQR-${Date.now()}`,
           paidAt: new Date(),
-        }
+        },
       });
 
       // 3. Mark Booking as Confirmed
       await tx.booking.update({
         where: { id: booking.id },
-        data: { status: 'confirmed' }
+        data: { status: 'confirmed' },
       });
 
       // 4. Credit the Company's Wallet (e.g., 90% goes to the company, 10% platform fee)
@@ -72,10 +74,12 @@ export class WebhooksService {
           category: 'booking_revenue',
           description: `Revenue from booking #${booking.id} (after 10% commission)`,
           bookingId: booking.id,
-        }
+        },
       });
 
-      this.logger.log(`Successfully processed KHQR payment for booking ${booking.id}. Credited $${companyShare} to Company ${booking.companyId}.`);
+      this.logger.log(
+        `Successfully processed KHQR payment for booking ${booking.id}. Credited $${companyShare} to Company ${booking.companyId}.`,
+      );
       return { received: true, status: 'processed' };
     });
   }

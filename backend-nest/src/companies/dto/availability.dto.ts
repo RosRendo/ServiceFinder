@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsDateString, IsBoolean, IsOptional, IsArray, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsDateString,
+  IsBoolean,
+  IsOptional,
+  IsArray,
+  IsNumber,
+} from 'class-validator';
 
 export class AddAvailabilityDto {
   @ApiProperty({ description: 'Date of availability', example: '2026-07-01' })
@@ -7,7 +15,10 @@ export class AddAvailabilityDto {
   @IsNotEmpty()
   date: string;
 
-  @ApiProperty({ description: 'Start time', example: '1970-01-01T09:00:00.000Z' })
+  @ApiProperty({
+    description: 'Start time',
+    example: '1970-01-01T09:00:00.000Z',
+  })
   @IsDateString()
   @IsNotEmpty()
   startTime: string;
@@ -17,7 +28,10 @@ export class AddAvailabilityDto {
   @IsNotEmpty()
   endTime: string;
 
-  @ApiProperty({ description: 'Is the staff available on this date?', default: true })
+  @ApiProperty({
+    description: 'Is the staff available on this date?',
+    default: true,
+  })
   @IsBoolean()
   @IsOptional()
   isAvailable?: boolean;
@@ -34,17 +48,26 @@ export class GenerateAvailabilityDto {
   @IsNotEmpty()
   endDate: string;
 
-  @ApiProperty({ description: 'Start time each day', example: '1970-01-01T09:00:00.000Z' })
+  @ApiProperty({
+    description: 'Start time each day',
+    example: '1970-01-01T09:00:00.000Z',
+  })
   @IsDateString()
   @IsNotEmpty()
   startTime: string;
 
-  @ApiProperty({ description: 'End time each day', example: '1970-01-01T17:00:00.000Z' })
+  @ApiProperty({
+    description: 'End time each day',
+    example: '1970-01-01T17:00:00.000Z',
+  })
   @IsDateString()
   @IsNotEmpty()
   endTime: string;
 
-  @ApiProperty({ description: 'Array of days to skip (0=Sun, 1=Mon, etc.)', example: [0, 6] })
+  @ApiProperty({
+    description: 'Array of days to skip (0=Sun, 1=Mon, etc.)',
+    example: [0, 6],
+  })
   @IsArray()
   @IsNumber({}, { each: true })
   @IsOptional()

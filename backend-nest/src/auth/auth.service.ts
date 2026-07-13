@@ -347,10 +347,10 @@ export class AuthService {
 
   async sendOtp(dto: SendOtpDto) {
     const { phone } = dto;
-    
+
     // Generate a real 6-digit code
     const code = this.generateCode();
-    
+
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 10);
 
@@ -381,12 +381,18 @@ export class AuthService {
         console.error('Failed to send Twilio SMS:', error);
         // Fallback for development if Twilio fails
         console.log(`[DEV MODE] OTP for ${phone} is: ${code}`);
-        return { message: `Failed to send SMS, but code generated (check server logs)` };
+        return {
+          message: `Failed to send SMS, but code generated (check server logs)`,
+        };
       }
     } else {
       // Fallback if no Twilio keys are provided
-      console.log(`[DEV MODE] Twilio not configured. OTP for ${phone} is: ${code}`);
-      return { message: `OTP generated successfully (Dev Mode - Check server logs for code)` };
+      console.log(
+        `[DEV MODE] Twilio not configured. OTP for ${phone} is: ${code}`,
+      );
+      return {
+        message: `OTP generated successfully (Dev Mode - Check server logs for code)`,
+      };
     }
   }
 

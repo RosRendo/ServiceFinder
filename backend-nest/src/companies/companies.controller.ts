@@ -20,7 +20,10 @@ import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
-import { AddAvailabilityDto, GenerateAvailabilityDto } from './dto/availability.dto';
+import {
+  AddAvailabilityDto,
+  GenerateAvailabilityDto,
+} from './dto/availability.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -373,7 +376,11 @@ export class CompaniesController {
     @Body() dto: AddAvailabilityDto,
     @CurrentUser() user: any,
   ) {
-    return this.companiesService.addStaffAvailability(BigInt(user.id), BigInt(staffId), dto);
+    return this.companiesService.addStaffAvailability(
+      BigInt(user.id),
+      BigInt(staffId),
+      dto,
+    );
   }
 
   @Post('my-company/staff/:staffId/availability/generate')
@@ -386,7 +393,11 @@ export class CompaniesController {
     @Body() dto: GenerateAvailabilityDto,
     @CurrentUser() user: any,
   ) {
-    return this.companiesService.generateStaffAvailability(BigInt(user.id), BigInt(staffId), dto);
+    return this.companiesService.generateStaffAvailability(
+      BigInt(user.id),
+      BigInt(staffId),
+      dto,
+    );
   }
 
   @Get('my-company/staff/:staffId/availability')
@@ -400,7 +411,12 @@ export class CompaniesController {
     @Query('endDate') endDate: string,
     @CurrentUser() user: any,
   ) {
-    return this.companiesService.getStaffAvailability(BigInt(user.id), BigInt(staffId), startDate, endDate);
+    return this.companiesService.getStaffAvailability(
+      BigInt(user.id),
+      BigInt(staffId),
+      startDate,
+      endDate,
+    );
   }
 
   @Delete('my-company/availability/:slotId')
@@ -412,6 +428,9 @@ export class CompaniesController {
     @Param('slotId') slotId: string,
     @CurrentUser() user: any,
   ) {
-    return this.companiesService.removeStaffAvailability(BigInt(user.id), BigInt(slotId));
+    return this.companiesService.removeStaffAvailability(
+      BigInt(user.id),
+      BigInt(slotId),
+    );
   }
 }

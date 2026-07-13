@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsNumber, IsString, Min, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Min,
+  IsOptional,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class PayoutRequestDto {
@@ -24,12 +30,18 @@ export class PayoutRequestDto {
 }
 
 export class ProcessPayoutDto {
-  @ApiProperty({ description: 'Status of the payout (paid or rejected)', example: 'paid' })
+  @ApiProperty({
+    description: 'Status of the payout (paid or rejected)',
+    example: 'paid',
+  })
   @IsString()
   @IsNotEmpty()
   status: 'paid' | 'rejected';
 
-  @ApiProperty({ description: 'Optional admin notes', example: 'Processed via ABA' })
+  @ApiProperty({
+    description: 'Optional admin notes',
+    example: 'Processed via ABA',
+  })
   @IsString()
   @IsOptional()
   adminNotes?: string;
