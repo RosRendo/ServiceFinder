@@ -109,15 +109,15 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           # Navigate to the project directory on the VPS
           script: |
-            cd /var/www/Service_Finder
+            cd ~/Service_Finder
             git pull origin main
             
             # 1. Clean up old PM2 processes to free up port 5000 (if they exist)
             pm2 stop service-finder-api || true
             pm2 delete service-finder-api || true
             
-            # 2. Build and restart the Docker services (Nginx, Postgres, Redis, Backend)
-            docker compose up -d --build
+            # 2. Build and restart the Docker services using sudo and older docker-compose syntax
+            sudo docker-compose up -d --build
             
             # 3. Run Prisma Migrations securely inside the running backend container
-            docker exec service-finder-backend npx prisma migrate deploy
+            sudo docker exec service-finder-backend npx prisma migrate deploy
