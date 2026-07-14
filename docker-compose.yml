@@ -1,17 +1,5 @@
 
 services:
-  nginx:
-    image: nginx:alpine
-    container_name: service-finder-gateway
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - backend
-    networks:
-      - service-finder-net
-    restart: unless-stopped
 
   backend:
     build:
