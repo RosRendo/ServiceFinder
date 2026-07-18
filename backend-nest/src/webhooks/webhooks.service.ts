@@ -1,5 +1,11 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class WebhooksService {
@@ -7,12 +13,64 @@ export class WebhooksService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async handleKhqrPayment(payload: any) {
+  /**
+   * Verify the KHQR webhook signature using HMAC-SHA256.
+   * The KHQR provider signs the raw request body with your shared secret.
+   * We re-compute the signature and compare — if it doesn't match, the
+   * request is rejected as a forgery attempt.
+   *
+   * @param rawBody   The raw, unparsed request body string (from rawBody: true in main.ts)
+   * @param signature The 'x-khqr-signature' header value sent by the KHQR provider
+   */
+  verifyKhqrSignature(rawBody: string, signature: string): void {
+    const secret = process.env.KHQR_WEBHOOK_SECRET;
+
+    if (!secret) {
+      this.logger.error(
+        '❌ KHQR_WEBHOOK_SECRET is not configured in environment variables. Rejecting all KHQR webhooks for security.',
+      );
+      throw new UnauthorizedException(
+        'Webhook secret is not configured on the server.',
+      );
+    }
+
+    if (!signature) {
+      this.logger.warn('⚠️ KHQR webhook received with no signature header.');
+      throw new UnauthorizedException('Missing webhook signature header.');
+    }
+
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(rawBody)
+      .digest('hex');
+
+    // Use timingSafeEqual to prevent timing-based attacks
+    const sigBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expectedSignature);
+
+    if (
+      sigBuffer.length !== expectedBuffer.length ||
+      !crypto.timingSafeEqual(sigBuffer, expectedBuffer)
+    ) {
+      this.logger.warn(
+        `⚠️ Invalid KHQR signature. Expected: ${expectedSignature}, Got: ${signature}`,
+      );
+      throw new UnauthorizedException(
+        'Invalid webhook signature. Possible forgery attempt.',
+      );
+    }
+
+    this.logger.log('✅ KHQR webhook signature verified successfully.');
+  }
+
+  async handleKhqrPayment(payload: any, rawBody: string, signature: string) {
+    // 🔐 Step 1: Verify the signature BEFORE processing anything
+    this.verifyKhqrSignature(rawBody, signature);
+
     this.logger.log(
-      `Received KHQR Webhook payload: ${JSON.stringify(payload)}`,
+      `Received verified KHQR Webhook payload: ${JSON.stringify(payload)}`,
     );
 
-    // In a real scenario, you'd verify the signature of the webhook here.
     const { bookingId, transactionRef, status, amount } = payload;
 
     if (!bookingId || status !== 'SUCCESS') {
@@ -21,7 +79,6 @@ export class WebhooksService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. Find the Booking and Payment
       const booking = await tx.booking.findUnique({
         where: { id: BigInt(bookingId) },
         include: { company: true },
@@ -45,7 +102,6 @@ export class WebhooksService {
         return { received: true, status: 'already_processed' };
       }
 
-      // 2. Mark Payment as Paid
       await tx.payment.update({
         where: { id: payment.id },
         data: {
@@ -55,13 +111,11 @@ export class WebhooksService {
         },
       });
 
-      // 3. Mark Booking as Confirmed
       await tx.booking.update({
         where: { id: booking.id },
         data: { status: 'confirmed' },
       });
 
-      // 4. Credit the Company's Wallet (e.g., 90% goes to the company, 10% platform fee)
       const totalAmount = Number(payment.amount);
       const companyShare = totalAmount * 0.9;
 
@@ -84,3 +138,4 @@ export class WebhooksService {
     });
   }
 }
+
