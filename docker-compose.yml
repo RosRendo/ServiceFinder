@@ -19,9 +19,17 @@ services:
     networks:
       - service-finder-net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/api/health/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
-      - postgres-db
-      - redis
+      postgres-db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   postgres-db:
     image: postgres:15-alpine
