@@ -124,13 +124,14 @@ export default function ResetPassword() {
 
   return (
     <SafeAreaView style={s.root}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={s.container}
-          keyboardShouldPersistTaps="always"
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
+        <View style={{ flex: 1, justifyContent: "center" }}>
         {/* Back Button */}
         <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
           <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
@@ -247,15 +248,16 @@ export default function ResetPassword() {
             </TouchableOpacity>
           </View>
         )}
+        </View>
       </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
-  container: { flexGrow: 1, paddingHorizontal: 24, justifyContent: "center", paddingTop: 60, paddingBottom: 40 },
+  container: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40 },
   backBtn: { position: "absolute", top: 16, left: 8, zIndex: 10, padding: 8 },
   heroIconWrap: { width: 80, height: 80, borderRadius: 24, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", marginBottom: 20, ...CARD_SHADOW },
   header: { marginBottom: 32 },

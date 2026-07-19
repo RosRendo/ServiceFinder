@@ -10,7 +10,7 @@ services:
     ports:
       - "5000:5000"
     env_file:
-      - .env
+      - ./backend-nest/.env
     environment:
       NODE_ENV: production
       PORT: 5000

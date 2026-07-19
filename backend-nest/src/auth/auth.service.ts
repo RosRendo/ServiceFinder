@@ -369,7 +369,21 @@ export class AuthService {
     });
 
     // Send SMS via Twilio if configured
-    if (this.twilioClient) {
+    const verifySid = this.configService.get<string>('TWILIO_VERIFY_SERVICE_SID');
+    if (this.twilioClient && verifySid) {
+      try {
+        await this.twilioClient.verify.v2.services(verifySid).verifications.create({
+          to: phone,
+          channel: 'sms',
+        });
+        return { message: 'OTP sent successfully via Twilio Verify' };
+      } catch (error) {
+        console.error('Failed to send Twilio Verify SMS:', error);
+        return {
+          message: 'Failed to send SMS, check Twilio console logs',
+        };
+      }
+    } else if (this.twilioClient) {
       try {
         await this.twilioClient.messages.create({
           body: `Your ServiceFinder verification code is: ${code}`,
@@ -399,20 +413,39 @@ export class AuthService {
   async verifyOtp(dto: VerifyOtpDto) {
     const { phone, code } = dto;
 
-    const otp = await this.prisma.otpCode.findFirst({
-      where: { phone, code, used: false },
-      orderBy: { createdAt: 'desc' },
-    });
+    const verifySid = this.configService.get<string>('TWILIO_VERIFY_SERVICE_SID');
 
-    if (!otp || otp.expiresAt < new Date()) {
-      throw new BadRequestException('Invalid or expired OTP code');
+    if (this.twilioClient && verifySid) {
+      // 🚀 PROD: Use Twilio Verify API
+      try {
+        const verificationCheck = await this.twilioClient.verify.v2
+          .services(verifySid)
+          .verificationChecks.create({ to: phone, code });
+
+        if (verificationCheck.status !== 'approved') {
+          throw new BadRequestException('Invalid or expired OTP code (Twilio)');
+        }
+      } catch (error) {
+        console.error('Twilio Verify Error', error);
+        throw new BadRequestException('Invalid or expired OTP code');
+      }
+    } else {
+      // 🛠️ DEV: Use Local DB Verification
+      const otp = await this.prisma.otpCode.findFirst({
+        where: { phone, code, used: false },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!otp || otp.expiresAt < new Date()) {
+        throw new BadRequestException('Invalid or expired OTP code');
+      }
+
+      // Mark as used
+      await this.prisma.otpCode.update({
+        where: { id: otp.id },
+        data: { used: true },
+      });
     }
-
-    // Mark as used
-    await this.prisma.otpCode.update({
-      where: { id: otp.id },
-      data: { used: true },
-    });
 
     // Find user or create new one
     let user = await this.prisma.user.findUnique({

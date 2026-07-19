@@ -95,7 +95,7 @@ export default function VerifyEmailScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={s.container}>
+      <View style={s.container}>
         
         <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
           <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
@@ -153,7 +153,7 @@ export default function VerifyEmailScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
