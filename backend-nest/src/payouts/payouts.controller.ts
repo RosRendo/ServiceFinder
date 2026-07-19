@@ -86,7 +86,7 @@ export class PayoutsController {
         companyId,
       );
     } catch (e: any) {
-      require('fs').writeFileSync('debug_controller_error.json', JSON.stringify({ error: e.message, stack: e.stack }));
+      console.error('\n\n=========================================\nCRITICAL CONTROLLER ERROR:', e, '\n=========================================\n\n');
       throw e;
     }
   }

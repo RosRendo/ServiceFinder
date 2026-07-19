@@ -163,7 +163,7 @@ export class PayoutsService {
 
       return { payouts };
     } catch (e: any) {
-      require('fs').writeFileSync('debug_staff_payouts_error.json', JSON.stringify({ error: e.message, stack: e.stack }));
+      console.error('\n\n=========================================\nCRITICAL STAFF PAYOUT ERROR:', e, '\n=========================================\n\n');
       throw e;
     }
   }
