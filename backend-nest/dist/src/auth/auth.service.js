@@ -307,8 +307,8 @@ let AuthService = class AuthService {
             decodedToken = await admin.auth().verifyIdToken(idToken);
         }
         catch (error) {
-            console.error('Firebase verifyIdToken error:', error);
-            throw new common_1.UnauthorizedException('Invalid or expired Firebase token');
+            console.error('Firebase verifyIdToken error detail:', error.message || error);
+            throw new common_1.UnauthorizedException(`Firebase Auth Error: ${error.message || 'Invalid token'}`);
         }
         const phone = decodedToken.phone_number;
         if (!phone) {
