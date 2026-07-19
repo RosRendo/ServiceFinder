@@ -377,11 +377,9 @@ export class AuthService {
           channel: 'sms',
         });
         return { message: 'OTP sent successfully via Twilio Verify' };
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to send Twilio Verify SMS:', error);
-        return {
-          message: 'Failed to send SMS, check Twilio console logs',
-        };
+        throw new BadRequestException(`Twilio Error: ${error.message || 'Failed to send SMS'}`);
       }
     } else if (this.twilioClient) {
       try {
@@ -391,13 +389,11 @@ export class AuthService {
           to: phone,
         });
         return { message: 'OTP sent successfully via SMS' };
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to send Twilio SMS:', error);
         // Fallback for development if Twilio fails
         console.log(`[DEV MODE] OTP for ${phone} is: ${code}`);
-        return {
-          message: `Failed to send SMS, but code generated (check server logs)`,
-        };
+        throw new BadRequestException(`Twilio Error: ${error.message || 'Failed to send SMS'}`);
       }
     } else {
       // Fallback if no Twilio keys are provided
