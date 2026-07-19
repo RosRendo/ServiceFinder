@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { useTranslation } from 'react-i18next';
+import i18n from "@/utils/i18n";
 
 const T = {
   bg: "#FFFFFF", surface: "#FFFFFF", border: "#E5E5EA",
@@ -48,7 +48,6 @@ function LangBtn({ title, subtitle, icon, onPress }: { title: string, subtitle: 
 
 export default function LanguageSelectionScreen() {
   const router = useRouter();
-  const { i18n } = useTranslation();
 
   const handleSelectLanguage = (lang: string) => {
     i18n.changeLanguage(lang);

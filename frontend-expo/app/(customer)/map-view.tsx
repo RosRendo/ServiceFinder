@@ -80,7 +80,7 @@ export default function MapViewScreen() {
         const res = await api.get("/api/companies", { params });
         const raw: any[] = res.data?.data?.companies ?? res.data?.companies ?? res.data?.data ?? res.data ?? [];
         const pins: CompanyPin[] = raw
-          .filter((c: any) => c.latitude && c.longitude)
+          .filter((c: any) => c.latitude != null && c.longitude != null && !isNaN(Number(c.latitude)) && !isNaN(Number(c.longitude)))
           .map((c: any) => ({
             id: c.id.toString(),
             name: c.name,
@@ -252,13 +252,13 @@ export default function MapViewScreen() {
             style={s.webview}
             showsUserLocation={true}
             initialRegion={{
-              latitude: userLoc ? userLoc.lat : (companies.length > 0 ? companies[0].lat : DEFAULT_LAT),
-              longitude: userLoc ? userLoc.lng : (companies.length > 0 ? companies[0].lng : DEFAULT_LNG),
+              latitude: (userLoc && !isNaN(userLoc.lat)) ? userLoc.lat : (companies.length > 0 && !isNaN(companies[0].lat) ? companies[0].lat : DEFAULT_LAT),
+              longitude: (userLoc && !isNaN(userLoc.lng)) ? userLoc.lng : (companies.length > 0 && !isNaN(companies[0].lng) ? companies[0].lng : DEFAULT_LNG),
               latitudeDelta: 0.05,
               longitudeDelta: 0.05,
             }}
             ref={(ref) => {
-              if (ref && companies.length > 0 && !userLoc) {
+              if (ref && companies.length > 0 && (!userLoc || isNaN(userLoc.lat))) {
                 // Fit map to show all pins only if we don't have user location
                 setTimeout(() => {
                   ref.fitToCoordinates(

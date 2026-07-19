@@ -79,11 +79,16 @@ export class PayoutsController {
     @Param('staffId') staffId: string,
     @Request() req: any,
   ) {
-    const companyId = await this.getCompanyId(req);
-    return this.payoutsService.getStaffPayoutsForCompanyMember(
-      BigInt(staffId),
-      companyId,
-    );
+    try {
+      const companyId = await this.getCompanyId(req);
+      return await this.payoutsService.getStaffPayoutsForCompanyMember(
+        BigInt(staffId),
+        companyId,
+      );
+    } catch (e: any) {
+      require('fs').writeFileSync('debug_controller_error.json', JSON.stringify({ error: e.message, stack: e.stack }));
+      throw e;
+    }
   }
 
   @Patch('payouts/:id/approve')

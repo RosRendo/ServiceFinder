@@ -69,14 +69,14 @@ function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
         {!user ? (
           <Stack.Screen name="(public)" options={{ gestureEnabled: false }} />
-        ) : user.role === 'customer' ? (
-          <Stack.Screen name="(customer)" options={{ gestureEnabled: false }} />
-        ) : user.role === 'staff' ? (
-          <Stack.Screen name="(staff)" options={{ gestureEnabled: false }} />
-        ) : user.role === 'company' ? (
-          <Stack.Screen name="(company)" options={{ gestureEnabled: false }} />
-        ) : (
+        ) : user.role?.toLowerCase() === 'admin' ? (
           <Stack.Screen name="(admin)" options={{ gestureEnabled: false }} />
+        ) : user.role?.toLowerCase() === 'company' ? (
+          <Stack.Screen name="(company)" options={{ gestureEnabled: false }} />
+        ) : user.role?.toLowerCase() === 'staff' ? (
+          <Stack.Screen name="(staff)" options={{ gestureEnabled: false }} />
+        ) : (
+          <Stack.Screen name="(customer)" options={{ gestureEnabled: false }} />
         )}
         </Stack>
         <StatusBar style="auto" />

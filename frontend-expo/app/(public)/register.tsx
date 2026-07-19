@@ -158,7 +158,7 @@ export default function Register() {
 
         {/* Social */}
         <TouchableOpacity style={s.btnGoogle} onPress={() => handleSocialLogin("google")} disabled={isLoading} activeOpacity={0.85}>
-          <Image source={{ uri: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png" }} style={{ width: 20, height: 20 }} />
+          <Image source={{ uri: "https://img.icons8.com/color/48/000000/google-logo.png" }} style={{ width: 22, height: 22 }} />
           <Text style={s.btnGoogleText}>{t("auth.continueGoogle", "Continue with Google")}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={s.btnFacebook} onPress={() => handleSocialLogin("facebook")} disabled={isLoading} activeOpacity={0.85}>

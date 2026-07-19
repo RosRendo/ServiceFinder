@@ -15,26 +15,31 @@ export class PayoutsService {
   }
 
   async getPayouts(companyId: bigint) {
-    const [payouts, earningsResult, paidPayoutsResult] = await Promise.all([
-      this.prisma.payout.findMany({
-        where: { companyId },
-        orderBy: { requestedAt: 'desc' },
-      }),
-      this.prisma.booking.aggregate({
-        where: { companyId, status: { in: ['completed', 'pending'] } },
-        _sum: { companyEarnings: true },
-      }),
-      this.prisma.payout.aggregate({
-        where: { companyId, status: { in: ['completed', 'pending'] } },
-        _sum: { amount: true },
-      }),
-    ]);
+    try {
+      const [payouts, earningsResult, paidPayoutsResult] = await Promise.all([
+        this.prisma.payout.findMany({
+          where: { companyId },
+          orderBy: { requestedAt: 'desc' },
+        }),
+        this.prisma.booking.aggregate({
+          where: { companyId, status: { in: ['completed', 'pending'] } },
+          _sum: { companyEarnings: true },
+        }),
+        this.prisma.payout.aggregate({
+          where: { companyId, status: { in: ['completed', 'pending'] } },
+          _sum: { amount: true },
+        }),
+      ]);
 
-    const totalEarnings = Number(earningsResult._sum.companyEarnings ?? 0);
-    const totalPaidOut = Number(paidPayoutsResult._sum.amount ?? 0);
-    const availableBalance = totalEarnings - totalPaidOut;
+      const totalEarnings = Number(earningsResult._sum.companyEarnings ?? 0);
+      const totalPaidOut = Number(paidPayoutsResult._sum.amount ?? 0);
+      const availableBalance = totalEarnings - totalPaidOut;
 
-    return { payouts, availableBalance };
+      return { payouts, availableBalance };
+    } catch (e: any) {
+      require('fs').writeFileSync('debug_payouts_error.json', JSON.stringify({ error: e.message, stack: e.stack }));
+      throw e;
+    }
   }
 
   async requestPayout(companyId: bigint, amount: number, method: string) {
@@ -144,18 +149,23 @@ export class PayoutsService {
   }
 
   async getStaffPayoutsForCompanyMember(staffId: bigint, companyId: bigint) {
-    const staff = await this.prisma.companyStaff.findFirst({
-      where: { id: staffId, companyId },
-    });
-    if (!staff)
-      throw new ForbiddenException('Staff does not belong to your company');
+    try {
+      const staff = await this.prisma.companyStaff.findFirst({
+        where: { id: staffId, companyId },
+      });
+      if (!staff)
+        throw new ForbiddenException('Staff does not belong to your company');
 
-    const payouts = await this.prisma.payout.findMany({
-      where: { staffId, payoutType: 'staff' },
-      orderBy: { requestedAt: 'desc' },
-    });
+      const payouts = await this.prisma.payout.findMany({
+        where: { staffId, payoutType: 'staff' },
+        orderBy: { requestedAt: 'desc' },
+      });
 
-    return { payouts };
+      return { payouts };
+    } catch (e: any) {
+      require('fs').writeFileSync('debug_staff_payouts_error.json', JSON.stringify({ error: e.message, stack: e.stack }));
+      throw e;
+    }
   }
 
   async approveStaffPayout(payoutId: number, companyId: bigint) {
