@@ -59,7 +59,6 @@ const verify_reset_dto_1 = require("./dto/verify-reset.dto");
 const reset_password_dto_1 = require("./dto/reset-password.dto");
 const google_login_dto_1 = require("./dto/google-login.dto");
 const facebook_login_dto_1 = require("./dto/facebook-login.dto");
-const send_otp_dto_1 = require("./dto/send-otp.dto");
 const verify_otp_dto_1 = require("./dto/verify-otp.dto");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
 const current_user_decorator_1 = require("./decorators/current-user.decorator");
@@ -127,11 +126,8 @@ let AuthController = class AuthController {
         }
         return this.authService.enableMfa(BigInt(id), body.secret, body.code);
     }
-    async sendOtp(sendOtpDto) {
-        return this.authService.sendOtp(sendOtpDto);
-    }
     async verifyOtp(verifyOtpDto, res) {
-        const { message, user, accessToken, refreshToken } = await this.authService.verifyOtp(verifyOtpDto);
+        const { message, user, accessToken, refreshToken } = await this.authService.verifyFirebaseToken(verifyOtpDto.idToken);
         this.setAuthCookies(res, accessToken, refreshToken);
         return { message, user, token: accessToken };
     }
@@ -244,23 +240,11 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "enableMfa", null);
 __decorate([
-    (0, common_1.Post)('send-otp'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, common_1.UseGuards)(throttler_1.ThrottlerGuard),
-    (0, throttler_1.Throttle)({ default: { limit: 5, ttl: 60000 } }),
-    (0, swagger_1.ApiOperation)({ summary: 'Send OTP to phone' }),
-    openapi.ApiResponse({ status: common_1.HttpStatus.OK }),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [send_otp_dto_1.SendOtpDto]),
-    __metadata("design:returntype", Promise)
-], AuthController.prototype, "sendOtp", null);
-__decorate([
     (0, common_1.Post)('verify-otp'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, common_1.UseGuards)(throttler_1.ThrottlerGuard),
     (0, throttler_1.Throttle)({ default: { limit: 5, ttl: 60000 } }),
-    (0, swagger_1.ApiOperation)({ summary: 'Verify OTP and login/register' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Verify Firebase OTP Token and login/register' }),
     openapi.ApiResponse({ status: common_1.HttpStatus.OK }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),

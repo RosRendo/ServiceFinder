@@ -22,20 +22,32 @@ let WebhooksController = class WebhooksController {
     constructor(webhooksService) {
         this.webhooksService = webhooksService;
     }
-    async handleKhqrPayment(payload) {
-        return this.webhooksService.handleKhqrPayment(payload);
+    async handleAbaWebhook(payload) {
+        return this.webhooksService.handleAbaPayment(payload);
+    }
+    async handleKhqrAlias(payload) {
+        return this.webhooksService.handleAbaPayment(payload);
     }
 };
 exports.WebhooksController = WebhooksController;
 __decorate([
-    (0, common_1.Post)('khqr'),
-    (0, swagger_1.ApiOperation)({ summary: 'Handle incoming KHQR payment status webhook' }),
+    (0, common_1.Post)('aba'),
+    (0, swagger_1.ApiOperation)({ summary: 'Handle incoming ABA PayWay webhook' }),
     openapi.ApiResponse({ status: 201 }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
-], WebhooksController.prototype, "handleKhqrPayment", null);
+], WebhooksController.prototype, "handleAbaWebhook", null);
+__decorate([
+    (0, common_1.Post)('khqr'),
+    (0, swagger_1.ApiOperation)({ summary: 'Alias for ABA webhook' }),
+    openapi.ApiResponse({ status: 201 }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], WebhooksController.prototype, "handleKhqrAlias", null);
 exports.WebhooksController = WebhooksController = __decorate([
     (0, swagger_1.ApiTags)('Webhooks'),
     (0, common_1.Controller)('webhooks'),

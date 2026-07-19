@@ -2,7 +2,11 @@ import { WebhooksService } from './webhooks.service';
 export declare class WebhooksController {
     private readonly webhooksService;
     constructor(webhooksService: WebhooksService);
-    handleKhqrPayment(payload: any): Promise<{
+    handleAbaWebhook(payload: any): Promise<{
+        received: boolean;
+        status: string;
+    }>;
+    handleKhqrAlias(payload: any): Promise<{
         received: boolean;
         status: string;
     }>;

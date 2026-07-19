@@ -19,7 +19,7 @@ let PrismaService = class PrismaService extends client_1.PrismaClient {
                 db: {
                     url: process.env.DATABASE_URL +
                         (process.env.DATABASE_URL?.includes('?') ? '&' : '?') +
-                        'connection_limit=10&pool_timeout=30',
+                        'connection_limit=5&pool_timeout=30',
                 },
             },
         });

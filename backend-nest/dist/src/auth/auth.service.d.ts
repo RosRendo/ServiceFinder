@@ -10,8 +10,6 @@ import { VerifyResetDto } from './dto/verify-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { FacebookLoginDto } from './dto/facebook-login.dto';
-import { SendOtpDto } from './dto/send-otp.dto';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { MfaService } from './mfa.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 export declare class AuthService {
@@ -23,7 +21,6 @@ export declare class AuthService {
     private mfaService;
     private analytics;
     private googleClient;
-    private twilioClient;
     constructor(prisma: PrismaService, jwtService: JwtService, mailService: MailService, configService: ConfigService, auditLogs: AuditLogsService, mfaService: MfaService, analytics: AnalyticsService);
     generateToken(userId: bigint): string;
     generateRefreshToken(userId: bigint): Promise<string>;
@@ -182,11 +179,7 @@ export declare class AuthService {
             })[];
         };
     }>;
-    private generateCode;
-    sendOtp(dto: SendOtpDto): Promise<{
-        message: string;
-    }>;
-    verifyOtp(dto: VerifyOtpDto): Promise<{
+    verifyFirebaseToken(idToken: string): Promise<{
         message: string;
         user: {
             staffProfile: ({

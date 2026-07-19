@@ -1,30 +1,25 @@
-# --- Build Stage ---
-FROM node:20-alpine AS builder
-WORKDIR /usr/src/app
-
-COPY package*.json ./
-COPY prisma ./prisma/
-RUN npm install --legacy-peer-deps
-
-COPY . .
-RUN DATABASE_URL="postgresql://dummy" npx prisma generate
-RUN npm run build
-
-# --- Production Stage ---
 FROM node:20-alpine
+
+# Install OpenSSL required by Prisma at runtime
 RUN apk add --no-cache openssl
 
 ENV NODE_ENV=production
 WORKDIR /usr/src/app
 
+# Copy package files and prisma schema
 COPY package*.json ./
 COPY prisma ./prisma/
+
+# Install only production dependencies
 RUN npm install --omit=dev --legacy-peer-deps
+
+# Generate Prisma Client
 RUN DATABASE_URL="postgresql://dummy" npx prisma generate
 
-# Copy the built dist folder from the builder stage
-COPY --from=builder /usr/src/app/dist ./dist
+# Copy the pre-built dist folder from your local machine
+COPY dist ./dist
 
+# Create logs directory
 RUN mkdir -p logs && chown -R node:node logs
 
 USER node

@@ -7,7 +7,6 @@ import { VerifyResetDto } from './dto/verify-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { FacebookLoginDto } from './dto/facebook-login.dto';
-import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 export declare class AuthController {
     private readonly authService;
@@ -122,9 +121,6 @@ export declare class AuthController {
         secret: string;
         code: string;
     }): Promise<{
-        message: string;
-    }>;
-    sendOtp(sendOtpDto: SendOtpDto): Promise<{
         message: string;
     }>;
     verifyOtp(verifyOtpDto: VerifyOtpDto, res: express.Response): Promise<{

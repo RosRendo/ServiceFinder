@@ -3,7 +3,8 @@ export declare class WebhooksService {
     private readonly prisma;
     private readonly logger;
     constructor(prisma: PrismaService);
-    handleKhqrPayment(payload: any): Promise<{
+    verifyAbaSignature(tran_id: string, status: string, hash: string): void;
+    handleAbaPayment(payload: any): Promise<{
         received: boolean;
         status: string;
     }>;
