@@ -295,7 +295,9 @@ let AdminService = class AdminService {
         const company = await this.prisma.company.findUnique({
             where: { id: BigInt(id) },
             include: {
-                owner: { select: { id: true, fullName: true, email: true, phone: true } },
+                owner: {
+                    select: { id: true, fullName: true, email: true, phone: true },
+                },
                 staff: true,
                 services: true,
             },
@@ -365,9 +367,7 @@ let AdminService = class AdminService {
                 where: { companyId: company.id },
             });
             const existingIds = existingServices.map((s) => s.id.toString());
-            const payloadIds = dto.services
-                .filter((s) => s.id)
-                .map((s) => s.id);
+            const payloadIds = dto.services.filter((s) => s.id).map((s) => s.id);
             const toDelete = existingIds.filter((id) => !payloadIds.includes(id));
             const toUpdate = dto.services.filter((s) => s.id);
             const toCreate = dto.services.filter((s) => !s.id);
@@ -489,7 +489,9 @@ let AdminService = class AdminService {
                     status: dto.status,
                     adminDecision: dto.adminDecision,
                     refundAmount: dto.refundAmount || 0,
-                    resolvedAt: dto.status === 'resolved' || dto.status === 'closed' ? new Date() : null,
+                    resolvedAt: dto.status === 'resolved' || dto.status === 'closed'
+                        ? new Date()
+                        : null,
                 },
             });
             if (dto.refundAmount && dto.refundAmount > 0) {
@@ -502,7 +504,7 @@ let AdminService = class AdminService {
                         category: 'refund',
                         description: `Refund for dispute #${dispute.id} (Booking #${dispute.bookingId})`,
                         bookingId: dispute.bookingId,
-                    }
+                    },
                 });
             }
             return {
@@ -629,7 +631,7 @@ let AdminService = class AdminService {
             let createdServices = [];
             if (dto.services && dto.services.length > 0) {
                 await tx.service.createMany({
-                    data: dto.services.map(s => ({
+                    data: dto.services.map((s) => ({
                         companyId: company.id,
                         serviceTypeId: BigInt(s.typeId),
                         name: s.name,
@@ -639,7 +641,9 @@ let AdminService = class AdminService {
                         isActive: true,
                     })),
                 });
-                createdServices = await tx.service.findMany({ where: { companyId: company.id } });
+                createdServices = await tx.service.findMany({
+                    where: { companyId: company.id },
+                });
             }
             else if (dto.serviceName && dto.serviceTypeId) {
                 const service = await tx.service.create({

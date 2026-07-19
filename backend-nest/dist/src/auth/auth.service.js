@@ -335,12 +335,16 @@ let AuthService = class AuthService {
             catch (error) {
                 console.error('Failed to send Twilio SMS:', error);
                 console.log(`[DEV MODE] OTP for ${phone} is: ${code}`);
-                return { message: `Failed to send SMS, but code generated (check server logs)` };
+                return {
+                    message: `Failed to send SMS, but code generated (check server logs)`,
+                };
             }
         }
         else {
             console.log(`[DEV MODE] Twilio not configured. OTP for ${phone} is: ${code}`);
-            return { message: `OTP generated successfully (Dev Mode - Check server logs for code)` };
+            return {
+                message: `OTP generated successfully (Dev Mode - Check server logs for code)`,
+            };
         }
     }
     async verifyOtp(dto) {

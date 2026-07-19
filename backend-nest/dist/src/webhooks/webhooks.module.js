@@ -18,7 +18,7 @@ exports.WebhooksModule = WebhooksModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
         controllers: [webhooks_controller_1.WebhooksController],
-        providers: [webhooks_service_1.WebhooksService]
+        providers: [webhooks_service_1.WebhooksService],
     })
 ], WebhooksModule);
 //# sourceMappingURL=webhooks.module.js.map

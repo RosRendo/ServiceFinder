@@ -56,13 +56,19 @@ class ProcessPayoutDto {
 }
 exports.ProcessPayoutDto = ProcessPayoutDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Status of the payout (paid or rejected)', example: 'paid' }),
+    (0, swagger_1.ApiProperty)({
+        description: 'Status of the payout (paid or rejected)',
+        example: 'paid',
+    }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], ProcessPayoutDto.prototype, "status", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Optional admin notes', example: 'Processed via ABA' }),
+    (0, swagger_1.ApiProperty)({
+        description: 'Optional admin notes',
+        example: 'Processed via ABA',
+    }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)

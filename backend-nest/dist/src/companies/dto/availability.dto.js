@@ -30,7 +30,10 @@ __decorate([
     __metadata("design:type", String)
 ], AddAvailabilityDto.prototype, "date", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Start time', example: '1970-01-01T09:00:00.000Z' }),
+    (0, swagger_1.ApiProperty)({
+        description: 'Start time',
+        example: '1970-01-01T09:00:00.000Z',
+    }),
     (0, class_validator_1.IsDateString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
@@ -42,7 +45,10 @@ __decorate([
     __metadata("design:type", String)
 ], AddAvailabilityDto.prototype, "endTime", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Is the staff available on this date?', default: true }),
+    (0, swagger_1.ApiProperty)({
+        description: 'Is the staff available on this date?',
+        default: true,
+    }),
     (0, class_validator_1.IsBoolean)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Boolean)
@@ -71,19 +77,28 @@ __decorate([
     __metadata("design:type", String)
 ], GenerateAvailabilityDto.prototype, "endDate", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Start time each day', example: '1970-01-01T09:00:00.000Z' }),
+    (0, swagger_1.ApiProperty)({
+        description: 'Start time each day',
+        example: '1970-01-01T09:00:00.000Z',
+    }),
     (0, class_validator_1.IsDateString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], GenerateAvailabilityDto.prototype, "startTime", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'End time each day', example: '1970-01-01T17:00:00.000Z' }),
+    (0, swagger_1.ApiProperty)({
+        description: 'End time each day',
+        example: '1970-01-01T17:00:00.000Z',
+    }),
     (0, class_validator_1.IsDateString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], GenerateAvailabilityDto.prototype, "endTime", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Array of days to skip (0=Sun, 1=Mon, etc.)', example: [0, 6] }),
+    (0, swagger_1.ApiProperty)({
+        description: 'Array of days to skip (0=Sun, 1=Mon, etc.)',
+        example: [0, 6],
+    }),
     (0, class_validator_1.IsArray)(),
     (0, class_validator_1.IsNumber)({}, { each: true }),
     (0, class_validator_1.IsOptional)(),

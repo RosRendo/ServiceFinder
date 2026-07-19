@@ -756,7 +756,13 @@ let BookingsService = class BookingsService {
         }
     }
     serializeBigIntFields(result) {
-        const bigintFields = ['id', 'customerId', 'companyId', 'serviceId', 'assignedStaffId'];
+        const bigintFields = [
+            'id',
+            'customerId',
+            'companyId',
+            'serviceId',
+            'assignedStaffId',
+        ];
         for (const f of bigintFields) {
             if (result[f] != null)
                 result[f] = result[f].toString();
@@ -764,7 +770,10 @@ let BookingsService = class BookingsService {
     }
     serializeRelatedEntities(result) {
         if (result.customer?.id) {
-            result.customer = { ...result.customer, id: result.customer.id.toString() };
+            result.customer = {
+                ...result.customer,
+                id: result.customer.id.toString(),
+            };
         }
         if (result.company?.id) {
             result.company = {
@@ -779,7 +788,9 @@ let BookingsService = class BookingsService {
                 id: result.service.id.toString(),
                 companyId: result.service.companyId?.toString(),
                 serviceTypeId: result.service.serviceTypeId?.toString(),
-                basePrice: result.service.basePrice ? Number(result.service.basePrice) : null,
+                basePrice: result.service.basePrice
+                    ? Number(result.service.basePrice)
+                    : null,
             };
         }
         if (result.assignedStaff?.id) {
@@ -793,7 +804,9 @@ let BookingsService = class BookingsService {
                 phone: staff.user?.phone ?? staff.phone ?? null,
                 email: staff.user?.email ?? staff.email ?? null,
                 avatar: staff.user?.avatar ?? staff.avatar ?? null,
-                user: staff.user ? { ...staff.user, id: staff.user.id?.toString() } : null,
+                user: staff.user
+                    ? { ...staff.user, id: staff.user.id?.toString() }
+                    : null,
             };
         }
     }

@@ -29,13 +29,13 @@ let WebhooksService = WebhooksService_1 = class WebhooksService {
         return this.prisma.$transaction(async (tx) => {
             const booking = await tx.booking.findUnique({
                 where: { id: BigInt(bookingId) },
-                include: { company: true }
+                include: { company: true },
             });
             if (!booking) {
                 throw new common_1.NotFoundException(`Booking ${bookingId} not found`);
             }
             const payment = await tx.payment.findUnique({
-                where: { bookingId: booking.id }
+                where: { bookingId: booking.id },
             });
             if (!payment) {
                 this.logger.error(`No payment record found for booking ${bookingId}`);
@@ -51,11 +51,11 @@ let WebhooksService = WebhooksService_1 = class WebhooksService {
                     status: 'paid',
                     transactionRef: transactionRef || `KHQR-${Date.now()}`,
                     paidAt: new Date(),
-                }
+                },
             });
             await tx.booking.update({
                 where: { id: booking.id },
-                data: { status: 'confirmed' }
+                data: { status: 'confirmed' },
             });
             const totalAmount = Number(payment.amount);
             const companyShare = totalAmount * 0.9;
@@ -68,7 +68,7 @@ let WebhooksService = WebhooksService_1 = class WebhooksService {
                     category: 'booking_revenue',
                     description: `Revenue from booking #${booking.id} (after 10% commission)`,
                     bookingId: booking.id,
-                }
+                },
             });
             this.logger.log(`Successfully processed KHQR payment for booking ${booking.id}. Credited $${companyShare} to Company ${booking.companyId}.`);
             return { received: true, status: 'processed' };

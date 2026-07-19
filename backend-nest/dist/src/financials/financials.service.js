@@ -36,23 +36,23 @@ let FinancialsService = class FinancialsService {
             orderBy: { createdAt: 'desc' },
         });
         const pendingAmount = payouts
-            .filter(p => p.status === 'pending')
+            .filter((p) => p.status === 'pending')
             .reduce((sum, req) => sum + Number(req.amount), 0);
         return {
             balance: balance,
             pendingWithdrawals: pendingAmount,
-            payouts: payouts.map(p => ({
+            payouts: payouts.map((p) => ({
                 ...p,
                 id: p.id.toString(),
                 ownerId: p.ownerId.toString(),
-                amount: Number(p.amount)
+                amount: Number(p.amount),
             })),
-            transactions: transactions.map(t => ({
+            transactions: transactions.map((t) => ({
                 ...t,
                 id: t.id.toString(),
                 ownerId: t.ownerId.toString(),
                 bookingId: t.bookingId?.toString(),
-                amount: Number(t.amount)
+                amount: Number(t.amount),
             })),
         };
     }
@@ -82,7 +82,7 @@ let FinancialsService = class FinancialsService {
                     accountName: dto.accountName,
                     accountNumber: dto.accountNumber,
                     status: 'pending',
-                }
+                },
             });
             await tx.transaction.create({
                 data: {
@@ -92,13 +92,13 @@ let FinancialsService = class FinancialsService {
                     type: 'debit',
                     category: 'payout',
                     description: `Withdrawal request #${request.id}`,
-                }
+                },
             });
             return {
                 ...request,
                 id: request.id.toString(),
                 ownerId: request.ownerId.toString(),
-                amount: Number(request.amount)
+                amount: Number(request.amount),
             };
         });
     }
@@ -106,11 +106,11 @@ let FinancialsService = class FinancialsService {
         const requests = await this.prisma.payoutRequest.findMany({
             orderBy: { createdAt: 'desc' },
         });
-        return requests.map(r => ({
+        return requests.map((r) => ({
             ...r,
             id: r.id.toString(),
             ownerId: r.ownerId.toString(),
-            amount: Number(r.amount)
+            amount: Number(r.amount),
         }));
     }
     async processPayoutRequest(id, dto) {
@@ -128,7 +128,7 @@ let FinancialsService = class FinancialsService {
                 data: {
                     status: dto.status,
                     adminNotes: dto.adminNotes,
-                }
+                },
             });
             if (dto.status === 'rejected') {
                 await tx.transaction.create({
@@ -139,14 +139,14 @@ let FinancialsService = class FinancialsService {
                         type: 'credit',
                         category: 'refund',
                         description: `Refund for rejected payout request #${request.id}`,
-                    }
+                    },
                 });
             }
             return {
                 ...updated,
                 id: updated.id.toString(),
                 ownerId: updated.ownerId.toString(),
-                amount: Number(updated.amount)
+                amount: Number(updated.amount),
             };
         });
     }

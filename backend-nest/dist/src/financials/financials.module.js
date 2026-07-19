@@ -18,7 +18,7 @@ exports.FinancialsModule = FinancialsModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
         controllers: [financials_controller_1.FinancialsController],
-        providers: [financials_service_1.FinancialsService]
+        providers: [financials_service_1.FinancialsService],
     })
 ], FinancialsModule);
 //# sourceMappingURL=financials.module.js.map

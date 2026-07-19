@@ -1302,7 +1302,9 @@ let CompaniesService = class CompaniesService {
         }));
     }
     async addStaffAvailability(userId, staffId, dto) {
-        const company = await this.prisma.company.findFirst({ where: { ownerId: userId } });
+        const company = await this.prisma.company.findFirst({
+            where: { ownerId: userId },
+        });
         if (!company)
             throw new common_1.NotFoundException('Company not found');
         const staff = await this.prisma.companyStaff.findFirst({
@@ -1338,7 +1340,9 @@ let CompaniesService = class CompaniesService {
         });
     }
     async generateStaffAvailability(userId, staffId, dto) {
-        const company = await this.prisma.company.findFirst({ where: { ownerId: userId } });
+        const company = await this.prisma.company.findFirst({
+            where: { ownerId: userId },
+        });
         if (!company)
             throw new common_1.NotFoundException('Company not found');
         const staff = await this.prisma.companyStaff.findFirst({
@@ -1391,10 +1395,14 @@ let CompaniesService = class CompaniesService {
         return { message: `${slots.length} slots generated successfully` };
     }
     async getStaffAvailability(userId, staffId, startDateStr, endDateStr) {
-        const company = await this.prisma.company.findFirst({ where: { ownerId: userId } });
+        const company = await this.prisma.company.findFirst({
+            where: { ownerId: userId },
+        });
         let companyId = company?.id;
         if (!companyId) {
-            const userStaff = await this.prisma.companyStaff.findFirst({ where: { userId } });
+            const userStaff = await this.prisma.companyStaff.findFirst({
+                where: { userId },
+            });
             if (userStaff) {
                 companyId = userStaff.companyId;
             }
@@ -1417,7 +1425,7 @@ let CompaniesService = class CompaniesService {
             where,
             orderBy: { date: 'asc' },
         });
-        return slots.map(s => ({
+        return slots.map((s) => ({
             ...s,
             id: s.id.toString(),
             companyId: s.companyId.toString(),
@@ -1425,7 +1433,9 @@ let CompaniesService = class CompaniesService {
         }));
     }
     async removeStaffAvailability(userId, slotId) {
-        const company = await this.prisma.company.findFirst({ where: { ownerId: userId } });
+        const company = await this.prisma.company.findFirst({
+            where: { ownerId: userId },
+        });
         if (!company)
             throw new common_1.NotFoundException('Company not found');
         const slot = await this.prisma.availabilitySlot.findFirst({
