@@ -52,7 +52,6 @@ const bcrypt = __importStar(require("bcryptjs"));
 const uuid_1 = require("uuid");
 const google_auth_library_1 = require("google-auth-library");
 const audit_logs_service_1 = require("../audit-logs/audit-logs.service");
-const admin = __importStar(require("firebase-admin"));
 const mfa_service_1 = require("./mfa.service");
 const analytics_service_1 = require("../analytics/analytics.service");
 let AuthService = class AuthService {
@@ -304,7 +303,8 @@ let AuthService = class AuthService {
         }
         let decodedToken;
         try {
-            decodedToken = await admin.auth().verifyIdToken(idToken);
+            const { getAuth } = require('firebase-admin/auth');
+            decodedToken = await getAuth().verifyIdToken(idToken);
         }
         catch (error) {
             console.error('Firebase verifyIdToken error detail:', error.message || error);

@@ -342,7 +342,8 @@ export class AuthService {
 
     let decodedToken;
     try {
-      decodedToken = await admin.auth().verifyIdToken(idToken);
+      const { getAuth } = require('firebase-admin/auth');
+      decodedToken = await getAuth().verifyIdToken(idToken);
     } catch (error: any) {
       console.error('Firebase verifyIdToken error detail:', error.message || error);
       throw new UnauthorizedException(`Firebase Auth Error: ${error.message || 'Invalid token'}`);
