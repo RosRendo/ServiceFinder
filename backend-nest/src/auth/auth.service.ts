@@ -12,7 +12,6 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
-import { Twilio } from 'twilio';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -23,6 +22,7 @@ import { GoogleLoginDto } from './dto/google-login.dto';
 import { FacebookLoginDto } from './dto/facebook-login.dto';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import * as admin from 'firebase-admin';
 
 import { MfaService } from './mfa.service';
 import { AnalyticsService } from '../analytics/analytics.service';
@@ -30,7 +30,6 @@ import { AnalyticsService } from '../analytics/analytics.service';
 @Injectable()
 export class AuthService {
   private googleClient: OAuth2Client;
-  private twilioClient: Twilio;
 
   constructor(
     private prisma: PrismaService,
@@ -44,11 +43,6 @@ export class AuthService {
     this.googleClient = new OAuth2Client(
       this.configService.get<string>('GOOGLE_CLIENT_ID'),
     );
-    const twilioSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
-    const twilioToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
-    if (twilioSid && twilioToken) {
-      this.twilioClient = new Twilio(twilioSid, twilioToken);
-    }
   }
 
   /** Generate a short-lived access token (15 min) */
