@@ -6,9 +6,10 @@ RUN apk add --no-cache openssl
 ENV NODE_ENV=production
 WORKDIR /usr/src/app
 
-# Copy package files and prisma schema
+# Copy package files, prisma schema, and firebase credentials
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY firebase-service-account.json ./
 
 # Install only production dependencies
 RUN npm install --omit=dev --legacy-peer-deps
