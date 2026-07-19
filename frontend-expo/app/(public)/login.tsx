@@ -14,6 +14,7 @@ import { useSocialAuth } from "@/hooks/useSocialAuth";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
 import { COUNTRIES } from "@/constants/countries";
+import auth from "@react-native-firebase/auth";
 
 const T = {
   bg: Theme.colors.bg,
@@ -37,6 +38,7 @@ export default function Login() {
   const { promptGoogleAsync, promptFacebookAsync, isGoogleReady, isFacebookReady } = useSocialAuth();
 
   const [step, setStep] = useState<"phone" | "otp" | "email" | "mfa">("phone");
+  const [confirm, setConfirm] = useState<any>(null);
   const [phone, setPhone] = useState("");
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0] || { name: 'Cambodia', code: '+855', flag: '🇰🇭' });
   const [showCountryModal, setShowCountryModal] = useState(false);
@@ -88,10 +90,13 @@ export default function Login() {
     if (!cleanPhone || cleanPhone.length < 6) return setError("Please enter a valid phone number");
     setError(""); setIsLoading(true);
     try {
-      await api.post("/api/auth/send-otp", { phone: getFullPhone() });
+      // 1. Send SMS via Firebase
+      const confirmation = await auth().signInWithPhoneNumber(getFullPhone());
+      setConfirm(confirmation);
       setStep("otp");
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to send OTP.");
+      console.error(err);
+      setError(err.message || "Failed to send OTP via Firebase.");
     } finally { setIsLoading(false); }
   };
 
@@ -99,14 +104,26 @@ export default function Login() {
     Keyboard.dismiss();
     const cleanOtp = otpCode.trim();
     if (!cleanOtp || cleanOtp.length < 6) return setError("Please enter a valid 6-digit OTP");
+    if (!confirm) return setError("Session expired. Please request a new code.");
+    
     setError(""); setIsLoading(true);
     try {
-      await verifyOtp(getFullPhone(), cleanOtp);
+      // 1. Verify code with Firebase
+      await confirm.confirm(cleanOtp);
+      
+      // 2. Get secure ID Token
+      const idToken = await auth().currentUser?.getIdToken();
+      if (!idToken) throw new Error("Failed to get Firebase token");
+
+      // 3. Authenticate with NestJS Backend
+      await verifyOtp(idToken);
+      
       const user = useAuthStore.getState().user;
       if (!user) return setError("Login failed: No user data.");
       navigateUser(user);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Invalid OTP code.");
+      console.error(err);
+      setError(err.response?.data?.message || err.message || "Invalid OTP code.");
     } finally { setIsLoading(false); }
   };
 

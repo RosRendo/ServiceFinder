@@ -341,106 +341,22 @@ export class AuthService {
     };
   }
 
-  private generateCode(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  }
-
-  async sendOtp(dto: SendOtpDto) {
-    const { phone } = dto;
-
-    // Generate a real 6-digit code
-    const code = this.generateCode();
-
-    const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
-
-    // Invalidate previous OTPs for this phone
-    await this.prisma.otpCode.updateMany({
-      where: { phone, used: false },
-      data: { used: true },
-    });
-
-    await this.prisma.otpCode.create({
-      data: {
-        phone,
-        code,
-        expiresAt,
-      },
-    });
-
-    // Send SMS via Twilio if configured
-    const verifySid = this.configService.get<string>('TWILIO_VERIFY_SERVICE_SID');
-    if (this.twilioClient && verifySid) {
-      try {
-        await this.twilioClient.verify.v2.services(verifySid).verifications.create({
-          to: phone,
-          channel: 'sms',
-        });
-        return { message: 'OTP sent successfully via Twilio Verify' };
-      } catch (error: any) {
-        console.error('Failed to send Twilio Verify SMS:', error);
-        throw new BadRequestException(`Twilio Error: ${error.message || 'Failed to send SMS'}`);
-      }
-    } else if (this.twilioClient) {
-      try {
-        await this.twilioClient.messages.create({
-          body: `Your ServiceFinder verification code is: ${code}`,
-          from: this.configService.get<string>('TWILIO_PHONE_NUMBER'),
-          to: phone,
-        });
-        return { message: 'OTP sent successfully via SMS' };
-      } catch (error: any) {
-        console.error('Failed to send Twilio SMS:', error);
-        // Fallback for development if Twilio fails
-        console.log(`[DEV MODE] OTP for ${phone} is: ${code}`);
-        throw new BadRequestException(`Twilio Error: ${error.message || 'Failed to send SMS'}`);
-      }
-    } else {
-      // Fallback if no Twilio keys are provided
-      console.log(
-        `[DEV MODE] Twilio not configured. OTP for ${phone} is: ${code}`,
-      );
-      return {
-        message: `OTP generated successfully (Dev Mode - Check server logs for code)`,
-      };
+  async verifyFirebaseToken(idToken: string) {
+    if (!idToken) {
+      throw new BadRequestException('Firebase ID token is required');
     }
-  }
 
-  async verifyOtp(dto: VerifyOtpDto) {
-    const { phone, code } = dto;
+    let decodedToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(idToken);
+    } catch (error: any) {
+      console.error('Firebase verifyIdToken error:', error);
+      throw new UnauthorizedException('Invalid or expired Firebase token');
+    }
 
-    const verifySid = this.configService.get<string>('TWILIO_VERIFY_SERVICE_SID');
-
-    if (this.twilioClient && verifySid) {
-      // 🚀 PROD: Use Twilio Verify API
-      try {
-        const verificationCheck = await this.twilioClient.verify.v2
-          .services(verifySid)
-          .verificationChecks.create({ to: phone, code });
-
-        if (verificationCheck.status !== 'approved') {
-          throw new BadRequestException('Invalid or expired OTP code (Twilio)');
-        }
-      } catch (error) {
-        console.error('Twilio Verify Error', error);
-        throw new BadRequestException('Invalid or expired OTP code');
-      }
-    } else {
-      // 🛠️ DEV: Use Local DB Verification
-      const otp = await this.prisma.otpCode.findFirst({
-        where: { phone, code, used: false },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      if (!otp || otp.expiresAt < new Date()) {
-        throw new BadRequestException('Invalid or expired OTP code');
-      }
-
-      // Mark as used
-      await this.prisma.otpCode.update({
-        where: { id: otp.id },
-        data: { used: true },
-      });
+    const phone = decodedToken.phone_number;
+    if (!phone) {
+      throw new BadRequestException('Firebase token does not contain a verified phone number');
     }
 
     // Find user or create new one

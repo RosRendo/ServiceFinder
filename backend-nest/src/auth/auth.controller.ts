@@ -26,7 +26,6 @@ import { VerifyResetDto } from './dto/verify-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { FacebookLoginDto } from './dto/facebook-login.dto';
-import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -155,26 +154,17 @@ export class AuthController {
     return this.authService.enableMfa(BigInt(id), body.secret, body.code);
   }
 
-  @Post('send-otp')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @ApiOperation({ summary: 'Send OTP to phone' })
-  async sendOtp(@Body() sendOtpDto: SendOtpDto) {
-    return this.authService.sendOtp(sendOtpDto);
-  }
-
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @ApiOperation({ summary: 'Verify OTP and login/register' })
+  @ApiOperation({ summary: 'Verify Firebase OTP Token and login/register' })
   async verifyOtp(
     @Body() verifyOtpDto: VerifyOtpDto,
     @Res({ passthrough: true }) res: express.Response,
   ) {
     const { message, user, accessToken, refreshToken } =
-      await this.authService.verifyOtp(verifyOtpDto);
+      await this.authService.verifyFirebaseToken(verifyOtpDto.idToken);
     this.setAuthCookies(res, accessToken, refreshToken);
     return { message, user, token: accessToken };
   }
