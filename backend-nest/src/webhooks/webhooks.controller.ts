@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Headers, RawBodyRequest, Req } from '@nestjs/common';
+import { Controller, Post, Body, Req, RawBodyRequest } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { WebhooksService } from './webhooks.service';
 import { Request } from 'express';
@@ -8,14 +8,19 @@ import { Request } from 'express';
 export class WebhooksController {
   constructor(private readonly webhooksService: WebhooksService) {}
 
+  @Post('aba')
+  @ApiOperation({ summary: 'Handle incoming ABA PayWay webhook' })
+  async handleAbaWebhook(@Body() payload: any) {
+    // ABA PayWay can send base64 encoded 'response' or direct JSON payload
+    // In many cases with S2S, it sends formData or JSON.
+    // We pass the parsed body straight to the service.
+    return this.webhooksService.handleAbaPayment(payload);
+  }
+
+  // Alias just in case the frontend or old config is still hitting /khqr
   @Post('khqr')
-  @ApiOperation({ summary: 'Handle incoming KHQR payment status webhook' })
-  async handleKhqrPayment(
-    @Body() payload: any,
-    @Req() req: RawBodyRequest<Request>,
-    @Headers('x-khqr-signature') signature: string,
-  ) {
-    const rawBody = req.rawBody?.toString('utf-8') ?? JSON.stringify(payload);
-    return this.webhooksService.handleKhqrPayment(payload, rawBody, signature);
+  @ApiOperation({ summary: 'Alias for ABA webhook' })
+  async handleKhqrAlias(@Body() payload: any) {
+    return this.webhooksService.handleAbaPayment(payload);
   }
 }
