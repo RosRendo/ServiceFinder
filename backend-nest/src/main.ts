@@ -16,12 +16,25 @@ import * as path from 'path';
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
+import * as admin from 'firebase-admin';
+
 // Fix BigInt serialization for JSON.stringify globally
 (BigInt.prototype as any).toJSON = function () {
   return this.toString();
 };
 
 async function bootstrap() {
+  const serviceAccountPath = path.join(process.cwd(), 'firebase-service-account.json');
+  if (require('fs').existsSync(serviceAccountPath)) {
+    const serviceAccount = require(serviceAccountPath);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    Logger.log('✅ Firebase Admin initialized successfully', 'Bootstrap');
+  } else {
+    Logger.warn('⚠️ firebase-service-account.json not found, Firebase Auth will fail!', 'Bootstrap');
+  }
+
   if (process.env.SENTRY_DSN) {
     Sentry.init({
       dsn: process.env.SENTRY_DSN,
