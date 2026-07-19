@@ -52,7 +52,6 @@ const express = __importStar(require("express"));
 const path = __importStar(require("path"));
 const Sentry = __importStar(require("@sentry/node"));
 const profiling_node_1 = require("@sentry/profiling-node");
-const admin = __importStar(require("firebase-admin"));
 BigInt.prototype.toJSON = function () {
     return this.toString();
 };
@@ -60,8 +59,9 @@ async function bootstrap() {
     const serviceAccountPath = path.join(process.cwd(), 'firebase-service-account.json');
     if (require('fs').existsSync(serviceAccountPath)) {
         const serviceAccount = require(serviceAccountPath);
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
+        const { initializeApp, cert } = require('firebase-admin/app');
+        initializeApp({
+            credential: cert(serviceAccount),
         });
         common_1.Logger.log('✅ Firebase Admin initialized successfully', 'Bootstrap');
     }

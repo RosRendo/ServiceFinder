@@ -27,8 +27,9 @@ async function bootstrap() {
   const serviceAccountPath = path.join(process.cwd(), 'firebase-service-account.json');
   if (require('fs').existsSync(serviceAccountPath)) {
     const serviceAccount = require(serviceAccountPath);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
+    const { initializeApp, cert } = require('firebase-admin/app');
+    initializeApp({
+      credential: cert(serviceAccount),
     });
     Logger.log('✅ Firebase Admin initialized successfully', 'Bootstrap');
   } else {
