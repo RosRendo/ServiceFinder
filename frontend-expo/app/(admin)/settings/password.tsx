@@ -15,13 +15,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAuthStore, api } from "@/store/authStore";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", text1: "#111827", text2: "#717171", text3: "#B0B0B0",
-  inputBg: "#F9FAFB", inputBgDisabled: "#F3F4F6",
-  successBg: "#D1FAE5", successText: "#065F46"
-};
+const T = Theme.colors;
 
 const HERO_CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },

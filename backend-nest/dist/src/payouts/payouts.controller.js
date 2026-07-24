@@ -36,7 +36,7 @@ let PayoutsController = class PayoutsController {
             companyFound: company ? company.id.toString() : null,
         }, null, 2));
         if (!company) {
-            throw new Error('No company associated with this user');
+            throw new NotFoundException('No company associated with this user');
         }
         return company.id;
     }
@@ -49,8 +49,14 @@ let PayoutsController = class PayoutsController {
         return this.payoutsService.requestPayout(companyId, body.amount, body.method);
     }
     async getStaffPayouts(staffId, req) {
-        const companyId = await this.getCompanyId(req);
-        return this.payoutsService.getStaffPayoutsForCompanyMember(BigInt(staffId), companyId);
+        try {
+            const companyId = await this.getCompanyId(req);
+            return await this.payoutsService.getStaffPayoutsForCompanyMember(BigInt(staffId), companyId);
+        }
+        catch (e) {
+            console.error('\n\n=========================================\nCRITICAL CONTROLLER ERROR:', e, '\n=========================================\n\n');
+            throw e;
+        }
     }
     async approveStaffPayout(id, req) {
         const companyId = await this.getCompanyId(req);

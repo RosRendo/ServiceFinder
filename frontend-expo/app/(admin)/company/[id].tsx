@@ -1,3 +1,6 @@
+/**
+ * Admin Company Details — Premium Deep Navy Redesign (Unified Architecture)
+ */
 import React, { useState, useEffect } from "react";
 import { Image } from "expo-image";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Platform } from "react-native";
@@ -5,16 +8,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import api from "@/utils/api";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentMid: "#1E3A8A",
-  text1: "#111827", text2: "#4B5563", text3: "#9CA3AF",
-  success: "#10B981", warning: "#F59E0B", error: "#EF4444",
-  blue: "#3B82F6", gray: "#6B7280",
-};
+const T = Theme.colors;
 
-
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 export default function CompanyDetail() {
   const router = useRouter();
@@ -26,7 +27,6 @@ export default function CompanyDetail() {
   const fetchCompany = async () => {
     try {
       const response = await api.get(`/api/companies/${id}`);
-      // Handle potential { data: { ...company } } wrapper
       const companyData = response.data.data || response.data;
       setCompany(companyData);
     } catch (error) {
@@ -88,7 +88,7 @@ export default function CompanyDetail() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.headerBtn}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={T.text1} />
+          <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Company Details</Text>
         <View style={{ width: 40 }} />
@@ -103,7 +103,7 @@ export default function CompanyDetail() {
               <Image source={{ uri: company.coverImageUrl }} style={s.coverImage} />
             ) : (
               <View style={s.coverPlaceholder}>
-                <MaterialCommunityIcons name="image-outline" size={32} color={T.text3} />
+                <MaterialCommunityIcons name="image-outline" size={36} color={T.text3} />
               </View>
             )}
           </View>
@@ -111,21 +111,21 @@ export default function CompanyDetail() {
             {company.logoUrl ? (
               <Image source={{ uri: company.logoUrl }} style={s.logoImg} />
             ) : (
-              <MaterialCommunityIcons name="domain" size={32} color={T.text3} />
+              <MaterialCommunityIcons name="domain" size={40} color={T.text3} />
             )}
           </View>
 
           <View style={s.heroInfo}>
             <Text style={s.companyName}>{company.name}</Text>
             <View style={s.ratingRow}>
-              <MaterialCommunityIcons name="star" size={16} color={T.warning} />
+              <MaterialCommunityIcons name="star" size={18} color={T.warning} />
               <Text style={s.ratingText}>
                 {company.ratingSummary?.averageRating || "N/A"} 
                 <Text style={s.reviewCountText}> ({company.ratingSummary?.totalReviews || 0} reviews)</Text>
               </Text>
             </View>
             <View style={[s.statusBadge, { backgroundColor: sStyle.bg }]}>
-              <MaterialCommunityIcons name={sStyle.icon as any} size={14} color={sStyle.color} style={{ marginRight: 4 }} />
+              <MaterialCommunityIcons name={sStyle.icon as any} size={16} color={sStyle.color} style={{ marginRight: 6 }} />
               <Text style={[s.statusText, { color: sStyle.color }]}>{company.verificationStatus}</Text>
             </View>
           </View>
@@ -134,14 +134,17 @@ export default function CompanyDetail() {
         {/* Stats Row */}
         <View style={s.statsRow}>
           <View style={s.statCard}>
+            <MaterialCommunityIcons name="account-group-outline" size={24} color={T.accentMid} style={{ marginBottom: 4 }} />
             <Text style={s.statValue}>{company.staff?.length || 0}</Text>
             <Text style={s.statLabel}>Staff</Text>
           </View>
           <View style={s.statCard}>
+            <MaterialCommunityIcons name="briefcase-outline" size={24} color={T.success} style={{ marginBottom: 4 }} />
             <Text style={s.statValue}>{company.services?.length || 0}</Text>
             <Text style={s.statLabel}>Services</Text>
           </View>
           <View style={s.statCard}>
+            <MaterialCommunityIcons name="map-marker-radius-outline" size={24} color={T.warning} style={{ marginBottom: 4 }} />
             <Text style={s.statValue}>{company.serviceAreas?.length || 0}</Text>
             <Text style={s.statLabel}>Areas</Text>
           </View>
@@ -149,43 +152,58 @@ export default function CompanyDetail() {
 
         {/* Description */}
         {company.description && (
-          <View style={s.sectionCard}>
-            <Text style={s.sectionTitle}>About Company</Text>
+          <View style={s.card}>
+            <Text style={s.cardTitle}>About Company</Text>
             <Text style={s.descText}>{company.description}</Text>
           </View>
         )}
 
         {/* Owner & Contact */}
-        <View style={s.sectionCard}>
-          <Text style={s.sectionTitle}>Owner & Contact</Text>
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Contact Details</Text>
           <View style={s.infoList}>
             <View style={s.infoRow}>
-              <View style={s.infoIconBox}><MaterialCommunityIcons name="account-outline" size={20} color={T.text2} /></View>
-              <Text style={s.infoText}>{company.owner?.fullName || 'N/A'}</Text>
+              <View style={s.infoIconWrap}><MaterialCommunityIcons name="account-outline" size={20} color={T.accentMid} /></View>
+              <View style={s.infoTextWrap}>
+                <Text style={s.infoLabelText}>Owner</Text>
+                <Text style={s.infoText}>{company.owner?.fullName || 'N/A'}</Text>
+              </View>
             </View>
             <View style={s.infoRow}>
-              <View style={s.infoIconBox}><MaterialCommunityIcons name="email-outline" size={20} color={T.text2} /></View>
-              <Text style={s.infoText}>{company.owner?.email || 'N/A'}</Text>
+              <View style={s.infoIconWrap}><MaterialCommunityIcons name="email-outline" size={20} color={T.accentMid} /></View>
+              <View style={s.infoTextWrap}>
+                <Text style={s.infoLabelText}>Email</Text>
+                <Text style={s.infoText}>{company.owner?.email || 'N/A'}</Text>
+              </View>
             </View>
             <View style={s.infoRow}>
-              <View style={s.infoIconBox}><MaterialCommunityIcons name="phone-outline" size={20} color={T.text2} /></View>
-              <Text style={s.infoText}>{company.phone || company.owner?.phone || 'N/A'}</Text>
+              <View style={s.infoIconWrap}><MaterialCommunityIcons name="phone-outline" size={20} color={T.accentMid} /></View>
+              <View style={s.infoTextWrap}>
+                <Text style={s.infoLabelText}>Phone</Text>
+                <Text style={s.infoText}>{company.phone || company.owner?.phone || 'N/A'}</Text>
+              </View>
             </View>
             <View style={s.infoRow}>
-              <View style={s.infoIconBox}><MaterialCommunityIcons name="map-marker-outline" size={20} color={T.text2} /></View>
-              <Text style={s.infoText}>{company.address ? `${company.address}, ` : ''}{company.city || 'N/A'}</Text>
+              <View style={s.infoIconWrap}><MaterialCommunityIcons name="map-marker-outline" size={20} color={T.accentMid} /></View>
+              <View style={s.infoTextWrap}>
+                <Text style={s.infoLabelText}>Location</Text>
+                <Text style={s.infoText}>{company.address ? `${company.address}, ` : ''}{company.city || 'N/A'}</Text>
+              </View>
             </View>
             <View style={s.infoRow}>
-              <View style={s.infoIconBox}><MaterialCommunityIcons name="identifier" size={20} color={T.text2} /></View>
-              <Text style={s.infoText}>{company.registrationNumber || 'No registration ID'}</Text>
+              <View style={s.infoIconWrap}><MaterialCommunityIcons name="identifier" size={20} color={T.accentMid} /></View>
+              <View style={s.infoTextWrap}>
+                <Text style={s.infoLabelText}>Registration ID</Text>
+                <Text style={s.infoText}>{company.registrationNumber || 'None'}</Text>
+              </View>
             </View>
           </View>
         </View>
         
         {/* Coverage Areas */}
         {company.serviceAreas?.length > 0 && (
-          <View style={s.sectionCard}>
-            <Text style={s.sectionTitle}>Coverage Areas</Text>
+          <View style={s.card}>
+            <Text style={s.cardTitle}>Coverage Areas</Text>
             <View style={s.tagList}>
               {company.serviceAreas.map((area: any, idx: number) => (
                 <View key={idx} style={s.tag}>
@@ -199,8 +217,8 @@ export default function CompanyDetail() {
 
         {/* Services Offered */}
         {company.services?.length > 0 && (
-          <View style={s.sectionCard}>
-            <Text style={s.sectionTitle}>Services Offered</Text>
+          <View style={s.card}>
+            <Text style={s.cardTitle}>Services Offered</Text>
             <View style={s.tagList}>
               {company.services.map((service: any) => (
                 <View key={service.id} style={s.tagAlt}>
@@ -212,8 +230,8 @@ export default function CompanyDetail() {
         )}
 
         {/* Verification Document */}
-        <View style={s.sectionCard}>
-          <Text style={s.sectionTitle}>Verification Document</Text>
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Verification Document</Text>
           {company.verificationDocumentUrl ? (
             <TouchableOpacity
               style={s.docBtn}
@@ -226,10 +244,10 @@ export default function CompanyDetail() {
               }}
             >
               <View style={s.docBtnIconBox}>
-                <MaterialCommunityIcons name="file-pdf-box" size={20} color={T.blue} />
+                <MaterialCommunityIcons name="file-pdf-box" size={24} color={T.blue} />
               </View>
               <Text style={s.docBtnText}>View Document</Text>
-              <MaterialCommunityIcons name="open-in-new" size={16} color={T.text3} />
+              <MaterialCommunityIcons name="open-in-new" size={18} color={T.text3} />
             </TouchableOpacity>
           ) : (
             <View style={s.docMissing}>
@@ -270,55 +288,56 @@ const s = StyleSheet.create({
   centerArea: { flex: 1, backgroundColor: T.bg, justifyContent: "center", alignItems: "center" },
 
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
-  headerBtn: { padding: 8, marginLeft: -8 },
+  headerBtn: { padding: 4, marginLeft: -8 },
   headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
 
   content: { padding: 16, gap: 16, paddingBottom: 60 },
 
-  heroCard: { backgroundColor: T.surface, borderRadius: 20,  paddingBottom: 20 },
-  coverWrap: { width: "100%", height: 120, backgroundColor: T.bg },
+  heroCard: { backgroundColor: T.surface, borderRadius: 24, paddingBottom: 24, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW, overflow: "hidden" },
+  coverWrap: { width: "100%", height: 140, backgroundColor: T.bg },
   coverImage: { width: "100%", height: "100%" },
   coverPlaceholder: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: T.bg },
-  logoWrap: { width: 80, height: 80, borderRadius: 24, backgroundColor: T.surface, borderWidth: 4, borderColor: T.surface, position: "absolute", top: 80, left: 20, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  logoWrap: { width: 96, height: 96, borderRadius: 28, backgroundColor: T.surface, borderWidth: 4, borderColor: T.surface, position: "absolute", top: 92, left: 24, alignItems: "center", justifyContent: "center", overflow: "hidden", ...CARD_SHADOW },
   logoImg: { width: "100%", height: "100%" },
-  heroInfo: { marginTop: 48, paddingHorizontal: 20 },
-  companyName: { fontSize: 22, fontWeight: "800", color: T.text1, marginBottom: 4 },
-  ratingRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 12 },
-  ratingText: { fontSize: 14, fontWeight: "700", color: T.text1 },
+  heroInfo: { marginTop: 60, paddingHorizontal: 24 },
+  companyName: { fontSize: 24, fontWeight: "800", color: T.text1, marginBottom: 4 },
+  ratingRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 16 },
+  ratingText: { fontSize: 15, fontWeight: "700", color: T.text1 },
   reviewCountText: { color: T.text3, fontWeight: "500" },
-  statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignSelf: "flex-start" },
-  statusText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
+  statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, alignSelf: "flex-start" },
+  statusText: { fontSize: 12, fontWeight: "800", textTransform: "uppercase" },
 
   statsRow: { flexDirection: "row", gap: 12 },
-  statCard: { flex: 1, backgroundColor: T.surface, borderRadius: 16, padding: 16, alignItems: "center", borderWidth: 1, borderColor: T.border },
-  statValue: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 2 },
+  statCard: { flex: 1, backgroundColor: T.surface, borderRadius: 24, padding: 20, alignItems: "center", borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  statValue: { fontSize: 24, fontWeight: "800", color: T.text1, marginBottom: 2 },
   statLabel: { fontSize: 12, color: T.text3, fontWeight: "600", textTransform: "uppercase" },
 
-  sectionCard: { backgroundColor: T.surface, borderRadius: 20, padding: 20,  },
-  sectionTitle: { fontSize: 12, fontWeight: "800", color: T.text3, textTransform: "uppercase", letterSpacing: 0.5 },
-  descText: { fontSize: 14, color: T.text2, lineHeight: 22, fontWeight: "500" },
+  card: { backgroundColor: T.surface, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: T.border, gap: 20, ...CARD_SHADOW },
+  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1 },
+  descText: { fontSize: 15, color: T.text2, lineHeight: 24, fontWeight: "500" },
 
   infoList: { gap: 16 },
-  infoRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  infoIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: T.bg, alignItems: "center", justifyContent: "center" },
-  infoText: { flex: 1, fontSize: 14, fontWeight: "600", color: T.text1 },
+  infoRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  infoIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: T.blue + "10", alignItems: "center", justifyContent: "center" },
+  infoTextWrap: { flex: 1 },
+  infoLabelText: { fontSize: 12, fontWeight: "600", color: T.text3, marginBottom: 2, textTransform: "uppercase" },
+  infoText: { fontSize: 15, fontWeight: "700", color: T.text1 },
 
-  tagList: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  tag: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: T.blue + "15", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
-  tagText: { fontSize: 13, fontWeight: "700", color: T.blue },
-  tagAlt: { backgroundColor: T.bg, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: T.border },
-  tagTextAlt: { fontSize: 13, fontWeight: "600", color: T.text2 },
+  tagList: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  tag: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: T.blue + "15", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
+  tagText: { fontSize: 14, fontWeight: "700", color: T.blue },
+  tagAlt: { backgroundColor: T.bg, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: T.border },
+  tagTextAlt: { fontSize: 14, fontWeight: "600", color: T.text2 },
 
   docBtn: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: T.bg, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, borderWidth: 1, borderColor: T.border },
-  docBtnIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: T.blue + "15", alignItems: "center", justifyContent: "center" },
-  docBtnText: { flex: 1, fontSize: 14, fontWeight: "700", color: T.text1 },
-  docMissing: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, backgroundColor: T.warning + "15", borderRadius: 12 },
-  docMissingText: { fontSize: 14, color: T.warning, fontWeight: "600" },
+  docBtnIconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: T.blue + "15", alignItems: "center", justifyContent: "center" },
+  docBtnText: { flex: 1, fontSize: 15, fontWeight: "700", color: T.text1 },
+  docMissing: { flexDirection: "row", alignItems: "center", gap: 10, padding: 16, backgroundColor: T.warning + "15", borderRadius: 16 },
+  docMissingText: { fontSize: 15, color: T.warning, fontWeight: "700" },
 
   footerActions: { flexDirection: "row", gap: 12, padding: 16, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border },
   footerBtnReject: { flex: 1, paddingVertical: 16, borderRadius: 16, alignItems: "center", backgroundColor: T.error + "15", borderWidth: 1, borderColor: T.error + "30" },
-  footerBtnRejectText: { color: T.error, fontSize: 15, fontWeight: "800" },
+  footerBtnRejectText: { color: T.error, fontSize: 16, fontWeight: "800" },
   footerBtnApprove: { flex: 1, paddingVertical: 16, borderRadius: 16, alignItems: "center", backgroundColor: T.accent },
-  footerBtnApproveText: { color: "#fff", fontSize: 15, fontWeight: "800" },
+  footerBtnApproveText: { color: "#fff", fontSize: 16, fontWeight: "800" },
 });
-

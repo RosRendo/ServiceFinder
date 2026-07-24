@@ -1,24 +1,24 @@
 /**
- * Admin Approvals Queue — Premium Deep Navy Redesign
+ * Admin Approvals Queue — Premium Deep Navy Redesign (Unified Architecture)
  */
 import React, { useState, useEffect, useCallback } from "react";
 import { Image } from "expo-image";
-import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, RefreshControl, FlatList, StyleSheet, Platform } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, RefreshControl, StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import api from "@/utils/api";
 import { useSidebarStore } from "@/store/sidebarStore";
+import { FlashList } from "@shopify/flash-list";
 import { useTranslation } from "react-i18next";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentMid: "#1E3A8A",
-  text1: "#111827", text2: "#4B5563", text3: "#9CA3AF",
-  success: "#10B981", warning: "#F59E0B", error: "#EF4444",
-};
+const T = Theme.colors;
 
-
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 export default function Queue() {
   const router = useRouter();
@@ -32,9 +32,7 @@ export default function Queue() {
   const fetchQueue = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      // Use admin endpoint which supports status filter and is properly guarded
       const response = await api.get(`/api/admin/companies?status=${activeTab}`);
-      // TransformInterceptor: { success, data: { data: [...], meta: {...} } }
       const outer = response.data?.data ?? response.data;
       const items = Array.isArray(outer) ? outer : (outer?.data ?? []);
       setCompanies(items);
@@ -51,11 +49,10 @@ export default function Queue() {
     fetchQueue();
   }, [fetchQueue]));
 
-  // Auto-refresh helpers — called from approve/reject inline actions
   const handleApprove = useCallback(async (companyId: string) => {
     try {
       await api.patch(`/api/admin/companies/${companyId}/verify`, { status: 'verified' });
-      fetchQueue(); // auto-refresh after action
+      fetchQueue();
     } catch (error) {
       console.error("Approve failed:", error);
     }
@@ -64,7 +61,7 @@ export default function Queue() {
   const handleReject = useCallback(async (companyId: string) => {
     try {
       await api.patch(`/api/admin/companies/${companyId}/verify`, { status: 'rejected' });
-      fetchQueue(); // auto-refresh after action
+      fetchQueue();
     } catch (error) {
       console.error("Reject failed:", error);
     }
@@ -120,11 +117,13 @@ export default function Queue() {
       {isLoading && !refreshing ? (
         <View style={s.loadingBox}><ActivityIndicator size="large" color={T.accent} /></View>
       ) : (
-        <FlatList
+        <FlashList
           data={companies}
           keyExtractor={(item) => item.id}
+          estimatedItemSize={200}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchQueue(true)} tintColor={T.accent} />}
           contentContainerStyle={s.listContent}
+          ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={s.emptyBox}>
@@ -164,39 +163,41 @@ export default function Queue() {
                   <Image source={{ uri: company.coverImageUrl }} style={s.coverImage} />
                 )}
 
-                {/* Submitted Text Details */}
-                <View style={s.detailsGrid}>
-                  <View style={s.detailRow}>
-                    <MaterialCommunityIcons name="email-outline" size={16} color={T.text3} />
-                    <Text style={s.detailText}>{company.email || t('adminQueue.noEmail')}</Text>
+                {/* Split Body Details */}
+                <View style={s.cardBody}>
+                  <View style={s.infoBlock}>
+                    <Text style={s.infoLabel}>Owner</Text>
+                    <Text style={s.infoValue} numberOfLines={1}>{company.owner?.fullName || t('adminQueue.unknownOwner')}</Text>
                   </View>
-                  <View style={s.detailRow}>
-                    <MaterialCommunityIcons name="phone-outline" size={16} color={T.text3} />
-                    <Text style={s.detailText}>{company.phone || t('adminQueue.noPhone')}</Text>
+                  <View style={s.infoBlock}>
+                    <Text style={s.infoLabel}>Contact</Text>
+                    <Text style={s.infoValue} numberOfLines={1}>{company.phone || company.email || "N/A"}</Text>
                   </View>
-                  <View style={s.detailRow}>
-                    <MaterialCommunityIcons name="map-marker-outline" size={16} color={T.text3} />
-                    <Text style={s.detailText}>{company.address || company.city || t('adminQueue.noAddress')}</Text>
+                  <View style={s.infoBlock}>
+                    <Text style={s.infoLabel}>Date</Text>
+                    <Text style={s.infoValue}>{new Date(company.createdAt).toLocaleDateString()}</Text>
                   </View>
-                  {company.verificationDocumentUrl && (
-                    <View style={s.detailRow}>
-                      <MaterialCommunityIcons name="file-document-outline" size={16} color={T.accentMid} />
-                      <Text style={[s.detailText, { color: T.accentMid, fontWeight: "700" }]}>
-                        {t('adminQueue.docAttached')}
-                      </Text>
-                    </View>
-                  )}
-                  {company.description && (
-                    <Text style={s.descriptionText} numberOfLines={2}>{company.description}</Text>
-                  )}
                 </View>
 
-                {/* Action Buttons for Pending — approve/reject with auto-refresh */}
+                {/* Verification Document Badge */}
+                {company.verificationDocumentUrl && (
+                  <View style={s.docBadgeRow}>
+                    <MaterialCommunityIcons name="file-document-outline" size={16} color={T.accentMid} />
+                    <Text style={[s.docBadgeText, { color: T.accentMid }]}>
+                      {t('adminQueue.docAttached')}
+                    </Text>
+                  </View>
+                )}
+                {company.description && (
+                  <Text style={s.descriptionText} numberOfLines={2}>{company.description}</Text>
+                )}
+
+                {/* Action Buttons for Pending */}
                 {activeTab === 'pending' && (
                   <View style={s.actionRow}>
                     <TouchableOpacity
                       style={[s.actionBtn, s.rejectBtn]}
-                      onPress={() => handleReject(company.id)}
+                      onPress={(e) => { e.stopPropagation(); handleReject(company.id); }}
                       activeOpacity={0.8}
                     >
                       <MaterialCommunityIcons name="close" size={18} color={T.error} />
@@ -204,7 +205,7 @@ export default function Queue() {
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[s.actionBtn, s.approveBtn]}
-                      onPress={() => handleApprove(company.id)}
+                      onPress={(e) => { e.stopPropagation(); handleApprove(company.id); }}
                       activeOpacity={0.8}
                     >
                       <MaterialCommunityIcons name="check" size={18} color="#fff" />
@@ -212,15 +213,6 @@ export default function Queue() {
                     </TouchableOpacity>
                   </View>
                 )}
-
-                <View style={s.cardFooter}>
-                  <Text style={s.footerText} numberOfLines={1}>
-                    <MaterialCommunityIcons name="account" size={14} /> {company.owner?.fullName || t('adminQueue.unknownOwner')}
-                  </Text>
-                  <Text style={s.footerText}>
-                    <MaterialCommunityIcons name="calendar" size={14} /> {new Date(company.createdAt).toLocaleDateString()}
-                  </Text>
-                </View>
               </TouchableOpacity>
             );
           }}
@@ -248,13 +240,13 @@ const s = StyleSheet.create({
   tabText: { fontSize: 14, fontWeight: "600", color: T.text3 },
   tabTextActive: { color: T.accent, fontWeight: "800" },
 
-  listContent: { padding: 16, gap: 12, paddingBottom: 60 },
+  listContent: { padding: 16, paddingBottom: 60 },
   loadingBox: { paddingVertical: 80, alignItems: "center" },
   emptyBox: { alignItems: "center", paddingVertical: 80 },
   emptyText: { fontSize: 16, fontWeight: "700", color: T.text1 },
 
-  companyCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border },
-  cardHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
+  companyCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
   logoWrap: { width: 48, height: 48, borderRadius: 12, backgroundColor: T.bg, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   logo: { width: "100%", height: "100%" },
   cardHeaderInfo: { flex: 1 },
@@ -263,20 +255,20 @@ const s = StyleSheet.create({
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignSelf: "flex-start" },
   statusText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
 
-  coverImage: { width: "100%", height: 120, borderRadius: 12, marginTop: 16, backgroundColor: T.bg },
+  coverImage: { width: "100%", height: 140, borderRadius: 12, marginBottom: 12, backgroundColor: T.bg },
   
-  detailsGrid: { marginTop: 16, gap: 8 },
-  detailRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  detailText: { fontSize: 13, color: T.text2, fontWeight: "500", flex: 1 },
+  cardBody: { flexDirection: "row", backgroundColor: T.bg, borderRadius: 12, padding: 12, justifyContent: "space-between", marginBottom: 12 },
+  infoBlock: { flex: 1 },
+  infoLabel: { fontSize: 11, fontWeight: "600", color: T.text3, marginBottom: 4, textTransform: "uppercase" },
+  infoValue: { fontSize: 13, fontWeight: "700", color: T.text1 },
+
+  docBadgeRow: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: T.blue + "10", padding: 8, borderRadius: 8, marginBottom: 8 },
+  docBadgeText: { fontSize: 12, fontWeight: "700" },
   descriptionText: { fontSize: 13, color: T.text2, fontStyle: "italic", marginTop: 4, backgroundColor: T.bg, padding: 10, borderRadius: 8 },
 
-  actionRow: { flexDirection: "row", gap: 12, marginTop: 16 },
+  actionRow: { flexDirection: "row", gap: 12, marginTop: 12 },
   actionBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
   rejectBtn: { borderColor: T.error + "40", backgroundColor: T.error + "10" },
   approveBtn: { borderColor: T.success, backgroundColor: T.success },
   actionText: { fontSize: 14, fontWeight: "700" },
-
-  cardFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: T.border },
-  footerText: { fontSize: 13, fontWeight: "600", color: T.text2, flex: 1 },
 });
-

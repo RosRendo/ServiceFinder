@@ -216,6 +216,7 @@ export declare class AuthService {
         accessToken: string;
         refreshToken: string;
     }>;
+    private generateCode;
     requestPasswordReset(dto: RequestResetDto): Promise<{
         message: string;
     }>;

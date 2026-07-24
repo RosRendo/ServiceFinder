@@ -22,23 +22,11 @@ import { useExploreStore, ExploreService, ExploreCompany } from "@/store/explore
 import FadeIn from "@/components/FadeIn";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
+import { Theme } from "@/constants/theme";
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS
 // ─────────────────────────────────────────────────────────────
-const T = {
-  bg: "#FFFFFF",
-  surface: "#FFFFFF",
-  border: "#EBEBEB",
-  accent: "#0A192F",
-  accentLight: "#F7F7F7",
-  accentMid: "#1E3A8A",
-  text1: "#111827",
-  text2: "#717171",
-  text3: "#B0B0B0",
-  gold: "#FFB800",
-  success: "#00A699",
-  tag: "#F7F7F7",
-};
+const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },

@@ -14,19 +14,7 @@ import { useTranslation } from "react-i18next";
 
 import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: Theme.colors.bg,
-  surface: Theme.colors.surface,
-  border: Theme.colors.border,
-  accent: Theme.colors.primary,
-  accentMid: Theme.colors.primaryMid,
-  text1: Theme.colors.text,
-  text2: Theme.colors.textMuted,
-  text3: Theme.colors.textMuted,
-  success: Theme.colors.success,
-  warning: Theme.colors.warning,
-  error: Theme.colors.error,
-};
+const T = Theme.colors;
 
 
 

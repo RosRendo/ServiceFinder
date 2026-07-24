@@ -11,14 +11,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api } from "@/store/authStore";
 import { useSidebarStore } from "@/store/sidebarStore";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentMid: "#1E3A8A",
-  text1: "#111827", text2: "#4B5563", text3: "#9CA3AF",
-  success: "#10B981", warning: "#F59E0B", error: "#EF4444",
-  blue: "#3B82F6", gray: "#6B7280", purple: "#7C3AED",
-};
+const T = Theme.colors;
 
 
 

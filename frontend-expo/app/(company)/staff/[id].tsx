@@ -1,8 +1,8 @@
 /**
- * Staff Detail — Premium Deep Navy Redesign
- * Displays all available data: ratings, jobs, availability, contact, etc.
+ * Staff Detail — Premium Deep Navy Redesign (Unified Architecture)
  */
 import React, { useState, useCallback } from "react";
+import { Image } from "expo-image";
 import {
   ScrollView, Text, View, TouchableOpacity,
   ActivityIndicator, RefreshControl, StyleSheet, Platform, Alert,
@@ -11,18 +11,23 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { api } from "@/store/authStore";
+import { Theme } from "@/constants/theme";
 
 const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentMid: "#1E3A8A", accentLight: "#F7F7F7",
-  text1: "#111827", text2: "#717171", text3: "#B0B0B0",
-  success: "#00A699", warning: "#FFB800", error: "#E31C5F",
+  bg: Theme.colors.bg,
+  surface: Theme.colors.surface,
+  border: Theme.colors.border,
+  accent: Theme.colors.primary,
+  accentMid: Theme.colors.primaryMid,
+  text1: Theme.colors.text,
+  text2: Theme.colors.textMuted,
+  text3: Theme.colors.textMuted,
+  success: Theme.colors.success,
+  warning: Theme.colors.warning,
+  error: Theme.colors.error,
+  blue: "#3B82F6",
+  gray: "#6B7280",
 };
-
-const HERO_SHADOW = Platform.select({
-  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
-  android: { elevation: 8 },
-});
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
@@ -30,39 +35,32 @@ const CARD_SHADOW = Platform.select({
 });
 
 const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
-  supervisor: { bg: "#EDE9FE", text: "#5B21B6" },
-  worker:     { bg: "#DBEAFE", text: "#1E40AF" },
-  technician: { bg: "#D1FAE5", text: "#065F46" },
-  admin:      { bg: "#FEF3C7", text: "#92400E" },
-  default:    { bg: T.accentLight, text: T.accentMid },
+  company_admin: { bg: T.error + "15", text: T.error },
+  supervisor:    { bg: T.blue + "15", text: T.blue },
+  worker:        { bg: T.gray + "15", text: T.gray },
+  default:       { bg: T.success + "15", text: T.success },
 };
-
-function Avatar({ name, size = 72 }: { name: string; size?: number }) {
-  const initials = (name ?? "?").split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
-  const palette = ["#0A192F", "#1E3A8A", "#1E40AF", "#1D4ED8", "#2563EB", "#3B82F6"];
-  const color = palette[(name ?? "").length % palette.length];
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ fontSize: size * 0.33, fontWeight: "800", color: "#fff" }}>{initials}</Text>
-    </View>
-  );
-}
 
 function StatCard({ icon, iconColor, value, label }: { icon: string; iconColor: string; value: string; label: string }) {
   return (
     <View style={s.statCard}>
-      <MaterialCommunityIcons name={icon as any} size={26} color={iconColor} />
+      <MaterialCommunityIcons name={icon as any} size={26} color={iconColor} style={{ marginBottom: 4 }} />
       <Text style={s.statValue}>{value}</Text>
       <Text style={s.statLabel}>{label}</Text>
     </View>
   );
 }
 
-function InfoRow({ icon, text }: { icon: string; text: string }) {
+function InfoRow({ icon, text, label }: { icon: string; text: string; label: string }) {
   return (
     <View style={s.infoRow}>
-      <MaterialCommunityIcons name={icon as any} size={20} color={T.text3} />
-      <Text style={s.infoText}>{text}</Text>
+      <View style={s.infoIconWrap}>
+        <MaterialCommunityIcons name={icon as any} size={20} color={T.accentMid} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={s.infoLabelText}>{label}</Text>
+        <Text style={s.infoText}>{text}</Text>
+      </View>
     </View>
   );
 }
@@ -142,12 +140,7 @@ export default function StaffDetail() {
     }
     try {
       const res = await api.post("/api/conversations", { targetUserId: staff.userId.toString() });
-      
-      // The NestJS backend returns wrapped data, and the ConversationsService ALSO wraps it in { data: ... }
-      // So the structure is res.data (axios) -> data (interceptor) -> data (service) -> id
       let conversation = res.data?.data?.data || res.data?.data || res.data;
-      
-      // Some endpoints might not double-nest it, so we traverse down until we find an ID
       if (conversation?.data && !conversation.id) {
         conversation = conversation.data;
       }
@@ -155,7 +148,7 @@ export default function StaffDetail() {
       if (conversation?.id) {
         router.push(`/(company)/messages/${conversation.id}?otherName=${encodeURIComponent(staff.fullName ?? "Staff")}` as any);
       } else {
-        throw new Error("Invalid response from server: " + JSON.stringify(res.data));
+        throw new Error("Invalid response");
       }
     } catch (error) {
       console.error("Failed to start conversation:", error);
@@ -184,7 +177,7 @@ export default function StaffDetail() {
   };
 
   const handleRejectPayout = (payoutId: number) => {
-    Alert.alert("Reject Payout", "Are you sure you want to reject this payout request? Funds will be returned to the staff's wallet.", [
+    Alert.alert("Reject Payout", "Are you sure you want to reject this payout request?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Reject",
@@ -192,7 +185,7 @@ export default function StaffDetail() {
         onPress: async () => {
           try {
             await api.patch(`/api/company/payouts/${payoutId}/reject`);
-            Alert.alert("Success", "Payout rejected and funds refunded.");
+            Alert.alert("Success", "Payout rejected.");
             loadStaff();
           } catch (error) {
             console.error("Failed to reject payout:", error);
@@ -232,8 +225,8 @@ export default function StaffDetail() {
   const roleStyle = ROLE_COLORS[roleKey] ?? ROLE_COLORS.default;
   const isActive = staff.status === "active";
   const hasRating = staff.averageRating != null;
-  const joinedDate = staff.joinedAt
-    ? new Date(staff.joinedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+  const joinedDate = staff.createdAt
+    ? new Date(staff.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
     : "Unknown";
 
   return (
@@ -244,11 +237,11 @@ export default function StaffDetail() {
           <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Staff Profile</Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <TouchableOpacity onPress={handleMessage} style={s.msgBtn}>
-            <MaterialCommunityIcons name="message-text-outline" size={22} color={T.accent} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <TouchableOpacity onPress={handleMessage} style={s.actionBtn}>
+            <MaterialCommunityIcons name="message-text-outline" size={22} color={T.accentMid} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleRemove} style={s.deleteBtn}>
+          <TouchableOpacity onPress={handleRemove} style={[s.actionBtn, { backgroundColor: T.error + "15" }]}>
             <MaterialCommunityIcons name="delete-outline" size={22} color={T.error} />
           </TouchableOpacity>
         </View>
@@ -262,7 +255,10 @@ export default function StaffDetail() {
         {/* Hero Card */}
         <View style={s.heroCard}>
           <View style={s.avatarWrap}>
-            <Avatar name={staff.fullName ?? "S"} size={80} />
+            <Image
+              source={{ uri: staff.user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(staff.fullName || 'S')}&background=1E3A8A&color=fff` }}
+              style={s.avatar}
+            />
             <View style={[s.statusDot, { backgroundColor: isActive ? T.success : T.text3 }]} />
           </View>
           <Text style={s.heroName}>{staff.fullName}</Text>
@@ -273,9 +269,9 @@ export default function StaffDetail() {
                 {(staff.role ?? "Staff").replace("_", " ")}
               </Text>
             </View>
-            <View style={[s.availBadge, { backgroundColor: staff.isAvailable ? "#D1FAE5" : "#FEE2E2" }]}>
+            <View style={[s.availBadge, { backgroundColor: staff.isAvailable ? T.success + "15" : T.error + "15" }]}>
               <View style={[s.availDot, { backgroundColor: staff.isAvailable ? T.success : T.error }]} />
-              <Text style={[s.availText, { color: staff.isAvailable ? "#065F46" : "#991B1B" }]}>
+              <Text style={[s.availText, { color: staff.isAvailable ? T.success : T.error }]}>
                 {staff.isAvailable ? "Available" : "Unavailable"}
               </Text>
             </View>
@@ -285,7 +281,7 @@ export default function StaffDetail() {
         {/* Stats Row */}
         <View style={s.statsRow}>
           <StatCard
-            icon="check-circle-outline"
+            icon="briefcase-check-outline"
             iconColor={T.success}
             value={String(staff.completedJobs ?? 0)}
             label="Completed Jobs"
@@ -299,8 +295,8 @@ export default function StaffDetail() {
           />
           <View style={s.statsDivider} />
           <StatCard
-            icon="comment-multiple-outline"
-            iconColor={T.accentMid}
+            icon="comment-text-multiple-outline"
+            iconColor={T.blue}
             value={String(staff.totalReviews ?? 0)}
             label="Reviews"
           />
@@ -309,7 +305,7 @@ export default function StaffDetail() {
         {/* Active Jobs Badge */}
         {(staff.activeRequests ?? 0) > 0 && (
           <View style={s.activeJobBanner}>
-            <MaterialCommunityIcons name="lightning-bolt" size={18} color={T.warning} />
+            <MaterialCommunityIcons name="lightning-bolt" size={20} color={T.warning} />
             <Text style={s.activeJobText}>{staff.activeRequests} active job{staff.activeRequests > 1 ? "s" : ""} in progress</Text>
           </View>
         )}
@@ -317,33 +313,12 @@ export default function StaffDetail() {
         {/* Contact Info */}
         <View style={s.card}>
           <Text style={s.cardTitle}>Contact Information</Text>
-          <InfoRow icon="email-outline" text={staff.email ?? "No email"} />
-          <InfoRow icon="phone-outline" text={staff.phone ?? "No phone"} />
-          <InfoRow icon="calendar-outline" text={`Joined ${joinedDate}`} />
-        </View>
-
-        {/* Rating Details */}
-        {hasRating && (
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Performance</Text>
-            <View style={s.ratingDisplay}>
-              <Text style={s.ratingBig}>{Number(staff.averageRating).toFixed(1)}</Text>
-              <View>
-                <View style={s.starsRow}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <MaterialCommunityIcons
-                      key={star}
-                      name={star <= Math.round(staff.averageRating) ? "star" : "star-outline"}
-                      size={20}
-                      color={T.warning}
-                    />
-                  ))}
-                </View>
-                <Text style={s.ratingSubtext}>Based on {staff.totalReviews} review{staff.totalReviews !== 1 ? "s" : ""}</Text>
-              </View>
-            </View>
+          <View style={{ gap: 16 }}>
+            <InfoRow icon="email-outline" label="Email Address" text={staff.email ?? "No email"} />
+            <InfoRow icon="phone-outline" label="Phone Number" text={staff.phone ?? "No phone"} />
+            <InfoRow icon="calendar-outline" label="Date Joined" text={joinedDate} />
           </View>
-        )}
+        </View>
 
         {/* Time Off */}
         {availability.filter(a => a.isAvailable === false).length > 0 && (
@@ -366,7 +341,7 @@ export default function StaffDetail() {
         {/* Pending Payout Requests */}
         {payouts.filter(p => p.status === 'pending').length > 0 && (
           <View style={s.card}>
-            <Text style={s.cardTitle}>Pending Payout Requests</Text>
+            <Text style={s.cardTitle}>Pending Payouts</Text>
             {payouts.filter(p => p.status === 'pending').map((payout: any) => (
               <View key={payout.id} style={s.payoutCard}>
                 <View style={s.payoutRow}>
@@ -398,83 +373,81 @@ const s = StyleSheet.create({
     backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { padding: 4, marginLeft: -8 },
-  msgBtn: { padding: 8, backgroundColor: T.accentLight, borderRadius: 8 },
-  deleteBtn: { padding: 8, backgroundColor: "#FEE2E2", borderRadius: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.accent, flex: 1, textAlign: "center", marginLeft: 32 },
+  actionBtn: { padding: 8, backgroundColor: T.blue + "15", borderRadius: 8 },
+  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1, flex: 1, textAlign: "center", marginLeft: 32 },
 
-  scrollContent: { padding: 24, gap: 16, paddingBottom: 60 },
+  scrollContent: { padding: 16, gap: 16, paddingBottom: 60 },
 
   heroCard: {
-    backgroundColor: T.accent, borderRadius: 20, padding: 28,
-    alignItems: "center", gap: 8, borderWidth: 1, borderColor: T.border,
+    backgroundColor: T.accent, borderRadius: 24, padding: 28,
+    alignItems: "center", gap: 8, ...CARD_SHADOW,
   },
-  avatarWrap: { position: "relative", marginBottom: 4 },
+  avatarWrap: { position: "relative", marginBottom: 8 },
+  avatar: { width: 88, height: 88, borderRadius: 32, backgroundColor: T.bg },
   statusDot: {
-    position: "absolute", bottom: 4, right: 4,
-    width: 18, height: 18, borderRadius: 9, borderWidth: 2.5, borderColor: T.accent,
+    position: "absolute", bottom: 0, right: 0,
+    width: 22, height: 22, borderRadius: 11, borderWidth: 3, borderColor: T.accent,
   },
-  heroName: { fontSize: 22, fontWeight: "800", color: "#fff" },
-  heroEmail: { fontSize: 13, fontWeight: "500", color: "rgba(255,255,255,0.6)" },
-  heroBadgeRow: { flexDirection: "row", gap: 8, marginTop: 8 },
-  roleBadge: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+  heroName: { fontSize: 24, fontWeight: "800", color: "#fff" },
+  heroEmail: { fontSize: 14, fontWeight: "500", color: "rgba(255,255,255,0.7)" },
+  heroBadgeRow: { flexDirection: "row", gap: 8, marginTop: 12 },
+  roleBadge: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12 },
   roleBadgeText: { fontSize: 12, fontWeight: "800", textTransform: "capitalize" },
-  availBadge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-  availDot: { width: 7, height: 7, borderRadius: 4 },
+  availBadge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12 },
+  availDot: { width: 8, height: 8, borderRadius: 4 },
   availText: { fontSize: 12, fontWeight: "800" },
 
   statsRow: {
-    backgroundColor: T.surface, borderRadius: 16, padding: 20,
+    backgroundColor: T.surface, borderRadius: 24, padding: 20,
     flexDirection: "row", alignItems: "center", justifyContent: "space-around",
-    borderWidth: 1, borderColor: T.border,
+    borderWidth: 1, borderColor: T.border, ...CARD_SHADOW,
   },
-  statCard: { flex: 1, alignItems: "center", gap: 6 },
-  statValue: { fontSize: 22, fontWeight: "800", color: T.text1 },
-  statLabel: { fontSize: 11, fontWeight: "600", color: T.text3, textAlign: "center" },
+  statCard: { flex: 1, alignItems: "center", gap: 4 },
+  statValue: { fontSize: 24, fontWeight: "800", color: T.text1 },
+  statLabel: { fontSize: 12, fontWeight: "600", color: T.text3, textAlign: "center" },
   statsDivider: { width: 1, height: 48, backgroundColor: T.border },
 
   activeJobBanner: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: "#FEF3C7", borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: "#FDE68A",
+    backgroundColor: T.warning + "15", borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: T.warning + "30",
   },
-  activeJobText: { fontSize: 14, fontWeight: "700", color: "#92400E" },
+  activeJobText: { fontSize: 14, fontWeight: "700", color: T.warning },
 
   card: {
-    backgroundColor: T.surface, borderRadius: 16, padding: 20,
-    
+    backgroundColor: T.surface, borderRadius: 24, padding: 24,
+    borderWidth: 1, borderColor: T.border, gap: 20, ...CARD_SHADOW,
   },
-  cardTitle: { fontSize: 15, fontWeight: "800", color: T.accent },
-  infoRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  infoText: { fontSize: 14, fontWeight: "500", color: T.text1, flex: 1 },
-
-  ratingDisplay: { flexDirection: "row", alignItems: "center", gap: 16 },
-  ratingBig: { fontSize: 40, fontWeight: "800", color: T.accent, letterSpacing: -1 },
-  starsRow: { flexDirection: "row", gap: 2, marginBottom: 4 },
-  ratingSubtext: { fontSize: 13, color: T.text3, fontWeight: "500" },
+  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1 },
+  
+  infoRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  infoIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: T.blue + "10", alignItems: "center", justifyContent: "center" },
+  infoLabelText: { fontSize: 12, fontWeight: "600", color: T.text3, marginBottom: 2, textTransform: "uppercase" },
+  infoText: { fontSize: 15, fontWeight: "700", color: T.text1 },
 
   payoutCard: {
-    backgroundColor: T.bg, borderRadius: 12, padding: 16, marginTop: 12,
-    borderWidth: 1, borderColor: T.border, gap: 12,
+    backgroundColor: T.bg, borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: T.border, gap: 16,
   },
   payoutRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  payoutAmount: { fontSize: 20, fontWeight: "800", color: T.accent },
-  payoutMethod: { fontSize: 13, fontWeight: "600", color: T.text2, textTransform: "uppercase" },
-  payoutActions: { flexDirection: "row", gap: 8 },
-  payoutBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: "center" },
-  payoutBtnReject: { backgroundColor: "#FEE2E2" },
-  payoutBtnRejectText: { color: "#991B1B", fontWeight: "700" },
+  payoutAmount: { fontSize: 24, fontWeight: "800", color: T.accent },
+  payoutMethod: { fontSize: 13, fontWeight: "700", color: T.text3, textTransform: "uppercase" },
+  payoutActions: { flexDirection: "row", gap: 12 },
+  payoutBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center" },
+  payoutBtnReject: { backgroundColor: T.error + "15" },
+  payoutBtnRejectText: { color: T.error, fontWeight: "800" },
   payoutBtnApprove: { backgroundColor: T.success },
-  payoutBtnApproveText: { color: "#fff", fontWeight: "700" },
+  payoutBtnApproveText: { color: "#fff", fontWeight: "800" },
 
   timeOffCard: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: "#FEF2F2", padding: 12, borderRadius: 12,
-    borderWidth: 1, borderColor: "#FECACA", marginTop: 8
+    flexDirection: "row", alignItems: "center", gap: 16,
+    backgroundColor: T.error + "10", padding: 16, borderRadius: 16,
+    borderWidth: 1, borderColor: T.error + "30"
   },
   timeOffIcon: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: "#FEE2E2",
+    width: 44, height: 44, borderRadius: 12, backgroundColor: T.error + "20",
     alignItems: "center", justifyContent: "center"
   },
-  timeOffDate: { fontSize: 15, fontWeight: "700", color: "#991B1B" },
-  timeOffText: { fontSize: 13, color: "#B91C1C", marginTop: 2 }
+  timeOffDate: { fontSize: 15, fontWeight: "800", color: T.error },
+  timeOffText: { fontSize: 13, fontWeight: "600", color: T.error + "90", marginTop: 2 }
 });

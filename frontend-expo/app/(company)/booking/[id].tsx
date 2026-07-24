@@ -12,16 +12,11 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import MapView, { Marker } from "react-native-maps";
 import { io, Socket } from "socket.io-client";
 import { api } from "@/store/authStore";
+import { Theme } from "@/constants/theme";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000');
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentMid: "#1E3A8A", accentLight: "#F7F7F7",
-  text1: "#111827", text2: "#717171", text3: "#B0B0B0",
-  success: "#00A699", error: "#E31C5F", warning: "#FFB800",
-  info: "#3B82F6", purple: "#8B5CF6",
-};
+const T = Theme.colors;
 
 const HERO_SHADOW = Platform.select({
   ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },

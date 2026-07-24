@@ -1,20 +1,21 @@
+/**
+ * Admin User Details — Premium Deep Navy Redesign (Unified Architecture)
+ */
 import React, { useEffect, useState } from "react";
 import { Image } from "expo-image";
-import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Platform, Linking } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { api } from "@/store/authStore";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentMid: "#1E3A8A",
-  text1: "#111827", text2: "#4B5563", text3: "#9CA3AF",
-  success: "#10B981", warning: "#F59E0B", error: "#EF4444",
-  blue: "#3B82F6", gray: "#6B7280",
-};
+const T = Theme.colors;
 
-
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 interface UserDetailData {
   id: string;
@@ -194,7 +195,7 @@ export default function UserDetail() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.headerBtn}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={T.text1} />
+          <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>User Details</Text>
         <View style={{ width: 40 }} />
@@ -202,9 +203,9 @@ export default function UserDetail() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
         
-        {/* User Header Card */}
-        <View style={s.userCard}>
-          <View style={s.userCardRow}>
+        {/* User Hero Card */}
+        <View style={s.heroCard}>
+          <View style={s.heroCardRow}>
             <View style={s.avatarWrap}>
               <Image
                 source={{ uri: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=1E3A8A&color=fff` }}
@@ -230,40 +231,40 @@ export default function UserDetail() {
         <View style={s.quickActionsRow}>
           <TouchableOpacity style={s.quickActionBtn} onPress={handleMessageUser} disabled={actionLoading}>
             <View style={[s.quickActionIconWrap, { backgroundColor: T.blue + "15" }]}>
-              <MaterialCommunityIcons name="email" size={20} color={T.blue} />
+              <MaterialCommunityIcons name="message-text-outline" size={24} color={T.blue} />
             </View>
             <Text style={s.quickActionLabel}>Message</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.quickActionBtn} onPress={handleSuspend} disabled={actionLoading}>
             <View style={[s.quickActionIconWrap, { backgroundColor: T.warning + "15" }]}>
-              <MaterialCommunityIcons name="block-helper" size={20} color={T.warning} />
+              <MaterialCommunityIcons name="block-helper" size={22} color={T.warning} />
             </View>
             <Text style={[s.quickActionLabel, { color: T.warning }]}>Suspend</Text>
           </TouchableOpacity>
         </View>
 
         {/* Contact Info */}
-        <View style={s.sectionCard}>
-          <Text style={s.sectionTitle}>Contact Information</Text>
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Contact Information</Text>
           <View style={s.infoList}>
             <View style={s.infoRow}>
-              <View style={s.infoIconBox}>
-                <MaterialCommunityIcons name="email-outline" size={20} color={T.text2} />
+              <View style={s.infoIconWrap}>
+                <MaterialCommunityIcons name="email-outline" size={20} color={T.accentMid} />
               </View>
               <View style={s.infoTextWrap}>
-                <Text style={s.infoLabel}>Email Address</Text>
-                <Text style={s.infoValue}>{user.email}</Text>
+                <Text style={s.infoLabelText}>Email Address</Text>
+                <Text style={s.infoText}>{user.email}</Text>
               </View>
             </View>
             {!!user.phone && (
               <View style={s.infoRow}>
-                <View style={s.infoIconBox}>
-                  <MaterialCommunityIcons name="phone-outline" size={20} color={T.text2} />
+                <View style={s.infoIconWrap}>
+                  <MaterialCommunityIcons name="phone-outline" size={20} color={T.accentMid} />
                 </View>
                 <View style={s.infoTextWrap}>
-                  <Text style={s.infoLabel}>Phone Number</Text>
-                  <Text style={s.infoValue}>{user.phone}</Text>
+                  <Text style={s.infoLabelText}>Phone Number</Text>
+                  <Text style={s.infoText}>{user.phone}</Text>
                 </View>
               </View>
             )}
@@ -271,8 +272,8 @@ export default function UserDetail() {
         </View>
 
         {/* Account Details */}
-        <View style={s.sectionCard}>
-          <Text style={s.sectionTitle}>Account Details</Text>
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Account Details</Text>
           <View style={s.grid}>
             <View style={s.gridItem}>
               <Text style={s.gridLabel}>Role</Text>
@@ -294,8 +295,8 @@ export default function UserDetail() {
         </View>
 
         {/* Activity Stats */}
-        <View style={s.sectionCard}>
-          <Text style={s.sectionTitle}>Activity Overview</Text>
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Activity Overview</Text>
           <View style={s.grid}>
             <View style={s.gridItem}>
               <Text style={s.gridLabel}>Total Bookings</Text>
@@ -310,28 +311,28 @@ export default function UserDetail() {
 
         {/* Companies & Staff */}
         {(user.ownedCompanies.length > 0 || user.staffMemberships.length > 0) && (
-          <View style={s.sectionCard}>
-            <Text style={s.sectionTitle}>Associated Companies</Text>
+          <View style={s.card}>
+            <Text style={s.cardTitle}>Associated Companies</Text>
             <View style={s.infoList}>
               {user.ownedCompanies.map((c) => (
                 <View key={`owned-${c.id}`} style={s.infoRow}>
-                  <View style={s.infoIconBox}>
+                  <View style={[s.infoIconWrap, { backgroundColor: T.blue + "15" }]}>
                     <MaterialCommunityIcons name="domain" size={20} color={T.blue} />
                   </View>
                   <View style={s.infoTextWrap}>
-                    <Text style={s.infoLabel}>Owner Of</Text>
-                    <Text style={s.infoValue}>{c.name}</Text>
+                    <Text style={s.infoLabelText}>Owner Of</Text>
+                    <Text style={s.infoText}>{c.name}</Text>
                   </View>
                 </View>
               ))}
               {user.staffMemberships.map((m) => (
                 <View key={`staff-${m.id}`} style={s.infoRow}>
-                  <View style={s.infoIconBox}>
+                  <View style={[s.infoIconWrap, { backgroundColor: T.gray + "15" }]}>
                     <MaterialCommunityIcons name="briefcase-account-outline" size={20} color={T.text2} />
                   </View>
                   <View style={s.infoTextWrap}>
-                    <Text style={s.infoLabel}>Staff Member</Text>
-                    <Text style={s.infoValue}>{m.company.name}</Text>
+                    <Text style={s.infoLabelText}>Staff Member</Text>
+                    <Text style={s.infoText}>{m.company.name}</Text>
                   </View>
                 </View>
               ))}
@@ -365,46 +366,46 @@ const s = StyleSheet.create({
   backBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
-  headerBtn: { padding: 8, marginLeft: -8 },
+  headerBtn: { padding: 4, marginLeft: -8 },
   headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
 
   content: { padding: 16, gap: 16, paddingBottom: 60 },
 
-  userCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border },
-  userCardRow: { flexDirection: "row", gap: 16, alignItems: "center" },
+  heroCard: { backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  heroCardRow: { flexDirection: "row", gap: 16, alignItems: "center" },
   avatarWrap: { position: "relative" },
-  avatar: { width: 72, height: 72, borderRadius: 24, backgroundColor: T.bg },
-  avatarStatusDot: { position: "absolute", bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, borderWidth: 3, borderColor: T.surface },
+  avatar: { width: 80, height: 80, borderRadius: 24, backgroundColor: T.bg },
+  avatarStatusDot: { position: "absolute", bottom: -2, right: -2, width: 20, height: 20, borderRadius: 10, borderWidth: 3, borderColor: T.surface },
   userInfo: { flex: 1 },
   userInfoTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  userName: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 2 },
+  userName: { fontSize: 22, fontWeight: "800", color: T.text1, marginBottom: 2 },
   userId: { fontSize: 13, fontWeight: "500", color: T.text3 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
 
   quickActionsRow: { flexDirection: "row", gap: 12 },
-  quickActionBtn: { flex: 1, backgroundColor: T.surface, borderRadius: 16, padding: 16, alignItems: "center", gap: 8, borderWidth: 1, borderColor: T.border },
-  quickActionIconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  quickActionLabel: { fontSize: 12, fontWeight: "700", color: T.text2, textTransform: "uppercase" },
+  quickActionBtn: { flex: 1, backgroundColor: T.surface, borderRadius: 24, padding: 20, alignItems: "center", gap: 12, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  quickActionIconWrap: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  quickActionLabel: { fontSize: 13, fontWeight: "800", color: T.text2, textTransform: "uppercase" },
 
-  sectionCard: { backgroundColor: T.surface, borderRadius: 20, padding: 20,  },
-  sectionTitle: { fontSize: 12, fontWeight: "800", color: T.text3, textTransform: "uppercase", letterSpacing: 0.5 },
+  card: { backgroundColor: T.surface, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: T.border, gap: 20, ...CARD_SHADOW },
+  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1 },
+  
   infoList: { gap: 16 },
-  infoRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  infoIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: T.bg, alignItems: "center", justifyContent: "center" },
+  infoRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  infoIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: T.blue + "10", alignItems: "center", justifyContent: "center" },
   infoTextWrap: { flex: 1 },
-  infoLabel: { fontSize: 11, fontWeight: "600", color: T.text3, marginBottom: 2, textTransform: "uppercase" },
-  infoValue: { fontSize: 14, fontWeight: "600", color: T.text1 },
+  infoLabelText: { fontSize: 12, fontWeight: "600", color: T.text3, marginBottom: 2, textTransform: "uppercase" },
+  infoText: { fontSize: 15, fontWeight: "700", color: T.text1 },
 
   grid: { flexDirection: "row", flexWrap: "wrap", rowGap: 24 },
   gridItem: { width: "50%" },
-  gridLabel: { fontSize: 11, fontWeight: "600", color: T.text3, marginBottom: 4, textTransform: "uppercase" },
-  gridValue: { fontSize: 14, fontWeight: "700", color: T.text1 },
+  gridLabel: { fontSize: 12, fontWeight: "600", color: T.text3, marginBottom: 4, textTransform: "uppercase" },
+  gridValue: { fontSize: 15, fontWeight: "700", color: T.text1 },
 
-  dangerCard: { backgroundColor: T.error + "10", borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.error + "30", gap: 12 },
-  dangerTitle: { fontSize: 12, fontWeight: "800", color: T.error, textTransform: "uppercase", letterSpacing: 0.5 },
-  dangerDesc: { fontSize: 13, color: T.error, opacity: 0.8, lineHeight: 20 },
-  dangerBtn: { backgroundColor: T.error, borderRadius: 12, paddingVertical: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 },
-  dangerBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  dangerCard: { backgroundColor: "#FEF2F2", borderRadius: 24, padding: 24, borderWidth: 1, borderColor: "#FECACA", gap: 12 },
+  dangerTitle: { fontSize: 14, fontWeight: "800", color: "#B91C1C", textTransform: "uppercase", letterSpacing: 0.5 },
+  dangerDesc: { fontSize: 14, color: "#991B1B", opacity: 0.9, lineHeight: 22 },
+  dangerBtn: { backgroundColor: "#DC2626", borderRadius: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8 },
+  dangerBtnText: { color: "#fff", fontSize: 15, fontWeight: "800" },
 });
-

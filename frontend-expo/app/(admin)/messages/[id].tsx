@@ -10,14 +10,9 @@ import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/chatStore";
 import { ChatMessage } from "@/components/messages/ChatMessage";
 import { ChatInput } from "@/components/messages/ChatInput";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentMid: "#1E3A8A",
-  text1: "#111827", text2: "#4B5563", text3: "#9CA3AF",
-  success: "#10B981", warning: "#F59E0B", error: "#EF4444",
-  blue: "#3B82F6", gray: "#6B7280",
-};
+const T = Theme.colors;
 
 export default function AdminChatScreen() {
   const router = useRouter();

@@ -16,19 +16,7 @@ import { Theme } from "@/constants/theme";
 import { COUNTRIES } from "@/constants/countries";
 import auth from "@react-native-firebase/auth";
 
-const T = {
-  bg: Theme.colors.bg,
-  surface: Theme.colors.surface,
-  border: Theme.colors.border,
-  accent: Theme.colors.primary,
-  text1: Theme.colors.text,
-  text2: Theme.colors.textMuted,
-  text3: Theme.colors.textMuted,
-  error: Theme.colors.error,
-  errorBg: Theme.colors.errorBg,
-  success: Theme.colors.success,
-  successBg: Theme.colors.successBg,
-};
+const T = Theme.colors;
 
 export default function Login() {
   const router = useRouter();

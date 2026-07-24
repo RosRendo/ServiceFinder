@@ -8,14 +8,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { api } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#F7F8FC", border: "#EAECF5",
-  accent: "#0A192F", accentLight: "#F0F4F8",
-  text1: "#111827", text2: "#4B5563", text3: "#9CA3AF",
-  error: "#EF4444", errorBg: "#FEF2F2",
-  success: "#10B981", successBg: "#ECFDF5",
-};
+const T = Theme.colors;
 
 // Must match the backend regex: minimum 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character
 const PASSWORD_REGEX = /((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/;

@@ -18,22 +18,7 @@ import { useSidebarStore } from "@/store/sidebarStore";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: Theme.colors.bg,
-  surface: Theme.colors.surface,
-  border: Theme.colors.border,
-  primary: Theme.colors.primary,
-  primaryLight: Theme.colors.primaryLight,
-  primaryMid: Theme.colors.primaryMid,
-  text: Theme.colors.text,
-  textMuted: Theme.colors.textMuted,
-  success: Theme.colors.success,
-  successBg: Theme.colors.successBg,
-  warning: Theme.colors.warning,
-  warningBg: Theme.colors.warningBg,
-  error: Theme.colors.error,
-  errorBg: Theme.colors.errorBg,
-};
+const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },

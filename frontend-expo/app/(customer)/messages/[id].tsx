@@ -17,22 +17,9 @@ import { useAuthStore } from "@/store/authStore";
 import { useChatStore, ChatMessage as ChatMessageType } from "@/store/chatStore";
 import { ChatInput } from "@/components/messages/ChatInput";
 import { useTranslation } from "react-i18next";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#F4F6F8",
-  surface: "#FFFFFF",
-  border: "#E2E8F0",
-  accent: "#1E3A8A",
-  accentLight: "#DBEAFE",
-  text1: "#0F172A",
-  text2: "#475569",
-  text3: "#94A3B8",
-  success: "#00A699",
-  bubbleMe: "#1E3A8A",
-  bubbleMeText: "#FFFFFF",
-  bubbleThem: "#FFFFFF",
-  bubbleThemText: "#0F172A",
-};
+const T = Theme.colors;
 
 export default function ChatScreen() {
   const router = useRouter();

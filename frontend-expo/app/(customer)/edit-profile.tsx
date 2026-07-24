@@ -18,14 +18,9 @@ import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { useAuthStore, api } from "@/store/authStore";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentLight: "#F7F7F7",
-  text1: "#111827", text2: "#717171", text3: "#B0B0B0",
-  inputBg: "#F9FAFB", inputBgDisabled: "#F3F4F6",
-  successBg: "#ECFDF5", successText: "#065F46",
-};
+const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },

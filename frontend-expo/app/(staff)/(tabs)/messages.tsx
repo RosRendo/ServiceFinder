@@ -8,16 +8,7 @@ import { api } from "@/store/authStore";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: Theme.colors.bg,
-  surface: Theme.colors.surface,
-  primary: Theme.colors.primary,
-  primaryLight: Theme.colors.primaryLight,
-  text: Theme.colors.text,
-  textMuted: Theme.colors.textMuted,
-  border: Theme.colors.border,
-  success: Theme.colors.success,
-};
+const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },

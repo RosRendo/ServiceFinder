@@ -18,24 +18,12 @@ import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import FadeIn from "@/components/FadeIn";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { api } from "@/store/authStore";
+import { Theme } from "@/constants/theme";
 
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS
 // ─────────────────────────────────────────────────────────────
-const T = {
-  bg: "#FFFFFF",
-  surface: "#FFFFFF",
-  border: "#EBEBEB",
-  accent: "#0A192F",
-  accentLight: "#F7F7F7",
-  accentMid: "#1E3A8A",
-  text1: "#111827",
-  text2: "#717171",
-  text3: "#B0B0B0",
-  gold: "#FFB800",
-  success: "#00A699",
-  tag: "#F7F7F7",
-};
+const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },

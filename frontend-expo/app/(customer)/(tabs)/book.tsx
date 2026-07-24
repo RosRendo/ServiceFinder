@@ -13,27 +13,10 @@ import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
+import { Theme } from "@/constants/theme";
 
 // ─── Design Tokens ───────────────────────────────────────────
-const T = {
-  bg: "#FFFFFF",
-  surface: "#FFFFFF",
-  border: "#EBEBEB",
-  accent: "#0A192F",
-  accentLight: "#F7F7F7",
-  accentMid: "#1E3A8A",
-  text1: "#111827",
-  text2: "#717171",
-  text3: "#B0B0B0",
-  gold: "#FFB800",
-  success: "#00A699",
-  error: "#E31C5F",
-  pending: "#000000", pendingBg: "#F7F7F7",
-  confirmed: "#00A699", confirmedBg: "#E5F6F5",
-  inprogress: "#3B82F6", inprogressBg: "#EFF6FF",
-  completed: "#717171", completedBg: "#F7F7F7",
-  cancelled: "#E31C5F", cancelledBg: "#FCE8EE",
-};
+const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },

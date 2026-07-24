@@ -47,7 +47,7 @@ export class PayoutsController {
     );
 
     if (!company) {
-      throw new Error('No company associated with this user');
+      throw new NotFoundException('No company associated with this user');
     }
     return company.id;
   }

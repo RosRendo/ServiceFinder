@@ -1,27 +1,21 @@
 /**
- * Company Staff — Premium Redesign
+ * Company Staff — Premium Deep Navy Redesign (Unified Architecture)
  */
 import React, { useState, useCallback } from "react";
+import { Image } from "expo-image";
 import {
-  ScrollView, Text, View, TouchableOpacity, TextInput,
-  ActivityIndicator, RefreshControl, StyleSheet, Platform,
+  Text, View, TouchableOpacity, TextInput,
+  ActivityIndicator, RefreshControl, StyleSheet, Platform, ScrollView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { api } from "@/store/authStore";
 import { useSidebarStore } from "@/store/sidebarStore";
+import { FlashList } from "@shopify/flash-list";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentMid: "#1E3A8A", accentLight: "#F7F7F7",
-  text1: "#111827", text2: "#717171", text3: "#B0B0B0",
-  success: "#00A699", warning: "#FFB800", error: "#E31C5F",
-};
-const HERO_SHADOW = Platform.select({
-  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
-  android: { elevation: 8 },
-});
+const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
@@ -29,41 +23,24 @@ const CARD_SHADOW = Platform.select({
 });
 
 const FAB_SHADOW = Platform.select({
-  ios: {
-    shadowColor: T.accentMid,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.28,
-    shadowRadius: 14,
-  },
+  ios: { shadowColor: T.accentMid, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.28, shadowRadius: 14 },
   android: { elevation: 8 },
 });
-
-function Avatar({ name, size = 52 }: { name: string; size?: number }) {
-  const initials = (name ?? "?").split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase();
-  const palette = ["#1E3A8A", "#065F46", "#7C3AED", "#B45309", "#0A192F", "#BE185D"];
-  const color = palette[(name ?? "").length % palette.length];
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ fontSize: size * 0.32, fontWeight: "800", color: "#fff" }}>{initials}</Text>
-    </View>
-  );
-}
-
-const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
-  admin:         { bg: "#EDE9FE", text: "#5B21B6" },
-  company_admin: { bg: "#EDE9FE", text: "#5B21B6" },
-  staff:         { bg: "#DBEAFE", text: "#1E40AF" },
-  technician:    { bg: "#D1FAE5", text: "#065F46" },
-  default:       { bg: T.accentLight, text: T.accentMid },
-};
 
 export default function Staff() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
   const [staffList, setStaffList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const setCompanyOpen = useSidebarStore((s) => s.setCompanyOpen);
+
+  const filters = [
+    { id: "all", label: "All Staff" },
+    { id: "active", label: "Active" },
+    { id: "inactive", label: "Inactive" },
+  ];
 
   const loadStaff = useCallback(async (isRefresh = false) => {
     if (isRefresh) { setRefreshing(true); } else { setLoading(true); }
@@ -83,156 +60,156 @@ export default function Staff() {
 
   useFocusEffect(useCallback(() => { loadStaff(); }, [loadStaff]));
 
-  const filteredStaff = staffList.filter((m) =>
-    m.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.role?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredStaff = staffList.filter((m) => {
+    const matchesSearch = (m.fullName?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+                          (m.role?.toLowerCase() || "").includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    
+    if (activeFilter === "active") return m.status === "active";
+    if (activeFilter === "inactive") return m.status !== "active";
+    return true;
+  });
 
-  const activeCount = staffList.filter((m) => m.status === "active").length;
+  const getRoleColor = (role: string) => {
+    switch (role?.toLowerCase()) {
+      case "company_admin": return T.error;
+      case "supervisor": return T.blue;
+      case "worker": return T.gray;
+      default: return T.success;
+    }
+  };
+
+  const getStatusStyle = (status: string) => {
+    return status === 'active' 
+      ? { bg: T.success + "15", color: T.success }
+      : { bg: T.warning + "15", color: T.warning };
+  };
 
   return (
-    <>
-      <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
-        {/* Header */}
-        <View style={s.header}>
+    <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
+      {/* Header */}
+      <View style={s.header}>
+        <View style={s.headerLeft}>
           <TouchableOpacity onPress={() => setCompanyOpen(true)} style={s.menuBtn}>
-            <MaterialCommunityIcons name="menu" size={28} color={T.accent} />
+            <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>Team Directory</Text>
-          <View style={{ width: 44 }} />
+        </View>
+      </View>
+
+      {/* Search & Filters */}
+      <View style={s.filtersContainer}>
+        <View style={s.searchBox}>
+          <MaterialCommunityIcons name="magnify" size={22} color={T.text3} />
+          <TextInput
+            placeholder="Search by name or role..."
+            placeholderTextColor={T.text3}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={s.searchInput}
+            autoCapitalize="none"
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <MaterialCommunityIcons name="close-circle" size={20} color={T.text3} />
+            </TouchableOpacity>
+          ) : null}
         </View>
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={s.scrollContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadStaff(true)} tintColor={T.accent} />}
-        >
-          {/* Stats Banner */}
-          <View style={s.statsBanner}>
-            <View style={s.statItem}>
-              <Text style={s.statNumber}>{staffList.length}</Text>
-              <Text style={s.statLabel}>Members</Text>
-            </View>
-            <View style={s.statDivider} />
-            <View style={s.statItem}>
-              <Text style={[s.statNumber, { color: T.success }]}>{activeCount}</Text>
-              <Text style={s.statLabel}>Active</Text>
-            </View>
-            <View style={s.statDivider} />
-            <View style={s.statItem}>
-              <Text style={[s.statNumber, { color: T.warning }]}>{staffList.length - activeCount}</Text>
-              <Text style={s.statLabel}>Offline</Text>
-            </View>
-          </View>
-
-          {/* Search */}
-          <View style={s.searchWrap}>
-            <View style={s.searchBox}>
-              <MaterialCommunityIcons name="magnify" size={20} color={T.text3} />
-              <TextInput
-                placeholder="Search by name or role..."
-                placeholderTextColor={T.text3}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                style={s.searchInput}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery("")}>
-                  <MaterialCommunityIcons name="close-circle" size={18} color={T.text3} />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          {/* Staff List */}
-          {loading ? (
-            <View style={s.loadingBox}>
-              <ActivityIndicator size="large" color={T.accent} />
-            </View>
-          ) : filteredStaff.length === 0 ? (
-            <View style={s.emptyBox}>
-              {/* Premium empty state — different for search vs truly empty */}
-              {searchQuery.length > 0 ? (
-                <>
-                  <View style={s.emptyIconCircle}>
-                    <MaterialCommunityIcons name="account-search-outline" size={42} color="#fff" />
-                  </View>
-                  <Text style={s.emptyTitle}>No results for "{searchQuery}"</Text>
-                  <Text style={s.emptySubtitle}>Try a different name or role</Text>
-                </>
-              ) : (
-                <>
-                  <View style={s.emptyIconCircle}>
-                    <MaterialCommunityIcons name="account-group-outline" size={42} color="#fff" />
-                  </View>
-                  <Text style={s.emptyTitle}>Your team is empty</Text>
-                  <Text style={s.emptySubtitle}>Invite your first staff member to get started managing your team.</Text>
-                  <TouchableOpacity
-                    style={s.emptyInviteBtn}
-                    activeOpacity={0.85}
-                    onPress={() => router.push("/(company)/staff/new" as any)}
-                  >
-                    <MaterialCommunityIcons name="account-plus" size={18} color="#fff" />
-                    <Text style={s.emptyInviteBtnText}>Invite Staff Member</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          ) : (
-            <View style={s.staffList}>
-              {filteredStaff.map((member) => {
-                const roleKey = member.role?.toLowerCase() ?? "default";
-                const roleStyle = ROLE_COLORS[roleKey] ?? ROLE_COLORS.default;
-                const isActive = member.status === "active";
-                return (
-                  <TouchableOpacity
-                    key={member.id}
-                    onPress={() => router.push(`/(company)/staff/${member.id}` as any)}
-                    style={s.staffCard}
-                    activeOpacity={0.8}
-                  >
-                    <View style={s.avatarWrap}>
-                      <Avatar name={member.fullName ?? "S"} size={52} />
-                      <View style={[s.onlineDot, { backgroundColor: isActive ? T.success : T.text3 }]} />
-                    </View>
-
-                    <View style={s.staffInfo}>
-                      <View style={s.nameRow}>
-                        <Text style={s.staffName} numberOfLines={1}>{member.fullName ?? "Unknown"}</Text>
-                      </View>
-                      <Text style={s.staffEmail} numberOfLines={1}>{member.email ?? ""}</Text>
-                      <View style={s.badgeRow}>
-                        <View style={[s.roleBadge, { backgroundColor: roleStyle.bg }]}>
-                          <Text style={[s.roleBadgeText, { color: roleStyle.text }]}>
-                            {member.role?.replace("_", " ") ?? "Staff"}
-                          </Text>
-                        </View>
-                        {member.averageRating != null && member.averageRating > 0 && (
-                          <View style={s.ratingBadge}>
-                            <MaterialCommunityIcons name="star" size={12} color="#F59E0B" />
-                            <Text style={s.ratingText}>{Number(member.averageRating).toFixed(1)}</Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                    <MaterialCommunityIcons name="chevron-right" size={20} color={T.border} />
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterChips}>
+          {filters.map((filter) => {
+            const isActive = activeFilter === filter.id;
+            return (
+              <TouchableOpacity
+                key={filter.id}
+                onPress={() => setActiveFilter(filter.id)}
+                style={[s.filterChip, isActive && s.filterChipActive]}
+              >
+                <Text style={[s.filterChipText, isActive && s.filterChipTextActive]}>{filter.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
+      </View>
 
-        {/* Floating Action Button */}
-        <TouchableOpacity 
-          style={s.fab} 
-          activeOpacity={0.9} 
-          onPress={() => router.push("/(company)/staff/new" as any)}
-        >
-          <MaterialCommunityIcons name="account-plus" size={26} color="#FFF" />
-        </TouchableOpacity>
-      </SafeAreaView>
-    </>
+      {/* Staff List */}
+      {loading && !refreshing ? (
+        <View style={s.loadingBox}>
+          <ActivityIndicator size="large" color={T.accent} />
+        </View>
+      ) : (
+        <FlashList
+          data={filteredStaff}
+          keyExtractor={(item) => item.id?.toString()}
+          estimatedItemSize={160}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadStaff(true)} tintColor={T.accent} />}
+          contentContainerStyle={s.listContent}
+          ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={s.emptyBox}>
+              <MaterialCommunityIcons name="account-group" size={48} color={T.text3} style={{ marginBottom: 16 } as any} />
+              <Text style={s.emptyText}>{searchQuery ? `No results for "${searchQuery}"` : "Your team is empty"}</Text>
+              <Text style={s.emptySubText}>{searchQuery ? "Try a different name or role" : "Invite your first staff member to get started."}</Text>
+            </View>
+          }
+          renderItem={({ item: member }) => {
+            const sStyle = getStatusStyle(member.status);
+            return (
+              <TouchableOpacity
+                style={s.userCard}
+                onPress={() => router.push(`/(company)/staff/${member.id}` as any)}
+                activeOpacity={0.8}
+              >
+                <View style={s.cardHeader}>
+                  <Image
+                    source={{ uri: member.user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.fullName || 'S')}&background=1E3A8A&color=fff` }}
+                    style={s.avatar}
+                  />
+                  <View style={s.cardHeaderInfo}>
+                    <Text style={s.userName} numberOfLines={1}>{member.fullName || "Unknown"}</Text>
+                    <Text style={s.userEmail} numberOfLines={1}>{member.email || "No Email"}</Text>
+                  </View>
+                  <View style={[s.statusBadge, { backgroundColor: sStyle.bg }]}>
+                    <Text style={[s.statusText, { color: sStyle.color }]}>{member.status || "inactive"}</Text>
+                  </View>
+                </View>
+
+                <View style={s.cardBody}>
+                  <View style={s.infoBlock}>
+                    <Text style={s.infoLabel}>Role</Text>
+                    <View style={s.roleRow}>
+                      <View style={[s.roleDot, { backgroundColor: getRoleColor(member.role) }]} />
+                      <Text style={s.infoValue}>{member.role?.replace('_', ' ') || "Staff"}</Text>
+                    </View>
+                  </View>
+                  <View style={s.infoBlock}>
+                    <Text style={s.infoLabel}>Rating</Text>
+                    <View style={s.roleRow}>
+                      <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
+                      <Text style={s.infoValue}>{member.averageRating ? Number(member.averageRating).toFixed(1) : "N/A"}</Text>
+                    </View>
+                  </View>
+                  <View style={s.infoBlock}>
+                    <Text style={s.infoLabel}>Joined</Text>
+                    <Text style={s.infoValue}>{member.createdAt ? new Date(member.createdAt).toLocaleDateString() : "-"}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+        />
+      )}
+
+      {/* Floating Action Button */}
+      <TouchableOpacity 
+        style={s.fab} 
+        activeOpacity={0.9} 
+        onPress={() => router.push("/(company)/staff/new" as any)}
+      >
+        <MaterialCommunityIcons name="account-plus" size={26} color="#FFF" />
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 }
 
@@ -240,63 +217,47 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 24, paddingVertical: 16, backgroundColor: T.bg,
+    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface,
+    borderBottomWidth: 1, borderBottomColor: T.border,
   },
-  menuBtn: { padding: 8, marginLeft: -8, width: 44, alignItems: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: T.accent },
-  scrollContent: { padding: 24, paddingTop: 8, paddingBottom: 100 },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  menuBtn: { marginLeft: -8, padding: 8 },
+  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
 
-  statsBanner: {
-    backgroundColor: T.accent, borderRadius: 20, padding: 20,
-    flexDirection: "row", alignItems: "center", justifyContent: "space-around",
-    marginBottom: 24, borderWidth: 1, borderColor: T.border,
-  },
-  statItem: { alignItems: "center", flex: 1, gap: 4 },
-  statNumber: { fontSize: 24, fontWeight: "800", color: "#fff" },
-  statLabel: { fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: 0.5 },
-  statDivider: { width: 1, height: 32, backgroundColor: "rgba(255,255,255,0.15)" },
-
-  searchWrap: { marginBottom: 20 },
+  filtersContainer: { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, paddingBottom: 16 },
   searchBox: {
-    flexDirection: "row", alignItems: "center", backgroundColor: T.surface,
-    borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, gap: 10,
+    flexDirection: "row", alignItems: "center", backgroundColor: T.bg,
+    marginHorizontal: 16, marginTop: 16, paddingHorizontal: 16, borderRadius: 16, height: 48,
     borderWidth: 1, borderColor: T.border,
   },
-  searchInput: { flex: 1, fontSize: 15, color: T.text1, fontWeight: "500" },
+  searchInput: { flex: 1, marginLeft: 12, fontSize: 15, color: T.text1, fontWeight: "500" },
+  filterChips: { paddingHorizontal: 16, paddingTop: 16, gap: 8 },
+  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: T.bg, borderWidth: 1, borderColor: T.border },
+  filterChipActive: { backgroundColor: T.accent, borderColor: T.accent },
+  filterChipText: { fontSize: 13, fontWeight: "600", color: T.text2 },
+  filterChipTextActive: { color: "#fff" },
 
+  listContent: { padding: 16, paddingBottom: 100 },
   loadingBox: { paddingVertical: 80, alignItems: "center" },
-  emptyBox: { paddingVertical: 80, alignItems: "center", gap: 12 },
-  emptyIconCircle: {
-    width: 96, height: 96, borderRadius: 48,
-    backgroundColor: T.accent,
-    alignItems: "center", justifyContent: "center", marginBottom: 8,
-  },
-  emptyTitle: { fontSize: 18, fontWeight: "800", color: T.text1, textAlign: "center" },
-  emptySubtitle: { fontSize: 14, fontWeight: "500", color: T.text3, textAlign: "center", lineHeight: 22, paddingHorizontal: 24 },
-  emptyInviteBtn: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: T.accentMid, borderRadius: 14,
-    paddingHorizontal: 24, paddingVertical: 14, marginTop: 8,
-  },
-  emptyInviteBtnText: { fontSize: 15, fontWeight: "800", color: "#fff" },
+  emptyBox: { alignItems: "center", paddingVertical: 80 },
+  emptyText: { fontSize: 16, fontWeight: "700", color: T.text1 },
+  emptySubText: { fontSize: 14, color: T.text3, marginTop: 4, textAlign: "center", paddingHorizontal: 32 },
 
-  staffList: { gap: 12 },
-  staffCard: {
-    flexDirection: "row", alignItems: "center", gap: 16,
-    backgroundColor: T.surface, borderRadius: 20, padding: 16,
-    borderWidth: 1, borderColor: T.border,
-  },
-  avatarWrap: { position: "relative" },
-  onlineDot: { position: "absolute", bottom: 0, right: 0, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: T.surface },
-  staffInfo: { flex: 1, justifyContent: "center" },
-  nameRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 },
-  staffName: { fontSize: 16, fontWeight: "800", color: T.text1, flex: 1 },
-  staffEmail: { fontSize: 13, fontWeight: "500", color: T.text3, marginBottom: 8 },
-  badgeRow: { flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap" },
-  roleBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  roleBadgeText: { fontSize: 11, fontWeight: "800", textTransform: "capitalize" },
-  ratingBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#FFFBEB", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: "#FEF3C7" },
-  ratingText: { fontSize: 11, fontWeight: "800", color: "#92400E" },
+  userCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
+  avatar: { width: 48, height: 48, borderRadius: 16, backgroundColor: T.bg },
+  cardHeaderInfo: { flex: 1 },
+  userName: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 2 },
+  userEmail: { fontSize: 13, fontWeight: "500", color: T.text3 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  statusText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
+
+  cardBody: { flexDirection: "row", backgroundColor: T.bg, borderRadius: 12, padding: 12, justifyContent: "space-between" },
+  infoBlock: { flex: 1 },
+  infoLabel: { fontSize: 11, fontWeight: "600", color: T.text3, marginBottom: 4, textTransform: "uppercase" },
+  infoValue: { fontSize: 13, fontWeight: "700", color: T.text1, textTransform: "capitalize" },
+  roleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  roleDot: { width: 8, height: 8, borderRadius: 4 },
 
   fab: {
     position: "absolute", bottom: 24, right: 24,

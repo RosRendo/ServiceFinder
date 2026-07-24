@@ -1,15 +1,9 @@
 import React, { useState } from "react";
 import { View, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Platform } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  accent: "#4C1D95",
-  surface: "#FFFFFF",
-  bg: "#F7F8FC",
-  border: "#EAECF5",
-  text1: "#111827",
-  text3: "#9CA3AF",
-};
+const T = Theme.colors;
 
 interface ChatInputProps {
   onSend: (text: string) => Promise<void>;

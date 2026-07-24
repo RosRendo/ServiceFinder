@@ -3,11 +3,9 @@ import { ScrollView, Text, View, StyleSheet, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  text1: "#111827", text2: "#717171"
-};
+const T = Theme.colors;
 
 export default function PrivacyPolicy() {
   const router = useRouter();

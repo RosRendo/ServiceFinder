@@ -27,18 +27,21 @@ const T = {
 };
 
 const NAV_ITEMS = [
-  { name: "Dashboard",      icon: "view-dashboard-outline",    route: "/(admin)/dashboard" },
-  { name: "Analytics",      icon: "chart-line",                route: "/(admin)/analytics" },
+  { name: "Dashboard",      icon: "view-dashboard-outline",    route: "/(admin)/(tabs)/dashboard" },
+  { name: "Analytics",      icon: "chart-line",                route: "/(admin)/(tabs)/analytics" },
+  { name: "Monitoring",     icon: "monitor-dashboard",         route: "/(admin)/monitoring" },
   { name: "Audit Log",      icon: "clipboard-text-clock",      route: "/(admin)/audit" },
-  { name: "Companies",      icon: "office-building",           route: "/(admin)/companies" },
-  { name: "Users",          icon: "account-group-outline",     route: "/(admin)/users" },
-  { name: "Queue",          icon: "shield-check-outline",      route: "/(admin)/queue" },
+  { name: "Companies",      icon: "office-building",           route: "/(admin)/(tabs)/companies" },
+  { name: "Users",          icon: "account-group-outline",     route: "/(admin)/(tabs)/users" },
+  { name: "Queue",          icon: "shield-check-outline",      route: "/(admin)/(tabs)/queue" },
+  { name: "Moderation",     icon: "shield-account-outline",    route: "/(admin)/moderation" },
+  { name: "Compliance",     icon: "file-certificate-outline",  route: "/(admin)/compliance" },
   { name: "Categories",     icon: "shape-outline",             route: "/(admin)/categories" },
   { name: "Service Types",  icon: "briefcase-outline",         route: "/(admin)/service-types" },
   { name: "Disputes",       icon: "scale-balance",             route: "/(admin)/disputes" },
   { name: "Support",        icon: "ticket-confirmation-outline", route: "/(admin)/support" },
   { name: "Messages",       icon: "message-text-outline",      route: "/(admin)/messages" },
-  { name: "Settings",       icon: "cog-outline",               route: "/(admin)/settings" },
+  { name: "Settings",       icon: "cog-outline",               route: "/(admin)/(tabs)/settings" },
   { name: "Payouts",        icon: "bank-transfer",             route: "/(admin)/payouts" },
   { name: "Help",           icon: "help-circle-outline",       route: "/(admin)/help" },
 ];

@@ -20,8 +20,6 @@ import { VerifyResetDto } from './dto/verify-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { FacebookLoginDto } from './dto/facebook-login.dto';
-import { SendOtpDto } from './dto/send-otp.dto';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
 import * as admin from 'firebase-admin';
 
 import { MfaService } from './mfa.service';
@@ -410,6 +408,10 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  private generateCode(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   async requestPasswordReset(dto: RequestResetDto) {

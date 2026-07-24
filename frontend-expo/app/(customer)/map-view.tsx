@@ -8,18 +8,13 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { api } from "@/store/authStore";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ExpoLocation from "expo-location";
+import { Theme } from "@/constants/theme";
 
 // Default map center (fallback if no company has coords)
 const DEFAULT_LAT = 3.147;
 const DEFAULT_LNG = 101.6938; // Kuala Lumpur
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentLight: "#F7F7F7",
-  text1: "#111827", text2: "#717171", text3: "#B0B0B0",
-  error: "#E31C5F", success: "#00A699", warning: "#FFB800",
-  blueBg: "#F7F7F7", blueText: "#1D4ED8",
-};
+const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },

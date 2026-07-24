@@ -14,12 +14,9 @@ import * as SecureStore from 'expo-secure-store';
 import * as Location from "expo-location";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from "react-i18next";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentLight: "#F7F7F7", accentMid: "#1E3A8A",
-  text1: "#111827", text2: "#717171", text3: "#B0B0B0",
-};
+const T = Theme.colors;
 
 const buildDays = () => {
   const days: { date: Date; label: string; dayName: string }[] = [];

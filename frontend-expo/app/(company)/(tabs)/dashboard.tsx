@@ -15,21 +15,7 @@ import { useSidebarStore } from "@/store/sidebarStore";
 
 import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: Theme.colors.bg,
-  surface: Theme.colors.surface,
-  border: Theme.colors.border,
-  accent: Theme.colors.primary,
-  accentLight: Theme.colors.primaryLight,
-  accentMid: Theme.colors.primaryMid,
-  text1: Theme.colors.text,
-  text2: Theme.colors.textMuted,
-  text3: Theme.colors.textMuted,
-  success: Theme.colors.success,
-  error: Theme.colors.error,
-  warning: Theme.colors.warning,
-  info: Theme.colors.info,
-};
+const T = Theme.colors;
 
 const HERO_SHADOW = Platform.select({
   ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },

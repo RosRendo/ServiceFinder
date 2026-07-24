@@ -6,12 +6,9 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import api from "@/utils/api";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#F7F8FC", surface: "#FFFFFF", border: "#EAECF5",
-  accent: "#0A192F", text1: "#111827", text2: "#4B5563", text3: "#9CA3AF",
-  success: "#10B981", error: "#EF4444",
-};
+const T = Theme.colors;
 
 interface MfaSetupModalProps {
   visible: boolean;

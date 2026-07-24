@@ -7,15 +7,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Theme } from "@/constants/theme";
 
 const { width } = Dimensions.get("window");
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#E5E5EA",
-  accent: "#0A192F", accentLight: "#F5F5F5",
-  text1: "#111827", text2: "#8E8E93", text3: "#C7C7CC",
-  googleRed: "#DB4437",
-};
+const T = Theme.colors;
 
 const HERO_SHADOW = Platform.select({
   ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },

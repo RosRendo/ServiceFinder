@@ -6,12 +6,9 @@ import { useRouter } from 'expo-router';
 import { useAuthStore, api } from '@/store/authStore';
 import MfaSetupModal from '@/components/admin/MfaSetupModal';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentMid: "#1E3A8A", text1: "#111827", text2: "#717171", text3: "#B0B0B0",
-  error: "#E31C5F"
-};
+const T = Theme.colors;
 
 export default function CustomerSettings() {
   const router = useRouter();

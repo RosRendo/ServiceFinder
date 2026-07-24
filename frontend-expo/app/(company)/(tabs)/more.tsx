@@ -9,13 +9,9 @@ import { useRouter } from "expo-router";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { useAuthStore } from "@/store/authStore";
 import MfaSetupModal from "@/components/admin/MfaSetupModal";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentMid: "#1E3A8A", accentLight: "#F7F7F7",
-  text1: "#111827", text2: "#717171", text3: "#B0B0B0",
-  error: "#E31C5F", errorBg: "#FEE2E2",
-};
+const T = Theme.colors;
 
 // Routes that require company verification
 const PREMIUM_ROUTES = new Set([

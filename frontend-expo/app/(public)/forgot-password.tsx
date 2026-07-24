@@ -8,14 +8,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#F7F8FC", border: "#EAECF5",
-  accent: "#0A192F", accentLight: "#F0F4F8",
-  text1: "#111827", text2: "#4B5563", text3: "#9CA3AF",
-  error: "#EF4444", errorBg: "#FEF2F2",
-  success: "#10B981", successBg: "#ECFDF5",
-};
+const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },

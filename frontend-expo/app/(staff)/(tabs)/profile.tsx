@@ -11,21 +11,7 @@ import { useSidebarStore } from "@/store/sidebarStore";
 
 import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: Theme.colors.bg,
-  surface: Theme.colors.surface,
-  border: Theme.colors.border,
-  accent: Theme.colors.primary,
-  accentMid: Theme.colors.primaryMid,
-  accentLight: Theme.colors.primaryLight,
-  text1: Theme.colors.text,
-  text2: Theme.colors.textMuted,
-  text3: "#9CA3AF",
-  success: Theme.colors.success,
-  warning: Theme.colors.warning,
-  error: Theme.colors.error,
-  errorBg: Theme.colors.errorBg,
-};
+const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },

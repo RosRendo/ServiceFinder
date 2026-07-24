@@ -11,15 +11,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useNotificationStore, AppNotification, NotificationType } from "@/store/notificationStore";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#F7F8FC", surface: "#FFFFFF", border: "#EAECF5",
-  accent: "#0A192F", accentLight: "#F0F4F8",
-  text1: "#111827", text2: "#4B5563", text3: "#9CA3AF",
-  blueBg: "#EFF6FF", blueBorder: "#BFDBFE", blueText: "#1D4ED8", blueDot: "#3B82F6",
-  greenBg: "#DCFCE7", greenDot: "#22C55E", greenText: "#15803D",
-  grayBg: "#F3F4F6", grayDot: "#9CA3AF", grayText: "#6B7280",
-};
+const T = Theme.colors;
 
 const SHADOW = Platform.select({
   ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },

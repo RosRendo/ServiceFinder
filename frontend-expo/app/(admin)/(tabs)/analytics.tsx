@@ -15,21 +15,7 @@ import { useSidebarStore } from "@/store/sidebarStore";
 
 import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: Theme.colors.bg,
-  surface: Theme.colors.surface,
-  border: Theme.colors.border,
-  accent: Theme.colors.primary,
-  accentMid: Theme.colors.primaryMid,
-  accentLight: Theme.colors.primaryLight,
-  text1: Theme.colors.text,
-  text2: Theme.colors.textMuted,
-  text3: "#9CA3AF",
-  success: Theme.colors.success,
-  warning: Theme.colors.warning,
-  error: Theme.colors.error,
-  purple: "#8B5CF6", blue: "#3B82F6", teal: "#14B8A6",
-};
+const T = Theme.colors;
 
 
 

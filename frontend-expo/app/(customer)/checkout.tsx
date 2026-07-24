@@ -22,19 +22,7 @@ import { useTranslation } from "react-i18next";
 import { formatCurrency } from "@/utils/currency";
 import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: Theme.colors.bg,
-  surface: Theme.colors.surface,
-  border: Theme.colors.border,
-  accent: Theme.colors.primary,
-  accentLight: Theme.colors.primaryLight,
-  accentMid: Theme.colors.primaryMid,
-  text1: Theme.colors.text,
-  text2: Theme.colors.textMuted,
-  text3: Theme.colors.textSubtle ?? "#9CA3AF",
-  error: Theme.colors.error,
-  errorBg: "#FEE2E2",
-};
+const T = Theme.colors;
 
 export default function CheckoutScreen() {
   const router = useRouter();

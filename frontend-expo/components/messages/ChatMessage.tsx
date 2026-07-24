@@ -1,16 +1,9 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import type { ChatMessage as ChatMessageType } from "@/store/chatStore";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  accent: "#4C1D95",
-  surface: "#FFFFFF",
-  bg: "#F7F8FC",
-  border: "#EAECF5",
-  text1: "#111827",
-  text2: "#4B5563",
-  text3: "#9CA3AF",
-};
+const T = Theme.colors;
 
 interface ChatMessageProps {
   message: ChatMessageType;

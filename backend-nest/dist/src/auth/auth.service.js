@@ -361,6 +361,9 @@ let AuthService = class AuthService {
             refreshToken,
         };
     }
+    generateCode() {
+        return Math.floor(100000 + Math.random() * 900000).toString();
+    }
     async requestPasswordReset(dto) {
         const { email, phone } = dto;
         if (!email && !phone)

@@ -12,13 +12,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 import { useSocialAuth } from "@/hooks/useSocialAuth";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#F2F2F7", border: "#E5E5EA",
-  accent: "#0A192F",
-  text1: "#111827", text2: "#8E8E93", text3: "#C7C7CC",
-  error: "#FF3B30", errorBg: "#FFE5E5",
-};
+const T = Theme.colors;
 
 export default function Register() {
   const router = useRouter();

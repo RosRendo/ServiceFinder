@@ -4,17 +4,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import api from "@/utils/api";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#1E3A8A", accentMid: "#3B82F6", accentLight: "#EFF6FF",
-  text1: "#111827", text2: "#4B5563", text3: "#9CA3AF",
-  error: "#EF4444", success: "#10B981", warning: "#F59E0B",
-  blueBg: "#EFF6FF", blueText: "#1D4ED8",
-  greenBg: "#DCFCE7", greenText: "#15803D",
-  yellowBg: "#FEF3C7", yellowText: "#D97706",
-  redBg: "#FEE2E2", redText: "#DC2626",
-};
+const T = Theme.colors;
 
 
 

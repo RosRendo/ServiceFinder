@@ -7,13 +7,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { api } from "@/store/authStore";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { useTranslation } from "react-i18next";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#F9FAFB", surface: "#FFFFFF", border: "#E5E7EB",
-  accent: "#0A192F", accentLight: "#F0F4F8",
-  text1: "#111827", text2: "#4B5563", text3: "#9CA3AF",
-  success: "#10B981", warning: "#F59E0B", error: "#EF4444", info: "#3B82F6", purple: "#8B5CF6",
-};
+const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12 },

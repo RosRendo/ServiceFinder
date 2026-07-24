@@ -4,12 +4,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthStore, api } from "@/store/authStore";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", text1: "#111827", text2: "#717171", text3: "#B0B0B0",
-  error: "#E31C5F", errorBg: "#FEF2F2",
-};
+const T = Theme.colors;
 
 export default function CompleteProfile() {
   const router = useRouter();

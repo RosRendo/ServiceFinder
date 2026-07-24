@@ -19,20 +19,7 @@ import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
 
 // Clean, Premium Theme Colors
-const T = {
-  bg: Theme.colors.bg,
-  surface: Theme.colors.surface,
-  primary: Theme.colors.primary,
-  primaryLight: Theme.colors.primaryLight,
-  text: Theme.colors.text,
-  textMuted: Theme.colors.textMuted,
-  border: Theme.colors.border,
-  success: Theme.colors.success,
-  successLight: Theme.colors.successBg,
-  error: Theme.colors.error,
-  errorBg: Theme.colors.errorBg,
-  accent: Theme.colors.accent,
-};
+const T = Theme.colors;
 
 const SHADOW = Platform.select({
   ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16 },

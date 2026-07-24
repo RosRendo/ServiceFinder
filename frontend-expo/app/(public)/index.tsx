@@ -8,12 +8,9 @@ import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import i18n from "@/utils/i18n";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#E5E5EA",
-  accent: "#0A192F", accentLight: "#F5F5F5",
-  text1: "#111827", text2: "#8E8E93", text3: "#C7C7CC",
-};
+const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },

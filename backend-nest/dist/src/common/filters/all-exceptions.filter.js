@@ -69,6 +69,7 @@ let AllExceptionsFilter = AllExceptionsFilter_1 = class AllExceptionsFilter {
                     ? 'Internal server error'
                     : exception.message;
         }
+        console.error('\n\n=== UNHANDLED EXCEPTION ===\n', exception, '\n===========================\n\n');
         this.logger.error(`${request.method} ${request.url} - Status: ${status} - Message: ${JSON.stringify(message)}`, exception instanceof Error ? exception.stack : '');
         if (exception instanceof Error) {
             Sentry.captureException(exception, {

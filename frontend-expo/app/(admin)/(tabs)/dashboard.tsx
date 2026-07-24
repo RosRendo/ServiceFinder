@@ -1,7 +1,7 @@
 /**
  * Admin Dashboard — Premium Deep Navy Redesign
  */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { Image } from "expo-image";
 import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, RefreshControl, StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,15 +12,9 @@ import { useSidebarStore } from "@/store/sidebarStore";
 import NotificationBell from "@/components/NotificationBell";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/authStore";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF", surface: "#FFFFFF", border: "#EBEBEB",
-  accent: "#0A192F", accentMid: "#1E3A8A", accentLight: "#F0F4F8",
-  text1: "#111827", text2: "#4B5563", text3: "#9CA3AF",
-  success: "#10B981", warning: "#F59E0B", error: "#EF4444",
-  purple: "#8B5CF6", blue: "#3B82F6",
-};
-
+const T = Theme.colors;
 
 const HERO_SHADOW = Platform.select({
   ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
@@ -37,7 +31,7 @@ export default function AdminDashboard() {
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
   const { t } = useTranslation();
   const { user } = useAuthStore();
-  const adminFirstName = user?.name?.split(" ")[0] || "Admin";
+  const adminFirstName = (user as any)?.name?.split(" ")[0] || "Admin";
   const greeting = (() => {
     const h = new Date().getHours();
     if (h < 12) return "Good morning";
@@ -51,9 +45,7 @@ export default function AdminDashboard() {
   const fetchMetrics = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      // Use /api/admin/analytics — properly guarded admin endpoint
       const response = await api.get('/api/admin/analytics');
-      // TransformInterceptor: { success, data: { totalUsers, ... } }
       const data = response.data?.data ?? response.data;
       setMetrics(data);
     } catch (error) {
@@ -107,8 +99,8 @@ export default function AdminDashboard() {
         </View>
       </View>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchMetrics(true)} tintColor={T.accent} />}
       >
@@ -116,6 +108,7 @@ export default function AdminDashboard() {
           <View style={s.loadingBox}><ActivityIndicator size="large" color={T.accent} /></View>
         ) : (
           <>
+            {/* Revenue Hero Card */}
             <View style={s.revenueCard}>
               <View style={s.revenueHeader}>
                 <View>
@@ -128,15 +121,13 @@ export default function AdminDashboard() {
                 </View>
               </View>
               <Text style={s.revenueTitle}>{formatCurrency(metrics?.totalRevenue || 0)}</Text>
-              
-              {/* Decorative Background */}
               <View style={s.revenueDecor1} />
               <View style={s.revenueDecor2} />
             </View>
 
             {/* Quick Actions / Critical Queues */}
             <View style={s.queueGrid}>
-              <TouchableOpacity onPress={() => router.push('/(admin)/queue' as any)} style={[s.queueCard, { borderColor: T.blue + "30" }]} activeOpacity={0.8}>
+              <TouchableOpacity onPress={() => router.push('/(admin)/(tabs)/queue' as any)} style={[s.queueCard, { borderColor: T.blue + "30" }]} activeOpacity={0.8}>
                 <View style={[s.queueIconWrap, { backgroundColor: T.blue + "15" }]}>
                   <MaterialCommunityIcons name="shield-check-outline" size={22} color={T.blue} />
                 </View>
@@ -144,7 +135,7 @@ export default function AdminDashboard() {
                 <Text style={s.queueLabel}>{t('adminDashboard.pending')}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => router.push('/(admin)/disputes')} style={[s.queueCard, { borderColor: T.error + "30" }]} activeOpacity={0.8}>
+              <TouchableOpacity onPress={() => router.push('/(admin)/disputes' as any)} style={[s.queueCard, { borderColor: T.error + "30" }]} activeOpacity={0.8}>
                 <View style={[s.queueIconWrap, { backgroundColor: T.error + "15" }]}>
                   <MaterialCommunityIcons name="scale-balance" size={22} color={T.error} />
                 </View>
@@ -152,7 +143,7 @@ export default function AdminDashboard() {
                 <Text style={s.queueLabel}>{t('adminDashboard.disputes')}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => router.push('/(admin)/support')} style={[s.queueCard, { borderColor: T.warning + "30" }]} activeOpacity={0.8}>
+              <TouchableOpacity onPress={() => router.push('/(admin)/support' as any)} style={[s.queueCard, { borderColor: T.warning + "30" }]} activeOpacity={0.8}>
                 <View style={[s.queueIconWrap, { backgroundColor: T.warning + "15" }]}>
                   <MaterialCommunityIcons name="ticket-confirmation-outline" size={22} color={T.warning} />
                 </View>
@@ -185,7 +176,7 @@ export default function AdminDashboard() {
               </View>
             </View>
 
-            {/* Growth Trends */}
+            {/* Weekly Bookings Chart */}
             <View style={s.section}>
               <View style={s.sectionHeader}>
                 <Text style={s.sectionTitle}>{t('adminDashboard.weeklyBookings')}</Text>
@@ -200,7 +191,7 @@ export default function AdminDashboard() {
                     const isMax = val === maxVal;
                     return (
                       <View key={idx} style={s.chartCol}>
-                        <View style={[s.chartBar, { height: `${heightPct}%`, backgroundColor: isMax ? T.accent : T.accentLight }]} />
+                        <View style={[s.chartBar, { height: `${heightPct}%` as any, backgroundColor: isMax ? T.accent : T.accentLight }]} />
                         <Text style={[s.chartDay, isMax && { color: T.accent, fontWeight: "800" }]}>{item.day || days[idx]}</Text>
                       </View>
                     );
@@ -216,21 +207,21 @@ export default function AdminDashboard() {
                   <Text style={s.sectionTitle}>{t('adminDashboard.recentCompanies')}</Text>
                   <Text style={s.sectionSubtitle}>{t('adminDashboard.recentCompaniesSubtitle')}</Text>
                 </View>
-                <TouchableOpacity onPress={() => router.push('/(admin)/companies' as any)}>
+                <TouchableOpacity onPress={() => router.push('/(admin)/company/index' as any)}>
                   <Text style={s.viewAllBtn}>{t('adminDashboard.viewAll')}</Text>
                 </TouchableOpacity>
               </View>
-              
+
               <View style={s.recentList}>
                 {metrics?.recentCompanies?.map((company: any) => {
                   const isVerified = company.verificationStatus === 'verified';
                   return (
                     <View key={company.id} style={s.recentItem}>
                       <View style={[s.statusIcon, { backgroundColor: isVerified ? T.success + "15" : T.warning + "15" }]}>
-                        <MaterialCommunityIcons 
-                          name={isVerified ? "check-decagram" : "clock-alert-outline"} 
-                          size={20} 
-                          color={isVerified ? T.success : T.warning} 
+                        <MaterialCommunityIcons
+                          name={isVerified ? "check-decagram" : "clock-alert-outline"}
+                          size={20}
+                          color={isVerified ? T.success : T.warning}
                         />
                       </View>
                       <View style={s.recentInfo}>
@@ -274,8 +265,8 @@ const s = StyleSheet.create({
 
   revenueCard: {
     backgroundColor: T.accent, borderRadius: 24, padding: 24,
-    overflow: "hidden", borderWidth: 1, borderColor: T.border, shadowColor: T.accent,
-    ...HERO_SHADOW },
+    overflow: "hidden", ...HERO_SHADOW,
+  },
   revenueHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
   revenueSubtitle: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "600", marginBottom: 2 },
   revenueGmv: { color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: "500" },
@@ -286,8 +277,7 @@ const s = StyleSheet.create({
   revenueDecor2: { position: "absolute", bottom: -20, right: 40, width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(255,255,255,0.05)" },
 
   queueGrid: { flexDirection: "row", gap: 12 },
-  queueCard: { flex: 1, backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border,
-    ...CARD_SHADOW },
+  queueCard: { flex: 1, backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   queueIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 12 },
   queueCount: { fontSize: 22, fontWeight: "800", color: T.text1, marginBottom: 2 },
   queueLabel: { fontSize: 12, fontWeight: "600", color: T.text3 },
@@ -300,24 +290,21 @@ const s = StyleSheet.create({
   viewAllBtn: { fontSize: 13, fontWeight: "700", color: T.accentMid, marginBottom: 2 },
 
   healthGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  healthCard: { width: "48%", backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border,
-    ...CARD_SHADOW },
+  healthCard: { width: "48%", backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   healthIconRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
   healthIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   healthTrend: { fontSize: 12, fontWeight: "800", marginTop: 4 },
   healthValue: { fontSize: 24, fontWeight: "800", color: T.text1, marginBottom: 2 },
   healthLabel: { fontSize: 12, fontWeight: "600", color: T.text3 },
 
-  chartCard: { backgroundColor: T.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.border,
-    ...CARD_SHADOW },
+  chartCard: { backgroundColor: T.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   chartBars: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 160 },
   chartCol: { alignItems: "center", flex: 1, height: "100%", justifyContent: "flex-end" },
   chartBar: { width: 12, borderRadius: 6, marginBottom: 8 },
   chartDay: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase" },
 
   recentList: { gap: 12 },
-  recentItem: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: T.border, gap: 12,
-    ...CARD_SHADOW },
+  recentItem: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: T.border, gap: 12, ...CARD_SHADOW },
   statusIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   recentInfo: { flex: 1 },
   recentName: { fontSize: 15, fontWeight: "800", color: T.text1, marginBottom: 2 },
@@ -325,4 +312,3 @@ const s = StyleSheet.create({
   recentDate: { fontSize: 12, fontWeight: "600", color: T.text2 },
   emptyText: { textAlign: "center", color: T.text3, paddingVertical: 20 },
 });
-

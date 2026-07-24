@@ -1,18 +1,9 @@
 import React from "react";
 import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { Theme } from "@/constants/theme";
 
-const T = {
-  bg: "#FFFFFF",
-  surface: "#FFFFFF",
-  border: "#EBEBEB",
-  accent: "#0A192F",
-  accentMid: "#1E3A8A",
-  accentLight: "#F7F7F7",
-  text1: "#111827",
-  text2: "#717171",
-  text3: "#B0B0B0",
-};
+const T = Theme.colors;
 
 interface SearchFilterModalProps {
   visible: boolean;
