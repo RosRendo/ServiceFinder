@@ -167,7 +167,8 @@ export default function StaffPage() {
           phone: activeStaff.phone || "No phone",
           activeJob: undefined,
           compliance: [],
-          schedule: []
+          schedule: [],
+          currentLocation: { lat: 0, lng: 0, address: "Unknown", timestamp: new Date().toISOString() }
         }} />
       )}
     </div>
