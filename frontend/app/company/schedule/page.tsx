@@ -227,9 +227,9 @@ export default function ScheduleCenter() {
         <BookingDrawer
           bookingId={activeBookingId}
           open={drawerOpen}
-          onOpenChange={(o) => {
-             setDrawerOpen(o);
-             if (!o) fetchScheduleData();
+          onClose={() => {
+             setDrawerOpen(false);
+             fetchScheduleData();
           }}
         />
       )}

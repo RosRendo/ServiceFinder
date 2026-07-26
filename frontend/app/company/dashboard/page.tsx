@@ -109,7 +109,7 @@ export default function CompanyDashboard() {
               <XAxis dataKey="day" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
               <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                formatter={(v: number) => [`$${v}`, "Revenue"]} />
+                formatter={(v: any) => [`$${v}`, "Revenue"]} />
               <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} fill="url(#companyGrad)" />
             </AreaChart>
           </ResponsiveContainer>

@@ -149,9 +149,8 @@ export default function DispatchCenter() {
       {/* Booking Drawer */}
       <BookingDrawer
         open={drawerOpen}
-        onOpenChange={setDrawerOpen}
+        onClose={() => setDrawerOpen(false)}
         bookingId={activeBookingId || ""}
-        role="admin"
         onBookingUpdated={fetchDispatchBookings}
       />
     </div>

@@ -243,9 +243,8 @@ export default function DispatchCenter() {
       {/* Booking Drawer */}
       <BookingDrawer
         open={drawerOpen}
-        onOpenChange={setDrawerOpen}
+        onClose={() => setDrawerOpen(false)}
         bookingId={activeBookingId || ""}
-        role="company"
         onBookingUpdated={fetchDispatchBookings}
       />
 
@@ -296,16 +295,7 @@ export default function DispatchCenter() {
         </DialogContent>
       </Dialog>
       
-      {activeBookingId && (
-        <BookingDrawer
-          bookingId={activeBookingId}
-          open={drawerOpen}
-          onOpenChange={(o) => {
-             setDrawerOpen(o);
-             if (!o) fetchDispatchBookings();
-          }}
-        />
-      )}
+
     </div>
   );
 }

@@ -125,7 +125,7 @@ export default function RevenuePage() {
                 <XAxis dataKey="day" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                 <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-                  formatter={(v: number, name: string) => [`$${v.toLocaleString(undefined, {minimumFractionDigits: 0})}`, name.charAt(0).toUpperCase() + name.slice(1)]} />
+                  formatter={(v: any, name: string) => [`$${v.toLocaleString(undefined, {minimumFractionDigits: 0})}`, name.charAt(0).toUpperCase() + name.slice(1)]} />
                 <Area type="monotone" dataKey="gross" stroke="#8b5cf6" strokeWidth={2} fill="url(#gross)" name="Gross" />
                 <Area type="monotone" dataKey="fee" stroke="#10b981" strokeWidth={2} fill="url(#fee)" name="Platform Fee" />
                 <Area type="monotone" dataKey="refunds" stroke="#f43f5e" strokeWidth={1.5} fill="url(#refunds)" name="Refunds" />
