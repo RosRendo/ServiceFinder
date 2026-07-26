@@ -165,7 +165,8 @@ export default function CompanyStaffPage() {
               phone: activeStaff.user?.phone || activeStaff.phone || "No phone",
               activeJob: undefined,
               compliance: [],
-              schedule: []
+              schedule: [],
+              currentLocation: "Unknown"
           }} />
       )}
       

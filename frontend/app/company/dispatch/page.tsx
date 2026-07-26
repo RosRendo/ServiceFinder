@@ -3,6 +3,18 @@ import { useState, useEffect } from "react";
 import { Search, Loader2, Calendar, Clock, Map, UserPlus, RefreshCw, AlertCircle, MessageCircle } from "lucide-react";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { StatusBadge } from "@/components/grid/StatusBadge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/lib/hooks/use-toast";
+import api from "@/lib/api/client";
 import { BookingDrawer } from "@/components/drawers/BookingDrawer";
 
 export default function DispatchCenter() {
@@ -280,7 +292,7 @@ export default function DispatchCenter() {
               <label className="text-sm font-medium">Dispatch Notes (Optional)</label>
               <Textarea
                 value={assignmentNotes}
-                onChange={(e) => setAssignmentNotes(e.target.value)}
+                onChange={(e: any) => setAssignmentNotes(e.target.value)}
                 placeholder="Any special instructions..."
                 className="resize-none"
               />

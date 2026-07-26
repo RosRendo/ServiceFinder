@@ -3,6 +3,9 @@ import { useState, useEffect } from "react";
 import { DollarSign, Download, ArrowUpRight, History, CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api/client";
@@ -197,7 +200,7 @@ export default function CompanyPayoutsPage() {
                 id="amount"
                 type="number" 
                 value={payoutAmount}
-                onChange={(e) => setPayoutAmount(e.target.value)}
+                onChange={(e: any) => setPayoutAmount(e.target.value)}
                 className="pl-9 bg-muted/50 border-border text-foreground"
                 placeholder="0.00"
                 step="0.01"

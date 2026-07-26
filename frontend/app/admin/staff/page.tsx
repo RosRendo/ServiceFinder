@@ -168,7 +168,7 @@ export default function StaffPage() {
           activeJob: undefined,
           compliance: [],
           schedule: [],
-          currentLocation: { lat: 0, lng: 0, address: "Unknown", timestamp: new Date().toISOString() }
+          currentLocation: "Unknown"
         }} />
       )}
     </div>

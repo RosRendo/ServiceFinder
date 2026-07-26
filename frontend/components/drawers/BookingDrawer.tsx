@@ -17,7 +17,7 @@ const statusConfig: Record<string, { bg: string; text: string; border: string; l
     cancelled: { bg: "bg-rose-500/10", text: "text-rose-500", border: "border-rose-500/20", label: "Cancelled", icon: XCircle },
 };
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
     return (
         <div className="border-b border-border/50 px-6 py-5">
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">{title}</p>
