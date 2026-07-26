@@ -51,9 +51,9 @@ export declare class WalletsService {
             status: string;
             createdAt: Date;
             updatedAt: Date;
+            ownerType: string;
             accountName: string;
             accountNumber: string;
-            ownerType: string;
             adminNotes: string | null;
             destinationBank: string;
         };
@@ -84,9 +84,9 @@ export declare class WalletsService {
             status: string;
             createdAt: Date;
             updatedAt: Date;
+            ownerType: string;
             accountName: string;
             accountNumber: string;
-            ownerType: string;
             adminNotes: string | null;
             destinationBank: string;
         };
@@ -115,9 +115,9 @@ export declare class WalletsService {
             status: string;
             createdAt: Date;
             updatedAt: Date;
+            ownerType: string;
             accountName: string;
             accountNumber: string;
-            ownerType: string;
             adminNotes: string | null;
             destinationBank: string;
         }[];
