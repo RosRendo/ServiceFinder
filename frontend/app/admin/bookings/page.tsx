@@ -157,9 +157,8 @@ export default function BookingsPage() {
       {/* Booking Drawer */}
       <BookingDrawer
         open={drawerOpen}
-        onOpenChange={setDrawerOpen}
+        onClose={() => setDrawerOpen(false)}
         bookingId={activeBookingId || ""}
-        role="admin"
         onBookingUpdated={fetchBookings}
       />
     </div>
