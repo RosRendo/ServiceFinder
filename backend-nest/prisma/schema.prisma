@@ -10,39 +10,39 @@ datasource db {
 }
 
 model User {
-  id                       BigInt                    @id @default(autoincrement())
-  fullName                 String                    @map("full_name") @db.VarChar(100)
-  email                    String?                   @unique @db.VarChar(150)
-  phone                    String?                   @unique @db.VarChar(20)
-  avatar                   String?
-  passwordHash             String?                   @map("password_hash") @db.VarChar(255)
-  role                     UserRole
-  status                   UserStatus                @default(active)
-  lastLoginAt              DateTime?                 @map("last_login_at")
-  pushToken                String?                   @map("push_token") @db.VarChar(255)
-  mfaEnabled               Boolean                   @default(false) @map("mfa_enabled")
-  mfaSecret                String?                   @map("mfa_secret") @db.VarChar(255)
-  emailNotificationsEnabled Boolean                  @default(true) @map("email_notifications_enabled")
-  pushNotificationsEnabled Boolean                   @default(true) @map("push_notifications_enabled")
-  createdAt                DateTime                  @default(now()) @map("created_at")
-  updatedAt                DateTime                  @updatedAt @map("updated_at")
-  auditLogs                AuditLog[]
-  statusChanges            BookingStatusLog[]
-  bookingsAsCustomer       Booking[]                 @relation("CustomerBookings")
-  cancellationsMade        Cancellation[]            @relation("CancelledBy")
-  ownedCompanies           Company[]                 @relation("CompanyOwner")
-  staffMemberships         CompanyStaff[]
-  conversationParticipants ConversationParticipant[]
-  disputesAsCustomer       Dispute[]                 @relation("DisputeCustomer")
-  messages                 Message[]
-  notifications            Notification[]
-  passwordResets           PasswordReset[]
-  payments                 Payment[]
-  refreshTokens            RefreshToken[]
-  reviews                  Review[]
-  savedItems               SavedItem[]
-  serviceRequestsMade      ServiceRequest[]          @relation("CustomerRequests")
-  addresses                UserAddress[]
+  id                        BigInt                    @id @default(autoincrement())
+  fullName                  String                    @map("full_name") @db.VarChar(100)
+  email                     String?                   @unique @db.VarChar(150)
+  phone                     String?                   @unique @db.VarChar(20)
+  avatar                    String?
+  passwordHash              String?                   @map("password_hash") @db.VarChar(255)
+  role                      UserRole
+  status                    UserStatus                @default(active)
+  lastLoginAt               DateTime?                 @map("last_login_at")
+  pushToken                 String?                   @map("push_token") @db.VarChar(255)
+  mfaEnabled                Boolean                   @default(false) @map("mfa_enabled")
+  mfaSecret                 String?                   @map("mfa_secret") @db.VarChar(255)
+  emailNotificationsEnabled Boolean                   @default(true) @map("email_notifications_enabled")
+  pushNotificationsEnabled  Boolean                   @default(true) @map("push_notifications_enabled")
+  createdAt                 DateTime                  @default(now()) @map("created_at")
+  updatedAt                 DateTime                  @updatedAt @map("updated_at")
+  auditLogs                 AuditLog[]
+  statusChanges             BookingStatusLog[]
+  bookingsAsCustomer        Booking[]                 @relation("CustomerBookings")
+  cancellationsMade         Cancellation[]            @relation("CancelledBy")
+  ownedCompanies            Company[]                 @relation("CompanyOwner")
+  staffMemberships          CompanyStaff[]
+  conversationParticipants  ConversationParticipant[]
+  disputesAsCustomer        Dispute[]                 @relation("DisputeCustomer")
+  messages                  Message[]
+  notifications             Notification[]
+  passwordResets            PasswordReset[]
+  payments                  Payment[]
+  refreshTokens             RefreshToken[]
+  reviews                   Review[]
+  savedItems                SavedItem[]
+  serviceRequestsMade       ServiceRequest[]          @relation("CustomerRequests")
+  addresses                 UserAddress[]
 
   @@index([email])
   @@index([role])
@@ -617,7 +617,7 @@ model CompanyPaymentMethod {
   accountName   String   @map("account_name") @db.VarChar(150)
   accountNumber String   @map("account_number") @db.VarChar(255)
   routingNumber String?  @map("routing_number") @db.VarChar(50)
-  qrCodeUrl     String?  @map("qr_code_url") @db.Text
+  qrCodeUrl     String?  @map("qr_code_url")
   isDefault     Boolean  @default(false) @map("is_default")
   isVerified    Boolean  @default(false) @map("is_verified")
   createdAt     DateTime @default(now()) @map("created_at")
@@ -634,7 +634,7 @@ model StaffPaymentMethod {
   accountName   String       @map("account_name") @db.VarChar(150)
   accountNumber String       @map("account_number") @db.VarChar(255)
   routingNumber String?      @map("routing_number") @db.VarChar(50)
-  qrCodeUrl     String?      @map("qr_code_url") @db.Text
+  qrCodeUrl     String?      @map("qr_code_url")
   isDefault     Boolean      @default(false) @map("is_default")
   isVerified    Boolean      @default(false) @map("is_verified")
   createdAt     DateTime     @default(now()) @map("created_at")

@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityInd
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import * as Haptics from "expo-haptics";
 import { PhotoCapture } from "@/components/jobs/PhotoCapture";
 import api from "@/utils/api";
 
@@ -83,7 +84,14 @@ export default function UpdateStatusScreen() {
                     ? "bg-surface-container-lowest border-surface-container opacity-60"
                     : "bg-surface-container-lowest border-outline-variant"
                 }`}
-                onPress={() => setCurrentStatus(step.key)}
+                onPress={() => {
+                  setCurrentStatus(step.key);
+                  if (step.key === "arrived") {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  } else {
+                    Haptics.selectionAsync();
+                  }
+                }}
               >
                 <View className={`w-10 h-10 rounded-full items-center justify-center mr-4 ${
                   isSelected ? "bg-primary" : isPast ? "bg-surface-container" : "bg-surface-container-high"

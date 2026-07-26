@@ -45,6 +45,24 @@ let CompaniesController = class CompaniesController {
     getMyCompanyStaff(user) {
         return this.companiesService.getMyCompanyStaff(BigInt(user.id));
     }
+    async getMyCompanyCustomers(user, query) {
+        const company = await this.companiesService.getMyCompany(BigInt(user.id));
+        return this.companiesService.getCompanyCustomers(company.id, query);
+    }
+    async getMyCompanyReviews(user, query) {
+        const company = await this.companiesService.getMyCompany(BigInt(user.id));
+        if (!company) {
+            throw new common_1.NotFoundException('Company not found');
+        }
+        return this.companiesService.getCompanyReviews(company.id, query);
+    }
+    async getMyCompanyRevenue(user) {
+        const company = await this.companiesService.getMyCompany(BigInt(user.id));
+        if (!company) {
+            throw new common_1.NotFoundException('Company not found');
+        }
+        return this.companiesService.getCompanyRevenue(company.id);
+    }
     getStaffMemberById(staffId, user) {
         return this.companiesService.getStaffMemberById(BigInt(staffId), BigInt(user.id));
     }
@@ -185,6 +203,44 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], CompaniesController.prototype, "getMyCompanyStaff", null);
+__decorate([
+    (0, common_1.Get)('my-company/customers'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: "Get customers for the user's company" }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Return company customers list.' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], CompaniesController.prototype, "getMyCompanyCustomers", null);
+__decorate([
+    (0, common_1.Get)('my-company/reviews'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Get current company reviews' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Return list of reviews for the current company.' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], CompaniesController.prototype, "getMyCompanyReviews", null);
+__decorate([
+    (0, common_1.Get)('my-company/revenue'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Get current company revenue data' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Return revenue data for the current company.' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], CompaniesController.prototype, "getMyCompanyRevenue", null);
 __decorate([
     (0, common_1.Get)('staff/:staffId'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),

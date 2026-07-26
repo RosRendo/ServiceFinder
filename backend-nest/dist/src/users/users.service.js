@@ -160,6 +160,16 @@ let UsersService = class UsersService {
                         },
                     },
                 },
+                auditLogs: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 20,
+                    select: {
+                        id: true,
+                        action: true,
+                        createdAt: true,
+                        user: { select: { fullName: true } }
+                    }
+                }
             },
         });
         if (!user) {
@@ -303,16 +313,28 @@ let UsersService = class UsersService {
         if (currentUser.role !== 'admin') {
             throw new common_1.ForbiddenException('Access denied');
         }
-        const user = await this.prisma.user.update({
-            where: { id },
-            data: { status: dto.status },
-            select: {
-                id: true,
-                fullName: true,
-                email: true,
-                status: true,
-            },
-        });
+        const actionText = `STATUS_CHANGE_${dto.status.toUpperCase()}`;
+        const fullAction = dto.reason ? `${actionText} - Reason: ${dto.reason.substring(0, 100)}` : actionText;
+        const [user] = await this.prisma.$transaction([
+            this.prisma.user.update({
+                where: { id },
+                data: { status: dto.status },
+                select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                    status: true,
+                },
+            }),
+            this.prisma.auditLog.create({
+                data: {
+                    userId: BigInt(currentUser.id),
+                    action: fullAction,
+                    entityType: 'User',
+                    entityId: id,
+                },
+            }),
+        ]);
         return {
             message: 'User status updated successfully',
             user,

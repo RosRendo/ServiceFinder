@@ -28,5 +28,8 @@ export declare class NotificationsService {
     }>;
     markAllAsRead(userId: bigint): Promise<void>;
     getUnreadCount(userId: bigint): Promise<number>;
+    deleteNotification(notificationId: bigint, userId: bigint): Promise<{
+        success: boolean;
+    }>;
     private sendMessages;
 }

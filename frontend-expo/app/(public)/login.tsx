@@ -14,7 +14,7 @@ import { useSocialAuth } from "@/hooks/useSocialAuth";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
 import { COUNTRIES } from "@/constants/countries";
-import auth from "@react-native-firebase/auth";
+
 
 const T = Theme.colors;
 
@@ -78,13 +78,13 @@ export default function Login() {
     if (!cleanPhone || cleanPhone.length < 6) return setError("Please enter a valid phone number");
     setError(""); setIsLoading(true);
     try {
-      // 1. Send SMS via Firebase
-      const confirmation = await auth().signInWithPhoneNumber(getFullPhone());
-      setConfirm(confirmation);
-      setStep("otp");
+      const res = await api.post("/api/auth/request-otp", { phone: getFullPhone() });
+      if (res.data?.success) {
+        setStep("otp");
+      }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Failed to send OTP via Firebase.");
+      setError(err.response?.data?.message || err.message || "Failed to send OTP.");
     } finally { setIsLoading(false); }
   };
 
@@ -92,19 +92,10 @@ export default function Login() {
     Keyboard.dismiss();
     const cleanOtp = otpCode.trim();
     if (!cleanOtp || cleanOtp.length < 6) return setError("Please enter a valid 6-digit OTP");
-    if (!confirm) return setError("Session expired. Please request a new code.");
     
     setError(""); setIsLoading(true);
     try {
-      // 1. Verify code with Firebase
-      await confirm.confirm(cleanOtp);
-      
-      // 2. Get secure ID Token
-      const idToken = await auth().currentUser?.getIdToken();
-      if (!idToken) throw new Error("Failed to get Firebase token");
-
-      // 3. Authenticate with NestJS Backend
-      await verifyOtp(idToken);
+      await verifyOtp(getFullPhone(), cleanOtp);
       
       const user = useAuthStore.getState().user;
       if (!user) return setError("Login failed: No user data.");

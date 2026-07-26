@@ -58,6 +58,14 @@ export declare class UsersService {
             fullName: string;
             role: import(".prisma/client").$Enums.UserRole;
             lastLoginAt: Date | null;
+            auditLogs: {
+                id: bigint;
+                createdAt: Date;
+                user: {
+                    fullName: string;
+                } | null;
+                action: string | null;
+            }[];
             ownedCompanies: {
                 id: bigint;
                 name: string;

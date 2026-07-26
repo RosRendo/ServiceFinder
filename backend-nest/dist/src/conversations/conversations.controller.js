@@ -25,22 +25,25 @@ let ConversationsController = class ConversationsController {
         this.service = service;
     }
     startConversation(req, dto) {
-        return this.service.getOrCreateConversation(BigInt(req.user.id), dto);
+        return this.service.getOrCreateConversation(BigInt(req.user?.id || req.user?.userId || 0), dto);
+    }
+    async getUnreadCount(req) {
+        return this.service.getUnreadCount(BigInt(req.user?.id || req.user?.userId || 0));
     }
     async getMyConversations(req) {
-        const res = await this.service.getMyConversations(BigInt(req.user.id));
+        const res = await this.service.getMyConversations(BigInt(req.user?.id || req.user?.userId || 0));
         common_1.Logger.log('RETURNING ' +
             JSON.stringify(res, (k, v) => (typeof v === 'bigint' ? v.toString() : v), 2), 'ConversationsController');
         return res;
     }
     async getMessages(id, req, query) {
-        common_1.Logger.log(`GET /api/conversations/${id}/messages called by user ${req.user.id}`, 'ConversationsController');
-        const res = await this.service.getMessages(BigInt(id), BigInt(req.user.id), query);
+        common_1.Logger.log(`GET /api/conversations/${id}/messages called by user ${req.user?.id || req.user?.userId || 0}`, 'ConversationsController');
+        const res = await this.service.getMessages(BigInt(id), BigInt(req.user?.id || req.user?.userId || 0), query);
         common_1.Logger.log(`getMessages returned ${res.data.length} messages for conv ${id}`, 'ConversationsController');
         return res;
     }
     sendMessage(id, req, dto) {
-        return this.service.sendMessage(BigInt(id), BigInt(req.user.id), dto);
+        return this.service.sendMessage(BigInt(id), BigInt(req.user?.id || req.user?.userId || 0), dto);
     }
 };
 exports.ConversationsController = ConversationsController;
@@ -53,6 +56,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, start_conversation_dto_1.StartConversationDto]),
     __metadata("design:returntype", void 0)
 ], ConversationsController.prototype, "startConversation", null);
+__decorate([
+    (0, common_1.Get)('unread'),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ConversationsController.prototype, "getUnreadCount", null);
 __decorate([
     (0, common_1.Get)(),
     openapi.ApiResponse({ status: 200 }),

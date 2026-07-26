@@ -155,7 +155,7 @@ interface AuthStore {
   checkAuth: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ requiresMfa: boolean; tempMfaToken: any } | void>;
   verifyMfa: (token: string, code: string) => Promise<void>;
-  verifyOtp: (idToken: string) => Promise<void>;
+  verifyOtp: (phone: string, code: string) => Promise<void>;
   register: (name: string, email: string, password: string, role?: string) => Promise<void>;
   googleLogin: (token: string, role?: string) => Promise<void>;
   facebookLogin: (token: string, role?: string) => Promise<void>;
@@ -263,9 +263,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
   },
 
-  verifyOtp: async (idToken: string) => {
+  verifyOtp: async (phone: string, code: string) => {
     try {
-      const response = await api.post('/api/auth/verify-otp', { idToken });
+      const response = await api.post('/api/auth/verify-otp', { phone, code });
       let user = response.data?.user || response.data?.data?.user;
       const accessToken = response.data?.token || response.data?.accessToken || response.data?.data?.token || response.data?.data?.accessToken;
       const refreshToken = response.data?.refreshToken || response.data?.data?.refreshToken;

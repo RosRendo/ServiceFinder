@@ -1,277 +1,179 @@
 "use client";
-import apiClient from "@/lib/api/client";
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { 
-  Plus, Mail, MoreVertical, Briefcase, Loader2, Star, Search, Filter,
-  ChevronDown, TrendingUp, MessageSquare, UserMinus, UserPlus, CheckCircle
-} from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { toast } from "sonner";
-import { StaffMember } from "@/types/staff.types";
 
-const roleLabels: Record<string, string> = {
-  worker: "Worker", supervisor: "Supervisor", manager: "Manager",
-  senior_cleaner: "Senior Cleaner", cleaning_specialist: "Cleaning Specialist", team_lead: "Team Lead", cleaner: "Cleaner",
+import { useState, useEffect, useCallback } from "react";
+import { DataGrid, Column } from "@/components/grid/DataGrid";
+import { StatusBadge } from "@/components/grid/StatusBadge";
+import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { StaffDrawer } from "@/components/drawers/StaffDrawer";
+import { InviteStaffDrawer } from "@/components/drawers/InviteStaffDrawer";
+import { Search, Download, UserPlus, Star, Loader2 } from "lucide-react";
+import api from "@/lib/api/client";
+import { useToast } from "@/lib/hooks/use-toast";
+
+const STATUS_DOT: Record<string, string> = {
+  online: "bg-emerald-400",
+  offline: "bg-slate-400",
+  on_job: "bg-violet-400",
+  inactive: "bg-rose-400",
 };
 
-export default function Staff() {
-  const [staff, setStaff] = useState<StaffMember[]>([]);
+export default function CompanyStaffPage() {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [inviteDrawerOpen, setInviteDrawerOpen] = useState(false);
+  const [activeStaff, setActiveStaff] = useState<any | null>(null);
+  
+  const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
+  const { toast } = useToast();
+
+  const fetchStaff = async () => {
+      setLoading(true);
+      try {
+          const response = await api.get('/companies/my-company/staff');
+          const payload = response.data.data || response.data;
+          setStaff(Array.isArray(payload) ? payload : (payload.staff || []));
+      } catch (err: any) {
+          toast({ title: "Error", description: err.message || "Failed to load staff", variant: "destructive" });
+      } finally {
+          setLoading(false);
+      }
+  };
 
   useEffect(() => {
-    const fetchStaff = async () => {
-      try {
-        const res = await apiClient.get("/companies/my-company/staff");
-        const data = res.data?.data || res.data || [];
-        setStaff(Array.isArray(data) ? data : []);
-      } catch (err) {
-        toast.error("Failed to load staff members");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStaff();
+      fetchStaff();
   }, []);
 
-  const filteredStaff = staff.filter(member => {
-    const matchesSearch = member.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === "all" || member.role === roleFilter;
-    return matchesSearch && matchesRole;
+  const filtered = staff.filter((s) => {
+    const matchSearch = !search || [s.user?.fullName, s.role, s.id].some((v) => v?.toString().toLowerCase().includes(search.toLowerCase()));
+    const matchStatus = statusFilter === "all" || s.user?.status === statusFilter || s.status === statusFilter;
+    return matchSearch && matchStatus;
   });
 
-  const activeCount = staff.filter(s => s.status === "active").length;
-  const availableCount = staff.filter(s => s.isAvailable).length;
-  const avgRating = (staff.reduce((sum, s) => sum + (s.averageRating || 0), 0) / (staff.length || 1)).toFixed(1);
+  const toggleRow = useCallback((id: string) => {
+    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }, []);
+  const toggleAll = useCallback(() => {
+    setSelectedIds((prev) => prev.size === filtered.length ? new Set() : new Set(filtered.map((s) => s.id)));
+  }, [filtered]);
 
-  const handleRemoveStaff = async (staffId: string, staffName: string) => {
-    if (!confirm(`Are you sure you want to remove ${staffName}?`)) return;
-    setStaff(prev => prev.filter(s => s.id !== staffId));
-    toast.success(`${staffName} has been removed`);
-  };
-
-  const handleClearDebt = async (staffId: string, staffName: string, debtAmount: number) => {
-    if (!confirm(`Have you physically received $${Math.abs(debtAmount)} cash from ${staffName}? This will clear their digital debt.`)) return;
-    try {
-      await apiClient.post(`/wallets/company/my-company/staff/${staffId}/clear-debt`, { amount: Math.abs(debtAmount) });
-      toast.success(`${staffName}'s debt has been cleared.`);
-      setStaff(prev => prev.map(s => s.id === staffId ? { ...s, walletBalance: s.walletBalance + Math.abs(debtAmount) } : s));
-    } catch (err) {
-      toast.error("Failed to clear debt");
-    }
-  };
-
-  const statCards = [
-    { label: "Total Staff", value: staff.length, icon: Briefcase, color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Active", value: activeCount, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { label: "Available", value: availableCount, icon: TrendingUp, color: "text-indigo-600", bg: "bg-indigo-50" },
-    { label: "Avg Rating", value: avgRating, icon: Star, color: "text-amber-500", bg: "bg-amber-50" },
+  const columns: Column<any>[] = [
+    {
+      key: "name", header: "Name", sortable: true,
+      render: (r) => {
+        const name = r.user?.fullName || "Unknown Staff";
+        const status = r.user?.status || "offline";
+        return (
+          <div className="flex items-center gap-2.5">
+            <div className="relative">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                {name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+              </div>
+              <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-background ${STATUS_DOT[status] || 'bg-slate-400'}`} />
+            </div>
+            <span className="font-medium">{name}</span>
+          </div>
+        );
+      }
+    },
+    { key: "role", header: "Role", render: (r) => <span className="text-muted-foreground text-xs">{r.role?.replace(/_/g, " ")}</span> },
+    { key: "status", header: "Status", render: (r) => <StatusBadge status={r.user?.status || r.status || 'offline'} /> },
+    {
+      key: "rating", header: "Rating", sortable: true,
+      render: (r) => (
+        <span className="flex items-center gap-1 text-amber-400 font-medium text-sm">
+          <Star className="w-3 h-3 fill-current" /> {r.rating || "5.0"}
+        </span>
+      ),
+    },
+    { key: "jobsCompleted", header: "Jobs", sortable: true, render: (r) => <span className="text-muted-foreground">{r._count?.assignedBookings || r.jobsCompleted || 0}</span> },
+    { key: "earningsToday", header: "Earned Today", sortable: true, render: (r) => <span className="font-medium">${r.earningsToday || 0}</span> },
   ];
 
   return (
-    <div className="space-y-6">
-        
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Staff Management</h1>
-          <p className="text-gray-500 mt-1 text-sm max-w-xl">Manage your team members, track performance, and monitor availability across your workforce.</p>
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Filter Bar */}
+      <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search staff..."
+            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60" />
         </div>
-        <Link href="/company/staff/new">
-          <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white rounded-lg h-10 shadow-sm px-4 font-semibold gap-2">
-            <Plus className="w-4 h-4" /> Add Staff
-          </Button>
-        </Link>
+        <div className="flex items-center gap-1">
+          {["all", "online", "on_job", "offline"].map((s) => (
+            <button key={s} onClick={() => setStatusFilter(s)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === s ? "bg-violet-500/20 text-violet-400" : "text-muted-foreground hover:bg-muted/60"}`}>
+              {s === "all" ? "All" : s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+            </button>
+          ))}
+        </div>
+        <div className="flex-1" />
+        <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted/60 transition-colors">
+          <Download className="w-3.5 h-3.5" /> Export
+        </button>
+        <button 
+          onClick={() => setInviteDrawerOpen(true)}
+          className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors"
+        >
+          <UserPlus className="w-3.5 h-3.5" /> Invite Staff
+        </button>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat, i) => (
-          <div key={stat.label} className="bg-white p-4 rounded-xl border border-gray-200 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stat.bg}`}>
-              <stat.icon className={`w-5 h-5 ${stat.color}`} />
-            </div>
-            <div>
-              <div className="text-xs font-medium text-gray-500">{stat.label}</div>
-              <div className="text-xl font-bold text-gray-900 mt-0.5">{stat.value}</div>
-            </div>
+      {/* Stats */}
+      <div className="shrink-0 flex items-center gap-6 px-6 py-2.5 border-b border-border bg-background">
+        {[
+          { label: "Total", value: staff.length, color: "text-foreground" },
+          { label: "Online", value: staff.filter((s) => s.user?.status === "online").length, color: "text-emerald-400" },
+          { label: "On Job", value: staff.filter((s) => s.user?.status === "on_job").length, color: "text-violet-400" },
+          { label: "Offline", value: staff.filter((s) => s.user?.status === "offline" || !s.user?.status).length, color: "text-slate-400" },
+        ].map((s) => (
+          <div key={s.label} className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">{s.label}</span>
+            <span className={`font-bold ${s.color}`}>{s.value}</span>
           </div>
         ))}
       </div>
 
-      {/* Data Container */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-        
-        {/* Filters */}
-        <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Search by name or email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-white border-gray-200 rounded-lg h-9 text-sm focus-visible:ring-blue-500/20 shadow-sm"
-            />
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2 bg-white border-gray-200 rounded-lg h-9 w-full sm:w-auto justify-between sm:justify-center shadow-sm font-medium text-gray-700 px-4 text-sm">
-                <span className="flex items-center gap-2">
-                  <Filter className="w-3.5 h-3.5 text-gray-400" />
-                  {roleFilter === "all" ? "All Roles" : roleLabels[roleFilter]}
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="rounded-xl border-gray-200 shadow-xl min-w-[200px]" align="end">
-              <DropdownMenuItem className="rounded-lg font-medium cursor-pointer" onClick={() => setRoleFilter("all")}>All Roles</DropdownMenuItem>
-              <DropdownMenuItem className="rounded-lg font-medium cursor-pointer" onClick={() => setRoleFilter("worker")}>Worker</DropdownMenuItem>
-              <DropdownMenuItem className="rounded-lg font-medium cursor-pointer" onClick={() => setRoleFilter("supervisor")}>Supervisor</DropdownMenuItem>
-              <DropdownMenuItem className="rounded-lg font-medium cursor-pointer" onClick={() => setRoleFilter("manager")}>Manager</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Data Table */}
-        <div className="overflow-x-auto min-h-[400px]">
-          {loading ? (
-            <div className="flex items-center justify-center h-[400px]">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            </div>
-          ) : filteredStaff.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-[400px] text-center px-4">
-              <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 border border-gray-200">
-                <Briefcase className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1">No staff found</h3>
-              <p className="text-gray-500 text-sm max-w-sm mb-6">You don't have any staff members matching that criteria.</p>
-              <Link href="/company/staff/new">
-                <Button className="rounded-lg h-9 px-6 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">Add Team Member</Button>
-              </Link>
-            </div>
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-50/80 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                <tr>
-                  <th className="px-6 py-3">Staff Member</th>
-                  <th className="px-6 py-3">Role & Contact</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Performance</th>
-                  <th className="px-6 py-3 text-right">Balance</th>
-                  <th className="px-6 py-3 w-16 text-right"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-sm">
-                {filteredStaff.map((member) => (
-                  <tr key={member.id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10 border border-gray-200 rounded-lg">
-                          <AvatarImage src={member.avatar || undefined} />
-                          <AvatarFallback className="bg-blue-50 text-blue-700 font-bold rounded-lg text-xs">
-                            {member.fullName.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-bold text-gray-900">{member.fullName}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{member.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex bg-gray-100 text-gray-700 font-medium px-2 py-0.5 rounded text-xs mb-1">
-                        {roleLabels[member.role] ?? member.role}
-                      </span>
-                      <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
-                        <Mail className="w-3 h-3" /> {member.email}
-                      </p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1.5 items-start">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
-                          member.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {member.status === 'active' ? 'ACTIVE' : 'INACTIVE'}
-                        </span>
-                        {member.isAvailable && (
-                          <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700">
-                            AVAILABLE TODAY
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1 font-semibold text-gray-900">
-                        {member.averageRating ? (
-                          <>
-                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                            {member.averageRating.toFixed(1)}
-                          </>
-                        ) : (
-                          <span className="text-gray-400 text-xs font-normal">No ratings</span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5">{member.completedJobs} jobs done</p>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {member.walletBalance < 0 ? (
-                        <div>
-                          <p className="font-bold text-rose-600">-${Math.abs(member.walletBalance).toFixed(2)}</p>
-                          <p className="text-[10px] text-rose-500 font-medium">Owes Platform</p>
-                        </div>
-                      ) : (
-                        <div>
-                          <p className="font-bold text-gray-900">${member.walletBalance.toFixed(2)}</p>
-                          <p className="text-[10px] text-gray-500">Balance</p>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-xl border-gray-200 shadow-lg min-w-[160px]">
-                          <DropdownMenuItem asChild className="cursor-pointer text-sm font-medium">
-                            <Link href={`/company/messages?new=${member.userId}`}>
-                              <MessageSquare className="w-4 h-4 mr-2 text-gray-400" /> Message
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild className="cursor-pointer text-sm font-medium">
-                            <Link href={`/company/staff/${member.id}`}>View Profile</Link>
-                          </DropdownMenuItem>
-                          {member.status === 'active' ? (
-                            <DropdownMenuItem className="text-rose-600 cursor-pointer text-sm font-medium focus:text-rose-700 focus:bg-rose-50" onClick={() => handleRemoveStaff(member.id, member.fullName)}>
-                              <UserMinus className="w-4 h-4 mr-2" /> Remove
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem className="text-emerald-600 cursor-pointer text-sm font-medium focus:text-emerald-700 focus:bg-emerald-50">
-                              <UserPlus className="w-4 h-4 mr-2" /> Reactivate
-                            </DropdownMenuItem>
-                          )}
-                          {member.walletBalance < 0 && (
-                            <DropdownMenuItem className="text-emerald-600 cursor-pointer text-sm font-medium focus:text-emerald-700 focus:bg-emerald-50 mt-1 border-t border-gray-100" onClick={() => handleClearDebt(member.id, member.fullName, member.walletBalance)}>
-                              <CheckCircle className="w-4 h-4 mr-2" /> Clear Debt
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+      <div className="flex-1 overflow-hidden">
+        {loading ? (
+           <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" /></div>
+        ) : (
+          <DataGrid columns={columns} data={filtered} onRowClick={(r) => { setActiveStaff(r); setDrawerOpen(true); }}
+            selectedIds={selectedIds} onSelectRow={toggleRow} onSelectAll={toggleAll} emptyMessage="No staff found." />
+        )}
       </div>
+
+      <BulkActionBar selectedCount={selectedIds.size} onClear={() => setSelectedIds(new Set())}
+        actions={[{ icon: Download, label: "Export", onClick: () => {} }]} />
+
+      {activeStaff && (
+          <StaffDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} staff={{
+              id: activeStaff.id,
+              name: activeStaff.user?.fullName || "Unknown",
+              role: activeStaff.role,
+              status: activeStaff.user?.status || activeStaff.status || "offline",
+              rating: activeStaff.rating || 5.0,
+              jobsCompleted: activeStaff._count?.assignedBookings || activeStaff.jobsCompleted || 0,
+              todayJobs: activeStaff.todayJobs || 0,
+              earningsToday: activeStaff.earningsToday || 0,
+              pendingPayout: activeStaff.walletBalance || 0,
+              tips: activeStaff.tips || 0,
+              attendance: activeStaff.attendance || 100,
+              onTimeRate: activeStaff.onTimeRate || 100,
+              phone: activeStaff.user?.phone || activeStaff.phone || "No phone",
+              activeJob: undefined,
+              compliance: [],
+              schedule: []
+          }} />
+      )}
+      
+      <InviteStaffDrawer 
+        open={inviteDrawerOpen} 
+        onClose={() => setInviteDrawerOpen(false)} 
+        onSuccess={fetchStaff}
+      />
     </div>
   );
 }

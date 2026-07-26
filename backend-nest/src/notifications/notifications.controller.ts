@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -14,7 +15,7 @@ import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
-@Controller('api/notifications')
+@Controller('notifications')
 export class NotificationsController {
   constructor(private notificationsService: NotificationsService) {}
 
@@ -25,7 +26,7 @@ export class NotificationsController {
   @Post('push-token')
   @HttpCode(HttpStatus.OK)
   async savePushToken(@Req() req: any, @Body() body: { pushToken: string }) {
-    const userId = BigInt(req.user.userId);
+    const userId = BigInt(req.user?.id || req.user?.userId || 0);
     await this.notificationsService.savePushToken(userId, body.pushToken);
     return { message: 'Push token saved successfully' };
   }
@@ -36,7 +37,8 @@ export class NotificationsController {
    */
   @Get()
   async getMyNotifications(@Req() req: any) {
-    const userId = BigInt(req.user.userId);
+    console.log("DEBUG req.user:", req.user);
+    const userId = req.user.id ? BigInt(req.user.id) : BigInt(req.user.userId || 0);
     return this.notificationsService.getNotificationsForUser(userId);
   }
 
@@ -46,8 +48,18 @@ export class NotificationsController {
    */
   @Patch(':id/read')
   async markAsRead(@Req() req: any, @Param('id') id: string) {
-    const userId = BigInt(req.user.userId);
+    const userId = BigInt(req.user?.id || req.user?.userId || 0);
     return this.notificationsService.markAsRead(BigInt(id), userId);
+  }
+
+  /**
+   * DELETE /api/notifications/:id
+   * Delete a single notification.
+   */
+  @Delete(':id')
+  async deleteNotification(@Req() req: any, @Param('id') id: string) {
+    const userId = BigInt(req.user?.id || req.user?.userId || 0);
+    return this.notificationsService.deleteNotification(BigInt(id), userId);
   }
 
   /**
@@ -57,7 +69,7 @@ export class NotificationsController {
   @Patch('read-all')
   @HttpCode(HttpStatus.OK)
   async markAllAsRead(@Req() req: any) {
-    const userId = BigInt(req.user.userId);
+    const userId = BigInt(req.user?.id || req.user?.userId || 0);
     await this.notificationsService.markAllAsRead(userId);
     return { message: 'All notifications marked as read' };
   }
@@ -67,7 +79,7 @@ export class NotificationsController {
    */
   @Get('unread-count')
   async getUnreadCount(@Req() req: any) {
-    const userId = BigInt(req.user.userId);
+    const userId = BigInt(req.user?.id || req.user?.userId || 0);
     const count = await this.notificationsService.getUnreadCount(userId);
     return { count };
   }

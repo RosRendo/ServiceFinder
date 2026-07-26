@@ -36,7 +36,7 @@ let PayoutsController = class PayoutsController {
             companyFound: company ? company.id.toString() : null,
         }, null, 2));
         if (!company) {
-            throw new NotFoundException('No company associated with this user');
+            throw new common_1.NotFoundException('No company associated with this user');
         }
         return company.id;
     }

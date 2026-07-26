@@ -332,6 +332,13 @@ export class NotificationsService {
     });
   }
 
+  async deleteNotification(notificationId: bigint, userId: bigint) {
+    await this.prisma.notification.deleteMany({
+      where: { id: notificationId, userId },
+    });
+    return { success: true };
+  }
+
   // ── Internal send helper ──────────────────────────────────────────────────
 
   private async sendMessages(messages: ExpoPushMessage[]): Promise<void> {

@@ -23,13 +23,19 @@ export class ConversationsController {
   /** POST /api/conversations — get or create a conversation with a company */
   @Post()
   startConversation(@Request() req: any, @Body() dto: StartConversationDto) {
-    return this.service.getOrCreateConversation(BigInt(req.user.id), dto);
+    return this.service.getOrCreateConversation(BigInt(req.user?.id || req.user?.userId || 0), dto);
+  }
+
+  /** GET /api/conversations/unread — get unread messages count */
+  @Get('unread')
+  async getUnreadCount(@Request() req: any) {
+    return this.service.getUnreadCount(BigInt(req.user?.id || req.user?.userId || 0));
   }
 
   /** GET /api/conversations — list my conversations */
   @Get()
   async getMyConversations(@Request() req: any) {
-    const res = await this.service.getMyConversations(BigInt(req.user.id));
+    const res = await this.service.getMyConversations(BigInt(req.user?.id || req.user?.userId || 0));
     Logger.log(
       'RETURNING ' +
         JSON.stringify(
@@ -50,12 +56,12 @@ export class ConversationsController {
     @Query() query: any,
   ) {
     Logger.log(
-      `GET /api/conversations/${id}/messages called by user ${req.user.id}`,
+      `GET /api/conversations/${id}/messages called by user ${req.user?.id || req.user?.userId || 0}`,
       'ConversationsController',
     );
     const res = await this.service.getMessages(
       BigInt(id),
-      BigInt(req.user.id),
+      BigInt(req.user?.id || req.user?.userId || 0),
       query,
     );
     Logger.log(
@@ -72,6 +78,6 @@ export class ConversationsController {
     @Request() req: any,
     @Body() dto: CreateMessageDto,
   ) {
-    return this.service.sendMessage(BigInt(id), BigInt(req.user.id), dto);
+    return this.service.sendMessage(BigInt(id), BigInt(req.user?.id || req.user?.userId || 0), dto);
   }
 }

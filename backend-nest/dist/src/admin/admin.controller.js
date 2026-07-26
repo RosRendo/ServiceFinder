@@ -79,6 +79,9 @@ let AdminController = class AdminController {
     refundPayment(id, body) {
         return this.adminService.processRefund(BigInt(id), body);
     }
+    getTransactions(query) {
+        return this.adminService.getTransactions(query);
+    }
     getPayouts(query) {
         return this.adminService.getPayouts(query);
     }
@@ -87,6 +90,9 @@ let AdminController = class AdminController {
     }
     rejectPayout(id) {
         return this.adminService.updatePayoutStatus(+id, 'failed');
+    }
+    getInvoices(query) {
+        return this.adminService.getInvoices(query);
     }
 };
 exports.AdminController = AdminController;
@@ -259,6 +265,16 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "refundPayment", null);
 __decorate([
+    (0, common_1.Get)('transactions'),
+    (0, swagger_1.ApiOperation)({ summary: 'List all financial transactions' }),
+    (0, swagger_1.ApiQuery)({ name: 'type', required: false, description: 'credit or debit' }),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getTransactions", null);
+__decorate([
     (0, common_1.Get)('payouts'),
     (0, swagger_1.ApiOperation)({ summary: 'List all payout requests' }),
     (0, swagger_1.ApiQuery)({ name: 'status', required: false }),
@@ -286,6 +302,15 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "rejectPayout", null);
+__decorate([
+    (0, common_1.Get)('invoices'),
+    (0, swagger_1.ApiOperation)({ summary: 'List all invoices' }),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getInvoices", null);
 exports.AdminController = AdminController = __decorate([
     (0, swagger_1.ApiTags)('Admin'),
     (0, common_1.Controller)('admin'),

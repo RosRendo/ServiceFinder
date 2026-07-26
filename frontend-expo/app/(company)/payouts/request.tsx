@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  Alert, ActivityIndicator,
+  Alert, ActivityIndicator, StyleSheet, Platform
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import api from "@/utils/api";
+import { Theme } from "@/constants/theme";
+
+const T = Theme.colors;
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12 },
+  android: { elevation: 3 },
+});
 
 const PAYOUT_METHODS = [
   { key: "bank", label: "Bank Transfer", icon: "bank", detail: "Ending ****4521" },
@@ -86,112 +94,167 @@ export default function PayoutRequestScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-surface items-center justify-center">
-        <ActivityIndicator size="large" color="#1ba9ed" />
+      <SafeAreaView style={s.centerArea}>
+        <ActivityIndicator size="large" color={T.accent} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-surface">
-      <View className="flex-row items-center px-4 py-3 border-b border-surface-container">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 mr-2">
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#191c1e" />
+    <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
+      {/* Header */}
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => router.back()} style={s.headerBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={T.text1} />
         </TouchableOpacity>
-        <Text className="text-xl font-headline font-bold text-on-surface">Request Payout</Text>
+        <Text style={s.headerTitle}>Request Payout</Text>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 140 }}>
+      <ScrollView style={s.scrollView} contentContainerStyle={s.contentPad}>
         {/* Balance Cards */}
-        <View className="flex-row gap-3 mb-6">
-          <View className="flex-1 bg-primary rounded-2xl p-4">
-            <Text className="text-white/80 text-xs uppercase tracking-wider mb-1">Available</Text>
-            <Text className="text-white text-2xl font-bold">${balance.toFixed(2)}</Text>
+        <View style={s.balanceCardsRow}>
+          <View style={[s.balanceCard, { backgroundColor: T.accent, flex: 1.2 }]}>
+            <Text style={s.balanceLabelLight}>Available</Text>
+            <Text style={s.balanceValueLight}>${balance.toFixed(2)}</Text>
           </View>
-          <View className="flex-1 bg-surface-container-lowest rounded-2xl p-4 border border-surface-container">
-            <Text className="text-on-surface-variant text-xs uppercase tracking-wider mb-1">Pending</Text>
-            <Text className="text-on-surface text-2xl font-bold">${pending.toFixed(2)}</Text>
+          <View style={[s.balanceCard, { backgroundColor: T.surface, borderWidth: 1, borderColor: T.border }]}>
+            <Text style={s.balanceLabelDark}>Pending</Text>
+            <Text style={s.balanceValueDark}>${pending.toFixed(2)}</Text>
           </View>
         </View>
 
         {/* Amount Input */}
-        <Text className="font-headline font-bold text-on-surface mb-3">Payout Amount</Text>
-        <View className="flex-row items-center bg-surface-container-lowest rounded-2xl border border-outline-variant px-4 h-16 mb-2">
-          <Text className="text-2xl text-on-surface-variant mr-2">$</Text>
+        <Text style={s.sectionTitle}>Payout Amount</Text>
+        <View style={s.inputContainer}>
+          <Text style={s.currencySymbol}>$</Text>
           <TextInput
-            className="flex-1 text-2xl font-bold text-on-surface"
+            style={s.amountInput}
             placeholder="0.00"
-            placeholderTextColor="#c4c6cf"
+            placeholderTextColor={T.text3}
             keyboardType="decimal-pad"
             value={amount}
             onChangeText={setAmount}
           />
-          <TouchableOpacity
-            className="bg-surface-container px-3 py-1.5 rounded-full"
-            onPress={() => setAmount(balance.toFixed(2))}
-          >
-            <Text className="text-xs font-bold text-primary">Max</Text>
+          <TouchableOpacity style={s.maxBtn} onPress={() => setAmount(balance.toFixed(2))}>
+            <Text style={s.maxBtnText}>Max</Text>
           </TouchableOpacity>
         </View>
-        <Text className="text-xs text-on-surface-variant ml-1 mb-6">
+        <Text style={s.helperText}>
           Minimum: ${MIN_PAYOUT} · Platform fee: {PLATFORM_FEE_PCT}%
         </Text>
 
         {/* Payout Method */}
-        <Text className="font-headline font-bold text-on-surface mb-3">Payout Method</Text>
-        <View className="mb-6">
-          {PAYOUT_METHODS.map((m) => (
-            <TouchableOpacity
-              key={m.key}
-              className={`flex-row items-center p-4 rounded-2xl mb-3 border-2 ${method === m.key ? "border-primary bg-primary-container/30" : "border-outline-variant bg-surface-container-lowest"}`}
-              onPress={() => setMethod(m.key)}
-            >
-              <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${method === m.key ? "bg-primary" : "bg-surface-container"}`}>
-                <MaterialCommunityIcons name={m.icon as any} size={20} color={method === m.key ? "white" : "#74777f"} />
-              </View>
-              <View className="flex-1">
-                <Text className={`font-bold ${method === m.key ? "text-primary" : "text-on-surface"}`}>{m.label}</Text>
-                <Text className="text-xs text-on-surface-variant">{m.detail}</Text>
-              </View>
-              {method === m.key && <MaterialCommunityIcons name="check-circle" size={20} color="#1ba9ed" />}
-            </TouchableOpacity>
-          ))}
+        <Text style={s.sectionTitle}>Payout Method</Text>
+        <View style={s.methodsContainer}>
+          {PAYOUT_METHODS.map((m) => {
+            const isSelected = method === m.key;
+            return (
+              <TouchableOpacity
+                key={m.key}
+                style={[s.methodItem, isSelected && s.methodItemSelected]}
+                onPress={() => setMethod(m.key)}
+              >
+                <View style={[s.methodIconWrap, isSelected && s.methodIconWrapSelected]}>
+                  <MaterialCommunityIcons name={m.icon as any} size={20} color={isSelected ? "#FFF" : T.text3} />
+                </View>
+                <View style={s.methodInfo}>
+                  <Text style={[s.methodName, isSelected && s.methodNameSelected]}>{m.label}</Text>
+                  <Text style={s.methodDetail}>{m.detail}</Text>
+                </View>
+                {isSelected && <MaterialCommunityIcons name="check-circle" size={20} color={T.accent} />}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Fee Breakdown */}
         {parsedAmount > 0 && (
-          <View className="bg-surface-container-lowest rounded-2xl p-4 border border-surface-container">
-            <Text className="font-bold text-on-surface mb-3">Breakdown</Text>
-            <View className="flex-row justify-between mb-2">
-              <Text className="text-on-surface-variant">Requested Amount</Text>
-              <Text className="text-on-surface font-bold">${parsedAmount.toFixed(2)}</Text>
+          <View style={s.breakdownCard}>
+            <Text style={s.breakdownTitle}>Breakdown</Text>
+            <View style={s.breakdownRow}>
+              <Text style={s.breakdownLabel}>Requested Amount</Text>
+              <Text style={s.breakdownValue}>${parsedAmount.toFixed(2)}</Text>
             </View>
-            <View className="flex-row justify-between mb-2">
-              <Text className="text-on-surface-variant">Platform Fee ({PLATFORM_FEE_PCT}%)</Text>
-              <Text className="text-error">-${fee.toFixed(2)}</Text>
+            <View style={s.breakdownRow}>
+              <Text style={s.breakdownLabel}>Platform Fee ({PLATFORM_FEE_PCT}%)</Text>
+              <Text style={[s.breakdownValue, { color: T.error }]}>-${fee.toFixed(2)}</Text>
             </View>
-            <View className="h-[1px] bg-outline-variant my-2" />
-            <View className="flex-row justify-between">
-              <Text className="font-bold text-on-surface">You Receive</Text>
-              <Text className="font-bold text-primary text-lg">${netAmount.toFixed(2)}</Text>
+            <View style={s.breakdownDivider} />
+            <View style={s.breakdownRow}>
+              <Text style={s.breakdownTotalLabel}>You Receive</Text>
+              <Text style={s.breakdownTotalValue}>${netAmount.toFixed(2)}</Text>
             </View>
           </View>
         )}
       </ScrollView>
 
-      <View className="absolute bottom-0 left-0 right-0 px-4 pb-8 pt-4 bg-surface border-t border-surface-container">
+      {/* Bottom Action */}
+      <View style={s.bottomBar}>
         <TouchableOpacity
-          className={`h-14 rounded-full items-center justify-center ${submitting || parsedAmount < MIN_PAYOUT ? "bg-primary/50" : "bg-primary"}`}
+          style={[s.submitBtn, (submitting || parsedAmount < MIN_PAYOUT) && s.submitBtnDisabled]}
           onPress={handleRequest}
           disabled={submitting || parsedAmount < MIN_PAYOUT}
         >
           {submitting ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-white font-bold text-lg">Request Payout</Text>
+            <Text style={s.submitBtnText}>Request Payout</Text>
           )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: T.bg },
+  centerArea: { flex: 1, backgroundColor: T.bg, alignItems: "center", justifyContent: "center" },
+  
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
+  headerBtn: { padding: 4, marginRight: 8 },
+  headerTitle: { fontSize: 20, fontWeight: "800", color: T.text1 },
+  
+  scrollView: { flex: 1 },
+  contentPad: { padding: 16, paddingBottom: 140 },
+
+  balanceCardsRow: { flexDirection: "row", gap: 12, marginBottom: 24 },
+  balanceCard: { flex: 1, borderRadius: 20, padding: 16, ...CARD_SHADOW },
+  balanceLabelLight: { color: "rgba(255,255,255,0.8)", fontSize: 12, textTransform: "uppercase", fontWeight: "700", letterSpacing: 0.5, marginBottom: 6 },
+  balanceValueLight: { color: "#FFF", fontSize: 28, fontWeight: "800", letterSpacing: -0.5 },
+  balanceLabelDark: { color: T.text3, fontSize: 12, textTransform: "uppercase", fontWeight: "700", letterSpacing: 0.5, marginBottom: 6 },
+  balanceValueDark: { color: T.text1, fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
+
+  sectionTitle: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 12 },
+  
+  inputContainer: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 16, borderWidth: 1, borderColor: T.border, paddingHorizontal: 16, height: 60, marginBottom: 8 },
+  currencySymbol: { fontSize: 24, color: T.text3, marginRight: 8, fontWeight: "600" },
+  amountInput: { flex: 1, fontSize: 24, fontWeight: "800", color: T.text1 },
+  maxBtn: { backgroundColor: T.accentLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
+  maxBtnText: { fontSize: 12, fontWeight: "800", color: T.accent },
+  
+  helperText: { fontSize: 13, color: T.text3, marginBottom: 24, marginLeft: 4, fontWeight: "500" },
+
+  methodsContainer: { marginBottom: 24 },
+  methodItem: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 2, borderColor: T.border, backgroundColor: T.surface },
+  methodItemSelected: { borderColor: T.accent, backgroundColor: T.accent + "10" },
+  methodIconWrap: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", marginRight: 12, backgroundColor: T.bg },
+  methodIconWrapSelected: { backgroundColor: T.accent },
+  methodInfo: { flex: 1 },
+  methodName: { fontSize: 15, fontWeight: "800", color: T.text1, marginBottom: 2 },
+  methodNameSelected: { color: T.accent },
+  methodDetail: { fontSize: 13, color: T.text3, fontWeight: "500" },
+
+  breakdownCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border },
+  breakdownTitle: { fontSize: 15, fontWeight: "800", color: T.text1, marginBottom: 12 },
+  breakdownRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
+  breakdownLabel: { fontSize: 14, color: T.text2, fontWeight: "500" },
+  breakdownValue: { fontSize: 14, fontWeight: "700", color: T.text1 },
+  breakdownDivider: { height: 1, backgroundColor: T.border, marginVertical: 12 },
+  breakdownTotalLabel: { fontSize: 15, fontWeight: "800", color: T.text1 },
+  breakdownTotalValue: { fontSize: 18, fontWeight: "800", color: T.accent },
+
+  bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: Platform.OS === 'ios' ? 32 : 16, paddingTop: 16, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border },
+  submitBtn: { height: 56, borderRadius: 28, backgroundColor: T.accent, alignItems: "center", justifyContent: "center" },
+  submitBtnDisabled: { opacity: 0.5 },
+  submitBtnText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
+});

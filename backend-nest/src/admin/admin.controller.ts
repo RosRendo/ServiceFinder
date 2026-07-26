@@ -165,6 +165,15 @@ export class AdminController {
     return this.adminService.processRefund(BigInt(id), body);
   }
 
+  // ─── Transactions ────────────────────────────────────────────────────────────
+
+  @Get('transactions')
+  @ApiOperation({ summary: 'List all financial transactions' })
+  @ApiQuery({ name: 'type', required: false, description: 'credit or debit' })
+  getTransactions(@Query() query: any) {
+    return this.adminService.getTransactions(query);
+  }
+
   // ─── Payouts ─────────────────────────────────────────────────────────────────
 
   @Get('payouts')
@@ -184,5 +193,13 @@ export class AdminController {
   @ApiOperation({ summary: 'Reject a payout request' })
   rejectPayout(@Param('id') id: string) {
     return this.adminService.updatePayoutStatus(+id, 'failed');
+  }
+
+  // ─── Invoices ────────────────────────────────────────────────────────────────
+
+  @Get('invoices')
+  @ApiOperation({ summary: 'List all invoices' })
+  getInvoices(@Query() query: any) {
+    return this.adminService.getInvoices(query);
   }
 }

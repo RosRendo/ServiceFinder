@@ -26,6 +26,9 @@ export declare class ConversationsController {
             } | null;
         };
     }>;
+    getUnreadCount(req: any): Promise<{
+        unreadCount: number;
+    }>;
     getMyConversations(req: any): Promise<{
         data: {
             id: any;

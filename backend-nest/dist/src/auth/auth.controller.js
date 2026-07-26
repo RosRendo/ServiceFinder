@@ -126,8 +126,11 @@ let AuthController = class AuthController {
         }
         return this.authService.enableMfa(BigInt(id), body.secret, body.code);
     }
+    async requestOtp(body) {
+        return this.authService.requestOtp(body.phone);
+    }
     async verifyOtp(verifyOtpDto, res) {
-        const { message, user, accessToken, refreshToken } = await this.authService.verifyFirebaseToken(verifyOtpDto.idToken);
+        const { message, user, accessToken, refreshToken } = await this.authService.verifyOtpToken(verifyOtpDto.phone, verifyOtpDto.code);
         this.setAuthCookies(res, accessToken, refreshToken);
         return { message, user, token: accessToken };
     }
@@ -240,11 +243,23 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "enableMfa", null);
 __decorate([
+    (0, common_1.Post)('request-otp'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseGuards)(throttler_1.ThrottlerGuard),
+    (0, throttler_1.Throttle)({ default: { limit: 5, ttl: 60000 } }),
+    (0, swagger_1.ApiOperation)({ summary: 'Request OTP for login/register' }),
+    openapi.ApiResponse({ status: common_1.HttpStatus.OK }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "requestOtp", null);
+__decorate([
     (0, common_1.Post)('verify-otp'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, common_1.UseGuards)(throttler_1.ThrottlerGuard),
     (0, throttler_1.Throttle)({ default: { limit: 5, ttl: 60000 } }),
-    (0, swagger_1.ApiOperation)({ summary: 'Verify Firebase OTP Token and login/register' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Verify OTP and login/register' }),
     openapi.ApiResponse({ status: common_1.HttpStatus.OK }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),

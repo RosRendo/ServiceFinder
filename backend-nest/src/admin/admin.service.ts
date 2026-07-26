@@ -562,6 +562,38 @@ export class AdminService {
     };
   }
 
+  // ─── Transactions ────────────────────────────────────────────────────────────
+
+  async getTransactions(query: any) {
+    const { type, page = '1', limit = '50' } = query;
+    const skip = (Number(page) - 1) * Number(limit);
+    const take = Number(limit);
+
+    const where: any = {};
+    if (type && type !== 'all') where.type = type;
+
+    const [transactions, total] = await Promise.all([
+      this.prisma.transaction.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.transaction.count({ where }),
+    ]);
+
+    return {
+      data: transactions.map((t) => ({
+        ...t,
+        id: t.id.toString(),
+        ownerId: t.ownerId.toString(),
+        bookingId: t.bookingId?.toString(),
+        amount: Number(t.amount),
+      })),
+      meta: { total, page: Number(page), limit: take },
+    };
+  }
+
   // ─── Payouts ─────────────────────────────────────────────────────────────────
 
   async getPayouts(query: any) {
@@ -617,6 +649,62 @@ export class AdminService {
               userId: p.staff.userId?.toString(),
             }
           : null,
+      })),
+      meta: { total, page: Number(page), limit: take },
+    };
+  }
+
+  // ─── Invoices ────────────────────────────────────────────────────────────────
+
+  async getInvoices(query: any) {
+    const { page = '1', limit = '50', search } = query;
+    const skip = (Number(page) - 1) * Number(limit);
+    const take = Number(limit);
+
+    const where: any = {};
+    if (search) {
+      where.invoiceNumber = { contains: search };
+    }
+
+    const [invoices, total] = await Promise.all([
+      this.prisma.invoice.findMany({
+        where,
+        skip,
+        take,
+        include: {
+          booking: {
+            include: {
+              customer: true,
+              company: true,
+            },
+          },
+        },
+        orderBy: { issuedAt: 'desc' },
+      }),
+      this.prisma.invoice.count({ where }),
+    ]);
+
+    return {
+      data: invoices.map((i) => ({
+        ...i,
+        id: i.id.toString(),
+        bookingId: i.bookingId.toString(),
+        totalAmount: Number(i.totalAmount),
+        booking: {
+          ...i.booking,
+          id: i.booking.id.toString(),
+          customerId: i.booking.customerId.toString(),
+          companyId: i.booking.companyId.toString(),
+          customer: i.booking.customer ? {
+            ...i.booking.customer,
+            id: i.booking.customer.id.toString(),
+          } : null,
+          company: i.booking.company ? {
+            ...i.booking.company,
+            id: i.booking.company.id.toString(),
+            ownerId: i.booking.company.ownerId?.toString(),
+          } : null,
+        },
       })),
       meta: { total, page: Number(page), limit: take },
     };

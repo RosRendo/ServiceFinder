@@ -182,7 +182,7 @@ export default function CreateBookingScreen() {
           <View>
             <TouchableOpacity onPress={() => setShowTimePicker(true)} style={[s.inputWrapper, { marginBottom: 16 }]}>
               <MaterialCommunityIcons name="clock-outline" size={20} color={T.text3} style={s.inputIcon} />
-              <Text style={s.input}>
+              <Text style={[s.input, { textAlignVertical: 'center' }]}>
                 {selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Text>
             </TouchableOpacity>

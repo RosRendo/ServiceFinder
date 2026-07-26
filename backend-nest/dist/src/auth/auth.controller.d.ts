@@ -123,6 +123,12 @@ export declare class AuthController {
     }): Promise<{
         message: string;
     }>;
+    requestOtp(body: {
+        phone: string;
+    }): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     verifyOtp(verifyOtpDto: VerifyOtpDto, res: express.Response): Promise<{
         message: string;
         user: {

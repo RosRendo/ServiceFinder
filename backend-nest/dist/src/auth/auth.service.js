@@ -297,23 +297,40 @@ let AuthService = class AuthService {
             },
         };
     }
-    async verifyFirebaseToken(idToken) {
-        if (!idToken) {
-            throw new common_1.BadRequestException('Firebase ID token is required');
-        }
-        let decodedToken;
-        try {
-            const { getAuth } = require('firebase-admin/auth');
-            decodedToken = await getAuth().verifyIdToken(idToken);
-        }
-        catch (error) {
-            console.error('Firebase verifyIdToken error detail:', error.message || error);
-            throw new common_1.UnauthorizedException(`Firebase Auth Error: ${error.message || 'Invalid token'}`);
-        }
-        const phone = decodedToken.phone_number;
+    async requestOtp(phone) {
         if (!phone) {
-            throw new common_1.BadRequestException('Firebase token does not contain a verified phone number');
+            throw new common_1.BadRequestException('Phone number is required');
         }
+        await this.prisma.otpCode.updateMany({
+            where: { phone, used: false },
+            data: { used: true },
+        });
+        const code = '123456';
+        await this.prisma.otpCode.create({
+            data: {
+                phone,
+                code,
+                expiresAt: new Date(Date.now() + 10 * 60000),
+            },
+        });
+        console.log(`[SMS MOCK] OTP for ${phone} is: ${code}`);
+        return { success: true, message: 'OTP sent successfully (Use 123456 for testing)' };
+    }
+    async verifyOtpToken(phone, code) {
+        if (!phone || !code) {
+            throw new common_1.BadRequestException('Phone and code are required');
+        }
+        const otp = await this.prisma.otpCode.findFirst({
+            where: { phone, code, used: false },
+            orderBy: { createdAt: 'desc' },
+        });
+        if (!otp || otp.expiresAt < new Date()) {
+            throw new common_1.BadRequestException('Invalid or expired OTP');
+        }
+        await this.prisma.otpCode.update({
+            where: { id: otp.id },
+            data: { used: true },
+        });
         let user = await this.prisma.user.findUnique({
             where: { phone },
         });
@@ -355,7 +372,7 @@ let AuthService = class AuthService {
             entityId: user.id,
         });
         return {
-            message: 'Login successful',
+            message: 'OTP verified successfully',
             user: { ...userWithoutPassword, staffProfile },
             accessToken,
             refreshToken,

@@ -29,34 +29,43 @@ let BookingsController = class BookingsController {
         this.bookingsService = bookingsService;
     }
     getAllBookings(query, req) {
-        return this.bookingsService.getAllBookings(query, req.user);
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.getAllBookings(query, user);
     }
     getMyAssignedBookings(req, query) {
-        return this.bookingsService.getMyAssignedBookings(BigInt(req.user.id), query);
+        return this.bookingsService.getMyAssignedBookings(BigInt(req.user?.id || req.user?.userId || 0), query);
     }
     getBookingById(id, req) {
-        return this.bookingsService.getBookingById(BigInt(id), req.user);
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.getBookingById(BigInt(id), user);
     }
-    createBooking(dto, req) {
-        return this.bookingsService.createBooking(dto, req.user);
+    createBooking(createBookingDto, req) {
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.createBooking(createBookingDto, user);
     }
     updateBookingStatus(id, dto, req) {
-        return this.bookingsService.updateBookingStatus(BigInt(id), dto.status, req.user);
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.updateBookingStatus(BigInt(id), dto.status, user);
     }
     assignStaff(id, dto, req) {
-        return this.bookingsService.assignStaff(BigInt(id), dto.staffId, req.user);
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.assignStaff(BigInt(id), dto.staffId, user);
     }
     startJob(id, req) {
-        return this.bookingsService.startJob(BigInt(id), BigInt(req.user.id));
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.startJob(BigInt(id), BigInt(user.id));
     }
     updateProgress(id, dto, req) {
-        return this.bookingsService.updateProgress(BigInt(id), BigInt(req.user.id), dto.progressPercent, dto.staffNotes);
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.updateProgress(BigInt(id), BigInt(user.id), dto.progressPercent, dto.staffNotes);
     }
     completeJob(id, req) {
-        return this.bookingsService.completeJob(BigInt(id), BigInt(req.user.id));
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.completeJob(BigInt(id), BigInt(user.id));
     }
     cancelBooking(id, dto, req) {
-        return this.bookingsService.cancelBooking(BigInt(id), dto.reason, req.user);
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.cancelBooking(BigInt(id), dto.reason, user);
     }
     async uploadBookingPhoto(file, bookingIdStr, photoType, req) {
         const bookingId = BigInt(bookingIdStr);
@@ -97,11 +106,9 @@ __decorate([
 ], BookingsController.prototype, "getBookingById", null);
 __decorate([
     (0, common_1.Post)(),
+    (0, roles_decorator_1.Roles)('customer', 'company_admin', 'admin'),
     (0, swagger_1.ApiOperation)({ summary: 'Create a new booking' }),
-    (0, swagger_1.ApiResponse)({
-        status: 201,
-        description: 'The booking has been successfully created.',
-    }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Booking successfully created.' }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),

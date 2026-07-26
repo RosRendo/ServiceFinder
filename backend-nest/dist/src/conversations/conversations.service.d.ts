@@ -50,6 +50,9 @@ export declare class ConversationsService {
             } | null;
         }[];
     }>;
+    getUnreadCount(userId: bigint): Promise<{
+        unreadCount: number;
+    }>;
     getMessages(conversationId: bigint, userId: bigint, query: any): Promise<{
         data: {
             id: string;

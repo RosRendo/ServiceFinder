@@ -6,6 +6,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
 import { useAuthStore } from "@/store/authStore";
+import { Theme } from "@/constants/theme";
 
 interface CompanySidebarProps {
   isOpen: boolean;
@@ -15,16 +16,7 @@ interface CompanySidebarProps {
 const { width } = Dimensions.get("window");
 const SIDEBAR_WIDTH = Math.min(width * 0.78, 300);
 
-const T = {
-  bg: "#0A192F",          // deep navy panel
-  surface: "#112240",     // slightly lighter navy for items
-  active: "#1E3A8A",
-  text: "#E2E8F0",
-  textMuted: "#94A3B8",
-  accent: "#60A5FA",
-  border: "rgba(255,255,255,0.08)",
-  error: "#F87171",
-};
+const T = Theme.colors;
 
 const NAV_ITEMS = [
   { name: "Dashboard",      icon: "view-dashboard-outline",   route: "/(company)/dashboard" },
@@ -51,30 +43,13 @@ export default function CompanySidebar({ isOpen, onClose }: CompanySidebarProps)
   useEffect(() => {
     if (isOpen) {
       Animated.parallel([
-        Animated.spring(translateX, {
-          toValue: 0,
-          damping: 20,
-          stiffness: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(backdropOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
+        Animated.spring(translateX, { toValue: 0, damping: 22, stiffness: 220, useNativeDriver: true }),
+        Animated.timing(backdropOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(translateX, {
-          toValue: -SIDEBAR_WIDTH,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-        Animated.timing(backdropOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
+        Animated.timing(translateX, { toValue: -SIDEBAR_WIDTH, duration: 220, useNativeDriver: true }),
+        Animated.timing(backdropOpacity, { toValue: 0, duration: 220, useNativeDriver: true }),
       ]).start();
     }
   }, [isOpen]);
@@ -96,15 +71,14 @@ export default function CompanySidebar({ isOpen, onClose }: CompanySidebarProps)
 
   const navigate = (route: string) => {
     onClose();
-    // Small delay so sidebar closes smoothly before navigation
     setTimeout(() => router.push(route as any), 50);
   };
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents={isOpen ? "auto" : "none"}>
+    <View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]} pointerEvents={isOpen ? "auto" : "none"}>
       {/* Backdrop */}
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: backdropOpacity }]}>
-        <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.6)" }]} onPress={onClose} />
+        <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(10,25,47,0.4)" }]} onPress={onClose} />
       </Animated.View>
 
       {/* Sidebar Panel */}
@@ -113,7 +87,7 @@ export default function CompanySidebar({ isOpen, onClose }: CompanySidebarProps)
         <View style={s.panelHeader}>
           <View style={s.brandRow}>
             <View style={s.brandIcon}>
-              <MaterialCommunityIcons name="briefcase-check" size={20} color={T.accent} />
+              <MaterialCommunityIcons name="briefcase-check" size={20} color={T.primary} />
             </View>
             <View>
               <Text style={s.brandName}>ServiceFinder</Text>
@@ -121,7 +95,7 @@ export default function CompanySidebar({ isOpen, onClose }: CompanySidebarProps)
             </View>
           </View>
           <TouchableOpacity onPress={onClose} style={s.closeBtn}>
-            <MaterialCommunityIcons name="close" size={22} color={T.textMuted} />
+            <MaterialCommunityIcons name="close" size={20} color={T.text2} />
           </TouchableOpacity>
         </View>
 
@@ -145,11 +119,7 @@ export default function CompanySidebar({ isOpen, onClose }: CompanySidebarProps)
         <View style={s.divider} />
 
         {/* Nav Items */}
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={s.navList}
-          bounces={false}
-        >
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.navList} bounces={false}>
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.route || pathname.startsWith(item.route.replace("(tabs)/", ""));
             return (
@@ -157,16 +127,10 @@ export default function CompanySidebar({ isOpen, onClose }: CompanySidebarProps)
                 key={item.route}
                 onPress={() => navigate(item.route)}
                 style={[s.navItem, isActive && s.navItemActive]}
-                activeOpacity={0.75}
+                activeOpacity={0.7}
               >
-                <MaterialCommunityIcons
-                  name={item.icon as any}
-                  size={21}
-                  color={isActive ? T.accent : T.textMuted}
-                />
-                <Text style={[s.navLabel, isActive && s.navLabelActive]}>
-                  {item.name}
-                </Text>
+                <MaterialCommunityIcons name={item.icon as any} size={21} color={isActive ? T.primary : T.text2} />
+                <Text style={[s.navLabel, isActive && s.navLabelActive]}>{item.name}</Text>
                 {isActive && <View style={s.activeIndicator} />}
               </TouchableOpacity>
             );
@@ -176,8 +140,8 @@ export default function CompanySidebar({ isOpen, onClose }: CompanySidebarProps)
         <View style={s.divider} />
 
         {/* Logout */}
-        <TouchableOpacity onPress={handleLogout} style={s.logoutBtn} activeOpacity={0.8}>
-          <MaterialCommunityIcons name="logout" size={21} color={T.error} />
+        <TouchableOpacity onPress={handleLogout} style={s.logoutBtn} activeOpacity={0.7}>
+          <MaterialCommunityIcons name="logout" size={20} color={T.error} />
           <Text style={s.logoutText}>Log Out</Text>
         </TouchableOpacity>
       </Animated.View>
@@ -187,61 +151,36 @@ export default function CompanySidebar({ isOpen, onClose }: CompanySidebarProps)
 
 const s = StyleSheet.create({
   panel: {
-    position: "absolute", top: 0, left: 0, bottom: 0,
-    width: SIDEBAR_WIDTH,
-    backgroundColor: T.bg,
-    paddingTop: Platform.OS === "android" ? 40 : 56,
-    paddingBottom: Platform.OS === "ios" ? 34 : 24,
+    position: "absolute", top: 0, left: 0, bottom: 0, width: SIDEBAR_WIDTH,
+    backgroundColor: Theme.colors.surface,
+    paddingTop: Platform.OS === "android" ? 40 : 56, paddingBottom: Platform.OS === "ios" ? 34 : 24,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 4, height: 0 }, shadowOpacity: 0.1, shadowRadius: 24 },
+      android: { elevation: 16 }
+    })
   },
-  panelHeader: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 20, paddingBottom: 16,
-  },
+  panelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 16 },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  brandIcon: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: "rgba(96,165,250,0.12)",
-    alignItems: "center", justifyContent: "center",
-  },
-  brandName: { fontSize: 15, fontWeight: "800", color: T.text },
-  brandRole: { fontSize: 11, fontWeight: "500", color: T.textMuted, marginTop: 1 },
-  closeBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: T.surface, alignItems: "center", justifyContent: "center",
-  },
+  brandIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: Theme.colors.primaryLight, alignItems: "center", justifyContent: "center" },
+  brandName: { fontSize: 16, fontWeight: "800", color: Theme.colors.text1 },
+  brandRole: { fontSize: 12, fontWeight: "600", color: Theme.colors.text3, marginTop: 1 },
+  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Theme.colors.bg, alignItems: "center", justifyContent: "center" },
 
-  userCard: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    marginHorizontal: 16, marginBottom: 16,
-    backgroundColor: T.surface, borderRadius: 14, padding: 12,
-  },
-  userAvatar: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: T.active, alignItems: "center", justifyContent: "center",
-  },
+  userCard: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 16, marginBottom: 16, backgroundColor: Theme.colors.bg, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: Theme.colors.border },
+  userAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: Theme.colors.primary, alignItems: "center", justifyContent: "center" },
   userInitial: { fontSize: 16, fontWeight: "800", color: "#fff" },
-  userName: { fontSize: 14, fontWeight: "700", color: T.text },
-  userEmail: { fontSize: 11, fontWeight: "500", color: T.textMuted, marginTop: 2 },
+  userName: { fontSize: 14, fontWeight: "700", color: Theme.colors.text1 },
+  userEmail: { fontSize: 12, fontWeight: "500", color: Theme.colors.text3, marginTop: 2 },
 
-  divider: { height: 1, backgroundColor: T.border, marginHorizontal: 16, marginVertical: 8 },
+  divider: { height: 1, backgroundColor: Theme.colors.border, marginHorizontal: 16, marginVertical: 8 },
 
   navList: { paddingHorizontal: 12, paddingVertical: 4 },
-  navItem: {
-    flexDirection: "row", alignItems: "center", gap: 14,
-    paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12,
-    marginBottom: 2, position: "relative",
-  },
-  navItemActive: { backgroundColor: "rgba(96,165,250,0.10)" },
-  navLabel: { fontSize: 14, fontWeight: "600", color: T.textMuted, flex: 1 },
-  navLabelActive: { color: T.accent, fontWeight: "700" },
-  activeIndicator: {
-    position: "absolute", left: 0, top: 8, bottom: 8,
-    width: 3, borderRadius: 2, backgroundColor: T.accent,
-  },
+  navItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12, marginBottom: 4, position: "relative" },
+  navItemActive: { backgroundColor: Theme.colors.primaryLight },
+  navLabel: { fontSize: 14, fontWeight: "600", color: Theme.colors.text2, flex: 1 },
+  navLabelActive: { color: Theme.colors.primary, fontWeight: "800" },
+  activeIndicator: { position: "absolute", left: 0, top: 10, bottom: 10, width: 4, borderRadius: 2, backgroundColor: Theme.colors.primary },
 
-  logoutBtn: {
-    flexDirection: "row", alignItems: "center", gap: 14,
-    paddingHorizontal: 26, paddingVertical: 16,
-  },
-  logoutText: { fontSize: 14, fontWeight: "700", color: T.error },
+  logoutBtn: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 28, paddingVertical: 18 },
+  logoutText: { fontSize: 14, fontWeight: "700", color: Theme.colors.error },
 });

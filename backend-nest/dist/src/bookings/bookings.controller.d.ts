@@ -25,7 +25,7 @@ export declare class BookingsController {
     getBookingById(id: string, req: any): Promise<{
         booking: any;
     }>;
-    createBooking(dto: CreateBookingDto, req: any): Promise<{
+    createBooking(createBookingDto: CreateBookingDto, req: any): Promise<{
         success: boolean;
         message: string;
         data: {

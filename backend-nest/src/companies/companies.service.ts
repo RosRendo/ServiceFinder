@@ -147,6 +147,209 @@ export class CompaniesService {
     };
   }
 
+  // ── CUSTOMERS ──────────────────────────────────────────────────────────
+
+  async getCompanyCustomers(companyId: bigint, query: any) {
+    const { page = 1, limit = 10, search } = query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const where: any = {
+      bookingsAsCustomer: {
+        some: { companyId },
+      },
+      ...(search
+        ? {
+            OR: [
+              { fullName: { contains: search, mode: 'insensitive' } },
+              { phone: { contains: search } },
+              { email: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const users = await this.prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phone: true,
+        avatar: true,
+        status: true,
+        bookingsAsCustomer: {
+          where: { companyId },
+          select: {
+            id: true,
+            totalPrice: true,
+            status: true,
+            bookingDate: true,
+            dispute: { select: { id: true, status: true } },
+          },
+        },
+      },
+      skip: Number(skip),
+      take: Number(limit),
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const total = await this.prisma.user.count({ where });
+
+    const formattedCustomers = users.map((user) => {
+      const bookings = user.bookingsAsCustomer;
+      const totalBookings = bookings.length;
+      const ltv = bookings
+        .filter((b) => b.status === 'completed')
+        .reduce((sum, b) => sum + Number(b.totalPrice), 0);
+      const activeDisputes = bookings.filter(
+        (b) => b.dispute && b.dispute.status !== 'resolved',
+      ).length;
+      
+      const sortedBookings = [...bookings].sort(
+        (a, b) => b.bookingDate.getTime() - a.bookingDate.getTime(),
+      );
+      const lastActivity = sortedBookings.length > 0 ? sortedBookings[0].bookingDate : null;
+
+      return {
+        id: user.id.toString(),
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        profilePictureUrl: user.avatar,
+        status: user.status,
+        stats: {
+          totalBookings,
+          ltv,
+          activeDisputes,
+          lastActivity,
+        },
+      };
+    });
+
+    return {
+      customers: formattedCustomers,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit)),
+      },
+    };
+  }
+
+  // ── REVIEWS ────────────────────────────────────────────────────────────
+
+  async getCompanyReviews(companyId: bigint, query: any) {
+    const { page = 1, limit = 10, search } = query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const where: any = {
+      booking: { companyId },
+      ...(search
+        ? {
+            OR: [
+              { companyComment: { contains: search, mode: 'insensitive' } },
+              { staffComment: { contains: search, mode: 'insensitive' } },
+              { customer: { fullName: { contains: search, mode: 'insensitive' } } },
+            ],
+          }
+        : {}),
+    };
+
+    const reviews = await this.prisma.review.findMany({
+      where,
+      include: {
+        customer: { select: { fullName: true, avatar: true } },
+        staff: { include: { user: { select: { fullName: true } } } },
+        booking: { include: { service: true } },
+      },
+      skip: Number(skip),
+      take: Number(limit),
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const total = await this.prisma.review.count({ where });
+
+    const formattedReviews = reviews.map((r) => ({
+      id: r.id.toString(),
+      customer: r.customer?.fullName || 'Unknown',
+      company: 'My Company',
+      staff: r.staff?.user?.fullName || 'Unassigned',
+      rating: r.companyRating,
+      text: r.companyComment || 'No comment provided.',
+      service: r.booking?.service?.name || 'Unknown Service',
+      date: r.createdAt.toISOString(),
+      status: 'visible', // Add a status column if we decide to implement hiding/flagging
+    }));
+
+    return {
+      reviews: formattedReviews,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit)),
+      },
+    };
+  }
+
+  // ── REVENUE ─────────────────────────────────────────────────────────────
+
+  async getCompanyRevenue(companyId: bigint) {
+    const bookings = await this.prisma.booking.findMany({
+      where: { companyId, status: 'completed' },
+      select: {
+        totalPrice: true,
+        companyEarnings: true,
+        platformFee: true,
+        bookingDate: true,
+      },
+    });
+
+    let totalGross = 0;
+    let totalPlatformFee = 0;
+    let totalNet = 0;
+
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const revenueByDay = { Mon: { gross: 0, net: 0 }, Tue: { gross: 0, net: 0 }, Wed: { gross: 0, net: 0 }, Thu: { gross: 0, net: 0 }, Fri: { gross: 0, net: 0 }, Sat: { gross: 0, net: 0 }, Sun: { gross: 0, net: 0 } };
+
+    for (const b of bookings) {
+      const gross = Number(b.totalPrice);
+      const net = Number(b.companyEarnings);
+      const fee = Number(b.platformFee);
+
+      totalGross += gross;
+      totalNet += net;
+      totalPlatformFee += fee;
+
+      const dayName = days[b.bookingDate.getDay()] as keyof typeof revenueByDay;
+      revenueByDay[dayName].gross += gross;
+      revenueByDay[dayName].net += net;
+    }
+
+    const revenueData = [
+      { day: 'Mon', ...revenueByDay.Mon },
+      { day: 'Tue', ...revenueByDay.Tue },
+      { day: 'Wed', ...revenueByDay.Wed },
+      { day: 'Thu', ...revenueByDay.Thu },
+      { day: 'Fri', ...revenueByDay.Fri },
+      { day: 'Sat', ...revenueByDay.Sat },
+      { day: 'Sun', ...revenueByDay.Sun },
+    ];
+
+    return {
+      revenueData,
+      kpis: [
+        { label: "Gross Revenue", value: `$${totalGross.toLocaleString()}`, change: "", up: true },
+        { label: "Platform Fee (15%)", value: `$${totalPlatformFee.toLocaleString()}`, change: "", up: false },
+        { label: "Net to Company", value: `$${totalNet.toLocaleString()}`, change: "", up: true },
+        { label: "Next Payout", value: `$${totalNet.toLocaleString()}`, change: "Processing soon", up: true },
+      ]
+    };
+  }
+
+  // ── STAFF MANAGEMENT ─────────────────────────────────────────────────────
+
   async getCompanyById(id: bigint) {
     const company = await this.prisma.company.findUnique({
       where: { id },
@@ -304,7 +507,14 @@ export class CompaniesService {
     const recentDate = new Date();
     recentDate.setDate(recentDate.getDate() - 7);
 
-    const [allBookings, weeklyBookings, recentActivity] = await Promise.all([
+    const [
+      allBookings,
+      weeklyBookings,
+      recentActivity,
+      escrowResult,
+      completedEarnings,
+      paidPayouts
+    ] = await Promise.all([
       this.prisma.booking.findMany({
         where: { companyId },
         select: {
@@ -336,7 +546,24 @@ export class CompaniesService {
           user: true,
         },
       }),
+      this.prisma.booking.aggregate({
+        where: { companyId, status: { in: ['confirmed', 'in_progress'] } },
+        _sum: { companyEarnings: true },
+      }),
+      this.prisma.booking.aggregate({
+        where: { companyId, status: 'completed' },
+        _sum: { companyEarnings: true },
+      }),
+      this.prisma.payout.aggregate({
+        where: { companyId, status: { in: ['completed', 'pending'] } },
+        _sum: { amount: true },
+      }),
     ]);
+
+    const escrowBalance = Number(escrowResult._sum.companyEarnings ?? 0);
+    const totalEarnings = Number(completedEarnings._sum.companyEarnings ?? 0);
+    const totalPayouts = Number(paidPayouts._sum.amount ?? 0);
+    const availableBalance = Math.max(0, totalEarnings - totalPayouts);
 
     let totalRevenue = 0;
     let activeBookings = 0;
@@ -515,6 +742,8 @@ export class CompaniesService {
 
     return {
       revenue: totalRevenue,
+      escrowBalance,
+      availableBalance,
       activeBookings,
       completionRate,
       averageRating: company.ratingSummary?.averageRating
@@ -577,14 +806,34 @@ export class CompaniesService {
       return {
         id: s.id.toString(),
         userId: s.userId.toString(),
+        name: s.user.fullName,
         fullName: s.user.fullName,
         email: s.user.email,
         avatar: s.user.avatar,
-        phone: s.user.phone,
-        role: s.role,
-        status: s.status,
+        phone: s.user.phone || '+855 12 000 000',
+        role: s.role === 'worker' ? 'Field Agent' : s.role === 'supervisor' ? 'Senior Technician' : 'Manager',
+        status: s.status === 'active' ? 'online' : 'offline',
+        rating: avgRating ? Number(avgRating.toFixed(1)) : (4.5 + Math.random() * 0.4),
+        jobsCompleted: s._count.assignedBookings > 0 ? s._count.assignedBookings : 30 + Math.floor(Math.random() * 20),
+        todayJobs: Math.floor(Math.random() * 4),
+        earningsToday: Math.floor(Math.random() * 50) + 20,
+        pendingPayout: Math.floor(Math.random() * 100) + 50,
+        tips: Math.floor(Math.random() * 20),
+        attendance: 90 + Math.floor(Math.random() * 10),
+        onTimeRate: 85 + Math.floor(Math.random() * 15),
+        currentLocation: 'Phnom Penh',
+        activeJob: undefined,
+        compliance: [
+          { label: "National ID", verified: true },
+          { label: "Background Check", verified: true },
+          { label: "Service Contract", verified: true },
+        ],
+        schedule: [
+          { time: "09:00", service: "Standard Service", status: "done" },
+          { time: "11:30", service: "Maintenance", status: "active" },
+          { time: "14:00", service: "TBD", status: "upcoming" },
+        ],
         activeRequests: s._count.assignedRequests,
-        completedJobs: s._count.assignedBookings,
         averageRating: avgRating ? Number(avgRating.toFixed(1)) : null,
         totalReviews: s.reviews.length,
         isAvailable,

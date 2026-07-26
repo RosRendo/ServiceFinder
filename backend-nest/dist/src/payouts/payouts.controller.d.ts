@@ -6,12 +6,12 @@ export declare class PayoutsController {
     getPayouts(req: any): Promise<{
         payouts: {
             id: number;
+            status: string;
             companyId: bigint | null;
+            method: string;
+            amount: import("@prisma/client/runtime/library").Decimal;
             staffId: bigint | null;
             payoutType: string;
-            amount: import("@prisma/client/runtime/library").Decimal;
-            status: string;
-            method: string;
             transactionId: string | null;
             requestedAt: Date;
             processedAt: Date | null;
@@ -25,12 +25,12 @@ export declare class PayoutsController {
         message: string;
         payout: {
             id: number;
+            status: string;
             companyId: bigint | null;
+            method: string;
+            amount: import("@prisma/client/runtime/library").Decimal;
             staffId: bigint | null;
             payoutType: string;
-            amount: import("@prisma/client/runtime/library").Decimal;
-            status: string;
-            method: string;
             transactionId: string | null;
             requestedAt: Date;
             processedAt: Date | null;
@@ -39,12 +39,12 @@ export declare class PayoutsController {
     getStaffPayouts(staffId: string, req: any): Promise<{
         payouts: {
             id: number;
+            status: string;
             companyId: bigint | null;
+            method: string;
+            amount: import("@prisma/client/runtime/library").Decimal;
             staffId: bigint | null;
             payoutType: string;
-            amount: import("@prisma/client/runtime/library").Decimal;
-            status: string;
-            method: string;
             transactionId: string | null;
             requestedAt: Date;
             processedAt: Date | null;
@@ -54,12 +54,12 @@ export declare class PayoutsController {
         message: string;
         payout: {
             id: number;
+            status: string;
             companyId: bigint | null;
+            method: string;
+            amount: import("@prisma/client/runtime/library").Decimal;
             staffId: bigint | null;
             payoutType: string;
-            amount: import("@prisma/client/runtime/library").Decimal;
-            status: string;
-            method: string;
             transactionId: string | null;
             requestedAt: Date;
             processedAt: Date | null;
@@ -69,12 +69,12 @@ export declare class PayoutsController {
         message: string;
         payout: {
             id: number;
+            status: string;
             companyId: bigint | null;
+            method: string;
+            amount: import("@prisma/client/runtime/library").Decimal;
             staffId: bigint | null;
             payoutType: string;
-            amount: import("@prisma/client/runtime/library").Decimal;
-            status: string;
-            method: string;
             transactionId: string | null;
             requestedAt: Date;
             processedAt: Date | null;
@@ -83,24 +83,24 @@ export declare class PayoutsController {
     getPaymentMethods(req: any): Promise<{
         paymentMethods: {
             id: number;
+            createdAt: Date;
             companyId: bigint;
             type: string;
             accountName: string;
             isDefault: boolean;
             isVerified: boolean;
-            createdAt: Date;
         }[];
     }>;
     addPaymentMethod(req: any, body: any): Promise<{
         message: string;
         paymentMethod: {
             id: number;
+            createdAt: Date;
             companyId: bigint;
             type: string;
             accountName: string;
             isDefault: boolean;
             isVerified: boolean;
-            createdAt: Date;
         };
     }>;
     updatePaymentMethod(id: number, req: any, body: any): Promise<{

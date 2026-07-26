@@ -20,6 +20,9 @@ export declare class NotificationsController {
     markAsRead(req: any, id: string): Promise<{
         success: boolean;
     }>;
+    deleteNotification(req: any, id: string): Promise<{
+        success: boolean;
+    }>;
     markAllAsRead(req: any): Promise<{
         message: string;
     }>;

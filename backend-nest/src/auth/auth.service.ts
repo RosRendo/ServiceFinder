@@ -333,24 +333,52 @@ export class AuthService {
     };
   }
 
-  async verifyFirebaseToken(idToken: string) {
-    if (!idToken) {
-      throw new BadRequestException('Firebase ID token is required');
-    }
-
-    let decodedToken;
-    try {
-      const { getAuth } = require('firebase-admin/auth');
-      decodedToken = await getAuth().verifyIdToken(idToken);
-    } catch (error: any) {
-      console.error('Firebase verifyIdToken error detail:', error.message || error);
-      throw new UnauthorizedException(`Firebase Auth Error: ${error.message || 'Invalid token'}`);
-    }
-
-    const phone = decodedToken.phone_number;
+  async requestOtp(phone: string) {
     if (!phone) {
-      throw new BadRequestException('Firebase token does not contain a verified phone number');
+      throw new BadRequestException('Phone number is required');
     }
+
+    // Invalidate previous OTPs for this phone
+    await this.prisma.otpCode.updateMany({
+      where: { phone, used: false },
+      data: { used: true },
+    });
+
+    // In a real app, you would integrate Twilio here.
+    // For now, we just generate a simple random code or use 123456
+    const code = '123456'; // Hardcoded for testing
+
+    await this.prisma.otpCode.create({
+      data: {
+        phone,
+        code,
+        expiresAt: new Date(Date.now() + 10 * 60000), // 10 minutes expiry
+      },
+    });
+
+    console.log(`[SMS MOCK] OTP for ${phone} is: ${code}`);
+
+    return { success: true, message: 'OTP sent successfully (Use 123456 for testing)' };
+  }
+
+  async verifyOtpToken(phone: string, code: string) {
+    if (!phone || !code) {
+      throw new BadRequestException('Phone and code are required');
+    }
+
+    const otp = await this.prisma.otpCode.findFirst({
+      where: { phone, code, used: false },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!otp || otp.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired OTP');
+    }
+
+    await this.prisma.otpCode.update({
+      where: { id: otp.id },
+      data: { used: true },
+    });
 
     // Find user or create new one
     let user = await this.prisma.user.findUnique({
@@ -403,7 +431,7 @@ export class AuthService {
     });
 
     return {
-      message: 'Login successful',
+      message: 'OTP verified successfully',
       user: { ...userWithoutPassword, staffProfile },
       accessToken,
       refreshToken,

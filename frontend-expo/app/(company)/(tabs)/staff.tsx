@@ -1,11 +1,8 @@
-/**
- * Company Staff — Premium Deep Navy Redesign (Unified Architecture)
- */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Image } from "expo-image";
 import {
   Text, View, TouchableOpacity, TextInput,
-  ActivityIndicator, RefreshControl, StyleSheet, Platform, ScrollView
+  ActivityIndicator, RefreshControl, StyleSheet, Platform, ScrollView, Animated
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -14,6 +11,7 @@ import { api } from "@/store/authStore";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { FlashList } from "@shopify/flash-list";
 import { Theme } from "@/constants/theme";
+import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 
 const T = Theme.colors;
 
@@ -26,6 +24,50 @@ const FAB_SHADOW = Platform.select({
   ios: { shadowColor: T.accentMid, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.28, shadowRadius: 14 },
   android: { elevation: 8 },
 });
+
+// Mock center (San Francisco)
+const BASE_LAT = 37.7749;
+const BASE_LNG = -122.4194;
+
+const getMockLocation = (id: string) => {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const offsetLat = (hash % 100) / 3000;
+  const offsetLng = ((hash >> 2) % 100) / 3000;
+  return {
+    latitude: BASE_LAT + offsetLat,
+    longitude: BASE_LNG + offsetLng,
+  };
+};
+
+const PulseDot = ({ color }: { color: string }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(0.8)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(scale, { toValue: 2.5, duration: 1500, useNativeDriver: true }),
+          Animated.timing(scale, { toValue: 1, duration: 0, useNativeDriver: true })
+        ]),
+        Animated.sequence([
+          Animated.timing(opacity, { toValue: 0, duration: 1500, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0.8, duration: 0, useNativeDriver: true })
+        ])
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <View style={s.pulseWrap}>
+      <Animated.View style={[s.pulseRing, { backgroundColor: color, transform: [{ scale }], opacity }]} />
+      <View style={[s.pulseCore, { backgroundColor: color }]} />
+    </View>
+  );
+};
 
 export default function Staff() {
   const router = useRouter();
@@ -86,120 +128,159 @@ export default function Staff() {
   };
 
   return (
-    <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
-      {/* Header */}
-      <View style={s.header}>
-        <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => setCompanyOpen(true)} style={s.menuBtn}>
-            <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
-          </TouchableOpacity>
-          <Text style={s.headerTitle}>Team Directory</Text>
-        </View>
-      </View>
-
-      {/* Search & Filters */}
-      <View style={s.filtersContainer}>
-        <View style={s.searchBox}>
-          <MaterialCommunityIcons name="magnify" size={22} color={T.text3} />
-          <TextInput
-            placeholder="Search by name or role..."
-            placeholderTextColor={T.text3}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            style={s.searchInput}
-            autoCapitalize="none"
-          />
-          {searchQuery ? (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <MaterialCommunityIcons name="close-circle" size={20} color={T.text3} />
+    <View style={s.root}>
+      <SafeAreaView edges={['top', 'left', 'right']} style={s.headerArea}>
+        <View style={s.header}>
+          <View style={s.headerLeft}>
+            <TouchableOpacity onPress={() => setCompanyOpen(true)} style={s.menuBtn}>
+              <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
             </TouchableOpacity>
-          ) : null}
+            <Text style={s.headerTitle}>Fleet Map</Text>
+          </View>
         </View>
+      </SafeAreaView>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterChips}>
-          {filters.map((filter) => {
-            const isActive = activeFilter === filter.id;
-            return (
-              <TouchableOpacity
-                key={filter.id}
-                onPress={() => setActiveFilter(filter.id)}
-                style={[s.filterChip, isActive && s.filterChipActive]}
-              >
-                <Text style={[s.filterChipText, isActive && s.filterChipTextActive]}>{filter.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+      <View style={s.mapContainer}>
+        {Platform.OS !== 'web' ? (
+          <MapView
+            provider={PROVIDER_DEFAULT}
+            style={StyleSheet.absoluteFillObject}
+            initialRegion={{
+              latitude: BASE_LAT,
+              longitude: BASE_LNG,
+              latitudeDelta: 0.08,
+              longitudeDelta: 0.08,
+            }}
+          >
+            {filteredStaff.map((member) => {
+              const loc = getMockLocation(member.id?.toString() || '0');
+              const isAct = member.status === 'active';
+              return (
+                <Marker key={member.id} coordinate={loc} title={member.fullName}>
+                  <View style={s.markerContainer}>
+                    {isAct && <PulseDot color={T.success} />}
+                    <Image
+                      source={{ uri: member.user?.avatar || member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.fullName || 'S')}&background=1E3A8A&color=fff` }}
+                      style={[s.markerAvatar, !isAct && s.markerAvatarInactive]}
+                    />
+                  </View>
+                </Marker>
+              );
+            })}
+          </MapView>
+        ) : (
+          <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#E2E8F0' }]}>
+             <MaterialCommunityIcons name="map-marker-off" size={48} color="#94A3B8" />
+             <Text style={{ marginTop: 8, color: "#64748B", fontWeight: '600' }}>Map unavailable on Web</Text>
+          </View>
+        )}
       </View>
 
-      {/* Staff List */}
-      {loading && !refreshing ? (
-        <View style={s.loadingBox}>
-          <ActivityIndicator size="large" color={T.accent} />
-        </View>
-      ) : (
-        <FlashList
-          data={filteredStaff}
-          keyExtractor={(item) => item.id?.toString()}
-          estimatedItemSize={160}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadStaff(true)} tintColor={T.accent} />}
-          contentContainerStyle={s.listContent}
-          ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={s.emptyBox}>
-              <MaterialCommunityIcons name="account-group" size={48} color={T.text3} style={{ marginBottom: 16 } as any} />
-              <Text style={s.emptyText}>{searchQuery ? `No results for "${searchQuery}"` : "Your team is empty"}</Text>
-              <Text style={s.emptySubText}>{searchQuery ? "Try a different name or role" : "Invite your first staff member to get started."}</Text>
-            </View>
-          }
-          renderItem={({ item: member }) => {
-            const sStyle = getStatusStyle(member.status);
-            return (
-              <TouchableOpacity
-                style={s.userCard}
-                onPress={() => router.push(`/(company)/staff/${member.id}` as any)}
-                activeOpacity={0.8}
-              >
-                <View style={s.cardHeader}>
-                  <Image
-                    source={{ uri: member.user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.fullName || 'S')}&background=1E3A8A&color=fff` }}
-                    style={s.avatar}
-                  />
-                  <View style={s.cardHeaderInfo}>
-                    <Text style={s.userName} numberOfLines={1}>{member.fullName || "Unknown"}</Text>
-                    <Text style={s.userEmail} numberOfLines={1}>{member.email || "No Email"}</Text>
-                  </View>
-                  <View style={[s.statusBadge, { backgroundColor: sStyle.bg }]}>
-                    <Text style={[s.statusText, { color: sStyle.color }]}>{member.status || "inactive"}</Text>
-                  </View>
-                </View>
-
-                <View style={s.cardBody}>
-                  <View style={s.infoBlock}>
-                    <Text style={s.infoLabel}>Role</Text>
-                    <View style={s.roleRow}>
-                      <View style={[s.roleDot, { backgroundColor: getRoleColor(member.role) }]} />
-                      <Text style={s.infoValue}>{member.role?.replace('_', ' ') || "Staff"}</Text>
-                    </View>
-                  </View>
-                  <View style={s.infoBlock}>
-                    <Text style={s.infoLabel}>Rating</Text>
-                    <View style={s.roleRow}>
-                      <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
-                      <Text style={s.infoValue}>{member.averageRating ? Number(member.averageRating).toFixed(1) : "N/A"}</Text>
-                    </View>
-                  </View>
-                  <View style={s.infoBlock}>
-                    <Text style={s.infoLabel}>Joined</Text>
-                    <Text style={s.infoValue}>{member.createdAt ? new Date(member.createdAt).toLocaleDateString() : "-"}</Text>
-                  </View>
-                </View>
+      <View style={s.listContainer}>
+        {/* Search & Filters */}
+        <View style={s.filtersContainer}>
+          <View style={s.searchBox}>
+            <MaterialCommunityIcons name="magnify" size={22} color={T.text3} />
+            <TextInput
+              placeholder="Search fleet..."
+              placeholderTextColor={T.text3}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={s.searchInput}
+              autoCapitalize="none"
+            />
+            {searchQuery ? (
+              <TouchableOpacity onPress={() => setSearchQuery("")}>
+                <MaterialCommunityIcons name="close-circle" size={20} color={T.text3} />
               </TouchableOpacity>
-            );
-          }}
-        />
-      )}
+            ) : null}
+          </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterChips}>
+            {filters.map((filter) => {
+              const isActive = activeFilter === filter.id;
+              return (
+                <TouchableOpacity
+                  key={filter.id}
+                  onPress={() => setActiveFilter(filter.id)}
+                  style={[s.filterChip, isActive && s.filterChipActive]}
+                >
+                  <Text style={[s.filterChipText, isActive && s.filterChipTextActive]}>{filter.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Staff List */}
+        {loading && !refreshing ? (
+          <View style={s.loadingBox}>
+            <ActivityIndicator size="large" color={T.accent} />
+          </View>
+        ) : (
+          <FlashList
+            data={filteredStaff}
+            keyExtractor={(item) => item.id?.toString()}
+            estimatedItemSize={160}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadStaff(true)} tintColor={T.accent} />}
+            contentContainerStyle={s.listContent}
+            ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={s.emptyBox}>
+                <MaterialCommunityIcons name="account-group" size={48} color={T.text3} style={{ marginBottom: 16 } as any} />
+                <Text style={s.emptyText}>{searchQuery ? `No results for "${searchQuery}"` : "Your team is empty"}</Text>
+                <Text style={s.emptySubText}>{searchQuery ? "Try a different name or role" : "Invite your first staff member to get started."}</Text>
+              </View>
+            }
+            renderItem={({ item: member }) => {
+              const sStyle = getStatusStyle(member.status);
+              return (
+                <TouchableOpacity
+                  style={s.userCard}
+                  onPress={() => router.push(`/(company)/staff/${member.id}` as any)}
+                  activeOpacity={0.8}
+                >
+                  <View style={s.cardHeader}>
+                    <Image
+                      source={{ uri: member.user?.avatar || member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.fullName || 'S')}&background=1E3A8A&color=fff` }}
+                      style={s.avatar}
+                    />
+                    <View style={s.cardHeaderInfo}>
+                      <Text style={s.userName} numberOfLines={1}>{member.fullName || "Unknown"}</Text>
+                      <Text style={s.userEmail} numberOfLines={1}>{member.email || "No Email"}</Text>
+                    </View>
+                    <View style={[s.statusBadge, { backgroundColor: sStyle.bg }]}>
+                      <Text style={[s.statusText, { color: sStyle.color }]}>{member.status || "inactive"}</Text>
+                    </View>
+                  </View>
+
+                  <View style={s.cardBody}>
+                    <View style={s.infoBlock}>
+                      <Text style={s.infoLabel}>Role</Text>
+                      <View style={s.roleRow}>
+                        <View style={[s.roleDot, { backgroundColor: getRoleColor(member.role) }]} />
+                        <Text style={s.infoValue}>{member.role?.replace('_', ' ') || "Staff"}</Text>
+                      </View>
+                    </View>
+                    <View style={s.infoBlock}>
+                      <Text style={s.infoLabel}>Rating</Text>
+                      <View style={s.roleRow}>
+                        <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
+                        <Text style={s.infoValue}>{member.averageRating ? Number(member.averageRating).toFixed(1) : "N/A"}</Text>
+                      </View>
+                    </View>
+                    <View style={s.infoBlock}>
+                      <Text style={s.infoLabel}>Joined</Text>
+                      <Text style={s.infoValue}>{member.joinedAt || member.createdAt ? new Date(member.joinedAt || member.createdAt).toLocaleDateString() : "-"}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        )}
+      </View>
 
       {/* Floating Action Button */}
       <TouchableOpacity 
@@ -209,21 +290,33 @@ export default function Staff() {
       >
         <MaterialCommunityIcons name="account-plus" size={26} color="#FFF" />
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
+  headerArea: { backgroundColor: T.surface, zIndex: 10, ...CARD_SHADOW },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface,
-    borderBottomWidth: 1, borderBottomColor: T.border,
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
   headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
 
+  mapContainer: { flex: 0.45, backgroundColor: "#E2E8F0" },
+  
+  markerContainer: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  markerAvatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: "#FFF" },
+  markerAvatarInactive: { opacity: 0.5, borderColor: T.warning },
+  
+  pulseWrap: { position: "absolute", width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  pulseRing: { position: "absolute", width: 14, height: 14, borderRadius: 7 },
+  pulseCore: { width: 10, height: 10, borderRadius: 5 },
+
+  listContainer: { flex: 0.55, backgroundColor: T.bg },
+  
   filtersContainer: { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, paddingBottom: 16 },
   searchBox: {
     flexDirection: "row", alignItems: "center", backgroundColor: T.bg,
@@ -260,7 +353,7 @@ const s = StyleSheet.create({
   roleDot: { width: 8, height: 8, borderRadius: 4 },
 
   fab: {
-    position: "absolute", bottom: 24, right: 24,
+    position: "absolute", bottom: 100, right: 24,
     width: 64, height: 64, borderRadius: 32,
     backgroundColor: T.accentMid,
     alignItems: "center", justifyContent: "center",

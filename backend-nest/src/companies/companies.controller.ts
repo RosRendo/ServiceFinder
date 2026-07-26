@@ -9,6 +9,7 @@ import {
   UseGuards,
   Query,
   UseInterceptors,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -87,6 +88,45 @@ export class CompaniesController {
   @ApiResponse({ status: 200, description: 'Return company staff list.' })
   getMyCompanyStaff(@CurrentUser() user: any) {
     return this.companiesService.getMyCompanyStaff(BigInt(user.id));
+  }
+
+  @Get('my-company/customers')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get customers for the user's company" })
+  @ApiResponse({ status: 200, description: 'Return company customers list.' })
+  async getMyCompanyCustomers(@CurrentUser() user: any, @Query() query: any) {
+    const company = await this.companiesService.getMyCompany(BigInt(user.id));
+    return this.companiesService.getCompanyCustomers(company.id, query);
+  }
+
+  @Get('my-company/reviews')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current company reviews' })
+  @ApiResponse({ status: 200, description: 'Return list of reviews for the current company.' })
+  async getMyCompanyReviews(@CurrentUser() user: any, @Query() query: any) {
+    const company = await this.companiesService.getMyCompany(BigInt(user.id));
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+    return this.companiesService.getCompanyReviews(company.id, query);
+  }
+
+  @Get('my-company/revenue')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current company revenue data' })
+  @ApiResponse({ status: 200, description: 'Return revenue data for the current company.' })
+  async getMyCompanyRevenue(@CurrentUser() user: any) {
+    const company = await this.companiesService.getMyCompany(BigInt(user.id));
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+    return this.companiesService.getCompanyRevenue(company.id);
   }
 
   @Get('staff/:staffId')

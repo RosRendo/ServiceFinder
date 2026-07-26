@@ -14,14 +14,20 @@ const openapi = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 class UpdateStatusDto {
     status;
+    reason;
     static _OPENAPI_METADATA_FACTORY() {
-        return { status: { required: true, type: () => String } };
+        return { status: { required: true, type: () => String }, reason: { required: false, type: () => String } };
     }
 }
 exports.UpdateStatusDto = UpdateStatusDto;
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsEnum)(['active', 'suspended', 'pending']),
+    (0, class_validator_1.IsEnum)(['active', 'suspended', 'inactive']),
     __metadata("design:type", String)
 ], UpdateStatusDto.prototype, "status", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateStatusDto.prototype, "reason", void 0);
 //# sourceMappingURL=update-status.dto.js.map

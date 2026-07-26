@@ -179,7 +179,11 @@ export declare class AuthService {
             })[];
         };
     }>;
-    verifyFirebaseToken(idToken: string): Promise<{
+    requestOtp(phone: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    verifyOtpToken(phone: string, code: string): Promise<{
         message: string;
         user: {
             staffProfile: ({

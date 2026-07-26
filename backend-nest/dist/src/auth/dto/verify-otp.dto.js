@@ -13,9 +13,10 @@ exports.VerifyOtpDto = void 0;
 const openapi = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 class VerifyOtpDto {
-    idToken;
+    phone;
+    code;
     static _OPENAPI_METADATA_FACTORY() {
-        return { idToken: { required: true, type: () => String } };
+        return { phone: { required: true, type: () => String }, code: { required: true, type: () => String } };
     }
 }
 exports.VerifyOtpDto = VerifyOtpDto;
@@ -23,5 +24,10 @@ __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
-], VerifyOtpDto.prototype, "idToken", void 0);
+], VerifyOtpDto.prototype, "phone", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], VerifyOtpDto.prototype, "code", void 0);
 //# sourceMappingURL=verify-otp.dto.js.map

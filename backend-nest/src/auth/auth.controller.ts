@@ -154,17 +154,26 @@ export class AuthController {
     return this.authService.enableMfa(BigInt(id), body.secret, body.code);
   }
 
+  @Post('request-otp')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: 'Request OTP for login/register' })
+  async requestOtp(@Body() body: { phone: string }) {
+    return this.authService.requestOtp(body.phone);
+  }
+
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @ApiOperation({ summary: 'Verify Firebase OTP Token and login/register' })
+  @ApiOperation({ summary: 'Verify OTP and login/register' })
   async verifyOtp(
     @Body() verifyOtpDto: VerifyOtpDto,
     @Res({ passthrough: true }) res: express.Response,
   ) {
     const { message, user, accessToken, refreshToken } =
-      await this.authService.verifyFirebaseToken(verifyOtpDto.idToken);
+      await this.authService.verifyOtpToken(verifyOtpDto.phone, verifyOtpDto.code);
     this.setAuthCookies(res, accessToken, refreshToken);
     return { message, user, token: accessToken };
   }

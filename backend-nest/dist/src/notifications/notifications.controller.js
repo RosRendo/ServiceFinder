@@ -23,25 +23,30 @@ let NotificationsController = class NotificationsController {
         this.notificationsService = notificationsService;
     }
     async savePushToken(req, body) {
-        const userId = BigInt(req.user.userId);
+        const userId = BigInt(req.user?.id || req.user?.userId || 0);
         await this.notificationsService.savePushToken(userId, body.pushToken);
         return { message: 'Push token saved successfully' };
     }
     async getMyNotifications(req) {
-        const userId = BigInt(req.user.userId);
+        console.log("DEBUG req.user:", req.user);
+        const userId = req.user.id ? BigInt(req.user.id) : BigInt(req.user.userId || 0);
         return this.notificationsService.getNotificationsForUser(userId);
     }
     async markAsRead(req, id) {
-        const userId = BigInt(req.user.userId);
+        const userId = BigInt(req.user?.id || req.user?.userId || 0);
         return this.notificationsService.markAsRead(BigInt(id), userId);
     }
+    async deleteNotification(req, id) {
+        const userId = BigInt(req.user?.id || req.user?.userId || 0);
+        return this.notificationsService.deleteNotification(BigInt(id), userId);
+    }
     async markAllAsRead(req) {
-        const userId = BigInt(req.user.userId);
+        const userId = BigInt(req.user?.id || req.user?.userId || 0);
         await this.notificationsService.markAllAsRead(userId);
         return { message: 'All notifications marked as read' };
     }
     async getUnreadCount(req) {
-        const userId = BigInt(req.user.userId);
+        const userId = BigInt(req.user?.id || req.user?.userId || 0);
         const count = await this.notificationsService.getUnreadCount(userId);
         return { count };
     }
@@ -75,6 +80,15 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], NotificationsController.prototype, "markAsRead", null);
 __decorate([
+    (0, common_1.Delete)(':id'),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], NotificationsController.prototype, "deleteNotification", null);
+__decorate([
     (0, common_1.Patch)('read-all'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     openapi.ApiResponse({ status: common_1.HttpStatus.OK }),
@@ -93,7 +107,7 @@ __decorate([
 ], NotificationsController.prototype, "getUnreadCount", null);
 exports.NotificationsController = NotificationsController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Controller)('api/notifications'),
+    (0, common_1.Controller)('notifications'),
     __metadata("design:paramtypes", [notifications_service_1.NotificationsService])
 ], NotificationsController);
 //# sourceMappingURL=notifications.controller.js.map

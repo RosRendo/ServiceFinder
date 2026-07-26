@@ -130,7 +130,18 @@ export default function BookingDetailsScreen() {
   useEffect(() => { loadBooking(); }, [loadBooking]);
 
   const handleCancel = () => {
-    router.push(`/(customer)/booking/cancel?bookingId=${id}` as any);
+    Alert.alert(
+      "Cancel Booking?",
+      "Our Refund Policy:\n• Cancel > 24 hrs: 100% Refund\n• Cancel < 24 hrs: 50% Penalty\n\nAre you sure you want to cancel?",
+      [
+        { text: "Keep Booking", style: "cancel" },
+        { 
+          text: "Yes, Cancel", 
+          style: "destructive", 
+          onPress: () => router.push(`/(customer)/booking/cancel?bookingId=${id}` as any) 
+        }
+      ]
+    );
   };
 
   const handlePayment = () => {
@@ -516,15 +527,30 @@ export default function BookingDetailsScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={[s.primaryBtn, { flex: 1, marginTop: 0 }]}
-              onPress={() =>
-                booking.service?.id &&
-                router.push(
-                  `/(customer)/company/service-modal/${booking.service?.id}?companyId=${booking.company?.id}` as any
-                )
-              }
+              onPress={() => {
+                if (booking?.scheduledAt) {
+                  const hoursDiff = (new Date(booking.scheduledAt).getTime() - new Date().getTime()) / (1000 * 60 * 60);
+                  if (hoursDiff < 24) {
+                    Alert.alert(
+                      "Reschedule Not Allowed",
+                      "You cannot reschedule a booking within 24 hours of the start time. Please contact the company directly.",
+                      [{ text: "OK", style: "cancel" }]
+                    );
+                    return;
+                  }
+                }
+                Alert.alert(
+                  "Reschedule",
+                  "Select a new date and time. This must be approved by the company.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Select Time", onPress: () => router.push(`/(customer)/booking/reschedule?bookingId=${id}` as any) }
+                  ]
+                );
+              }}
             >
-              <MaterialCommunityIcons name="refresh" size={18} color="#fff" style={{ marginRight: 8 }} />
-              <Text style={s.primaryBtnText}>Rebook</Text>
+              <MaterialCommunityIcons name="calendar-clock" size={18} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={s.primaryBtnText}>Reschedule</Text>
             </TouchableOpacity>
           </>
         )}

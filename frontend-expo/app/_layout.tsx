@@ -7,7 +7,29 @@ import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 import "../global.css";
 import '@/utils/i18n';
-import { Platform } from 'react-native';
+import { Platform, Text, TextInput } from 'react-native';
+
+import {
+  useFonts,
+  KantumruyPro_400Regular,
+  KantumruyPro_500Medium,
+  KantumruyPro_600SemiBold,
+  KantumruyPro_700Bold,
+} from '@expo-google-fonts/kantumruy-pro';
+
+// Suppress defaultProps warning since it's the most reliable global font hack in RN
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  if (args[0] && typeof args[0] === 'string' && args[0].includes('defaultProps will be removed')) {
+    return;
+  }
+  originalConsoleError(...args);
+};
+
+if (!(Text as any).defaultProps) (Text as any).defaultProps = {};
+(Text as any).defaultProps.style = { fontFamily: 'KantumruyPro-Regular' };
+if (!(TextInput as any).defaultProps) (TextInput as any).defaultProps = {};
+(TextInput as any).defaultProps.style = { fontFamily: 'KantumruyPro-Regular' };
 
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -30,6 +52,13 @@ function RootLayout() {
   const colorScheme = useColorScheme();
   const { user, isLoading, checkAuth } = useAuthStore();
   const [appReady, setAppReady] = useState(false);
+
+  const [fontsLoaded] = useFonts({
+    'KantumruyPro-Regular': KantumruyPro_400Regular,
+    'KantumruyPro-Medium': KantumruyPro_500Medium,
+    'KantumruyPro-SemiBold': KantumruyPro_600SemiBold,
+    'KantumruyPro-Bold': KantumruyPro_700Bold,
+  });
 
   // Connect Socket.io + push notifications once authenticated
   useRealtimeNotifications();
@@ -59,7 +88,7 @@ function RootLayout() {
     }
   }, [user, appReady, isLoading]);
 
-  if (!appReady || isLoading) {
+  if (!appReady || isLoading || !fontsLoaded) {
     return null;
   }
 

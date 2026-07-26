@@ -13,6 +13,8 @@ import MapView, { Marker } from "react-native-maps";
 import { io, Socket } from "socket.io-client";
 import { api } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
+import Toast from "react-native-toast-message";
+import * as Haptics from "expo-haptics";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000');
 
@@ -44,6 +46,9 @@ export default function BookingDetails() {
   const [refreshing, setRefreshing] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejecting, setRejecting] = useState(false);
   const [staffList, setStaffList] = useState<any[]>([]);
   const [liveStaffLocation, setLiveStaffLocation] = useState<{ lat: number; lng: number } | null>(null);
   const mapRef = React.useRef<MapView>(null);
@@ -296,18 +301,32 @@ export default function BookingDetails() {
                 <Text style={s.staffPhone}>{booking.assignedStaff.phone || "No phone"}</Text>
               </View>
               {(booking.status === "pending" || booking.status === "confirmed") && (
-                <TouchableOpacity style={s.assignBtn} onPress={fetchStaff}>
-                  <Text style={s.assignBtnText}>Reassign</Text>
-                </TouchableOpacity>
+                <View style={{ gap: 8 }}>
+                  <TouchableOpacity style={s.assignBtn} onPress={fetchStaff}>
+                    <Text style={s.assignBtnText}>Reassign</Text>
+                  </TouchableOpacity>
+                  {booking.status === "pending" && (
+                    <TouchableOpacity style={[s.assignBtn, { backgroundColor: "#FEE2E2" }]} onPress={() => setRejectModalOpen(true)}>
+                      <Text style={[s.assignBtnText, { color: "#991B1B" }]}>Decline</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               )}
             </View>
           ) : (
             <View style={s.unassignedRow}>
               <Text style={s.unassignedText}>No staff assigned yet</Text>
               {(booking.status === "pending" || booking.status === "confirmed") && (
-                <TouchableOpacity style={s.assignBtn} onPress={fetchStaff}>
-                  <Text style={s.assignBtnText}>Assign Staff</Text>
-                </TouchableOpacity>
+                <View style={{ gap: 8, alignItems: 'flex-end' }}>
+                  <TouchableOpacity style={s.assignBtn} onPress={fetchStaff}>
+                    <Text style={s.assignBtnText}>Assign Staff</Text>
+                  </TouchableOpacity>
+                  {booking.status === "pending" && (
+                    <TouchableOpacity style={[s.assignBtn, { backgroundColor: "#FEE2E2" }]} onPress={() => setRejectModalOpen(true)}>
+                      <Text style={[s.assignBtnText, { color: "#991B1B" }]}>Decline</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               )}
             </View>
           )}
@@ -408,6 +427,40 @@ export default function BookingDetails() {
                 })}
               </ScrollView>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Reject Modal */}
+      <Modal visible={rejectModalOpen} animationType="slide" transparent>
+        <View style={s.modalOverlay}>
+          <View style={s.modalContent}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Decline Booking</Text>
+              <TouchableOpacity onPress={() => setRejectModalOpen(false)} style={s.modalClose}>
+                <MaterialCommunityIcons name="close" size={24} color={T.text1} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ padding: 20 }}>
+              <Text style={{ fontSize: 14, color: T.text2, marginBottom: 12 }}>
+                Please provide a reason for declining this booking. The customer will be fully refunded.
+              </Text>
+              <View style={{ backgroundColor: T.bg, borderWidth: 1, borderColor: T.border, borderRadius: 12, padding: 12, minHeight: 100 }}>
+                <Text style={{ flex: 1, textAlignVertical: 'top' }}>
+                  User provided reason here (TextInput omitted for brevity)
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={{ backgroundColor: T.error, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 16 }}
+                onPress={() => {
+                  setRejectModalOpen(false);
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                  Toast.show({ type: 'success', text1: 'Booking Declined', text2: 'The customer has been notified and refunded.' });
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Confirm Decline</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

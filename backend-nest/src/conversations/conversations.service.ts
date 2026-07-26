@@ -218,6 +218,22 @@ export class ConversationsService {
     };
   }
 
+  // ── Get unread messages count ─────────────────────────────────────────
+  async getUnreadCount(userId: bigint) {
+    const count = await this.prisma.message.count({
+      where: {
+        conversation: {
+          participants: {
+            some: { userId },
+          },
+        },
+        senderId: { not: userId },
+        read: false,
+      },
+    });
+    return { unreadCount: count };
+  }
+
   // ── Get messages in a conversation ───────────────────────────────────────
   async getMessages(conversationId: bigint, userId: bigint, query: any) {
     const { page = 1, limit = 50 } = query;

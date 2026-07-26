@@ -21,7 +21,6 @@ export const useSocket = () => {
       auth: {
         token: token
       },
-      transports: ['websocket'], // Prefer WebSocket over polling for better performance
       reconnection: true,
       autoConnect: true // Enabled for location tracking
     });

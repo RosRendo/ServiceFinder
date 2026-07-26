@@ -43,7 +43,8 @@ export class BookingsController {
   @ApiOperation({ summary: 'Get all bookings' })
   @ApiResponse({ status: 200, description: 'Return all bookings.' })
   getAllBookings(@Query() query: any, @Request() req) {
-    return this.bookingsService.getAllBookings(query, req.user);
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+    return this.bookingsService.getAllBookings(query, user);
   }
 
   @Get('my-assignments')
@@ -51,7 +52,7 @@ export class BookingsController {
   @ApiResponse({ status: 200, description: 'Return assigned bookings.' })
   getMyAssignedBookings(@Request() req, @Query() query: any) {
     return this.bookingsService.getMyAssignedBookings(
-      BigInt(req.user.id),
+      BigInt(req.user?.id || req.user?.userId || 0),
       query,
     );
   }
@@ -61,17 +62,17 @@ export class BookingsController {
   @ApiResponse({ status: 200, description: 'Return booking details.' })
   @ApiResponse({ status: 404, description: 'Booking not found.' })
   getBookingById(@Param('id') id: string, @Request() req) {
-    return this.bookingsService.getBookingById(BigInt(id), req.user);
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+    return this.bookingsService.getBookingById(BigInt(id), user);
   }
 
   @Post()
+  @Roles('customer', 'company_admin', 'admin')
   @ApiOperation({ summary: 'Create a new booking' })
-  @ApiResponse({
-    status: 201,
-    description: 'The booking has been successfully created.',
-  })
-  createBooking(@Body() dto: CreateBookingDto, @Request() req) {
-    return this.bookingsService.createBooking(dto, req.user);
+  @ApiResponse({ status: 201, description: 'Booking successfully created.' })
+  createBooking(@Body() createBookingDto: CreateBookingDto, @Request() req) {
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+    return this.bookingsService.createBooking(createBookingDto, user);
   }
 
   @Patch(':id/status')
@@ -87,10 +88,11 @@ export class BookingsController {
     @Body() dto: UpdateBookingStatusDto,
     @Request() req,
   ) {
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
     return this.bookingsService.updateBookingStatus(
       BigInt(id),
       dto.status,
-      req.user,
+      user,
     );
   }
 
@@ -104,14 +106,16 @@ export class BookingsController {
     @Body() dto: AssignStaffDto,
     @Request() req,
   ) {
-    return this.bookingsService.assignStaff(BigInt(id), dto.staffId, req.user);
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+    return this.bookingsService.assignStaff(BigInt(id), dto.staffId, user);
   }
 
   @Patch(':id/start')
   @ApiOperation({ summary: 'Start a job (Assigned staff only)' })
   @ApiResponse({ status: 200, description: 'Job successfully started.' })
   startJob(@Param('id') id: string, @Request() req) {
-    return this.bookingsService.startJob(BigInt(id), BigInt(req.user.id));
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+    return this.bookingsService.startJob(BigInt(id), BigInt(user.id));
   }
 
   @Patch(':id/progress')
@@ -125,9 +129,10 @@ export class BookingsController {
     @Body() dto: UpdateProgressDto,
     @Request() req,
   ) {
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
     return this.bookingsService.updateProgress(
       BigInt(id),
-      BigInt(req.user.id),
+      BigInt(user.id),
       dto.progressPercent,
       dto.staffNotes,
     );
@@ -137,7 +142,8 @@ export class BookingsController {
   @ApiOperation({ summary: 'Complete a job (Assigned staff only)' })
   @ApiResponse({ status: 200, description: 'Job successfully completed.' })
   completeJob(@Param('id') id: string, @Request() req) {
-    return this.bookingsService.completeJob(BigInt(id), BigInt(req.user.id));
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+    return this.bookingsService.completeJob(BigInt(id), BigInt(user.id));
   }
 
   @Patch(':id/cancel')
@@ -148,7 +154,8 @@ export class BookingsController {
     @Body() dto: CancelBookingDto,
     @Request() req,
   ) {
-    return this.bookingsService.cancelBooking(BigInt(id), dto.reason, req.user);
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+    return this.bookingsService.cancelBooking(BigInt(id), dto.reason, user);
   }
 
   @Post('photos')

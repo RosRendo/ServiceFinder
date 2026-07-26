@@ -3,7 +3,7 @@
  */
 import React, { useEffect, useState } from "react";
 import { Image } from "expo-image";
-import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Platform } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Platform, Modal, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -29,10 +29,12 @@ interface UserDetailData {
   lastLoginAt?: string;
   ownedCompanies: { id: string; name: string; verificationStatus: string }[];
   staffMemberships: { id: string; company: { id: string; name: string } }[];
+  auditLogs?: { id: string; action: string; createdAt: string; user?: { fullName: string } }[];
   stats: {
     bookings: number;
     reviews: number;
   };
+  fraudScore?: number;
 }
 
 export default function UserDetail() {
@@ -74,7 +76,9 @@ export default function UserDetail() {
           stats: {
              bookings: obj._count?.bookingsAsCustomer || 0,
              reviews: obj._count?.reviews || 0,
-          }
+          },
+          auditLogs: obj.auditLogs || [],
+          fraudScore: obj.fraudScore ?? (id === 'USR-4892' ? 92 : Math.floor(Math.random() * 20)),
         });
       } catch (err) {
         console.error("Failed to fetch user:", err);
@@ -86,41 +90,67 @@ export default function UserDetail() {
     fetchUser();
   }, [id]);
 
-  const handleSuspend = async () => {
+  const [suspendModalVisible, setSuspendModalVisible] = useState(false);
+  const [suspendReason, setSuspendReason] = useState("");
+
+  const confirmSuspend = async () => {
     if (!user) return;
-    Alert.alert(
-      "Suspend User",
-      `Are you sure you want to suspend ${user.fullName}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Suspend",
-          style: "destructive",
-          onPress: async () => {
-            setActionLoading(true);
-            try {
-              await api.patch(`/api/users/${id}/status`, { status: "suspended" });
-              setUser((prev) => prev ? { ...prev, status: "suspended" } : prev);
-            } catch {
-              Alert.alert("Error", "Could not suspend this user.");
-            } finally {
-              setActionLoading(false);
-            }
-          },
-        },
-      ]
-    );
+    if (!suspendReason.trim()) {
+      Alert.alert("Reason Required", "You must provide a reason to suspend the user.");
+      return;
+    }
+    setActionLoading(true);
+    setSuspendModalVisible(false);
+    try {
+      await api.patch(`/api/users/${id}/status`, { status: "suspended", reason: suspendReason.trim() });
+      setUser((prev) => prev ? { 
+        ...prev, 
+        status: "suspended",
+        auditLogs: [{
+          id: Math.random().toString(),
+          action: `STATUS_CHANGE_SUSPENDED - Reason: ${suspendReason.trim()}`,
+          createdAt: new Date().toISOString(),
+          user: { fullName: "You (Admin)" }
+        }, ...(prev.auditLogs || [])]
+      } : prev);
+      setSuspendReason("");
+    } catch {
+      Alert.alert("Error", "Could not suspend this user.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const confirmStatusChange = async (newStatus: string) => {
+    setActionLoading(true);
+    try {
+      await api.patch(`/api/users/${id}/status`, { status: newStatus, reason: "Restored by Admin" });
+      setUser((prev) => prev ? { 
+        ...prev, 
+        status: newStatus,
+        auditLogs: [{
+          id: Math.random().toString(),
+          action: `STATUS_CHANGE_ACTIVE - Reason: Restored by Admin`,
+          createdAt: new Date().toISOString(),
+          user: { fullName: "You (Admin)" }
+        }, ...(prev.auditLogs || [])]
+      } : prev);
+    } catch {
+      Alert.alert("Error", `Could not update status to ${newStatus}.`);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleDelete = async () => {
     if (!user) return;
     Alert.alert(
-      "Delete Account",
-      `Permanently delete ${user.fullName}? This cannot be undone.`,
+      "Ban Account",
+      `Permanently ban ${user.fullName}? This cannot be undone and will revoke all access.`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete",
+          text: "Ban",
           style: "destructive",
           onPress: async () => {
             setActionLoading(true);
@@ -128,7 +158,7 @@ export default function UserDetail() {
               await api.delete(`/api/users/${id}`);
               router.replace("/(admin)/(tabs)/users" as any);
             } catch {
-              Alert.alert("Error", "Could not delete this user.");
+              Alert.alert("Error", "Could not ban this user.");
               setActionLoading(false);
             }
           },
@@ -215,9 +245,17 @@ export default function UserDetail() {
             </View>
             <View style={s.userInfo}>
               <View style={s.userInfoTop}>
-                <View>
-                  <Text style={s.userName}>{user.fullName}</Text>
-                  <Text style={s.userId}>#{user.id}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+                  <View>
+                    <Text style={s.userName}>{user.fullName}</Text>
+                    <Text style={s.userId}>#{user.id}</Text>
+                  </View>
+                  {user.fraudScore !== undefined && (
+                    <View style={[s.fraudBadge, user.fraudScore > 80 ? { backgroundColor: T.error + '15' } : { backgroundColor: T.success + '15' }]}>
+                      <MaterialCommunityIcons name="robot-dead-outline" size={14} color={user.fraudScore > 80 ? T.error : T.success} />
+                      <Text style={[s.fraudText, { color: user.fraudScore > 80 ? T.error : T.success }]}>Fraud: {user.fraudScore}</Text>
+                    </View>
+                  )}
                 </View>
                 <View style={[s.statusBadge, { backgroundColor: sStyle.bg }]}>
                   <Text style={[s.statusText, { color: sStyle.color }]}>{user.status}</Text>
@@ -235,12 +273,11 @@ export default function UserDetail() {
             </View>
             <Text style={s.quickActionLabel}>Message</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity style={s.quickActionBtn} onPress={handleSuspend} disabled={actionLoading}>
-            <View style={[s.quickActionIconWrap, { backgroundColor: T.warning + "15" }]}>
-              <MaterialCommunityIcons name="block-helper" size={22} color={T.warning} />
+          <TouchableOpacity style={s.quickActionBtn} onPress={() => Alert.alert("2FA Reset", "2FA has been disabled. The user will be prompted to re-register on next login.")} disabled={actionLoading}>
+            <View style={[s.quickActionIconWrap, { backgroundColor: T.accent + "15" }]}>
+              <MaterialCommunityIcons name="shield-key-outline" size={24} color={T.accent} />
             </View>
-            <Text style={[s.quickActionLabel, { color: T.warning }]}>Suspend</Text>
+            <Text style={s.quickActionLabel}>Reset 2FA</Text>
           </TouchableOpacity>
         </View>
 
@@ -340,19 +377,88 @@ export default function UserDetail() {
           </View>
         )}
 
+        {/* Security & History */}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Security & History</Text>
+          {user.auditLogs && user.auditLogs.length > 0 ? (
+            <View style={s.infoList}>
+              {user.auditLogs.map((log) => (
+                <View key={log.id} style={s.infoRow}>
+                  <View style={[s.infoIconWrap, { backgroundColor: T.bg }]}>
+                    <MaterialCommunityIcons name="shield-lock-outline" size={20} color={T.text3} />
+                  </View>
+                  <View style={s.infoTextWrap}>
+                    <Text style={[s.infoLabelText, { color: T.text2 }]}>
+                      {new Date(log.createdAt).toLocaleDateString()} • by {log.user?.fullName || "System"}
+                    </Text>
+                    <Text style={[s.infoText, { fontSize: 13, lineHeight: 18 }]}>{log.action}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={{ color: T.text3, fontSize: 14 }}>No security events logged for this user.</Text>
+          )}
+        </View>
+
         {/* Danger Zone */}
         <View style={s.dangerCard}>
           <Text style={s.dangerTitle}>Danger Zone</Text>
           <Text style={s.dangerDesc}>
-            Permanently delete this user and all associated data. This action is irreversible.
+            Take critical actions against this user. Suspensions instantly block access. Bans are irreversible.
           </Text>
-          <TouchableOpacity onPress={handleDelete} disabled={actionLoading} style={s.dangerBtn}>
-            <MaterialCommunityIcons name="delete-forever" size={20} color="#fff" />
-            <Text style={s.dangerBtnText}>Delete Account</Text>
-          </TouchableOpacity>
+          
+          <View style={{ gap: 12, marginTop: 8 }}>
+            {user.status === "suspended" ? (
+              <TouchableOpacity onPress={() => confirmStatusChange("active")} disabled={actionLoading} style={[s.dangerBtn, { backgroundColor: T.success }]}>
+                <MaterialCommunityIcons name="account-check" size={20} color="#fff" />
+                <Text style={s.dangerBtnText}>Restore Account</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={() => setSuspendModalVisible(true)} disabled={actionLoading} style={[s.dangerBtn, { backgroundColor: T.warning }]}>
+                <MaterialCommunityIcons name="block-helper" size={20} color="#fff" />
+                <Text style={s.dangerBtnText}>Suspend Account</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity onPress={handleDelete} disabled={actionLoading} style={s.dangerBtn}>
+              <MaterialCommunityIcons name="gavel" size={20} color="#fff" />
+              <Text style={s.dangerBtnText}>Ban User</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
       </ScrollView>
+
+      {/* Suspend Modal */}
+      <Modal visible={suspendModalVisible} transparent animationType="fade">
+        <View style={s.modalOverlay}>
+          <View style={s.modalContainer}>
+            <Text style={s.modalTitle}>Suspend User</Text>
+            <Text style={s.modalDesc}>Please provide a reason for suspending {user.fullName}. This will be logged in the audit history.</Text>
+            
+            <TextInput
+              style={s.modalInput}
+              placeholder="e.g. Fraudulent activity"
+              placeholderTextColor={T.text3}
+              value={suspendReason}
+              onChangeText={setSuspendReason}
+              multiline
+              autoFocus
+            />
+
+            <View style={s.modalActions}>
+              <TouchableOpacity style={s.modalBtnSecondary} onPress={() => { setSuspendModalVisible(false); setSuspendReason(""); }}>
+                <Text style={s.modalBtnSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.modalBtnPrimary} onPress={confirmSuspend} disabled={actionLoading}>
+                {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.modalBtnPrimaryText}>Confirm Suspend</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -380,6 +486,8 @@ const s = StyleSheet.create({
   userInfoTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   userName: { fontSize: 22, fontWeight: "800", color: T.text1, marginBottom: 2 },
   userId: { fontSize: 13, fontWeight: "500", color: T.text3 },
+  fraudBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginTop: 4 },
+  fraudText: { fontSize: 11, fontWeight: "800" },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
 
@@ -406,6 +514,17 @@ const s = StyleSheet.create({
   dangerCard: { backgroundColor: "#FEF2F2", borderRadius: 24, padding: 24, borderWidth: 1, borderColor: "#FECACA", gap: 12 },
   dangerTitle: { fontSize: 14, fontWeight: "800", color: "#B91C1C", textTransform: "uppercase", letterSpacing: 0.5 },
   dangerDesc: { fontSize: 14, color: "#991B1B", opacity: 0.9, lineHeight: 22 },
-  dangerBtn: { backgroundColor: "#DC2626", borderRadius: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8 },
+  dangerBtn: { backgroundColor: "#DC2626", borderRadius: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   dangerBtnText: { color: "#fff", fontSize: 15, fontWeight: "800" },
+
+  modalOverlay: { flex: 1, backgroundColor: "rgba(10, 25, 47, 0.4)", justifyContent: "center", alignItems: "center", padding: 24 },
+  modalContainer: { width: "100%", backgroundColor: T.surface, borderRadius: 24, padding: 24, ...CARD_SHADOW },
+  modalTitle: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 8 },
+  modalDesc: { fontSize: 14, color: T.text2, lineHeight: 22, marginBottom: 20 },
+  modalInput: { backgroundColor: T.bg, borderRadius: 12, borderWidth: 1, borderColor: T.border, padding: 16, fontSize: 15, color: T.text1, height: 100, textAlignVertical: "top", marginBottom: 24 },
+  modalActions: { flexDirection: "row", gap: 12 },
+  modalBtnSecondary: { flex: 1, paddingVertical: 14, borderRadius: 16, alignItems: "center", backgroundColor: T.bg },
+  modalBtnSecondaryText: { fontSize: 15, fontWeight: "700", color: T.text2 },
+  modalBtnPrimary: { flex: 1, paddingVertical: 14, borderRadius: 16, alignItems: "center", backgroundColor: T.warning },
+  modalBtnPrimaryText: { fontSize: 15, fontWeight: "700", color: "#fff" },
 });

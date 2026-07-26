@@ -1,46 +1,55 @@
 "use client";
-import { useState } from "react";
-import AdminSidebar from "@/components/layout/AdminSidebar";
-import DashboardHeader from "@/components/layout/DashboardHeader";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+
+import { useState, useEffect, useCallback } from "react";
+import { AppSidebar } from "@/components/shell/AppSidebar";
+import { AppTopBar } from "@/components/shell/AppTopBar";
+import { CommandPalette } from "@/components/shell/CommandPalette";
+import { AIAssistant } from "@/components/shell/AIAssistant";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
+
+  // Global Ctrl+K / Cmd+K listener
+  const handleKey = useCallback((e: KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      e.preventDefault();
+      setCmdOpen((o) => !o);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [handleKey]);
 
   return (
-    <ProtectedRoute allowedRoles={["admin"]}>
-      <div className="flex h-screen w-full bg-white overflow-hidden font-sans">
-        
-        {/* Mobile Sidebar Overlay */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black/50 z-30 lg:hidden backdrop-blur-sm"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-        
-        {/* Left Sidebar */}
-        <div className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-          <AdminSidebar className="w-[260px] h-full" onItemClick={() => setSidebarOpen(false)} />
-        </div>
+    <div className="flex h-screen w-full bg-background overflow-hidden">
+      {/* Sidebar */}
+      <AppSidebar
+        role="admin"
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed((c) => !c)}
+      />
 
-        {/* Right Side Wrapping Column */}
-        <div className="flex flex-col flex-1 overflow-hidden relative pb-16 lg:pb-0">
-          
-          <DashboardHeader onMobileMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
-          
-          {/* Main Content Area */}
-          <main className="flex-1 overflow-y-auto w-full p-6 lg:p-8 bg-gray-50 custom-scrollbar">
-            <div className="max-w-6xl mx-auto w-full">
-               {children}
-            </div>
-          </main>
-
-        </div>
-        
-        <MobileBottomNav role="admin" />
+      {/* Main Column */}
+      <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+        <AppTopBar
+          role="admin"
+          onCommandPaletteOpen={() => setCmdOpen(true)}
+        />
+        <main className="flex-1 overflow-hidden bg-muted/20">
+          {children}
+        </main>
       </div>
-    </ProtectedRoute>
+
+      {/* Global Overlays */}
+      <CommandPalette
+        open={cmdOpen}
+        onClose={() => setCmdOpen(false)}
+        role="admin"
+      />
+      <AIAssistant />
+    </div>
   );
 }

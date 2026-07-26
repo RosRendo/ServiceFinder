@@ -1,3 +1,4 @@
 export declare class VerifyOtpDto {
-    idToken: string;
+    phone: string;
+    code: string;
 }

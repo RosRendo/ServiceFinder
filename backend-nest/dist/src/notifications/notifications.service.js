@@ -217,6 +217,12 @@ let NotificationsService = class NotificationsService {
             where: { userId, isRead: false },
         });
     }
+    async deleteNotification(notificationId, userId) {
+        await this.prisma.notification.deleteMany({
+            where: { id: notificationId, userId },
+        });
+        return { success: true };
+    }
     async sendMessages(messages) {
         const chunks = this.expo.chunkPushNotifications(messages);
         for (const chunk of chunks) {

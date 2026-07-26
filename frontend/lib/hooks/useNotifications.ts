@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSocket } from './useSocket';
 import { useAuthContext } from '../contexts/AuthContext';
+import api from '../api/client';
 
 export interface Notification {
   id: string;
@@ -28,21 +29,12 @@ export function useNotifications() {
 
     const fetchNotifications = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        if (!res.ok) throw new Error('Failed to fetch notifications');
-
-        const data = await res.json();
-        if (mounted && data.success) {
-          setNotifications(data.notifications || []);
-          setUnreadCount(data.unreadCount || 0);
+        const res = await api.get('/notifications');
+        const data = res.data?.data || res.data;
+        
+        if (mounted && Array.isArray(data)) {
+          setNotifications(data);
+          setUnreadCount(data.filter(n => !n.isRead).length);
         }
       } catch (error) {
         console.error('Error fetching initial notifications:', error);
@@ -78,18 +70,12 @@ export function useNotifications() {
 
   const markAsRead = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/${id}/read`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
       if (id === 'all') {
+        await api.patch(`/notifications/read-all`);
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
         setUnreadCount(0);
       } else {
+        await api.patch(`/notifications/${id}/read`);
         setNotifications((prev) => 
           prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
         );

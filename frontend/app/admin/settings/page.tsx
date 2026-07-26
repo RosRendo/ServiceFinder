@@ -1,253 +1,169 @@
 "use client";
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
-import { Loader2, Bell, Lock, Shield, User, DollarSign, Mail } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { useAuthContext } from "@/lib/contexts/AuthContext";
 
-type TabKey = "profile" | "notifications" | "security" | "finance";
+import { useState } from "react";
+import { Settings, Bell, Shield, Plug, Layers, Globe, Save } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export default function AdminSettingsPage() {
-  const { user } = useAuthContext();
-  const [activeTab, setActiveTab] = useState<TabKey>("profile");
+type Tab = "general" | "services" | "fees" | "security" | "notifications" | "integrations";
 
-  const [profile, setProfile] = useState({ fullName: "", email: "", phone: "" });
-  const [profileLoading, setProfileLoading] = useState(false);
+const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
+  { key: "general", label: "General", icon: Globe },
+  { key: "services", label: "Service Categories", icon: Layers },
+  { key: "fees", label: "Platform Fees", icon: Settings },
+  { key: "security", label: "Security", icon: Shield },
+  { key: "notifications", label: "Notifications", icon: Bell },
+  { key: "integrations", label: "Integrations", icon: Plug },
+];
 
-  const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
-  const [passwordLoading, setPasswordLoading] = useState(false);
+function FormField({ label, description, children }: { label: string; description?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-8 py-4 border-b border-border last:border-0">
+      <div className="flex-1">
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+      </div>
+      <div className="shrink-0 w-64">{children}</div>
+    </div>
+  );
+}
 
-  const [notifications, setNotifications] = useState({ emailBookings: true, emailNewCompanies: true, weeklyReport: true });
+function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <button onClick={onChange}
+      className={cn("w-11 h-6 rounded-full transition-colors relative", checked ? "bg-violet-600" : "bg-muted-foreground/30")}>
+      <span className={cn("absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow-sm", checked && "translate-x-5")} />
+    </button>
+  );
+}
 
-  const [finance, setFinance] = useState({ platformFee: 10, companySplit: 31, staffDebtLimit: -50, companyDebtLimit: -200 });
-  const [financeLoading, setFinanceLoading] = useState(false);
+function Input({ defaultValue, placeholder }: { defaultValue?: string; placeholder?: string }) {
+  return <input defaultValue={defaultValue} placeholder={placeholder}
+    className="w-full h-9 px-3 bg-muted/50 border border-border rounded-lg text-sm text-foreground outline-none focus:border-violet-500/60" />;
+}
 
-  useEffect(() => {
-    if (!user) return;
-    setProfile({ fullName: user.fullName || "", email: user.email || "", phone: (user as any).phone || "" });
-  }, [user]);
-
-  useEffect(() => {
-    const load = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/settings`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) {
-        const data = await res.json();
-        setFinance({ platformFee: Number(data.PLATFORM_FEE_PERCENT) || 10, companySplit: Number(data.COMPANY_SPLIT_PERCENT) || 31, staffDebtLimit: Number(data.STAFF_DEBT_LIMIT) || -50, companyDebtLimit: Number(data.COMPANY_DEBT_LIMIT) || -200 });
-      }
-    };
-    load();
-  }, []);
-
-  const handleSaveProfile = async () => {
-    if (!user) return;
-    setProfileLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${user.id}`, {
-        method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(profile),
-      });
-      const data = await res.json();
-      if (res.ok) toast.success("Profile updated!"); else toast.error(data.error || "Failed to update");
-    } catch { toast.error("Something went wrong"); }
-    finally { setProfileLoading(false); }
-  };
-
-  const handleChangePassword = async () => {
-    if (!user) return;
-    if (passwords.newPassword !== passwords.confirmPassword) { toast.error("Passwords do not match"); return; }
-    if (passwords.newPassword.length < 6) { toast.error("Password must be at least 6 characters"); return; }
-    setPasswordLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${user.id}`, {
-        method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ password: passwords.newPassword }),
-      });
-      if (res.ok) { toast.success("Password updated!"); setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" }); }
-      else { const d = await res.json(); toast.error(d.error || "Failed"); }
-    } catch { toast.error("Something went wrong"); }
-    finally { setPasswordLoading(false); }
-  };
-
-  const handleSaveFinance = async () => {
-    setFinanceLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const staffSplit = 100 - finance.platformFee - finance.companySplit;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/settings`, {
-        method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ PLATFORM_FEE_PERCENT: finance.platformFee.toString(), COMPANY_SPLIT_PERCENT: finance.companySplit.toString(), STAFF_SPLIT_PERCENT: staffSplit.toString(), STAFF_DEBT_LIMIT: finance.staffDebtLimit.toString(), COMPANY_DEBT_LIMIT: finance.companyDebtLimit.toString() }),
-      });
-      if (res.ok) toast.success("Finance settings saved!"); else toast.error("Failed to save");
-    } catch { toast.error("Something went wrong"); }
-    finally { setFinanceLoading(false); }
-  };
-
-  const tabs: { key: TabKey; label: string; icon: any }[] = [
-    { key: "profile", label: "Profile", icon: User },
-    { key: "notifications", label: "Notifications", icon: Bell },
-    { key: "security", label: "Security", icon: Lock },
-    { key: "finance", label: "Finance & Limits", icon: DollarSign },
-  ];
+export default function SettingsPage() {
+  const [tab, setTab] = useState<Tab>("general");
+  const [notifs, setNotifs] = useState({ newBooking: true, dispute: true, payout: false, lowRating: true });
 
   return (
-    <div className="space-y-5 max-w-3xl">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage your account and platform preferences</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-gray-200 flex gap-1">
-        {tabs.map((t) => (
-          <button key={t.key} onClick={() => setActiveTab(t.key)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${activeTab === t.key ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
-            <t.icon className="w-4 h-4" />{t.label}
+    <div className="flex h-full overflow-hidden">
+      {/* Left Tab Menu */}
+      <div className="w-56 shrink-0 border-r border-border bg-background p-3 space-y-0.5">
+        {TABS.map((t) => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-left transition-colors",
+              tab === t.key ? "bg-violet-500/10 text-violet-400" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground")}>
+            <t.icon className="w-4 h-4 shrink-0" />
+            {t.label}
           </button>
         ))}
       </div>
 
-      {/* Profile Tab */}
-      {activeTab === "profile" && (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><User className="w-4 h-4 text-indigo-600" /> Admin Profile</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Update your name, email and contact details</p>
-          </div>
-          <div className="px-6 py-5 space-y-4">
-            <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
-              <div className="w-14 h-14 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl font-bold shrink-0">
-                {profile.fullName?.charAt(0) || "A"}
-              </div>
-              <div>
-                <div className="font-medium text-gray-900">{profile.fullName || "Admin"}</div>
-                <div className="text-xs text-gray-500">{profile.email}</div>
-                <span className="inline-flex mt-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-900 text-white">Platform Administrator</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: "Full Name", key: "fullName", type: "text", placeholder: "Your full name" },
-                { label: "Email", key: "email", type: "email", placeholder: "admin@example.com" },
-                { label: "Phone", key: "phone", type: "tel", placeholder: "+855 00 000 000" },
-              ].map((f) => (
-                <div key={f.key} className={`space-y-1.5 ${f.key === "phone" ? "col-span-2" : ""}`}>
-                  <label className="text-xs font-semibold text-gray-600">{f.label}</label>
-                  <input type={f.type} value={(profile as any)[f.key]} onChange={(e) => setProfile((p) => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 focus:bg-white transition-colors" />
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-end pt-2">
-              <button onClick={handleSaveProfile} disabled={profileLoading} className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors disabled:opacity-60 flex items-center gap-2">
-                {profileLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Save Profile
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Notifications Tab */}
-      {activeTab === "notifications" && (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><Mail className="w-4 h-4 text-indigo-600" /> Email Notifications</h2>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {[
-              { key: "emailBookings", label: "New Bookings", desc: "Get notified when a new booking is made" },
-              { key: "emailNewCompanies", label: "New Company Applications", desc: "Get notified when a company registers" },
-              { key: "weeklyReport", label: "Weekly Report", desc: "Receive a weekly summary of platform activity" },
-            ].map((n) => (
-              <div key={n.key} className="flex items-center justify-between px-6 py-4">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">{n.label}</div>
-                  <div className="text-xs text-gray-500">{n.desc}</div>
-                </div>
-                <Switch checked={(notifications as any)[n.key]} onCheckedChange={(c) => setNotifications((p) => ({ ...p, [n.key]: c }))} />
-              </div>
-            ))}
-          </div>
-          <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
-            <button onClick={() => toast.success("Preferences saved!")} className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors">Save Preferences</button>
-          </div>
-        </div>
-      )}
-
-      {/* Security Tab */}
-      {activeTab === "security" && (
-        <div className="space-y-4">
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><Lock className="w-4 h-4 text-rose-600" /> Change Password</h2>
-            </div>
-            <div className="px-6 py-5 space-y-4">
-              {[
-                { label: "Current Password", key: "currentPassword" },
-                { label: "New Password", key: "newPassword" },
-                { label: "Confirm Password", key: "confirmPassword" },
-              ].map((f) => (
-                <div key={f.key} className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-600">{f.label}</label>
-                  <input type="password" value={(passwords as any)[f.key]} onChange={(e) => setPasswords((p) => ({ ...p, [f.key]: e.target.value }))} placeholder="••••••••"
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-400 focus:bg-white transition-colors" />
-                </div>
-              ))}
-              {passwords.newPassword && passwords.confirmPassword && passwords.newPassword !== passwords.confirmPassword && (
-                <p className="text-xs font-medium text-rose-600 bg-rose-50 px-3 py-2 rounded-md border border-rose-200">Passwords do not match</p>
-              )}
-              <div className="flex justify-end pt-2">
-                <button onClick={handleChangePassword} disabled={passwordLoading || !passwords.newPassword} className="px-4 py-2 text-sm font-medium bg-rose-600 hover:bg-rose-700 text-white rounded-md transition-colors disabled:opacity-60 flex items-center gap-2">
-                  {passwordLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Update Password
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-5 flex items-center justify-between">
+      {/* Right Content */}
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="max-w-2xl">
+          {tab === "general" && (
             <div>
-              <div className="text-sm font-medium text-gray-900 flex items-center gap-2"><Shield className="w-4 h-4 text-emerald-600" /> Two-Factor Authentication</div>
-              <div className="text-xs text-gray-500 mt-0.5">Add extra security to your admin account</div>
+              <h2 className="text-base font-bold text-foreground mb-1">General Settings</h2>
+              <p className="text-sm text-muted-foreground mb-6">Platform-wide configuration.</p>
+              <FormField label="Platform Name" description="Displayed in the mobile app and emails.">
+                <Input defaultValue="ServiceFinder" />
+              </FormField>
+              <FormField label="Support Email" description="Customers contact this address for help.">
+                <Input defaultValue="support@servicefinder.app" />
+              </FormField>
+              <FormField label="Default Language">
+                <select className="w-full h-9 px-3 bg-muted/50 border border-border rounded-lg text-sm text-foreground outline-none">
+                  <option>English</option><option>Khmer</option>
+                </select>
+              </FormField>
+              <FormField label="Timezone">
+                <select className="w-full h-9 px-3 bg-muted/50 border border-border rounded-lg text-sm text-foreground outline-none">
+                  <option>Asia/Phnom_Penh (GMT+7)</option><option>UTC</option>
+                </select>
+              </FormField>
             </div>
-            <button onClick={() => toast.info("2FA setup coming soon")} className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-md bg-white hover:bg-gray-50 text-gray-700 transition-colors">Setup 2FA</button>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Finance Tab */}
-      {activeTab === "finance" && (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><DollarSign className="w-4 h-4 text-indigo-600" /> Finance & Limits</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Manage platform fees, split percentages, and debt limits</p>
-          </div>
-          <div className="px-6 py-5 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: "Platform Fee %", key: "platformFee" },
-                { label: "Company Split %", key: "companySplit" },
-                { label: "Staff Debt Limit ($)", key: "staffDebtLimit" },
-                { label: "Company Debt Limit ($)", key: "companyDebtLimit" },
-              ].map((f) => (
-                <div key={f.key} className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-600">{f.label}</label>
-                  <input type="number" value={(finance as any)[f.key]} onChange={(e) => setFinance((p) => ({ ...p, [f.key]: Number(e.target.value) }))}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors" />
+          {tab === "fees" && (
+            <div>
+              <h2 className="text-base font-bold text-foreground mb-1">Platform Fees</h2>
+              <p className="text-sm text-muted-foreground mb-6">Global defaults. Company-specific fees override these.</p>
+              <FormField label="Default Platform Fee" description="% commission taken per completed booking.">
+                <div className="flex items-center gap-2">
+                  <Input defaultValue="15" />
+                  <span className="text-sm text-muted-foreground shrink-0">%</span>
                 </div>
+              </FormField>
+              <FormField label="Minimum Payout Amount" description="Minimum balance before we send a payout.">
+                <div className="flex items-center gap-2">
+                  <Input defaultValue="10" />
+                  <span className="text-sm text-muted-foreground shrink-0">USD</span>
+                </div>
+              </FormField>
+              <FormField label="Payout Schedule">
+                <select className="w-full h-9 px-3 bg-muted/50 border border-border rounded-lg text-sm text-foreground outline-none">
+                  <option>Weekly (every Monday)</option><option>Bi-weekly</option><option>Monthly</option>
+                </select>
+              </FormField>
+            </div>
+          )}
+
+          {tab === "notifications" && (
+            <div>
+              <h2 className="text-base font-bold text-foreground mb-1">Notification Settings</h2>
+              <p className="text-sm text-muted-foreground mb-6">Control which events trigger admin alerts.</p>
+              <FormField label="New Booking" description="Alert when a new booking is created.">
+                <Toggle checked={notifs.newBooking} onChange={() => setNotifs((n) => ({ ...n, newBooking: !n.newBooking }))} />
+              </FormField>
+              <FormField label="Dispute Opened" description="Alert when a customer opens a dispute.">
+                <Toggle checked={notifs.dispute} onChange={() => setNotifs((n) => ({ ...n, dispute: !n.dispute }))} />
+              </FormField>
+              <FormField label="Payout Failed" description="Alert when a payout attempt fails.">
+                <Toggle checked={notifs.payout} onChange={() => setNotifs((n) => ({ ...n, payout: !n.payout }))} />
+              </FormField>
+              <FormField label="Low Staff Rating" description="Alert when staff drops below 4.0 stars.">
+                <Toggle checked={notifs.lowRating} onChange={() => setNotifs((n) => ({ ...n, lowRating: !n.lowRating }))} />
+              </FormField>
+            </div>
+          )}
+
+          {tab === "integrations" && (
+            <div>
+              <h2 className="text-base font-bold text-foreground mb-1">Integrations</h2>
+              <p className="text-sm text-muted-foreground mb-6">Connect your third-party services.</p>
+              {[
+                { name: "Twilio (SMS)", desc: "OTP and booking notifications via SMS.", key: "TWILIO_AUTH_TOKEN" },
+                { name: "ABA PayWay", desc: "Cambodia payment gateway.", key: "ABA_API_KEY" },
+                { name: "Stripe", desc: "International payment processing.", key: "STRIPE_SECRET_KEY" },
+                { name: "Google Maps", desc: "Dispatch map and geocoding.", key: "GOOGLE_MAPS_API_KEY" },
+                { name: "Sentry", desc: "Error monitoring.", key: "SENTRY_DSN" },
+              ].map((intg) => (
+                <FormField key={intg.name} label={intg.name} description={intg.desc}>
+                  <input type="password" placeholder={`Enter ${intg.key}`}
+                    className="w-full h-9 px-3 bg-muted/50 border border-border rounded-lg text-sm text-foreground outline-none focus:border-violet-500/60 font-mono" />
+                </FormField>
               ))}
             </div>
-            <div className="bg-gray-50 rounded-md p-3 border border-gray-100">
-              <div className="text-xs text-gray-500 mb-1">Staff Split % (auto-calculated)</div>
-              <div className="text-lg font-bold text-gray-900">{100 - finance.platformFee - finance.companySplit}%</div>
+          )}
+
+          {(tab === "security" || tab === "services") && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center">
+                <Settings className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">Coming soon</p>
             </div>
-            <div className="flex justify-end pt-2">
-              <button onClick={handleSaveFinance} disabled={financeLoading} className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors disabled:opacity-60 flex items-center gap-2">
-                {financeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Save Settings
-              </button>
-            </div>
+          )}
+
+          {/* Save button */}
+          <div className="mt-8">
+            <button className="flex items-center gap-2 h-10 px-5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors">
+              <Save className="w-4 h-4" /> Save Changes
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

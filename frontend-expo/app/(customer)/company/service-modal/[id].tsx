@@ -149,7 +149,7 @@ export default function ServiceModalScreen() {
 
   const features = parseFeatures(service.features);
   const duration = formatDuration(service.durationMin, service.durationMax);
-  const total = service.basePrice + service.platformFee;
+  const total = service.basePrice;
 
   const heroImg = service.image || (service as any)?.serviceType?.imageUrl || (service as any)?.serviceType?.category?.imageUrl || (service?.company as any)?.logoUrl || FALLBACK_IMAGES[0];
   const images = [heroImg];
@@ -312,7 +312,7 @@ export default function ServiceModalScreen() {
       <View style={[s.bottomBar, CARD_SHADOW, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <View style={s.bottomPriceInfo}>
           <Text style={s.bottomPrice}>${total.toFixed(2)}</Text>
-          <Text style={s.bottomSub}>Total (incl. taxes)</Text>
+          <Text style={s.bottomSub}>Total Price</Text>
         </View>
         <ScaleButton onPress={handleBook} disabled={!service.isActive}>
           <View style={s.bookBtn}>

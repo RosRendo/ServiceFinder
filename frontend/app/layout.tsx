@@ -110,6 +110,7 @@ const jsonLd = {
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CookieConsent } from "@/components/common/CookieConsent";
 import { PHProvider } from "./providers";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function RootLayout({
   children,
@@ -130,13 +131,14 @@ export default function RootLayout({
         <PHProvider>
           <ThemeProvider
             attribute="class"
-            defaultTheme="dark"
+            defaultTheme="light"
             enableSystem
             disableTransitionOnChange
           >
             <AuthProvider>
               {children}
               <CookieConsent />
+              <Toaster />
             </AuthProvider>
           </ThemeProvider>
         </PHProvider>

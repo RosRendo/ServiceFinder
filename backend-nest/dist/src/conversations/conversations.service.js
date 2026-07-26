@@ -205,6 +205,20 @@ let ConversationsService = class ConversationsService {
             data: conversations.map((c) => this.formatConversation(c, userId)),
         };
     }
+    async getUnreadCount(userId) {
+        const count = await this.prisma.message.count({
+            where: {
+                conversation: {
+                    participants: {
+                        some: { userId },
+                    },
+                },
+                senderId: { not: userId },
+                read: false,
+            },
+        });
+        return { unreadCount: count };
+    }
     async getMessages(conversationId, userId, query) {
         const { page = 1, limit = 50 } = query;
         const skip = (Number(page) - 1) * Number(limit);

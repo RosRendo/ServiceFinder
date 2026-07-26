@@ -125,6 +125,43 @@ export default function AdminDashboard() {
               <View style={s.revenueDecor2} />
             </View>
 
+            {/* AI Fraud & Dispute Alerts Widget */}
+            <View style={s.section}>
+              <View style={s.sectionHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <MaterialCommunityIcons name="shield-alert-outline" size={20} color={T.error} />
+                  <Text style={[s.sectionTitle, { color: T.error }]}>Critical Alerts</Text>
+                </View>
+                <Text style={s.sectionSubtitle}>AI Fraud Detection & Escalations</Text>
+              </View>
+
+              <View style={s.alertsContainer}>
+                {/* Simulated Alert 1 */}
+                <TouchableOpacity style={s.alertItem} activeOpacity={0.8} onPress={() => router.push('/(admin)/users/USR-4892' as any)}>
+                  <View style={[s.alertIconWrap, { backgroundColor: T.error + "15" }]}>
+                    <MaterialCommunityIcons name="robot-dead-outline" size={20} color={T.error} />
+                  </View>
+                  <View style={s.alertBody}>
+                    <Text style={s.alertTitle}>High Fraud Score Detected (92/100)</Text>
+                    <Text style={s.alertSubtitle}>User USR-4892 created 5 bookings from same IP in 10 mins.</Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color={T.text3} />
+                </TouchableOpacity>
+
+                {/* Simulated Alert 2 */}
+                <TouchableOpacity style={[s.alertItem, { borderColor: T.warning + "30" }]} activeOpacity={0.8} onPress={() => router.push('/(admin)/disputes' as any)}>
+                  <View style={[s.alertIconWrap, { backgroundColor: T.warning + "15" }]}>
+                    <MaterialCommunityIcons name="scale-balance" size={20} color={T.warning} />
+                  </View>
+                  <View style={s.alertBody}>
+                    <Text style={s.alertTitle}>Escalated Dispute {'>'} $500</Text>
+                    <Text style={s.alertSubtitle}>Booking BK-1092 requires Super Admin review.</Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color={T.text3} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Quick Actions / Critical Queues */}
             <View style={s.queueGrid}>
               <TouchableOpacity onPress={() => router.push('/(admin)/(tabs)/queue' as any)} style={[s.queueCard, { borderColor: T.blue + "30" }]} activeOpacity={0.8}>
@@ -281,6 +318,13 @@ const s = StyleSheet.create({
   queueIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 12 },
   queueCount: { fontSize: 22, fontWeight: "800", color: T.text1, marginBottom: 2 },
   queueLabel: { fontSize: 12, fontWeight: "600", color: T.text3 },
+
+  alertsContainer: { gap: 12, marginTop: 4 },
+  alertItem: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: T.error + "50", gap: 12, ...CARD_SHADOW },
+  alertIconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  alertBody: { flex: 1 },
+  alertTitle: { fontSize: 14, fontWeight: "800", color: T.text1, marginBottom: 4 },
+  alertSubtitle: { fontSize: 12, fontWeight: "500", color: T.text3, lineHeight: 18 },
 
   section: { gap: 12 },
   sectionHeader: { gap: 2 },
