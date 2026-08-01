@@ -48,6 +48,12 @@ export declare class PaymentsController {
             return_url: string;
         };
     }>;
+    generateKhqr(dto: CheckoutSessionDto, req: any): Promise<{
+        message: string;
+        qrString: any;
+        amount: string;
+        billNumber: any;
+    }>;
     completePayment(dto: CompletePaymentDto, req: any): Promise<{
         success: boolean;
         message: string;

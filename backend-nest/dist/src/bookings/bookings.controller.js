@@ -51,17 +51,25 @@ let BookingsController = class BookingsController {
         const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
         return this.bookingsService.assignStaff(BigInt(id), dto.staffId, user);
     }
-    startJob(id, req) {
+    acceptAssignment(id, req) {
         const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
-        return this.bookingsService.startJob(BigInt(id), BigInt(user.id));
+        return this.bookingsService.acceptAssignment(BigInt(id), BigInt(user.id));
+    }
+    rejectAssignment(id, req) {
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.rejectAssignment(BigInt(id), BigInt(user.id));
+    }
+    startJob(id, body, req) {
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.startJob(BigInt(id), BigInt(user.id), body?.staffStartLatitude, body?.staffStartLongitude);
     }
     updateProgress(id, dto, req) {
         const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
-        return this.bookingsService.updateProgress(BigInt(id), BigInt(user.id), dto.progressPercent, dto.staffNotes);
+        return this.bookingsService.updateProgress(BigInt(id), BigInt(user.id), dto.progressPercent, dto.staffNotes, dto.checklist);
     }
-    completeJob(id, req) {
+    completeJob(id, body, req) {
         const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
-        return this.bookingsService.completeJob(BigInt(id), BigInt(user.id));
+        return this.bookingsService.completeJob(BigInt(id), BigInt(user.id), body?.proofOfWorkPhoto);
     }
     cancelBooking(id, dto, req) {
         const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
@@ -134,7 +142,7 @@ __decorate([
 __decorate([
     (0, common_1.Patch)(':id/assign-staff'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)('admin', 'company_admin'),
+    (0, roles_decorator_1.Roles)('admin', 'company_admin', 'staff'),
     (0, swagger_1.ApiOperation)({ summary: 'Assign staff to booking (Admin/Company Admin)' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Staff successfully assigned.' }),
     __param(0, (0, common_1.Param)('id')),
@@ -145,13 +153,34 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], BookingsController.prototype, "assignStaff", null);
 __decorate([
-    (0, common_1.Patch)(':id/start'),
-    (0, swagger_1.ApiOperation)({ summary: 'Start a job (Assigned staff only)' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Job successfully started.' }),
+    (0, common_1.Patch)(':id/accept'),
+    (0, swagger_1.ApiOperation)({ summary: 'Accept a job assignment (Assigned staff only)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Job assignment successfully accepted.' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], BookingsController.prototype, "acceptAssignment", null);
+__decorate([
+    (0, common_1.Patch)(':id/reject'),
+    (0, swagger_1.ApiOperation)({ summary: 'Reject a job assignment (Assigned staff only)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Job assignment successfully rejected.' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], BookingsController.prototype, "rejectAssignment", null);
+__decorate([
+    (0, common_1.Patch)(':id/start'),
+    (0, swagger_1.ApiOperation)({ summary: 'Start a job (Assigned staff only)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Job successfully started.' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], BookingsController.prototype, "startJob", null);
 __decorate([
@@ -173,9 +202,10 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Complete a job (Assigned staff only)' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Job successfully completed.' }),
     __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], BookingsController.prototype, "completeJob", null);
 __decorate([

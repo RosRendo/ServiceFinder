@@ -56,6 +56,10 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const analytics_service_1 = require("../analytics/analytics.service");
 const notifications_service_1 = require("../notifications/notifications.service");
+const promo_codes_service_1 = require("../promo-codes/promo-codes.service");
+const conversations_service_1 = require("../conversations/conversations.service");
+const event_emitter_1 = require("@nestjs/event-emitter");
+const booking_events_1 = require("./events/booking.events");
 let BookingsService = class BookingsService {
     prisma;
     bookingsGateway;
@@ -63,13 +67,19 @@ let BookingsService = class BookingsService {
     settingsService;
     analytics;
     notificationsService;
-    constructor(prisma, bookingsGateway, adminGateway, settingsService, analytics, notificationsService) {
+    promoCodesService;
+    conversationsService;
+    eventEmitter;
+    constructor(prisma, bookingsGateway, adminGateway, settingsService, analytics, notificationsService, promoCodesService, conversationsService, eventEmitter) {
         this.prisma = prisma;
         this.bookingsGateway = bookingsGateway;
         this.adminGateway = adminGateway;
         this.settingsService = settingsService;
         this.analytics = analytics;
         this.notificationsService = notificationsService;
+        this.promoCodesService = promoCodesService;
+        this.conversationsService = conversationsService;
+        this.eventEmitter = eventEmitter;
     }
     async getAllBookings(query, user) {
         const { customerId, companyId, status, staffId, page = 1, limit = 10, } = query;
@@ -88,6 +98,14 @@ let BookingsService = class BookingsService {
             if (!company)
                 throw new common_1.ForbiddenException('You do not own a company');
             where.companyId = company.id;
+        }
+        else if (user.role === 'staff') {
+            const staff = await this.prisma.companyStaff.findFirst({
+                where: { userId: BigInt(user.id) },
+            });
+            if (!staff)
+                throw new common_1.ForbiddenException('You are not associated with any company');
+            where.companyId = staff.companyId;
         }
         else if (companyId) {
             where.companyId = BigInt(companyId);
@@ -191,12 +209,54 @@ let BookingsService = class BookingsService {
         const end = new Date(start.getTime() + service.durationMin * 60000);
         const platformFeePercent = await this.settingsService.getSettingNumber('PLATFORM_FEE_PERCENT', 10);
         const companySplitPercent = await this.settingsService.getSettingNumber('COMPANY_SPLIT_PERCENT', 31);
-        const staffSplitPercent = 100 - platformFeePercent - companySplitPercent;
+        let discountPercent = 0;
+        let promoCodeId = null;
+        if (dto.promoCode) {
+            const validation = await this.promoCodesService.validatePromoCode(dto.promoCode);
+            if (validation.valid) {
+                discountPercent = validation.discountPercent;
+                promoCodeId = BigInt(validation.id);
+            }
+        }
         const basePrice = Number(service.basePrice);
-        const totalPrice = basePrice;
-        const platformFee = Number((basePrice * (platformFeePercent / 100)).toFixed(2));
-        const companyEarnings = Number((basePrice * (companySplitPercent / 100)).toFixed(2));
-        const staffEarnings = Number((basePrice * (staffSplitPercent / 100)).toFixed(2));
+        const bookingDay = new Date(dto.bookingDate).getDay();
+        const startHour = parseInt(dto.startTime.split(':')[0], 10);
+        const pricingRules = await this.prisma.pricingRule.findMany({
+            where: { companyId: BigInt(dto.companyId), isActive: true },
+        });
+        let totalSurchargePercent = 0;
+        pricingRules.forEach(rule => {
+            let matchesDay = true;
+            let matchesTime = true;
+            if (rule.dayOfWeek !== null && rule.dayOfWeek !== bookingDay) {
+                matchesDay = false;
+            }
+            if (rule.startHour !== null && startHour < rule.startHour) {
+                matchesTime = false;
+            }
+            if (rule.endHour !== null && startHour >= rule.endHour) {
+                matchesTime = false;
+            }
+            if (matchesDay && matchesTime) {
+                totalSurchargePercent += Number(rule.surchargePercent);
+            }
+        });
+        const surchargeAmount = Number(((basePrice * totalSurchargePercent) / 100).toFixed(2));
+        const priceBeforeDiscount = basePrice + surchargeAmount;
+        const discountAmount = Number(((priceBeforeDiscount * discountPercent) / 100).toFixed(2));
+        const totalPrice = Number((priceBeforeDiscount - discountAmount).toFixed(2));
+        const platformFee = Number((totalPrice * (platformFeePercent / 100)).toFixed(2));
+        const companyEarnings = Number((totalPrice - platformFee).toFixed(2));
+        const staffEarnings = 0;
+        let instantiatedChecklist = null;
+        if (service.checklist && Array.isArray(service.checklist)) {
+            instantiatedChecklist = service.checklist.map((item, index) => {
+                if (typeof item === 'string') {
+                    return { id: index + 1, title: item, completed: false };
+                }
+                return { id: index + 1, ...item, completed: false };
+            });
+        }
         const booking = (await this.prisma.booking.create({
             data: {
                 customerId: BigInt(user.id),
@@ -214,6 +274,8 @@ let BookingsService = class BookingsService {
                 companyEarnings,
                 staffEarnings,
                 status: 'pending',
+                promoCodeId: promoCodeId || null,
+                checklist: instantiatedChecklist,
             },
             include: {
                 customer: {
@@ -232,6 +294,12 @@ let BookingsService = class BookingsService {
                 changedBy: BigInt(user.id),
             },
         });
+        if (promoCodeId) {
+            await this.prisma.promoCode.update({
+                where: { id: promoCodeId },
+                data: { usedCount: { increment: 1 } },
+            });
+        }
         if (booking.company?.ownerId) {
             await this.notificationsService.notifyBookingCreated(BigInt(user.id), booking.company.ownerId, booking.service.name, booking.id.toString());
         }
@@ -369,10 +437,14 @@ let BookingsService = class BookingsService {
         if (company && Number(company.walletBalance) < companyDebtLimit) {
             throw new common_1.ForbiddenException(`Company's wallet balance is below the debt limit of $${Math.abs(companyDebtLimit)}. Cannot assign new jobs.`);
         }
+        (0, status_transitions_util_1.validateTransition)(booking.status, 'assigned');
         const updated = await this.prisma.$transaction(async (tx) => {
             const u = await tx.booking.update({
                 where: { id },
-                data: { assignedStaffId: BigInt(staffId) },
+                data: {
+                    assignedStaffId: BigInt(staffId),
+                    status: 'assigned',
+                },
                 include: {
                     customer: true,
                     company: true,
@@ -384,27 +456,109 @@ let BookingsService = class BookingsService {
                 data: {
                     bookingId: id,
                     oldStatus: booking.status,
-                    newStatus: booking.status,
+                    newStatus: 'assigned',
                     changedBy: BigInt(user.id),
                 },
             });
             return u;
         });
-        await this.notificationsService
-            .createNotification(staff.userId, 'new_assignment', 'New Job Assignment', `You have been assigned to a ${updated.service.name} job`, { bookingId: id.toString() })
-            .catch((e) => console.warn('Notification create failed (staff):', e?.message));
-        await this.notificationsService
-            .createNotification(booking.customerId, 'staff_assigned', 'Staff Assigned', `${staff.user.fullName} has been assigned to your booking`, { bookingId: id.toString() })
-            .catch((e) => console.warn('Notification create failed (customer):', e?.message));
         const result = {
             success: true,
-            message: 'Staff assigned successfully',
+            message: 'Staff assigned successfully, awaiting acceptance',
             booking: this.serializeBooking(updated),
         };
-        this.bookingsGateway.broadcastBookingUpdate(id.toString(), booking.status, result.booking);
+        this.bookingsGateway.broadcastBookingUpdate(id.toString(), 'assigned', result.booking);
+        this.eventEmitter.emit('booking.assigned', new booking_events_1.BookingAssignedEvent(id, staff.id, booking.companyId, booking.customerId));
         return result;
     }
-    async startJob(id, userId) {
+    async acceptAssignment(id, userId) {
+        const staff = await this.prisma.companyStaff.findFirst({
+            where: { userId },
+        });
+        if (!staff)
+            throw new common_1.ForbiddenException('You are not registered as staff');
+        const booking = await this.findOrFail(id, true);
+        if (!booking.assignedStaffId ||
+            booking.assignedStaffId.toString() !== staff.id.toString()) {
+            throw new common_1.BadRequestException('You are not assigned to this booking');
+        }
+        (0, status_transitions_util_1.validateTransition)(booking.status, 'confirmed');
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const u = await tx.booking.update({
+                where: { id },
+                data: { status: 'confirmed' },
+                include: {
+                    customer: true,
+                    company: true,
+                    service: true,
+                    assignedStaff: { include: { user: true } },
+                },
+            });
+            await tx.bookingStatusLog.create({
+                data: {
+                    bookingId: id,
+                    oldStatus: booking.status,
+                    newStatus: 'confirmed',
+                    changedBy: userId,
+                },
+            });
+            return u;
+        });
+        const result = {
+            success: true,
+            message: 'Job assignment accepted',
+            booking: this.serializeBooking(updated),
+        };
+        this.bookingsGateway.broadcastBookingUpdate(id.toString(), 'confirmed', result.booking);
+        this.eventEmitter.emit('booking.accepted', new booking_events_1.BookingAcceptedEvent(id, staff.id, booking.companyId, booking.customerId));
+        return result;
+    }
+    async rejectAssignment(id, userId) {
+        const staff = await this.prisma.companyStaff.findFirst({
+            where: { userId },
+        });
+        if (!staff)
+            throw new common_1.ForbiddenException('You are not registered as staff');
+        const booking = await this.findOrFail(id, true);
+        if (!booking.assignedStaffId ||
+            booking.assignedStaffId.toString() !== staff.id.toString()) {
+            throw new common_1.BadRequestException('You are not assigned to this booking');
+        }
+        (0, status_transitions_util_1.validateTransition)(booking.status, 'pending');
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const u = await tx.booking.update({
+                where: { id },
+                data: {
+                    status: 'pending',
+                    assignedStaffId: null,
+                },
+                include: {
+                    customer: true,
+                    company: true,
+                    service: true,
+                    assignedStaff: { include: { user: true } },
+                },
+            });
+            await tx.bookingStatusLog.create({
+                data: {
+                    bookingId: id,
+                    oldStatus: booking.status,
+                    newStatus: 'pending',
+                    changedBy: userId,
+                },
+            });
+            return u;
+        });
+        const result = {
+            success: true,
+            message: 'Job assignment rejected, returned to dispatch queue',
+            booking: this.serializeBooking(updated),
+        };
+        this.bookingsGateway.broadcastBookingUpdate(id.toString(), 'pending', result.booking);
+        this.eventEmitter.emit('booking.rejected', new booking_events_1.BookingRejectedEvent(id, staff.id, booking.companyId, booking.customerId));
+        return result;
+    }
+    async startJob(id, userId, staffStartLat, staffStartLng) {
         const staff = await this.prisma.companyStaff.findFirst({
             where: { userId },
         });
@@ -417,13 +571,18 @@ let BookingsService = class BookingsService {
         }
         (0, status_transitions_util_1.validateTransition)(booking.status, 'in_progress');
         const updated = await this.prisma.$transaction(async (tx) => {
+            const updateData = {
+                status: 'in_progress',
+                actualStartTime: new Date(),
+                progressPercent: 0,
+            };
+            if (staffStartLat)
+                updateData.staffStartLatitude = staffStartLat;
+            if (staffStartLng)
+                updateData.staffStartLongitude = staffStartLng;
             const u = await tx.booking.update({
                 where: { id },
-                data: {
-                    status: 'in_progress',
-                    actualStartTime: new Date(),
-                    progressPercent: 0,
-                },
+                data: updateData,
                 include: {
                     customer: true,
                     company: true,
@@ -456,7 +615,7 @@ let BookingsService = class BookingsService {
         });
         return result;
     }
-    async updateProgress(id, userId, progressPercent, staffNotes) {
+    async updateProgress(id, userId, progressPercent, staffNotes, checklist) {
         if (progressPercent < 0 || progressPercent > 100) {
             throw new common_1.BadRequestException('progressPercent must be between 0 and 100');
         }
@@ -476,6 +635,8 @@ let BookingsService = class BookingsService {
         const updateData = { progressPercent };
         if (staffNotes !== undefined)
             updateData.staffNotes = staffNotes;
+        if (checklist !== undefined)
+            updateData.checklist = checklist;
         const updated = await this.prisma.booking.update({
             where: { id },
             data: updateData,
@@ -494,7 +655,7 @@ let BookingsService = class BookingsService {
         this.bookingsGateway.broadcastBookingUpdate(id.toString(), booking.status, result.booking);
         return result;
     }
-    async completeJob(id, userId) {
+    async completeJob(id, userId, proofOfWorkPhoto) {
         const staff = await this.prisma.companyStaff.findFirst({
             where: { userId },
         });
@@ -507,13 +668,17 @@ let BookingsService = class BookingsService {
         }
         (0, status_transitions_util_1.validateTransition)(booking.status, 'completed');
         const updated = await this.prisma.$transaction(async (tx) => {
+            const updateData = {
+                status: 'completed',
+                actualEndTime: new Date(),
+                progressPercent: 100,
+            };
+            if (proofOfWorkPhoto) {
+                updateData.proofOfWorkPhoto = proofOfWorkPhoto;
+            }
             const u = await tx.booking.update({
                 where: { id },
-                data: {
-                    status: 'completed',
-                    actualEndTime: new Date(),
-                    progressPercent: 100,
-                },
+                data: updateData,
                 include: {
                     customer: true,
                     company: true,
@@ -546,6 +711,10 @@ let BookingsService = class BookingsService {
             id: id.toString(),
             status: 'completed',
         });
+        const payoutHoldHours = await this.settingsService.getSettingNumber('PAYOUT_HOLD_HOURS', 72);
+        await this.conversationsService
+            .archiveJobConversation(id, payoutHoldHours)
+            .catch((e) => console.warn('Failed to archive job conversation:', e?.message));
         return result;
     }
     async cancelBooking(id, reason, user) {
@@ -645,6 +814,7 @@ let BookingsService = class BookingsService {
             this.prisma.booking.count({ where }),
         ]);
         return {
+            success: true,
             bookings: bookings.map((b) => this.serializeBooking(b)),
             pagination: {
                 total,
@@ -684,24 +854,7 @@ let BookingsService = class BookingsService {
         }
         const platformFee = Number(u.platformFee || 0);
         const companyEarnings = Number(u.companyEarnings || 0);
-        const staffEarnings = Number(u.staffEarnings || 0);
         if (u.payment && u.payment.method === 'cash') {
-            const staffOwes = companyEarnings + platformFee;
-            if (staffOwes > 0) {
-                await tx.walletTransaction.create({
-                    data: {
-                        staffId: staff.id,
-                        amount: staffOwes,
-                        type: 'debit',
-                        description: `Cash collection deduction for booking #${id} (Owed to Company & Platform)`,
-                        bookingId: id,
-                    },
-                });
-                await tx.companyStaff.update({
-                    where: { id: staff.id },
-                    data: { walletBalance: { decrement: staffOwes } },
-                });
-            }
             if (platformFee > 0) {
                 await tx.transaction.create({
                     data: {
@@ -710,13 +863,21 @@ let BookingsService = class BookingsService {
                         amount: platformFee,
                         type: 'debit',
                         category: 'commission',
-                        description: `Platform fee deduction for cash booking #${id}`,
+                        description: `Platform fee for cash booking #${id}`,
                         bookingId: id,
                     },
                 });
+                const company = await tx.company.findUnique({
+                    where: { id: u.companyId },
+                    select: { availableBalance: true },
+                });
+                const currentAvail = Number(company?.availableBalance ?? 0);
                 await tx.company.update({
                     where: { id: u.companyId },
-                    data: { walletBalance: { decrement: platformFee } },
+                    data: {
+                        availableBalance: Math.max(0, currentAvail - platformFee),
+                        walletBalance: Math.max(0, currentAvail - platformFee),
+                    },
                 });
             }
         }
@@ -729,28 +890,13 @@ let BookingsService = class BookingsService {
                         amount: companyEarnings,
                         type: 'credit',
                         category: 'service_payment',
-                        description: `Earnings credited for non-cash booking #${id}`,
+                        description: `Earnings pending for booking #${id} (held for dispute window)`,
                         bookingId: id,
                     },
                 });
                 await tx.company.update({
                     where: { id: u.companyId },
-                    data: { walletBalance: { increment: companyEarnings } },
-                });
-            }
-            if (staffEarnings > 0) {
-                await tx.walletTransaction.create({
-                    data: {
-                        staffId: staff.id,
-                        amount: staffEarnings,
-                        type: 'credit',
-                        description: `Earnings credited for non-cash booking #${id}`,
-                        bookingId: id,
-                    },
-                });
-                await tx.companyStaff.update({
-                    where: { id: staff.id },
-                    data: { walletBalance: { increment: staffEarnings } },
+                    data: { pendingBalance: { increment: companyEarnings } },
                 });
             }
         }
@@ -907,11 +1053,15 @@ exports.BookingsService = BookingsService = __decorate([
     (0, common_1.Injectable)(),
     __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => bookings_gateway_1.BookingsGateway))),
     __param(2, (0, common_1.Inject)((0, common_1.forwardRef)(() => admin_gateway_1.AdminGateway))),
+    __param(7, (0, common_1.Inject)((0, common_1.forwardRef)(() => conversations_service_1.ConversationsService))),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         bookings_gateway_1.BookingsGateway,
         admin_gateway_1.AdminGateway,
         settings_service_1.SettingsService,
         analytics_service_1.AnalyticsService,
-        notifications_service_1.NotificationsService])
+        notifications_service_1.NotificationsService,
+        promo_codes_service_1.PromoCodesService,
+        conversations_service_1.ConversationsService,
+        event_emitter_1.EventEmitter2])
 ], BookingsService);
 //# sourceMappingURL=bookings.service.js.map

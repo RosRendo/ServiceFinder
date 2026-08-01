@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Image } from "expo-image";
-import { ScrollView, Text, View, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, StyleSheet, Platform } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, StyleSheet, Platform, Animated } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -17,11 +17,11 @@ const CARD_SHADOW = Platform.select({
 });
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; accent: string }> = {
-  pending:     { label: "Pending",     color: "#92400E", bg: "#FEF3C7", accent: T.warning },
-  confirmed:   { label: "Confirmed",   color: "#1E40AF", bg: "#DBEAFE", accent: T.info },
-  in_progress: { label: "In Progress", color: "#5B21B6", bg: "#EDE9FE", accent: T.purple },
-  completed:   { label: "Completed",   color: "#065F46", bg: "#D1FAE5", accent: T.success },
-  cancelled:   { label: "Cancelled",   color: "#991B1B", bg: "#FEE2E2", accent: T.error },
+  pending:     { label: "Pending",     color: "#B45309", bg: "#FEF3C7", accent: "#F59E0B" },
+  confirmed:   { label: "Confirmed",   color: "#1D4ED8", bg: "#DBEAFE", accent: "#3B82F6" },
+  in_progress: { label: "In Progress", color: "#6D28D9", bg: "#EDE9FE", accent: "#8B5CF6" },
+  completed:   { label: "Completed",   color: "#047857", bg: "#D1FAE5", accent: "#10B981" },
+  cancelled:   { label: "Cancelled",   color: "#B91C1C", bg: "#FEE2E2", accent: "#EF4444" },
 };
 
 const FILTERS = [
@@ -44,6 +44,17 @@ export default function Bookings() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const setCompanyOpen = useSidebarStore((s) => s.setCompanyOpen);
+
+  const pulseAnim = useRef(new Animated.Value(0.5)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0.5, duration: 800, useNativeDriver: true })
+      ])
+    ).start();
+  }, [pulseAnim]);
 
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -129,15 +140,25 @@ export default function Bookings() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadBookings(true)} tintColor={T.accent} />}
       >
         {loading && !refreshing ? (
-          <View style={s.loadingBox}>
-            <ActivityIndicator size="large" color={T.accent} />
-            <Text style={s.loadingText}>Loading data...</Text>
+          <View style={s.skeletonContainer}>
+            {[1, 2, 3].map((key) => (
+              <Animated.View key={key} style={[s.skeletonCard, { opacity: pulseAnim }]}>
+                <View style={s.skeletonHeader}>
+                  <View style={s.skeletonLineShort} />
+                  <View style={s.skeletonBadge} />
+                </View>
+                <View style={s.skeletonLineLong} />
+                <View style={s.skeletonLineMedium} />
+              </Animated.View>
+            ))}
           </View>
         ) : filteredBookings.length === 0 ? (
           <View style={s.emptyBox}>
-            <MaterialCommunityIcons name={searchQuery ? "text-search" : "inbox-outline"} size={56} color={T.text3} style={{ marginBottom: 16 }} />
-            <Text style={s.emptyTitle}>No results found</Text>
-            <Text style={s.emptySubText}>{searchQuery ? "Try a different search term or filter" : "You have no bookings matching this criteria."}</Text>
+            <View style={s.emptyIconCircle}>
+              <MaterialCommunityIcons name={searchQuery ? "file-search-outline" : "calendar-blank"} size={42} color={T.text3} />
+            </View>
+            <Text style={s.emptyTitle}>{searchQuery ? "No matching bookings" : "No bookings yet"}</Text>
+            <Text style={s.emptySubText}>{searchQuery ? "Try adjusting your search or filters to find what you're looking for." : "When customers book your services, they will appear here."}</Text>
           </View>
         ) : (
           filteredBookings.map((booking) => {
@@ -222,50 +243,59 @@ const s = StyleSheet.create({
   headerTitle: { fontSize: 22, fontWeight: "800", color: T.text1 },
   
   // Search & Filters Standard
-  filtersContainer: { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, paddingBottom: 16 },
+  filtersContainer: { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, paddingBottom: 12 },
   searchBox: {
     flexDirection: "row", alignItems: "center", backgroundColor: T.bg,
-    marginHorizontal: 16, marginTop: 16, paddingHorizontal: 16, borderRadius: 16, height: 48,
+    marginHorizontal: 16, marginTop: 12, paddingHorizontal: 16, borderRadius: 12, height: 44,
     borderWidth: 1, borderColor: T.border, gap: 8,
   },
   searchInput: { flex: 1, fontSize: 15, color: T.text1, fontWeight: "500" },
-  filterChips: { paddingHorizontal: 16, paddingTop: 16, gap: 8 },
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: T.bg, borderWidth: 1, borderColor: T.border },
-  filterChipActive: { backgroundColor: T.accent, borderColor: T.accent },
+  filterChips: { paddingHorizontal: 16, paddingTop: 12, gap: 8 },
+  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 24, backgroundColor: T.bg, borderWidth: 1, borderColor: T.border },
+  filterChipActive: { backgroundColor: T.text1, borderColor: T.text1 },
   filterChipText: { fontSize: 13, fontWeight: "600", color: T.text2 },
-  filterChipTextActive: { color: "#fff" },
+  filterChipTextActive: { color: T.surface },
 
   // List Standard
-  listContent: { padding: 16, gap: 12, paddingBottom: 60 },
-  loadingBox: { paddingVertical: 80, alignItems: "center" },
-  loadingText: { fontSize: 14, color: T.text3, marginTop: 12, fontWeight: "500" },
-  emptyBox: { alignItems: "center", paddingVertical: 80 },
-  emptyTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
-  emptySubText: { fontSize: 14, color: T.text3, marginTop: 4, textAlign: "center", paddingHorizontal: 32, lineHeight: 20 },
+  listContent: { padding: 16, gap: 12, paddingBottom: 80 },
+  
+  // Skeleton
+  skeletonContainer: { gap: 12 },
+  skeletonCard: { backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border, gap: 12 },
+  skeletonHeader: { flexDirection: "row", justifyContent: "space-between" },
+  skeletonLineShort: { width: "40%", height: 16, backgroundColor: T.border, borderRadius: 8 },
+  skeletonBadge: { width: 70, height: 24, backgroundColor: T.border, borderRadius: 12 },
+  skeletonLineLong: { width: "80%", height: 16, backgroundColor: T.border, borderRadius: 8, marginTop: 8 },
+  skeletonLineMedium: { width: "60%", height: 16, backgroundColor: T.border, borderRadius: 8 },
+
+  emptyBox: { alignItems: "center", paddingVertical: 60 },
+  emptyIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: T.border, alignItems: "center", justifyContent: "center", marginBottom: 20 },
+  emptyTitle: { fontSize: 18, fontWeight: "700", color: T.text1, marginBottom: 8 },
+  emptySubText: { fontSize: 14, color: T.text3, textAlign: "center", paddingHorizontal: 32, lineHeight: 22 },
 
   // Card Standard
   standardCard: {
     backgroundColor: T.surface, borderRadius: 16, padding: 16,
     borderWidth: 1, borderColor: T.border, borderLeftWidth: 4, ...CARD_SHADOW,
   },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
   cardHeaderLeft: { flex: 1, paddingRight: 12 },
-  cardId: { fontSize: 11, fontWeight: "700", color: T.text3, letterSpacing: 0.5, marginBottom: 4 },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1 },
+  cardId: { fontSize: 11, fontWeight: "700", color: T.text3, letterSpacing: 0.5, marginBottom: 4, textTransform: "uppercase" },
+  cardTitle: { fontSize: 17, fontWeight: "700", color: T.text1, lineHeight: 22 },
   
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  statusText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
 
-  cardBody: { gap: 8, marginBottom: 16 },
-  detailRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  detailText: { fontSize: 13, fontWeight: "500", color: T.text2 },
+  cardBody: { gap: 10, marginBottom: 16 },
+  detailRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  detailText: { fontSize: 14, fontWeight: "500", color: T.text2 },
 
   cardDivider: { height: 1, backgroundColor: T.border, marginBottom: 16, marginHorizontal: -16 },
   
   cardFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   footerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
-  avatarSmall: { width: 24, height: 24, borderRadius: 12, backgroundColor: T.accent, alignItems: "center", justifyContent: "center" },
-  avatarSmallText: { fontSize: 10, fontWeight: "800", color: "#fff" },
+  avatarSmall: { width: 26, height: 26, borderRadius: 13, backgroundColor: T.accent, alignItems: "center", justifyContent: "center" },
+  avatarSmallText: { fontSize: 11, fontWeight: "800", color: "#fff" },
   footerLeftText: { fontSize: 13, fontWeight: "600", color: T.text1 },
-  footerRightText: { fontSize: 15, fontWeight: "800", color: T.accent },
+  footerRightText: { fontSize: 16, fontWeight: "800", color: T.text1 },
 });

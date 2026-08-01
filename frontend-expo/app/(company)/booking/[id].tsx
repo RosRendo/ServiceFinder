@@ -4,7 +4,7 @@
 import React, { useState, useCallback } from "react";
 import {
   ScrollView, Text, View, TouchableOpacity,
-  ActivityIndicator, RefreshControl, StyleSheet, Platform, Modal, Alert,
+  ActivityIndicator, RefreshControl, StyleSheet, Platform, Modal, Alert, Animated
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -44,41 +44,23 @@ export default function BookingDetails() {
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [assigning, setAssigning] = useState(false);
-  const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
-  const [staffList, setStaffList] = useState<any[]>([]);
   const [liveStaffLocation, setLiveStaffLocation] = useState<{ lat: number; lng: number } | null>(null);
   const mapRef = React.useRef<MapView>(null);
 
-  const fetchStaff = async () => {
-    try {
-      const response = await api.get("/api/companies/my-company/staff");
-      let data = response.data;
-      if (data && data.success) data = data.data;
-      if (data && data.data) data = data.data; // Pagination wrap
-      setStaffList(Array.isArray(data) ? data : []);
-      setStaffModalOpen(true);
-    } catch (err) {
-      Alert.alert("Error", "Failed to load staff list.");
-    }
-  };
+  const pulseAnim = React.useRef(new Animated.Value(0.5)).current;
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0.5, duration: 800, useNativeDriver: true })
+      ])
+    ).start();
+  }, [pulseAnim]);
 
-  const handleAssignStaff = async (staffId: string) => {
-    setAssigning(true);
-    try {
-      await api.patch(`/api/bookings/${id}/assign-staff`, { staffId });
-      setStaffModalOpen(false);
-      loadBooking(); // Reload booking
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || "Failed to assign staff.";
-      Alert.alert("Assignment Failed", Array.isArray(msg) ? msg[0] : msg);
-    } finally {
-      setAssigning(false);
-    }
-  };
+
 
   const loadBooking = useCallback(async (isRefresh = false) => {
     if (!id) return;
@@ -156,8 +138,20 @@ export default function BookingDetails() {
 
   if (loading && !booking) {
     return (
-      <SafeAreaView style={[s.root, { justifyContent: 'center' }]}>
-        <ActivityIndicator size="large" color={T.accent} />
+      <SafeAreaView style={s.root}>
+        <View style={s.header}>
+          <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+            <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
+          </TouchableOpacity>
+          <Animated.View style={[s.skeletonBadge, { width: 120, opacity: pulseAnim }]} />
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={s.scrollContent}>
+          <Animated.View style={[s.skeletonCard, { height: 60, opacity: pulseAnim }]} />
+          <Animated.View style={[s.skeletonCard, { height: 160, opacity: pulseAnim }]} />
+          <Animated.View style={[s.skeletonCard, { height: 160, opacity: pulseAnim }]} />
+          <Animated.View style={[s.skeletonCard, { height: 120, opacity: pulseAnim }]} />
+        </View>
       </SafeAreaView>
     );
   }
@@ -300,32 +294,22 @@ export default function BookingDetails() {
                 <Text style={s.staffName}>{booking.assignedStaff.fullName}</Text>
                 <Text style={s.staffPhone}>{booking.assignedStaff.phone || "No phone"}</Text>
               </View>
-              {(booking.status === "pending" || booking.status === "confirmed") && (
+              {booking.status === "pending" && (
                 <View style={{ gap: 8 }}>
-                  <TouchableOpacity style={s.assignBtn} onPress={fetchStaff}>
-                    <Text style={s.assignBtnText}>Reassign</Text>
+                  <TouchableOpacity style={[s.assignBtn, { backgroundColor: "#FEE2E2" }]} onPress={() => setRejectModalOpen(true)}>
+                    <Text style={[s.assignBtnText, { color: "#991B1B" }]}>Decline</Text>
                   </TouchableOpacity>
-                  {booking.status === "pending" && (
-                    <TouchableOpacity style={[s.assignBtn, { backgroundColor: "#FEE2E2" }]} onPress={() => setRejectModalOpen(true)}>
-                      <Text style={[s.assignBtnText, { color: "#991B1B" }]}>Decline</Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
               )}
             </View>
           ) : (
             <View style={s.unassignedRow}>
               <Text style={s.unassignedText}>No staff assigned yet</Text>
-              {(booking.status === "pending" || booking.status === "confirmed") && (
+              {booking.status === "pending" && (
                 <View style={{ gap: 8, alignItems: 'flex-end' }}>
-                  <TouchableOpacity style={s.assignBtn} onPress={fetchStaff}>
-                    <Text style={s.assignBtnText}>Assign Staff</Text>
+                  <TouchableOpacity style={[s.assignBtn, { backgroundColor: "#FEE2E2" }]} onPress={() => setRejectModalOpen(true)}>
+                    <Text style={[s.assignBtnText, { color: "#991B1B" }]}>Decline</Text>
                   </TouchableOpacity>
-                  {booking.status === "pending" && (
-                    <TouchableOpacity style={[s.assignBtn, { backgroundColor: "#FEE2E2" }]} onPress={() => setRejectModalOpen(true)}>
-                      <Text style={[s.assignBtnText, { color: "#991B1B" }]}>Decline</Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
               )}
             </View>
@@ -357,79 +341,7 @@ export default function BookingDetails() {
 
       </ScrollView>
 
-      {/* Staff Selection Modal */}
-      <Modal visible={staffModalOpen} animationType="slide" transparent>
-        <View style={s.modalOverlay}>
-          <View style={s.modalContent}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Select Staff</Text>
-              <TouchableOpacity onPress={() => setStaffModalOpen(false)} style={s.modalClose}>
-                <MaterialCommunityIcons name="close" size={24} color={T.text1} />
-              </TouchableOpacity>
-            </View>
-            {staffList.length === 0 ? (
-              <View style={s.modalEmpty}>
-                <MaterialCommunityIcons name="account-off-outline" size={48} color={T.text3} />
-                <Text style={s.modalEmptyText}>No active staff members found.</Text>
-                <Text style={{ fontSize: 13, color: T.text3, textAlign: "center", marginTop: 4 }}>
-                  Add staff from the Staff tab first.
-                </Text>
-              </View>
-            ) : (
-              <ScrollView style={s.modalList} contentContainerStyle={{ paddingBottom: 20 }}>
-                {staffList.map((staff) => {
-                  const isAvail = staff.isAvailable !== false;
-                  const hasRating = staff.averageRating != null;
-                  return (
-                    <TouchableOpacity
-                      key={staff.id}
-                      style={[s.modalStaffItem, !isAvail && { opacity: 0.6 }]}
-                      disabled={assigning || !isAvail}
-                      onPress={() => handleAssignStaff(staff.id)}
-                    >
-                      <View style={s.staffAvatar}>
-                        <Text style={s.staffInitial}>{staff.fullName?.charAt(0)?.toUpperCase() ?? "S"}</Text>
-                      </View>
-                      <View style={{ flex: 1, gap: 4 }}>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                          <Text style={s.staffName}>{staff.fullName}</Text>
-                          <View style={[s.availDot, { backgroundColor: isAvail ? T.success : T.error }]} />
-                        </View>
-                        <View style={{ flexDirection: "row", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                          <View style={[s.rolePill, { backgroundColor: T.accentLight }]}>
-                            <Text style={[s.rolePillText, { color: T.accentMid }]}>{staff.role}</Text>
-                          </View>
-                          {hasRating && (
-                            <View style={s.ratingPill}>
-                              <MaterialCommunityIcons name="star" size={11} color={T.warning} />
-                              <Text style={s.ratingText}>{Number(staff.averageRating).toFixed(1)}</Text>
-                            </View>
-                          )}
-                          {staff.completedJobs > 0 && (
-                            <View style={s.jobsPill}>
-                              <MaterialCommunityIcons name="check-circle" size={11} color={T.success} />
-                              <Text style={s.jobsText}>{staff.completedJobs} jobs</Text>
-                            </View>
-                          )}
-                        </View>
-                        {staff.phone && (
-                          <Text style={{ fontSize: 12, color: T.text3 }}>{staff.phone}</Text>
-                        )}
-                        {!isAvail && (
-                          <Text style={{ fontSize: 11, color: T.error, fontWeight: "700" }}>Currently unavailable</Text>
-                        )}
-                      </View>
-                      {assigning
-                        ? <ActivityIndicator size="small" color={T.accent} />
-                        : <MaterialCommunityIcons name="chevron-right" size={20} color={T.text3} />}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
+
 
       {/* Reject Modal */}
       <Modal visible={rejectModalOpen} animationType="slide" transparent>
@@ -441,9 +353,9 @@ export default function BookingDetails() {
                 <MaterialCommunityIcons name="close" size={24} color={T.text1} />
               </TouchableOpacity>
             </View>
-            <View style={{ padding: 20 }}>
-              <Text style={{ fontSize: 14, color: T.text2, marginBottom: 12 }}>
-                Please provide a reason for declining this booking. The customer will be fully refunded.
+            <View style={{ padding: 24 }}>
+              <Text style={{ fontSize: 15, color: T.text2, marginBottom: 16, lineHeight: 22 }}>
+                Please provide a reason for declining this booking. The customer will be refunded via KHQR.
               </Text>
               <View style={{ backgroundColor: T.bg, borderWidth: 1, borderColor: T.border, borderRadius: 12, padding: 12, minHeight: 100 }}>
                 <Text style={{ flex: 1, textAlignVertical: 'top' }}>
@@ -515,25 +427,30 @@ const s = StyleSheet.create({
 
   emptyBox: { flex: 1, alignItems: "center", justifyContent: "center" },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: T.text2 },
+  emptyIconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: T.border, alignItems: "center", justifyContent: "center", marginBottom: 16 },
 
-  assignBtn: { backgroundColor: T.accentLight, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  assignBtn: { backgroundColor: T.accentLight, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
   assignBtnText: { color: T.accentMid, fontWeight: "700", fontSize: 13 },
   unassignedRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
-  modalContent: { backgroundColor: T.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%", minHeight: "50%" },
-  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 20, borderBottomWidth: 1, borderBottomColor: T.border, backgroundColor: T.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
-  modalTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
-  modalClose: { padding: 4 },
-  modalList: { padding: 16 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalContent: { backgroundColor: T.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "85%", minHeight: "55%" },
+  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 24, borderBottomWidth: 1, borderBottomColor: T.border, backgroundColor: T.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  modalTitle: { fontSize: 19, fontWeight: "800", color: T.text1 },
+  modalClose: { padding: 8, backgroundColor: T.bg, borderRadius: 20 },
+  modalList: { padding: 24, paddingTop: 16 },
   modalEmpty: { padding: 40, alignItems: "center" },
-  modalEmptyText: { fontSize: 15, color: T.text3, fontWeight: "500" },
-  modalStaffItem: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: T.surface, padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: T.border },
-  availDot: { width: 8, height: 8, borderRadius: 4 },
-  rolePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  rolePillText: { fontSize: 11, fontWeight: "800", textTransform: "capitalize" },
-  ratingPill: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#FEF3C7", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  ratingText: { fontSize: 11, fontWeight: "800", color: "#92400E" },
-  jobsPill: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: T.success + "15", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  jobsText: { fontSize: 11, fontWeight: "800", color: T.success },
+  modalEmptyText: { fontSize: 16, color: T.text1, fontWeight: "700" },
+  modalStaffItem: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: T.surface, padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  availDot: { width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: T.surface },
+  rolePill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  rolePillText: { fontSize: 12, fontWeight: "800", textTransform: "capitalize" },
+  ratingPill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#FEF3C7", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  ratingText: { fontSize: 12, fontWeight: "800", color: "#92400E" },
+  jobsPill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: T.success + "15", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  jobsText: { fontSize: 12, fontWeight: "800", color: T.success },
+  
+  // Skeleton
+  skeletonBadge: { height: 24, backgroundColor: T.border, borderRadius: 12 },
+  skeletonCard: { backgroundColor: T.surface, borderRadius: 16, borderWidth: 1, borderColor: T.border },
 });

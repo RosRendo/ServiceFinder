@@ -11,6 +11,9 @@ import Reanimated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, w
 import { api } from "@/store/authStore";
 import SwipeToComplete from "@/components/SwipeToComplete";
 import SuccessOverlay from "@/components/SuccessOverlay";
+import { io, Socket } from "socket.io-client";
+
+const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3000';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -94,6 +97,7 @@ export default function JobExecutionScreen() {
   // ── Real-time tracking (like Grab) ──
   useEffect(() => {
     let active = true;
+    let socket: Socket | null = null;
 
     const startTracking = async () => {
       try {
@@ -103,6 +107,12 @@ export default function JobExecutionScreen() {
 
         if (!active) return;
         setSharingLocation(true);
+
+        // Connect to WebSocket
+        socket = io(BACKEND_URL, { transports: ['websocket'] });
+        socket.on("connect", () => {
+          socket?.emit("join_booking", id);
+        });
 
         watchRef.current = await ExpoLocation.watchPositionAsync(
           {
@@ -114,11 +124,8 @@ export default function JobExecutionScreen() {
           async (loc) => {
             if (!active) return;
             
-            // Ignore inaccurate location jumps (e.g., cell tower triangulation when screen is off)
-            if (loc.coords.accuracy && loc.coords.accuracy > 100) {
-              console.warn(`Ignoring inaccurate location, accuracy: ${loc.coords.accuracy}m`);
-              return;
-            }
+            // Ignore inaccurate location jumps
+            if (loc.coords.accuracy && loc.coords.accuracy > 100) return;
 
             const lat = loc.coords.latitude;
             const lng = loc.coords.longitude;
@@ -131,19 +138,19 @@ export default function JobExecutionScreen() {
               staffCoordAnim.timing({
                 latitude: lat,
                 longitude: lng,
-                duration: 1000, // Sync with camera animation duration
+                duration: 1000,
                 useNativeDriver: false,
               } as any).start();
             }
 
-            try {
-              await api.patch(`/api/location/${id}`, {
-                lat,
-                lng,
-                accuracy: loc.coords.accuracy ?? undefined,
-                heading: loc.coords.heading ?? undefined,
+            // Emit to WebSocket
+            if (socket && socket.connected) {
+              socket.emit("staff_location_update", {
+                bookingId: id,
+                latitude: lat,
+                longitude: lng
               });
-            } catch {}
+            }
           }
         );
       } catch {}
@@ -154,6 +161,10 @@ export default function JobExecutionScreen() {
     return () => {
       active = false;
       watchRef.current?.remove();
+      if (socket) {
+        socket.emit("leave_booking", id);
+        socket.disconnect();
+      }
     };
   }, [id]);
 
@@ -164,13 +175,7 @@ export default function JobExecutionScreen() {
         const res = await api.get(`/api/bookings/${id}`);
         const data = res.data?.data?.booking || res.data?.booking || res.data?.data || res.data;
         setJobData(data);
-
-        setChecklist([
-          { id: 1, title: `Preparation for ${data?.service?.name || "Service"}`, completed: data?.progressPercent >= 33 },
-          { id: 2, title: `Execution of ${data?.service?.name || "Service"}`, completed: data?.progressPercent >= 66 },
-          { id: 3, title: "Final Cleanup & Quality Check", completed: data?.progressPercent >= 100 },
-        ]);
-
+        if (data?.checklist) setChecklist(data.checklist);
         if (data?.actualStartTime) {
           const diffMs = Date.now() - new Date(data.actualStartTime).getTime();
           const totalSecs = Math.floor(diffMs / 1000);
@@ -186,9 +191,9 @@ export default function JobExecutionScreen() {
   }, [id]);
 
   const [timeElapsed, setTimeElapsed] = useState({ hours: 0, minutes: 0, seconds: 0 });
-  const [checklist, setChecklist] = useState<any[]>([]);
   const [photos, setPhotos] = useState<{ before: string | null; after: string | null }>({ before: null, after: null });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [checklist, setChecklist] = useState<any[]>([]);
 
   // ── Timer ──
   useEffect(() => {
@@ -282,17 +287,6 @@ export default function JobExecutionScreen() {
     }
   };
 
-  // ── Checklist ──
-  const handleChecklistToggle = async (itemId: number) => {
-    const updated = checklist.map((item) => item.id === itemId ? { ...item, completed: !item.completed } : item);
-    setChecklist(updated);
-    const progress = Math.round((updated.filter((i) => i.completed).length / updated.length) * 100);
-    try { await api.patch(`/api/bookings/${id}/progress`, { progressPercent: progress }); } catch {}
-  };
-
-  const completedCount = checklist.filter((i) => i.completed).length;
-  const progressPct = checklist.length > 0 ? Math.round((completedCount / checklist.length) * 100) : 0;
-
   // ── Photo Capture ──
   const pickImage = async (type: "before" | "after", useCamera: boolean) => {
     const perm = useCamera
@@ -329,6 +323,24 @@ export default function JobExecutionScreen() {
   };
 
   // ── Complete ──
+  const handleArrive = async () => {
+    try {
+      await api.patch(`/api/bookings/${id}/status`, { status: "arrived" });
+      setJobData((prev: any) => ({ ...prev, status: "arrived" }));
+    } catch {
+      Alert.alert("Error", "Could not update status to arrived.");
+    }
+  };
+
+  const handleStart = async () => {
+    try {
+      await api.patch(`/api/bookings/${id}/start`);
+      setJobData((prev: any) => ({ ...prev, status: "in_progress", actualStartTime: new Date().toISOString() }));
+    } catch {
+      Alert.alert("Error", "Could not start job.");
+    }
+  };
+
   const handleComplete = async () => {
     try {
       await api.patch(`/api/bookings/${id}/complete`);
@@ -341,6 +353,23 @@ export default function JobExecutionScreen() {
   const handleSuccessFinish = () => {
     setShowSuccess(false);
     router.replace("/(staff)/(tabs)/dashboard");
+  };
+
+  const handleChecklistToggle = async (itemId: number) => {
+    const updated = checklist.map(item => item.id === itemId ? { ...item, completed: !item.completed } : item);
+    setChecklist(updated);
+    
+    const completedCount = updated.filter(item => item.completed).length;
+    const progressPercent = updated.length > 0 ? Math.round((completedCount / updated.length) * 100) : 0;
+    
+    try {
+      await api.patch(`/api/bookings/${id}/progress`, {
+        progressPercent,
+        checklist: updated
+      });
+    } catch {
+      Alert.alert("Error", "Could not save progress.");
+    }
   };
 
   // ── Draggable bottom sheet ──
@@ -547,25 +576,19 @@ export default function JobExecutionScreen() {
             <Text style={s.jobInfoSub} numberOfLines={2}>{jobData?.serviceAddress || "No address provided"}</Text>
           </View>
 
-          {/* Progress */}
-          <View style={s.card}>
-            <View style={s.progressHeader}>
+          {/* Checklist */}
+          {checklist && checklist.length > 0 && (
+            <View style={s.card}>
               <Text style={s.cardLabel}>Task Checklist</Text>
-              <Text style={s.progressCount}>{completedCount}/{checklist.length} Done</Text>
-            </View>
-            <View style={s.progressBarBg}>
-              <View style={[s.progressBarFill, { width: `${progressPct}%` }]} />
-            </View>
-            <View style={s.checklistItems}>
               {checklist.map((item, index) => (
                 <TouchableOpacity
-                  key={item.id}
+                  key={index}
+                  style={s.checklistItem}
+                  activeOpacity={0.7}
                   onPress={() => handleChecklistToggle(item.id)}
-                  style={[s.checklistItem, index < checklist.length - 1 && s.checklistItemBorder]}
-                  activeOpacity={0.85}
                 >
-                  <View style={[s.checkbox, item.completed && s.checkboxDone]}>
-                    {item.completed && <MaterialCommunityIcons name="check" size={14} color="#fff" />}
+                  <View style={[s.checkbox, item.completed && s.checkboxChecked]}>
+                    {item.completed && <MaterialCommunityIcons name="check" size={16} color="#fff" />}
                   </View>
                   <Text style={[s.checklistText, item.completed && s.checklistTextDone]}>
                     {item.title}
@@ -573,7 +596,7 @@ export default function JobExecutionScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
+          )}
 
           {/* Photos */}
           <View style={s.card}>
@@ -626,9 +649,15 @@ export default function JobExecutionScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
 
-        {/* Complete Button */}
+        {/* Action Button */}
         <View style={s.completeWrap}>
-          <SwipeToComplete onComplete={handleComplete} text="Slide to Complete" />
+          {(jobData?.status === 'pending' || jobData?.status === 'confirmed') ? (
+            <SwipeToComplete onComplete={handleArrive} text="Swipe to Arrive" />
+          ) : jobData?.status === 'arrived' ? (
+            <SwipeToComplete onComplete={handleStart} text="Swipe to Start Job" />
+          ) : (
+            <SwipeToComplete onComplete={handleComplete} text="Slide to Complete" />
+          )}
         </View>
       </Animated.View>
 
@@ -688,18 +717,12 @@ const s = StyleSheet.create({
   jobInfoSub: { fontSize: 15, color: T.textMuted, lineHeight: 22, fontWeight: "500" },
 
   card: { backgroundColor: T.surface, borderRadius: 24, padding: 20,  },
-  cardLabel: { fontSize: 12, fontWeight: "800", color: T.textMuted, textTransform: "uppercase", letterSpacing: 1.2 },
+  cardLabel: { fontSize: 12, fontWeight: "800", color: T.textMuted, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 12 },
 
-  progressHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  progressCount: { fontSize: 14, fontWeight: "800", color: T.secondary },
-  progressBarBg: { height: 8, backgroundColor: T.primaryLight, borderRadius: 4 },
-  progressBarFill: { height: 8, backgroundColor: T.success, borderRadius: 4 },
-  checklistItems: { gap: 0 },
-  checklistItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14 },
-  checklistItemBorder: { borderBottomWidth: 1, borderBottomColor: T.border },
-  checkbox: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: T.border, alignItems: "center", justifyContent: "center", backgroundColor: T.bg },
-  checkboxDone: { backgroundColor: T.primary, borderColor: T.primary },
-  checklistText: { flex: 1, fontSize: 16, color: T.text, fontWeight: "600" },
+  checklistItem: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
+  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: T.border, alignItems: "center", justifyContent: "center" },
+  checkboxChecked: { backgroundColor: T.success, borderColor: T.success },
+  checklistText: { fontSize: 16, fontWeight: "600", color: T.primary, flex: 1 },
   checklistTextDone: { textDecorationLine: "line-through", color: T.textMuted },
 
   uploadingBanner: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: T.primaryLight, padding: 12, borderRadius: 16 },

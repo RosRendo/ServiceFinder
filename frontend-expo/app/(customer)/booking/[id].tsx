@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   ScrollView, Text, View, TouchableOpacity, Alert,
   ActivityIndicator, RefreshControl, TextInput, StyleSheet,
-  Platform, Modal, Animated
+  Platform, Modal, Animated, Easing
 } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -87,6 +87,19 @@ const formatDateTime = (dateStr?: string, timeStr?: string) => {
   return `${datePart} · ${timePart}`;
 };
 
+const formatTimeOnly = (timeStr?: string) => {
+  if (!timeStr) return "";
+  if (timeStr.includes('T')) {
+    const td = new Date(timeStr);
+    let h = td.getUTCHours();
+    const m = td.getUTCMinutes();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h}:${m.toString().padStart(2, '0')} ${ampm}`;
+  }
+  return timeStr;
+};
+
 const getStepIndex = (status: string) => {
   if (status === "pending") return 0;
   if (status === "confirmed") return 1;
@@ -99,6 +112,8 @@ const getStepIndex = (status: string) => {
 export default function BookingDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const progressAnim = React.useRef(new Animated.Value(0)).current;
+  const pendingPushAnim = React.useRef(new Animated.Value(0)).current;
 
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -129,6 +144,32 @@ export default function BookingDetailsScreen() {
 
   useEffect(() => { loadBooking(); }, [loadBooking]);
 
+  useEffect(() => {
+    if (booking) {
+      const stepIdx = getStepIndex(booking.status);
+      const targetPercent = Math.max(0, Math.min((stepIdx / 3) * 100, 100));
+      Animated.timing(progressAnim, {
+        toValue: targetPercent,
+        duration: 1200,
+        useNativeDriver: false,
+      }).start();
+
+      if (booking.status === 'pending') {
+        pendingPushAnim.setValue(0);
+        Animated.loop(
+          Animated.timing(pendingPushAnim, { 
+            toValue: 1, 
+            duration: 1200, 
+            easing: Easing.linear,
+            useNativeDriver: false 
+          })
+        ).start();
+      } else {
+        pendingPushAnim.stopAnimation();
+      }
+    }
+  }, [booking?.status]);
+
   const handleCancel = () => {
     Alert.alert(
       "Cancel Booking?",
@@ -146,6 +187,24 @@ export default function BookingDetailsScreen() {
 
   const handlePayment = () => {
     router.push(`/(customer)/checkout?bookingId=${id}` as any);
+  };
+
+  const handleMessageStaff = async () => {
+    if (!staffName) return;
+    try {
+      const res = await api.post("/api/conversations", {
+        type: "job",
+        bookingId: id.toString(),
+      });
+      const responseData = res.data?.data || res.data;
+      const conversation = responseData?.data || responseData;
+      router.push(
+        `/(customer)/messages/${conversation.id}?otherName=${encodeURIComponent(staffName || "Staff")}` as any
+      );
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || "Could not start chat with staff.";
+      Alert.alert("Error", Array.isArray(msg) ? msg.join(", ") : msg);
+    }
   };
 
   const handleSubmitReview = async () => {
@@ -234,7 +293,9 @@ export default function BookingDetailsScreen() {
     booking.company?.logoUrl;
 
   const staffName = (booking.assignedStaff as any)?.fullName ?? (booking.assignedStaff as any)?.user?.fullName ?? null;
-  const totalPrice = booking.totalPrice ?? (booking.service?.basePrice ?? 0);
+  const parsedTotal = booking.totalPrice != null ? Number(booking.totalPrice.toString?.() || booking.totalPrice) || 0 : 0;
+  const parsedBase = booking.service?.basePrice != null ? Number(booking.service.basePrice.toString?.() || booking.service.basePrice) || 0 : 0;
+  const totalPrice = parsedTotal > 0 ? parsedTotal : parsedBase;
 
   return (
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
@@ -301,7 +362,7 @@ export default function BookingDetailsScreen() {
           {booking.endTime && (
             <View style={s.row}>
               <MaterialCommunityIcons name="clock-outline" size={20} color={T.text3} />
-              <Text style={s.rowText}>Until {booking.endTime}</Text>
+              <Text style={s.rowText}>Until {formatTimeOnly(booking.endTime)}</Text>
             </View>
           )}
           {booking.serviceAddress && (
@@ -326,13 +387,40 @@ export default function BookingDetailsScreen() {
           <View style={s.card}>
             <View style={s.timelineContainer}>
               <View style={[s.timelineTrack, { backgroundColor: T.border }]} />
-              <View
+              
+              {/* Push Line (Pending -> Confirmed) */}
+              {booking.status === 'pending' && (
+                <View style={[s.timelineTrack, { width: '33.3%', overflow: 'hidden', backgroundColor: 'transparent' }]}>
+                  <Animated.View
+                    style={{
+                      height: '100%',
+                      width: '40%',
+                      backgroundColor: T.accent,
+                      borderRadius: 2,
+                      left: pendingPushAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['-40%', '100%']
+                      })
+                    }}
+                  />
+                </View>
+              )}
+
+              {/* Solid Progress Track */}
+              <Animated.View
                 style={[
                   s.timelineTrack,
-                  { backgroundColor: T.accent, width: `${Math.min(((stepIdx - 1) / 2) * 100, 100)}%` },
+                  { 
+                    backgroundColor: T.accent, 
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 100],
+                      outputRange: ['0%', '100%']
+                    }) 
+                  },
                 ]}
               />
               {[
+                { label: "Pending", step: 0 },
                 { label: "Confirmed", step: 1 },
                 { label: "In Progress", step: 2 },
                 { label: "Completed", step: 3 },
@@ -400,6 +488,12 @@ export default function BookingDetailsScreen() {
                 <Text style={s.staffName}>{staffName}</Text>
                 <Text style={s.staffRole}>Assigned Staff</Text>
               </View>
+              <TouchableOpacity 
+                style={s.chatStaffBtn}
+                onPress={handleMessageStaff}
+              >
+                <MaterialCommunityIcons name="message-text" size={20} color={T.accent} />
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -669,6 +763,7 @@ const s = StyleSheet.create({
   staffName: { fontSize: 16, fontWeight: "800", color: T.text1 },
   staffRole: { fontSize: 13, fontWeight: "600", color: T.text3, marginTop: 2 },
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: T.bg, alignItems: "center", justifyContent: "center" },
+  chatStaffBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: T.accentLight, alignItems: "center", justifyContent: "center" },
 
   // Notes
   notesBox: { backgroundColor: T.bg, padding: 16, borderRadius: 14 },

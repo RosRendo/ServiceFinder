@@ -17,6 +17,7 @@ export declare class ServicesController {
             durationMax: number | null;
             isActive: boolean;
             image: string | null;
+            checklist: import("@prisma/client/runtime/library").JsonValue;
             company: {
                 id: string;
                 name: string;
@@ -61,6 +62,9 @@ export declare class ServicesController {
                 city: string | null;
                 logoUrl: string | null;
                 verified: boolean;
+                completedJobs: number;
+                isInsured: boolean;
+                completionRate: number;
             };
             serviceType: {
                 id: string;
@@ -96,6 +100,9 @@ export declare class ServicesController {
                 city: string | null;
                 logoUrl: string | null;
                 verified: boolean;
+                completedJobs: number;
+                isInsured: boolean;
+                completionRate: number;
             };
             serviceType: {
                 id: string;
@@ -175,10 +182,13 @@ export declare class ServicesController {
             reviewCount: number;
             serviceAreas: {
                 id: bigint;
-                city: string;
                 companyId: bigint;
+                city: string;
                 coverageRadiusKm: number | null;
             }[];
+            completedJobs: number;
+            isInsured: boolean;
+            completionRate: number;
         };
         serviceType: {
             id: string;
@@ -200,12 +210,13 @@ export declare class ServicesController {
             companyId: string;
             serviceTypeId: string;
             basePrice: number;
-            name: string;
-            description: string | null;
+            checklist: import("@prisma/client/runtime/library").JsonValue;
             createdAt: Date;
             updatedAt: Date;
-            discountPrice: import("@prisma/client/runtime/library").Decimal | null;
+            name: string;
             image: string | null;
+            description: string | null;
+            discountPrice: import("@prisma/client/runtime/library").Decimal | null;
             features: import("@prisma/client/runtime/library").JsonValue | null;
             durationMin: number;
             durationMax: number | null;
@@ -219,12 +230,13 @@ export declare class ServicesController {
             companyId: string;
             serviceTypeId: string;
             basePrice: number;
-            name: string;
-            description: string | null;
+            checklist: import("@prisma/client/runtime/library").JsonValue;
             createdAt: Date;
             updatedAt: Date;
-            discountPrice: import("@prisma/client/runtime/library").Decimal | null;
+            name: string;
             image: string | null;
+            description: string | null;
+            discountPrice: import("@prisma/client/runtime/library").Decimal | null;
             features: import("@prisma/client/runtime/library").JsonValue | null;
             durationMin: number;
             durationMax: number | null;

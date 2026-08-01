@@ -27,7 +27,13 @@ let StaffPerformanceService = class StaffPerformanceService {
         });
         if (!staffRecord)
             throw new common_1.NotFoundException('Staff record not found');
-        const [completedBookings, totalBookings, reviews] = await Promise.all([
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const thisWeek = new Date(today);
+        const dayOfWeek = today.getDay();
+        const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        thisWeek.setDate(today.getDate() - daysToSubtract);
+        const [completedBookings, totalBookings, reviews, completedDetails] = await Promise.all([
             this.prisma.booking.count({
                 where: { assignedStaffId: staffRecord.id, status: 'completed' },
             }),
@@ -38,7 +44,29 @@ let StaffPerformanceService = class StaffPerformanceService {
                 where: { staffId: staffRecord.id },
                 select: { staffRating: true },
             }),
+            this.prisma.booking.findMany({
+                where: {
+                    assignedStaffId: staffRecord.id,
+                    status: 'completed',
+                    bookingDate: { gte: thisWeek }
+                },
+                select: { bookingDate: true, staffEarnings: true },
+            }),
         ]);
+        let todayCompleted = 0;
+        let todayEarnings = 0;
+        let weeklyCompleted = 0;
+        let weeklyEarnings = 0;
+        for (const b of completedDetails) {
+            weeklyCompleted++;
+            weeklyEarnings += Number(b.staffEarnings || 0);
+            const bd = new Date(b.bookingDate);
+            bd.setHours(0, 0, 0, 0);
+            if (bd.getTime() === today.getTime()) {
+                todayCompleted++;
+                todayEarnings += Number(b.staffEarnings || 0);
+            }
+        }
         const totalReviews = reviews.length;
         const avgRating = totalReviews > 0
             ? reviews.reduce((sum, r) => sum + (r.staffRating ?? 0), 0) /
@@ -52,6 +80,7 @@ let StaffPerformanceService = class StaffPerformanceService {
             }
         });
         return {
+            success: true,
             staffId: staffRecord.id.toString(),
             userId: staffRecord.userId.toString(),
             user: staffRecord.user,
@@ -65,6 +94,10 @@ let StaffPerformanceService = class StaffPerformanceService {
                 avgRating: Math.round(avgRating * 10) / 10,
                 totalReviews,
                 ratingDistribution,
+                todayCompleted,
+                todayEarnings,
+                weeklyCompleted,
+                weeklyEarnings,
             },
         };
     }
@@ -81,6 +114,7 @@ let StaffPerformanceService = class StaffPerformanceService {
         if (!staffRecord)
             throw new common_1.NotFoundException('Staff record not found');
         return {
+            success: true,
             walletBalance: staffRecord.walletBalance
                 ? Number(staffRecord.walletBalance)
                 : 0,
@@ -117,6 +151,7 @@ let StaffPerformanceService = class StaffPerformanceService {
             this.prisma.review.count({ where: { staffId: staffRecord.id } }),
         ]);
         return {
+            success: true,
             reviews,
             pagination: { total, page, limit, pages: Math.ceil(total / limit) },
         };
@@ -131,7 +166,7 @@ let StaffPerformanceService = class StaffPerformanceService {
             where: { staffId: staffRecord.id },
             orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
         });
-        return { availability: slots };
+        return { success: true, availability: slots };
     }
     async getStaffAvailabilityForCompany(userId, staffId) {
         const company = await this.prisma.company.findFirst({
@@ -148,7 +183,7 @@ let StaffPerformanceService = class StaffPerformanceService {
             where: { staffId: staffRecord.id },
             orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
         });
-        return { availability: slots };
+        return { success: true, availability: slots };
     }
     async updateAvailability(staffId, slots) {
         const staffRecord = await this.prisma.companyStaff.findFirst({
@@ -200,7 +235,7 @@ let StaffPerformanceService = class StaffPerformanceService {
                 reviewCount: reviews.length,
             };
         }));
-        return { staff: performances };
+        return { success: true, staff: performances };
     }
 };
 exports.StaffPerformanceService = StaffPerformanceService;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { io, Socket } from "socket.io-client";
 import {
   View, Text, TouchableOpacity, StyleSheet,
   Platform, ActivityIndicator
@@ -17,9 +18,10 @@ const CARD_SHADOW = Platform.select({
   android: { elevation: 12 },
 });
 
-// Mock Coordinates (e.g. San Francisco)
 const DESTINATION = { latitude: 37.7749, longitude: -122.4194 };
 const START = { latitude: 37.7600, longitude: -122.4300 };
+
+const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3000';
 
 export default function LiveTrackingScreen() {
   const router = useRouter();
@@ -37,29 +39,35 @@ export default function LiveTrackingScreen() {
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
-    // Simulate car moving along a straight line towards destination
-    const steps = 60;
-    let currentStep = 0;
-    const latDiff = (DESTINATION.latitude - START.latitude) / steps;
-    const lngDiff = (DESTINATION.longitude - START.longitude) / steps;
+    // Connect to WebSocket Server
+    const socket: Socket = io(BACKEND_URL, {
+      transports: ['websocket'],
+    });
 
-    const interval = setInterval(() => {
-      currentStep++;
-      if (currentStep >= steps) {
+    socket.on("connect", () => {
+      socket.emit("join_booking", bookingId);
+    });
+
+    socket.on("staff_location_updated", (data: { latitude: number; longitude: number }) => {
+      setCurrentLoc({ latitude: data.latitude, longitude: data.longitude });
+      
+      // Rough distance calculation to determine "arrived" (within ~100m)
+      const latDiff = Math.abs(DESTINATION.latitude - data.latitude);
+      const lngDiff = Math.abs(DESTINATION.longitude - data.longitude);
+      if (latDiff < 0.001 && lngDiff < 0.001) {
         setArrived(true);
         setEtaMins(0);
-        clearInterval(interval);
-      } else {
-        setCurrentLoc(prev => ({
-          latitude: prev.latitude + latDiff,
-          longitude: prev.longitude + lngDiff
-        }));
-        setEtaMins(Math.max(1, Math.round(12 * (1 - (currentStep / steps)))));
       }
-    }, 1000); // Move every second for demo purposes
+    });
 
-    return () => clearInterval(interval);
-  }, []);
+    socket.on("disconnect", () => {
+    });
+
+    return () => {
+      socket.emit("leave_booking", bookingId);
+      socket.disconnect();
+    };
+  }, [bookingId]);
 
   const focusMap = () => {
     if (mapRef.current && mapReady) {

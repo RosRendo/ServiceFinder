@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Search, Loader2, Calendar, Clock, Map, UserPlus, RefreshCw, AlertCircle, MessageCircle } from "lucide-react";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { StatusBadge } from "@/components/grid/StatusBadge";
@@ -18,6 +19,7 @@ import api from "@/lib/api/client";
 import { BookingDrawer } from "@/components/drawers/BookingDrawer";
 
 export default function DispatchCenter() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>("active");
   const [search, setSearch] = useState("");
   const [bookings, setBookings] = useState<any[]>([]);
@@ -172,7 +174,15 @@ export default function DispatchCenter() {
               <button onClick={(e) => openAssignDialog(e, r)} className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-border rounded-md transition-colors">
                 <RefreshCw className="w-3.5 h-3.5" /> Reassign
               </button>
-              <button className="flex items-center justify-center w-7 h-7 text-violet-500 hover:text-violet-400 hover:bg-violet-500/10 rounded-md transition-colors">
+              <button 
+                onClick={() => {
+                  if (r.assignedStaff?.user?.id) {
+                    router.push(`/company/messages?new=${r.assignedStaff.user.id}`);
+                  }
+                }}
+                className="flex items-center justify-center w-7 h-7 text-violet-500 hover:text-violet-400 hover:bg-violet-500/10 rounded-md transition-colors"
+                title="Message Staff"
+              >
                 <MessageCircle className="w-4 h-4" />
               </button>
             </>

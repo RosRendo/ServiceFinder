@@ -10,6 +10,14 @@ export interface Category {
   imageUrl?: string;
 }
 
+export interface ServiceType {
+  id: string;
+  name: string;
+  slug: string;
+  icon?: string;
+  description?: string;
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -40,9 +48,11 @@ export interface Company {
 
 interface CustomerHomeStore {
   categories: Category[];
+  serviceTypes: ServiceType[];
+  activeBooking: any | null; // For State-Driven Home
   trendingServices: Service[];
-  featuredCompanies: Company[];
   recommendedServices: Service[];
+  topCompanies: Company[];
   
   // Status
   isLoading: boolean;
@@ -80,9 +90,11 @@ const extractArray = (data: any): any[] => {
 
 export const useCustomerHomeStore = create<CustomerHomeStore>((set, get) => ({
   categories: [],
+  serviceTypes: [],
+  activeBooking: null,
   trendingServices: [],
-  featuredCompanies: [],
   recommendedServices: [],
+  topCompanies: [],
   isLoading: false,
   isLoadingMore: false,
   page: 1,
@@ -93,24 +105,33 @@ export const useCustomerHomeStore = create<CustomerHomeStore>((set, get) => ({
     set({ isLoading: true, error: null, page: 1, hasMore: true });
     try {
       // Execute all API requests in parallel
-      const [categoriesRes, trendingRes, companiesRes, recommendedRes] = await Promise.all([
+      const [categoriesRes, serviceTypesRes, servicesRes, bookingsRes, companiesRes] = await Promise.all([
         api.get('/api/categories'),
-        api.get('/api/services/trending'),
+        api.get('/api/service-types'),
+        api.get('/api/services'),
+        api.get('/api/bookings').catch(() => ({ data: [] })), // Graceful fallback
         api.get('/api/companies'),
-        api.get('/api/services', { params: { page: 1, limit: 10 } }),
       ]);
 
       const categories = extractArray(categoriesRes.data);
-      const trendingServices = extractArray(trendingRes.data);
-      const featuredCompanies = extractArray(companiesRes.data);
-      const recommendedServices = extractArray(recommendedRes.data);
+      const serviceTypes = extractArray(serviceTypesRes.data);
+      
+      const services = extractArray(servicesRes.data);
+      
+      const allBookings = extractArray(bookingsRes.data);
+      // Find the most urgent active booking (e.g., in_progress or confirmed)
+      const activeBooking = allBookings.find(b => ['confirmed', 'in_progress'].includes(b.status)) || null;
+
+      const topCompanies = extractArray(companiesRes.data);
 
       set({
         categories,
-        trendingServices,
-        featuredCompanies,
-        recommendedServices,
-        hasMore: recommendedServices.length === 10,
+        serviceTypes,
+        activeBooking,
+        trendingServices: services.slice(0, 5),
+        recommendedServices: services.slice(5, 15),
+        topCompanies,
+        hasMore: false,
         isLoading: false,
       });
     } catch (error: any) {
@@ -123,25 +144,6 @@ export const useCustomerHomeStore = create<CustomerHomeStore>((set, get) => ({
   },
 
   loadMoreServices: async () => {
-    const { page, hasMore, isLoadingMore } = get();
-    if (!hasMore || isLoadingMore) return;
-
-    set({ isLoadingMore: true });
-    try {
-      const nextPage = page + 1;
-      const res = await api.get('/api/services', { 
-        params: { page: nextPage, limit: 10 } 
-      });
-      const newServices = extractArray(res.data);
-      set((state) => ({
-        recommendedServices: [...state.recommendedServices, ...newServices],
-        page: nextPage,
-        hasMore: newServices.length === 10,
-        isLoadingMore: false,
-      }));
-    } catch (error: any) {
-      console.error('[HomeStore] loadMore error:', error?.message);
-      set({ isLoadingMore: false });
-    }
+    // Deprecated for Aggregator MVP
   },
 }));

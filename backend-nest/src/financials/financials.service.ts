@@ -45,7 +45,8 @@ export class FinancialsService {
       .reduce((sum, req) => sum + Number(req.amount), 0);
 
     return {
-      balance: balance,
+      balance: Number(company.availableBalance),
+      pendingBalance: Number(company.pendingBalance),
       pendingWithdrawals: pendingAmount,
       payouts: payouts.map((p) => ({
         ...p,

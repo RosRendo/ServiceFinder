@@ -15,6 +15,9 @@ const bookings_gateway_1 = require("./bookings.gateway");
 const admin_module_1 = require("../admin/admin.module");
 const settings_module_1 = require("../settings/settings.module");
 const notifications_module_1 = require("../notifications/notifications.module");
+const promo_codes_module_1 = require("../promo-codes/promo-codes.module");
+const conversations_module_1 = require("../conversations/conversations.module");
+const booking_listener_1 = require("./listeners/booking.listener");
 let BookingsModule = class BookingsModule {
 };
 exports.BookingsModule = BookingsModule;
@@ -24,9 +27,11 @@ exports.BookingsModule = BookingsModule = __decorate([
             prisma_module_1.PrismaModule,
             settings_module_1.SettingsModule,
             notifications_module_1.NotificationsModule,
+            promo_codes_module_1.PromoCodesModule,
             (0, common_1.forwardRef)(() => admin_module_1.AdminModule),
+            (0, common_1.forwardRef)(() => conversations_module_1.ConversationsModule),
         ],
-        providers: [bookings_service_1.BookingsService, bookings_gateway_1.BookingsGateway],
+        providers: [bookings_service_1.BookingsService, bookings_gateway_1.BookingsGateway, booking_listener_1.BookingListener],
         controllers: [bookings_controller_1.BookingsController],
         exports: [bookings_service_1.BookingsService, bookings_gateway_1.BookingsGateway],
     })

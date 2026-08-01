@@ -5,6 +5,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import "../global.css";
 import '@/utils/i18n';
 import { Platform, Text, TextInput } from 'react-native';
@@ -94,7 +95,7 @@ function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <>
+      <GestureHandlerRootView style={{ flex: 1 }}>
         <Stack screenOptions={{ headerShown: false }}>
         {!user ? (
           <Stack.Screen name="(public)" options={{ gestureEnabled: false }} />
@@ -111,7 +112,7 @@ function RootLayout() {
         <StatusBar style="auto" />
         <OfflineNotice />
         <Toast />
-      </>
+      </GestureHandlerRootView>
     </ThemeProvider>
   );
 }

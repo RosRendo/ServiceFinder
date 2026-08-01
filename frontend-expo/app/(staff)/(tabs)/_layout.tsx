@@ -17,11 +17,9 @@ const NAV = {
 };
 
 const TABS = [
-  { name: 'dashboard', icon: 'view-dashboard-outline', iconActive: 'view-dashboard', label: 'Home' },
-  { name: 'schedule',  icon: 'calendar-month-outline', iconActive: 'calendar-month',  label: 'Schedule' },
-  { name: 'messages',  icon: 'message-outline',        iconActive: 'message',          label: 'Messages' },
-  { name: 'wallet',    icon: 'wallet-outline',          iconActive: 'wallet',           label: 'Wallet' },
-  { name: 'profile',   icon: 'account-outline',         iconActive: 'account',          label: 'Profile' },
+  { name: 'today', icon: 'lightning-bolt-outline', iconActive: 'lightning-bolt', label: 'TODAY' },
+  { name: 'money', icon: 'currency-usd', iconActive: 'currency-usd', label: 'MONEY' },
+  { name: 'me',    icon: 'account-outline', iconActive: 'account', label: 'ME' },
 ];
 
 function FloatingTabBar({ state, descriptors, navigation }: any) {
@@ -149,11 +147,9 @@ export default function StaffTabsLayout() {
       tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
-      <Tabs.Screen name="dashboard" options={{ title: 'Home' }} />
-      <Tabs.Screen name="schedule"  options={{ title: 'Schedule' }} />
-      <Tabs.Screen name="messages"  options={{ title: 'Messages' }} />
-      <Tabs.Screen name="wallet"    options={{ title: 'Wallet' }} />
-      <Tabs.Screen name="profile"   options={{ title: 'Profile' }} />
+      <Tabs.Screen name="today" options={{ title: 'TODAY' }} />
+      <Tabs.Screen name="money" options={{ title: 'MONEY' }} />
+      <Tabs.Screen name="me"    options={{ title: 'ME' }} />
     </Tabs>
   );
 }

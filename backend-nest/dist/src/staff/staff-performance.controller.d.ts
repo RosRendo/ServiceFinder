@@ -3,6 +3,7 @@ export declare class StaffPerformanceController {
     private readonly staffPerformanceService;
     constructor(staffPerformanceService: StaffPerformanceService);
     getMyPerformance(req: any): Promise<{
+        success: boolean;
         staffId: string;
         userId: string;
         user: {
@@ -23,9 +24,14 @@ export declare class StaffPerformanceController {
             avgRating: number;
             totalReviews: number;
             ratingDistribution: number[];
+            todayCompleted: number;
+            todayEarnings: number;
+            weeklyCompleted: number;
+            weeklyEarnings: number;
         };
     }>;
     getMyWallet(req: any): Promise<{
+        success: boolean;
         walletBalance: number;
         creditLimit: number;
         transactions: {
@@ -37,6 +43,7 @@ export declare class StaffPerformanceController {
         }[];
     }>;
     getStaffPerformance(id: string): Promise<{
+        success: boolean;
         staffId: string;
         userId: string;
         user: {
@@ -57,20 +64,26 @@ export declare class StaffPerformanceController {
             avgRating: number;
             totalReviews: number;
             ratingDistribution: number[];
+            todayCompleted: number;
+            todayEarnings: number;
+            weeklyCompleted: number;
+            weeklyEarnings: number;
         };
     }>;
     getStaffAvailability(req: any, id: string): Promise<{
+        success: boolean;
         availability: {
             id: bigint;
-            companyId: bigint;
             startTime: Date;
             endTime: Date;
+            companyId: bigint;
             staffId: bigint | null;
             date: Date;
             isAvailable: boolean;
         }[];
     }>;
     getMyReviews(req: any, page?: string, limit?: string): Promise<{
+        success: boolean;
         reviews: ({
             customer: {
                 id: bigint;
@@ -100,11 +113,12 @@ export declare class StaffPerformanceController {
         };
     }>;
     getMyAvailability(req: any): Promise<{
+        success: boolean;
         availability: {
             id: bigint;
-            companyId: bigint;
             startTime: Date;
             endTime: Date;
+            companyId: bigint;
             staffId: bigint | null;
             date: Date;
             isAvailable: boolean;

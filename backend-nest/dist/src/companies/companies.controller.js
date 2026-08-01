@@ -105,12 +105,6 @@ let CompaniesController = class CompaniesController {
     getRecommendedCompanies(query) {
         return this.companiesService.getRecommendedCompanies(query);
     }
-    getAdminStats() {
-        return this.companiesService.getAdminStats();
-    }
-    getAdminAnalytics() {
-        return this.companiesService.getAdminAnalytics();
-    }
     getCompaniesByCategory(categorySlug, query) {
         return this.companiesService.getCompaniesByCategory(categorySlug, query);
     }
@@ -418,28 +412,6 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], CompaniesController.prototype, "getRecommendedCompanies", null);
-__decorate([
-    (0, common_1.Get)('admin/stats'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)('admin'),
-    (0, swagger_1.ApiBearerAuth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Get global stats for the admin dashboard' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Return global admin stats.' }),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], CompaniesController.prototype, "getAdminStats", null);
-__decorate([
-    (0, common_1.Get)('admin/analytics'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)('admin'),
-    (0, swagger_1.ApiBearerAuth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Get deep analytics data for admin dashboard' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Return admin analytics data.' }),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], CompaniesController.prototype, "getAdminAnalytics", null);
 __decorate([
     (0, common_1.Get)('categories/:categorySlug'),
     (0, common_1.UseInterceptors)(cache_manager_1.CacheInterceptor),

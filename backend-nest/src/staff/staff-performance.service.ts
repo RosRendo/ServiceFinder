@@ -20,7 +20,15 @@ export class StaffPerformanceService {
 
     if (!staffRecord) throw new NotFoundException('Staff record not found');
 
-    const [completedBookings, totalBookings, reviews] = await Promise.all([
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const thisWeek = new Date(today);
+    const dayOfWeek = today.getDay(); 
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
+    thisWeek.setDate(today.getDate() - daysToSubtract);
+
+    const [completedBookings, totalBookings, reviews, completedDetails] = await Promise.all([
       this.prisma.booking.count({
         where: { assignedStaffId: staffRecord.id, status: 'completed' },
       }),
@@ -31,7 +39,32 @@ export class StaffPerformanceService {
         where: { staffId: staffRecord.id },
         select: { staffRating: true },
       }),
+      this.prisma.booking.findMany({
+        where: { 
+          assignedStaffId: staffRecord.id, 
+          status: 'completed',
+          bookingDate: { gte: thisWeek } 
+        },
+        select: { bookingDate: true, staffEarnings: true },
+      }),
     ]);
+
+    let todayCompleted = 0;
+    let todayEarnings = 0;
+    let weeklyCompleted = 0;
+    let weeklyEarnings = 0;
+
+    for (const b of completedDetails) {
+      weeklyCompleted++;
+      weeklyEarnings += Number(b.staffEarnings || 0);
+
+      const bd = new Date(b.bookingDate);
+      bd.setHours(0, 0, 0, 0);
+      if (bd.getTime() === today.getTime()) {
+        todayCompleted++;
+        todayEarnings += Number(b.staffEarnings || 0);
+      }
+    }
 
     const totalReviews = reviews.length;
     const avgRating =
@@ -50,6 +83,7 @@ export class StaffPerformanceService {
     });
 
     return {
+      success: true,
       staffId: staffRecord.id.toString(),
       userId: staffRecord.userId.toString(),
       user: staffRecord.user,
@@ -63,6 +97,10 @@ export class StaffPerformanceService {
         avgRating: Math.round(avgRating * 10) / 10,
         totalReviews,
         ratingDistribution,
+        todayCompleted,
+        todayEarnings,
+        weeklyCompleted,
+        weeklyEarnings,
       },
     };
   }
@@ -81,6 +119,7 @@ export class StaffPerformanceService {
     if (!staffRecord) throw new NotFoundException('Staff record not found');
 
     return {
+      success: true,
       walletBalance: staffRecord.walletBalance
         ? Number(staffRecord.walletBalance)
         : 0,
@@ -119,6 +158,7 @@ export class StaffPerformanceService {
     ]);
 
     return {
+      success: true,
       reviews,
       pagination: { total, page, limit, pages: Math.ceil(total / limit) },
     };
@@ -135,7 +175,7 @@ export class StaffPerformanceService {
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
     });
 
-    return { availability: slots };
+    return { success: true, availability: slots };
   }
 
   async getStaffAvailabilityForCompany(userId: bigint, staffId: string) {
@@ -157,7 +197,7 @@ export class StaffPerformanceService {
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
     });
 
-    return { availability: slots };
+    return { success: true, availability: slots };
   }
 
   async updateAvailability(
@@ -230,6 +270,6 @@ export class StaffPerformanceService {
       }),
     );
 
-    return { staff: performances };
+    return { success: true, staff: performances };
   }
 }

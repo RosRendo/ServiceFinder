@@ -23,8 +23,9 @@ class CreateBookingDto {
     latitude;
     longitude;
     notes;
+    promoCode;
     static _OPENAPI_METADATA_FACTORY() {
-        return { companyId: { required: true, type: () => String }, serviceId: { required: true, type: () => String }, bookingDate: { required: true, type: () => String }, startTime: { required: true, type: () => String }, endTime: { required: false, type: () => String }, serviceAddress: { required: false, type: () => String }, latitude: { required: false, type: () => Number }, longitude: { required: false, type: () => Number }, notes: { required: false, type: () => String } };
+        return { companyId: { required: true, type: () => String }, serviceId: { required: true, type: () => String }, bookingDate: { required: true, type: () => String }, startTime: { required: true, type: () => String }, endTime: { required: false, type: () => String }, serviceAddress: { required: false, type: () => String }, latitude: { required: false, type: () => Number }, longitude: { required: false, type: () => Number }, notes: { required: false, type: () => String }, promoCode: { required: false, type: () => String } };
     }
 }
 exports.CreateBookingDto = CreateBookingDto;
@@ -74,4 +75,9 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateBookingDto.prototype, "notes", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateBookingDto.prototype, "promoCode", void 0);
 //# sourceMappingURL=create-booking.dto.js.map

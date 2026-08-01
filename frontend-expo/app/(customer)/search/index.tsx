@@ -150,6 +150,9 @@ export default function SearchScreen() {
   const [services, setServices] = useState<ServiceResult[]>([]);
   const [companies, setCompanies] = useState<CompanyResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [minRating, setMinRating] = useState<number>(0);
+  const [sortBy, setSortBy] = useState<"relevance" | "price_asc" | "price_desc">("relevance");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<TextInput>(null);
 
@@ -157,12 +160,13 @@ export default function SearchScreen() {
     const timer = setTimeout(() => {
       inputRef.current?.focus();
     }, 400);
+    // Fetch initial default data
+    search("", filter);
     return () => clearTimeout(timer);
   }, []);
 
   const search = useCallback(async (q: string, f: Filter) => {
     const qTrim = q.trim();
-    if (!qTrim) { setServices([]); setCompanies([]); return; }
     setLoading(true);
     try {
       const [sRes, cRes] = await Promise.all([
@@ -199,8 +203,18 @@ export default function SearchScreen() {
     search(query, f);
   };
 
-  const totalResults = services.length + companies.length;
-  const showEmptySearch = !loading && query.length === 0;
+  const filteredServices = services
+    .filter(s => (s.company?.rating || 0) >= minRating)
+    .sort((a, b) => {
+      if (sortBy === "price_asc") return a.basePrice - b.basePrice;
+      if (sortBy === "price_desc") return b.basePrice - a.basePrice;
+      return 0; // relevance
+    });
+
+  const filteredCompanies = companies
+    .filter(c => (c.rating || 0) >= minRating);
+
+  const totalResults = filteredServices.length + filteredCompanies.length;
   const showNoResults = !loading && query.length > 0 && totalResults === 0;
 
   return (
@@ -225,29 +239,77 @@ export default function SearchScreen() {
               onSubmitEditing={() => search(query, filter)}
             />
             <TouchableOpacity 
-              onPress={() => { setQuery(""); setServices([]); setCompanies([]); }}
+              onPress={() => { setQuery(""); search("", filter); }}
               style={{ opacity: query.length > 0 ? 1 : 0 }}
               disabled={query.length === 0}
             >
               <MaterialIcons name="cancel" size={20} color={T.text3} />
             </TouchableOpacity>
+            <View style={{ width: 1, height: 24, backgroundColor: T.border, marginHorizontal: 4 }} />
+            <TouchableOpacity onPress={() => setShowFilters(!showFilters)}>
+              <MaterialIcons name="tune" size={20} color={showFilters ? T.accent : T.text3} />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Filters */}
-        <View style={s.filtersRow}>
-          {(["all", "service", "company"] as Filter[]).map(f => (
-            <TouchableOpacity 
-              key={f} 
-              onPress={() => handleFilterChange(f)}
-              style={[s.filterChip, filter === f && s.filterChipActive]}
-            >
-              <Text style={[s.filterChipText, filter === f && s.filterChipTextActive]}>
-                {f === "all" ? "All" : f === "service" ? "Services" : "Companies"}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* Filters Panel */}
+        {showFilters && (
+          <View style={s.advancedFiltersContainer}>
+            <Text style={s.filterLabel}>Type</Text>
+            <View style={s.filtersRow}>
+              {(["all", "service", "company"] as Filter[]).map(f => (
+                <TouchableOpacity 
+                  key={f} 
+                  onPress={() => handleFilterChange(f)}
+                  style={[s.filterChip, filter === f && s.filterChipActive]}
+                >
+                  <Text style={[s.filterChipText, filter === f && s.filterChipTextActive]}>
+                    {f === "all" ? "All" : f === "service" ? "Services" : "Companies"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={s.filterLabel}>Minimum Rating</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersRow}>
+              {[{label: "Any", val: 0}, {label: "4.0+", val: 4}, {label: "4.5+", val: 4.5}, {label: "5.0", val: 5}].map(r => (
+                <TouchableOpacity 
+                  key={r.label} 
+                  onPress={() => setMinRating(r.val)}
+                  style={[s.filterChip, minRating === r.val && s.filterChipActive]}
+                >
+                  <Text style={[s.filterChipText, minRating === r.val && s.filterChipTextActive]}>
+                    <MaterialIcons name="star" size={12} color={minRating === r.val ? T.accent : T.text3} style={{marginRight: 4}} />
+                    {r.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {filter !== "company" && (
+              <>
+                <Text style={s.filterLabel}>Sort Services By Price</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersRow}>
+                  {[
+                    {label: "Relevance", val: "relevance"}, 
+                    {label: "Low to High", val: "price_asc"}, 
+                    {label: "High to Low", val: "price_desc"}
+                  ].map(srt => (
+                    <TouchableOpacity 
+                      key={srt.val} 
+                      onPress={() => setSortBy(srt.val as any)}
+                      style={[s.filterChip, sortBy === srt.val && s.filterChipActive]}
+                    >
+                      <Text style={[s.filterChipText, sortBy === srt.val && s.filterChipTextActive]}>
+                        {srt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+          </View>
+        )}
       </View>
 
       {/* ── RESULTS ────────────────────────────────────────── */}
@@ -259,12 +321,43 @@ export default function SearchScreen() {
         {/* Loading State */}
         {loading && <SearchResultsSkeleton />}
 
-        {/* Empty / Initial State */}
-        {showEmptySearch && (
-          <View style={s.emptyState}>
-            <Text style={s.emptyIcon}>🔍</Text>
-            <Text style={s.emptyTitle}>Find anything you need</Text>
-            <Text style={s.emptyBody}>Search for cleaning, repairs, or specific professionals near you.</Text>
+        {/* Suggested Searches & Quick Actions (Only when query is empty) */}
+        {!loading && query.length === 0 && (
+          <View style={s.initialStateContainer}>
+            <Text style={s.initialStateTitle}>Suggested Searches</Text>
+            <View style={s.suggestionPillsRow}>
+              {["Deep Cleaning", "AC Repair", "Plumbing", "Electrical", "Moving", "Pest Control"].map(tag => (
+                <TouchableOpacity 
+                  key={tag} 
+                  style={s.suggestionPill}
+                  onPress={() => {
+                    setQuery(tag);
+                    search(tag, filter);
+                  }}
+                >
+                  <MaterialIcons name="search" size={14} color={T.text2} />
+                  <Text style={s.suggestionPillText}>{tag}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            <Text style={[s.initialStateTitle, { marginTop: 32 }]}>Quick Actions</Text>
+            <View style={s.quickActionsRow}>
+              <TouchableOpacity style={s.quickActionCard} onPress={() => router.push("/(customer)/(tabs)/explore" as any)}>
+                <View style={[s.quickActionIconBox, { backgroundColor: '#EFF6FF' }]}>
+                  <MaterialIcons name="category" size={24} color="#3B82F6" />
+                </View>
+                <Text style={s.quickActionText}>Browse All</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.quickActionCard} onPress={() => router.push("/(customer)/map-view" as any)}>
+                <View style={[s.quickActionIconBox, { backgroundColor: '#ECFDF5' }]}>
+                  <MaterialIcons name="map" size={24} color="#10B981" />
+                </View>
+                <Text style={s.quickActionText}>Map View</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ height: 1, backgroundColor: T.border, marginVertical: 32 }} />
           </View>
         )}
 
@@ -278,14 +371,14 @@ export default function SearchScreen() {
         )}
 
         {/* Services Results */}
-        {!loading && services.length > 0 && (
+        {!loading && filteredServices.length > 0 && (
           <View style={s.resultsSection}>
-            <Text style={s.sectionTitle}>Services ({services.length})</Text>
+            <Text style={s.sectionTitle}>Services ({filteredServices.length})</Text>
             <View style={{ gap: 12 }}>
-              {services.map(sItem => (
+              {filteredServices.map(sItem => (
                 <PressCard 
                   key={sItem.id}
-                  onPress={() => router.push(`/(customer)/company/service-modal/${sItem.id}` as any)}
+                  onPress={() => router.push(`/(customer)/service/${sItem.id}` as any)}
                 >
                   <View style={s.resultRow}>
                     <View style={s.resultImgBox}>
@@ -319,11 +412,11 @@ export default function SearchScreen() {
         )}
 
         {/* Companies Results */}
-        {!loading && companies.length > 0 && (
-          <View style={[s.resultsSection, services.length > 0 && { marginTop: 32 }]}>
-            <Text style={s.sectionTitle}>Companies ({companies.length})</Text>
+        {!loading && filteredCompanies.length > 0 && (
+          <View style={[s.resultsSection, filteredServices.length > 0 && { marginTop: 32 }]}>
+            <Text style={s.sectionTitle}>Companies ({filteredCompanies.length})</Text>
             <View style={{ gap: 12 }}>
-              {companies.map(cItem => (
+              {filteredCompanies.map(cItem => (
                 <PressCard 
                   key={cItem.id}
                   onPress={() => router.push(`/(customer)/company/${cItem.id}` as any)}
@@ -399,39 +492,34 @@ const s = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: T.bg,
-    borderRadius: 12,
+    backgroundColor: "#F3F4F6",
     height: 44,
-    paddingHorizontal: 12,
+    borderRadius: 22,
+    paddingHorizontal: 16,
     gap: 8,
-    borderWidth: 1,
-    borderColor: T.border,
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: T.text1,
     fontWeight: "500",
+    color: T.text1,
   },
-  
-  // Filters
   filtersRow: {
     flexDirection: "row",
     gap: 8,
-    marginTop: 16,
   },
   filterChip: {
-    paddingHorizontal: 16,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: T.border,
-    backgroundColor: T.surface,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "transparent",
   },
   filterChipActive: {
-    backgroundColor: T.accent,
+    backgroundColor: "#EFF6FF",
     borderColor: T.accent,
   },
   filterChipText: {
@@ -440,58 +528,48 @@ const s = StyleSheet.create({
     color: T.text2,
   },
   filterChipTextActive: {
-    color: "#fff",
+    color: T.accent,
+  },
+  advancedFiltersContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+  },
+  filterLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: T.text1,
+    marginBottom: 8,
+    marginTop: 12,
   },
 
-  // Content
+  // Results Layout
   scrollContent: {
-    paddingHorizontal: 24,
     paddingVertical: 24,
-    paddingBottom: 40,
+    paddingBottom: 80, // tab bar padding
   },
-  
-  // Empty states
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 60,
+  resultsSection: {
     paddingHorizontal: 24,
   },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  emptyTitle: {
+  sectionTitle: {
     fontSize: 18,
     fontWeight: "800",
     color: T.text1,
+    marginBottom: 16,
     letterSpacing: -0.5,
   },
-  emptyBody: {
-    fontSize: 14,
-    color: T.text3,
-    textAlign: "center",
-    marginTop: 8,
-    lineHeight: 20,
-  },
 
-  // Results
-  resultsSection: {},
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: T.text1,
-    marginBottom: 12,
-    letterSpacing: -0.3,
-  },
+  // Result Cards
   resultRow: {
     flexDirection: "row",
     backgroundColor: T.surface,
     borderRadius: 16,
     padding: 12,
+    gap: 12,
     borderWidth: 1,
     borderColor: T.border,
     ...CARD_SHADOW,
-    gap: 12,
   },
   resultImgBox: {
     width: 64,
@@ -510,11 +588,12 @@ const s = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: T.text1,
-    marginBottom: 2,
+    lineHeight: 20,
   },
   resultSub: {
-    fontSize: 12,
+    fontSize: 13,
     color: T.text3,
+    marginTop: 2,
   },
   resultMetaRow: {
     flexDirection: "row",
@@ -525,20 +604,61 @@ const s = StyleSheet.create({
   resultMetaLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
+    gap: 4,
   },
   resultRating: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
-    color: T.text1,
+    color: T.text2,
   },
   resultDuration: {
     fontSize: 12,
     color: T.text3,
   },
   resultPrice: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "800",
     color: T.accent,
   },
+
+  // Empty States
+  emptyState: {
+    alignItems: "center",
+    paddingHorizontal: 32,
+    paddingTop: 60,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: T.text1,
+    marginBottom: 8,
+  },
+  emptyBody: {
+    fontSize: 14,
+    color: T.text3,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+
+  // Initial State Additions
+  initialStateContainer: { paddingHorizontal: 24, paddingTop: 16 },
+  initialStateTitle: { fontSize: 16, fontWeight: "700", color: T.text1, marginBottom: 12 },
+  suggestionPillsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  suggestionPill: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: T.surface, paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 8, borderWidth: 1, borderColor: T.border,
+  },
+  suggestionPillText: { fontSize: 13, fontWeight: "500", color: T.text2 },
+  quickActionsRow: { flexDirection: "row", gap: 12 },
+  quickActionCard: {
+    flex: 1, backgroundColor: T.surface, borderRadius: 12, padding: 16,
+    alignItems: "center", borderWidth: 1, borderColor: T.border,
+  },
+  quickActionIconBox: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", marginBottom: 8 },
+  quickActionText: { fontSize: 13, fontWeight: "600", color: T.text1 },
 });

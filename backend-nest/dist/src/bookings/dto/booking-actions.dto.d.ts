@@ -7,6 +7,7 @@ export declare class AssignStaffDto {
 export declare class UpdateProgressDto {
     progressPercent: number;
     staffNotes?: string;
+    checklist?: any;
 }
 export declare class CancelBookingDto {
     reason?: string;

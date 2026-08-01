@@ -16,7 +16,7 @@ export interface Dispute {
   customer?: any;
   company?: any;
   resolution?: {
-    decision: 'refunded' | 'dismissed' | 'partial_refund';
+    decision: 'accept_claim' | 'accept_company' | 'mediation';
     notes: string;
     resolvedAt: string;
     resolvedBy: string;
@@ -87,7 +87,7 @@ export function useResolveDisputeMutation() {
   return useMutation({
     mutationFn: async ({ id, decision, notes, refundAmount }: { 
       id: string, 
-      decision: 'refunded' | 'dismissed' | 'partial_refund', 
+      decision: 'accept_claim' | 'accept_company' | 'mediation', 
       notes: string,
       refundAmount?: number 
     }) => {

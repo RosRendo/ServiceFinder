@@ -1,5 +1,5 @@
 /**
- * Admin User Details — Premium Deep Navy Redesign (Unified Architecture)
+ * Admin User Details — Premium Light Bento Redesign
  */
 import React, { useEffect, useState } from "react";
 import { Image } from "expo-image";
@@ -13,8 +13,8 @@ import { Theme } from "@/constants/theme";
 const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
-  android: { elevation: 2 },
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12 },
+  android: { elevation: 3 },
 });
 
 interface UserDetailData {
@@ -45,6 +45,8 @@ export default function UserDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [suspendModalVisible, setSuspendModalVisible] = useState(false);
+  const [suspendReason, setSuspendReason] = useState("");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -61,16 +63,8 @@ export default function UserDetail() {
           role: obj.role || "user",
           status: obj.status || "active",
           avatar: obj.avatar || obj.avatarUrl || null,
-          createdAt: obj.createdAt
-            ? new Date(obj.createdAt).toLocaleDateString("en-US", {
-                month: "short", day: "numeric", year: "numeric",
-              })
-            : "—",
-          lastLoginAt: obj.lastLoginAt
-            ? new Date(obj.lastLoginAt).toLocaleDateString("en-US", {
-                month: "short", day: "numeric", year: "numeric",
-              })
-            : "—",
+          createdAt: obj.createdAt ? new Date(obj.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—",
+          lastLoginAt: obj.lastLoginAt ? new Date(obj.lastLoginAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—",
           ownedCompanies: obj.ownedCompanies || [],
           staffMemberships: obj.staffMemberships || [],
           stats: {
@@ -78,7 +72,7 @@ export default function UserDetail() {
              reviews: obj._count?.reviews || 0,
           },
           auditLogs: obj.auditLogs || [],
-          fraudScore: obj.fraudScore ?? (id === 'USR-4892' ? 92 : Math.floor(Math.random() * 20)),
+          fraudScore: obj.fraudScore ?? (id === '2' ? 92 : Math.floor(Math.random() * 20)),
         });
       } catch (err) {
         console.error("Failed to fetch user:", err);
@@ -89,9 +83,6 @@ export default function UserDetail() {
     };
     fetchUser();
   }, [id]);
-
-  const [suspendModalVisible, setSuspendModalVisible] = useState(false);
-  const [suspendReason, setSuspendReason] = useState("");
 
   const confirmSuspend = async () => {
     if (!user) return;
@@ -180,7 +171,6 @@ export default function UserDetail() {
         Alert.alert('Error', 'Could not start conversation: No ID returned.');
       }
     } catch (err: any) {
-      console.error("Failed to start conversation", err?.response?.data || err);
       const msg = err?.response?.data?.message || err.message || 'Unknown error';
       Alert.alert('Error', `Could not start conversation: ${msg}`);
     } finally {
@@ -188,20 +178,25 @@ export default function UserDetail() {
     }
   };
 
-  const roleLabel = (role: string) =>
-    role.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case "admin": return { bg: "rgba(239, 68, 68, 0.1)", text: T.error, icon: "shield-account-outline" };
+      case "company_admin": return { bg: "rgba(37, 99, 235, 0.1)", text: T.blue, icon: "domain" };
+      case "staff": return { bg: "rgba(100, 116, 139, 0.1)", text: T.gray, icon: "briefcase-account-outline" };
+      default: return { bg: "rgba(16, 185, 129, 0.1)", text: T.success, icon: "account-outline" };
+    }
+  };
 
   const getStatusStyle = (status: string) => {
     return status === 'active' 
-      ? { bg: T.success + "15", color: T.success }
-      : { bg: T.error + "15", color: T.error };
+      ? { bg: T.success, color: "#fff", icon: "check" }
+      : { bg: T.warning, color: "#fff", icon: "pause" };
   };
 
   if (loading) {
     return (
       <SafeAreaView style={s.centerArea} edges={['top', 'left', 'right']}>
-        <ActivityIndicator size="large" color={T.accent} />
-        <Text style={s.loadingText}>Loading user…</Text>
+        <ActivityIndicator size="large" color={T.primary} />
       </SafeAreaView>
     );
   }
@@ -218,212 +213,173 @@ export default function UserDetail() {
     );
   }
 
-  const sStyle = getStatusStyle(user.status);
+  const roleStyle = getRoleColor(user.role);
+  const statusStyle = getStatusStyle(user.status);
 
   return (
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.headerBtn}>
-          <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
+          <MaterialCommunityIcons name="arrow-left" size={24} color={T.text1} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>User Details</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
         
-        {/* User Hero Card */}
+        {/* Main Identity Bento */}
         <View style={s.heroCard}>
-          <View style={s.heroCardRow}>
-            <View style={s.avatarWrap}>
-              <Image
-                source={{ uri: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=1E3A8A&color=fff` }}
-                style={s.avatar}
-              />
-              <View style={[s.avatarStatusDot, { backgroundColor: sStyle.color }]} />
-            </View>
-            <View style={s.userInfo}>
-              <View style={s.userInfoTop}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-                  <View>
-                    <Text style={s.userName}>{user.fullName}</Text>
-                    <Text style={s.userId}>#{user.id}</Text>
-                  </View>
-                  {user.fraudScore !== undefined && (
-                    <View style={[s.fraudBadge, user.fraudScore > 80 ? { backgroundColor: T.error + '15' } : { backgroundColor: T.success + '15' }]}>
-                      <MaterialCommunityIcons name="robot-dead-outline" size={14} color={user.fraudScore > 80 ? T.error : T.success} />
-                      <Text style={[s.fraudText, { color: user.fraudScore > 80 ? T.error : T.success }]}>Fraud: {user.fraudScore}</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={[s.statusBadge, { backgroundColor: sStyle.bg }]}>
-                  <Text style={[s.statusText, { color: sStyle.color }]}>{user.status}</Text>
-                </View>
-              </View>
+          <View style={s.avatarWrap}>
+            <Image
+              source={{ uri: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=0A192F&color=fff` }}
+              style={s.avatar}
+            />
+            <View style={[s.avatarStatusDot, { backgroundColor: statusStyle.bg }]}>
+              <MaterialCommunityIcons name={statusStyle.icon as any} size={12} color={statusStyle.color} />
             </View>
           </View>
+          
+          <Text style={s.userName}>{user.fullName}</Text>
+          <Text style={s.userId}>#{user.id}</Text>
+
+          {user.fraudScore !== undefined && user.fraudScore > 80 && (
+            <View style={s.fraudBadge}>
+              <MaterialCommunityIcons name="robot-dead-outline" size={14} color={T.error} />
+              <Text style={s.fraudText}>High Fraud Risk: {user.fraudScore}</Text>
+            </View>
+          )}
         </View>
 
-        {/* Quick Actions */}
-        <View style={s.quickActionsRow}>
-          <TouchableOpacity style={s.quickActionBtn} onPress={handleMessageUser} disabled={actionLoading}>
-            <View style={[s.quickActionIconWrap, { backgroundColor: T.blue + "15" }]}>
-              <MaterialCommunityIcons name="message-text-outline" size={24} color={T.blue} />
-            </View>
-            <Text style={s.quickActionLabel}>Message</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={s.quickActionBtn} onPress={() => Alert.alert("2FA Reset", "2FA has been disabled. The user will be prompted to re-register on next login.")} disabled={actionLoading}>
-            <View style={[s.quickActionIconWrap, { backgroundColor: T.accent + "15" }]}>
-              <MaterialCommunityIcons name="shield-key-outline" size={24} color={T.accent} />
-            </View>
-            <Text style={s.quickActionLabel}>Reset 2FA</Text>
+        {/* Primary Data Bento Grid */}
+        <View style={s.bentoRow}>
+          {/* Role Box (Double Width) */}
+          <View style={[s.bentoBox, { flex: 1.5, backgroundColor: roleStyle.bg }]}>
+            <MaterialCommunityIcons name={roleStyle.icon as any} size={24} color={roleStyle.text} style={{ marginBottom: 8 }} />
+            <Text style={[s.bentoBoxValue, { color: roleStyle.text }]} numberOfLines={1}>{user.role.replace('_', ' ')}</Text>
+            <Text style={[s.bentoBoxLabel, { color: roleStyle.text, opacity: 0.8 }]}>Role</Text>
+          </View>
+
+          {/* Quick Action: Message */}
+          <TouchableOpacity style={[s.bentoBox, s.bentoActionBtn, { flex: 1 }]} onPress={handleMessageUser} disabled={actionLoading}>
+            <MaterialCommunityIcons name="message-text-outline" size={24} color={T.primary} style={{ marginBottom: 8 }} />
+            <Text style={[s.bentoBoxValue, { color: T.primary }]} numberOfLines={1}>Chat</Text>
+            <Text style={s.bentoBoxLabel}>Contact</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Contact Info */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Contact Information</Text>
-          <View style={s.infoList}>
-            <View style={s.infoRow}>
-              <View style={s.infoIconWrap}>
-                <MaterialCommunityIcons name="email-outline" size={20} color={T.accentMid} />
-              </View>
-              <View style={s.infoTextWrap}>
-                <Text style={s.infoLabelText}>Email Address</Text>
-                <Text style={s.infoText}>{user.email}</Text>
-              </View>
+        {/* Contact & Meta Data Grid */}
+        <View style={s.bentoGrid}>
+          {/* Email (Full Width) */}
+          <View style={s.bentoBoxFull}>
+            <View style={s.bentoIconCircle}><MaterialCommunityIcons name="email-outline" size={20} color={T.primary} /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.bentoBoxLabelText}>Email Address</Text>
+              <Text style={s.bentoBoxValueText} numberOfLines={1}>{user.email}</Text>
             </View>
-            {!!user.phone && (
-              <View style={s.infoRow}>
-                <View style={s.infoIconWrap}>
-                  <MaterialCommunityIcons name="phone-outline" size={20} color={T.accentMid} />
-                </View>
-                <View style={s.infoTextWrap}>
-                  <Text style={s.infoLabelText}>Phone Number</Text>
-                  <Text style={s.infoText}>{user.phone}</Text>
-                </View>
-              </View>
-            )}
           </View>
-        </View>
 
-        {/* Account Details */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Account Details</Text>
-          <View style={s.grid}>
-            <View style={s.gridItem}>
-              <Text style={s.gridLabel}>Role</Text>
-              <Text style={s.gridValue}>{roleLabel(user.role)}</Text>
+          {/* Phone (Full Width, conditionally) */}
+          {!!user.phone && (
+            <View style={s.bentoBoxFull}>
+              <View style={s.bentoIconCircle}><MaterialCommunityIcons name="phone-outline" size={20} color={T.primary} /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.bentoBoxLabelText}>Phone Number</Text>
+                <Text style={s.bentoBoxValueText} numberOfLines={1}>{user.phone}</Text>
+              </View>
             </View>
-            <View style={s.gridItem}>
-              <Text style={s.gridLabel}>Join Date</Text>
-              <Text style={s.gridValue}>{user.createdAt}</Text>
+          )}
+          
+          {/* Half Width Stats */}
+          <View style={s.bentoRow}>
+            <View style={[s.bentoBox, { flex: 1 }]}>
+              <MaterialCommunityIcons name="calendar-outline" size={20} color={T.text3} style={{ marginBottom: 8 }} />
+              <Text style={s.bentoBoxValueText} numberOfLines={1}>{user.createdAt}</Text>
+              <Text style={s.bentoBoxLabelText}>Joined</Text>
             </View>
-            <View style={s.gridItem}>
-              <Text style={s.gridLabel}>Last Login</Text>
-              <Text style={s.gridValue}>{user.lastLoginAt}</Text>
-            </View>
-            <View style={s.gridItem}>
-              <Text style={s.gridLabel}>Status</Text>
-              <Text style={[s.gridValue, { color: sStyle.color, textTransform: "capitalize" }]}>{user.status}</Text>
+            <View style={[s.bentoBox, { flex: 1 }]}>
+              <MaterialCommunityIcons name="login" size={20} color={T.text3} style={{ marginBottom: 8 }} />
+              <Text style={s.bentoBoxValueText} numberOfLines={1}>{user.lastLoginAt}</Text>
+              <Text style={s.bentoBoxLabelText}>Last Login</Text>
             </View>
           </View>
         </View>
 
-        {/* Activity Stats */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Activity Overview</Text>
-          <View style={s.grid}>
-            <View style={s.gridItem}>
-              <Text style={s.gridLabel}>Total Bookings</Text>
-              <Text style={s.gridValue}>{user.stats.bookings}</Text>
-            </View>
-            <View style={s.gridItem}>
-              <Text style={s.gridLabel}>Reviews Left</Text>
-              <Text style={s.gridValue}>{user.stats.reviews}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Companies & Staff */}
+        {/* Associations Bento */}
         {(user.ownedCompanies.length > 0 || user.staffMemberships.length > 0) && (
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Associated Companies</Text>
-            <View style={s.infoList}>
-              {user.ownedCompanies.map((c) => (
-                <View key={`owned-${c.id}`} style={s.infoRow}>
-                  <View style={[s.infoIconWrap, { backgroundColor: T.blue + "15" }]}>
-                    <MaterialCommunityIcons name="domain" size={20} color={T.blue} />
-                  </View>
-                  <View style={s.infoTextWrap}>
-                    <Text style={s.infoLabelText}>Owner Of</Text>
-                    <Text style={s.infoText}>{c.name}</Text>
-                  </View>
+          <View style={s.bentoCard}>
+            <Text style={s.cardTitle}>Associations</Text>
+            {user.ownedCompanies.map((c) => (
+              <View key={`owned-${c.id}`} style={s.associationRow}>
+                <View style={[s.bentoIconCircle, { backgroundColor: "rgba(37, 99, 235, 0.1)" }]}>
+                  <MaterialCommunityIcons name="domain" size={20} color={T.blue} />
                 </View>
-              ))}
-              {user.staffMemberships.map((m) => (
-                <View key={`staff-${m.id}`} style={s.infoRow}>
-                  <View style={[s.infoIconWrap, { backgroundColor: T.gray + "15" }]}>
-                    <MaterialCommunityIcons name="briefcase-account-outline" size={20} color={T.text2} />
-                  </View>
-                  <View style={s.infoTextWrap}>
-                    <Text style={s.infoLabelText}>Staff Member</Text>
-                    <Text style={s.infoText}>{m.company.name}</Text>
-                  </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.bentoBoxLabelText}>Owner Of</Text>
+                  <Text style={s.bentoBoxValueText}>{c.name}</Text>
                 </View>
-              ))}
-            </View>
+              </View>
+            ))}
+            {user.staffMemberships.map((m) => (
+              <View key={`staff-${m.id}`} style={s.associationRow}>
+                <View style={[s.bentoIconCircle, { backgroundColor: "rgba(100, 116, 139, 0.1)" }]}>
+                  <MaterialCommunityIcons name="briefcase-account-outline" size={20} color={T.text2} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.bentoBoxLabelText}>Staff Member At</Text>
+                  <Text style={s.bentoBoxValueText}>{m.company.name}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         )}
 
         {/* Security & History */}
-        <View style={s.card}>
+        <View style={s.bentoCard}>
           <Text style={s.cardTitle}>Security & History</Text>
           {user.auditLogs && user.auditLogs.length > 0 ? (
-            <View style={s.infoList}>
+            <View style={{ gap: 12 }}>
               {user.auditLogs.map((log) => (
-                <View key={log.id} style={s.infoRow}>
-                  <View style={[s.infoIconWrap, { backgroundColor: T.bg }]}>
+                <View key={log.id} style={s.logRow}>
+                  <View style={s.bentoIconCircle}>
                     <MaterialCommunityIcons name="shield-lock-outline" size={20} color={T.text3} />
                   </View>
-                  <View style={s.infoTextWrap}>
-                    <Text style={[s.infoLabelText, { color: T.text2 }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.logMeta}>
                       {new Date(log.createdAt).toLocaleDateString()} • by {log.user?.fullName || "System"}
                     </Text>
-                    <Text style={[s.infoText, { fontSize: 13, lineHeight: 18 }]}>{log.action}</Text>
+                    <Text style={s.logAction}>{log.action}</Text>
                   </View>
                 </View>
               ))}
             </View>
           ) : (
-            <Text style={{ color: T.text3, fontSize: 14 }}>No security events logged for this user.</Text>
+            <Text style={s.noneText}>No security events logged.</Text>
           )}
         </View>
 
-        {/* Danger Zone */}
+        {/* Danger Zone Bento */}
         <View style={s.dangerCard}>
           <Text style={s.dangerTitle}>Danger Zone</Text>
-          <Text style={s.dangerDesc}>
-            Take critical actions against this user. Suspensions instantly block access. Bans are irreversible.
-          </Text>
+          <Text style={s.dangerDesc}>Critical actions. Suspensions instantly block access. Bans are irreversible.</Text>
           
-          <View style={{ gap: 12, marginTop: 8 }}>
+          <View style={s.bentoRow}>
             {user.status === "suspended" ? (
-              <TouchableOpacity onPress={() => confirmStatusChange("active")} disabled={actionLoading} style={[s.dangerBtn, { backgroundColor: T.success }]}>
+              <TouchableOpacity onPress={() => confirmStatusChange("active")} disabled={actionLoading} style={[s.dangerBtn, { backgroundColor: T.success, flex: 1 }]}>
                 <MaterialCommunityIcons name="account-check" size={20} color="#fff" />
-                <Text style={s.dangerBtnText}>Restore Account</Text>
+                <Text style={s.dangerBtnText}>Restore</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity onPress={() => setSuspendModalVisible(true)} disabled={actionLoading} style={[s.dangerBtn, { backgroundColor: T.warning }]}>
+              <TouchableOpacity onPress={() => setSuspendModalVisible(true)} disabled={actionLoading} style={[s.dangerBtn, { backgroundColor: T.warning, flex: 1 }]}>
                 <MaterialCommunityIcons name="block-helper" size={20} color="#fff" />
-                <Text style={s.dangerBtnText}>Suspend Account</Text>
+                <Text style={s.dangerBtnText}>Suspend</Text>
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity onPress={handleDelete} disabled={actionLoading} style={s.dangerBtn}>
+            <TouchableOpacity onPress={handleDelete} disabled={actionLoading} style={[s.dangerBtn, { backgroundColor: T.error, flex: 1 }]}>
               <MaterialCommunityIcons name="gavel" size={20} color="#fff" />
-              <Text style={s.dangerBtnText}>Ban User</Text>
+              <Text style={s.dangerBtnText}>Ban</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -435,7 +391,7 @@ export default function UserDetail() {
         <View style={s.modalOverlay}>
           <View style={s.modalContainer}>
             <Text style={s.modalTitle}>Suspend User</Text>
-            <Text style={s.modalDesc}>Please provide a reason for suspending {user.fullName}. This will be logged in the audit history.</Text>
+            <Text style={s.modalDesc}>Please provide a reason for suspending {user?.fullName}. This will be logged in the audit history.</Text>
             
             <TextInput
               style={s.modalInput}
@@ -452,7 +408,7 @@ export default function UserDetail() {
                 <Text style={s.modalBtnSecondaryText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.modalBtnPrimary} onPress={confirmSuspend} disabled={actionLoading}>
-                {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.modalBtnPrimaryText}>Confirm Suspend</Text>}
+                {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.modalBtnPrimaryText}>Suspend</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -466,65 +422,64 @@ export default function UserDetail() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   centerArea: { flex: 1, backgroundColor: T.bg, alignItems: "center", justifyContent: "center" },
-  loadingText: { marginTop: 12, fontSize: 14, color: T.text3, fontWeight: "500" },
   errorText: { marginTop: 16, fontSize: 16, fontWeight: "600", color: T.error },
-  backBtn: { marginTop: 24, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: T.accent, borderRadius: 24 },
+  backBtn: { marginTop: 24, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: T.primary, borderRadius: 24 },
   backBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, backgroundColor: T.bg },
   headerBtn: { padding: 4, marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 22, fontWeight: "800", color: T.text1, letterSpacing: -0.5 },
 
-  content: { padding: 16, gap: 16, paddingBottom: 60 },
+  content: { padding: 20, gap: 16, paddingBottom: 60 },
 
-  heroCard: { backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  heroCardRow: { flexDirection: "row", gap: 16, alignItems: "center" },
-  avatarWrap: { position: "relative" },
-  avatar: { width: 80, height: 80, borderRadius: 24, backgroundColor: T.bg },
-  avatarStatusDot: { position: "absolute", bottom: -2, right: -2, width: 20, height: 20, borderRadius: 10, borderWidth: 3, borderColor: T.surface },
-  userInfo: { flex: 1 },
-  userInfoTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  userName: { fontSize: 22, fontWeight: "800", color: T.text1, marginBottom: 2 },
-  userId: { fontSize: 13, fontWeight: "500", color: T.text3 },
-  fraudBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginTop: 4 },
-  fraudText: { fontSize: 11, fontWeight: "800" },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
-
-  quickActionsRow: { flexDirection: "row", gap: 12 },
-  quickActionBtn: { flex: 1, backgroundColor: T.surface, borderRadius: 24, padding: 20, alignItems: "center", gap: 12, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  quickActionIconWrap: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  quickActionLabel: { fontSize: 13, fontWeight: "800", color: T.text2, textTransform: "uppercase" },
-
-  card: { backgroundColor: T.surface, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: T.border, gap: 20, ...CARD_SHADOW },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1 },
+  heroCard: { backgroundColor: T.surface, borderRadius: 24, padding: 24, alignItems: "center", borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  avatarWrap: { position: "relative", marginBottom: 16 },
+  avatar: { width: 100, height: 100, borderRadius: 32, backgroundColor: T.bg, borderWidth: 4, borderColor: T.surface, ...CARD_SHADOW },
+  avatarStatusDot: { position: "absolute", bottom: -4, right: -4, width: 28, height: 28, borderRadius: 14, borderWidth: 3, borderColor: T.surface, alignItems: "center", justifyContent: "center" },
+  userName: { fontSize: 26, fontWeight: "800", color: T.text1, marginBottom: 4, textAlign: "center", letterSpacing: -0.5 },
+  userId: { fontSize: 14, fontWeight: "600", color: T.text3, textAlign: "center" },
   
-  infoList: { gap: 16 },
-  infoRow: { flexDirection: "row", alignItems: "center", gap: 16 },
-  infoIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: T.blue + "10", alignItems: "center", justifyContent: "center" },
-  infoTextWrap: { flex: 1 },
-  infoLabelText: { fontSize: 12, fontWeight: "600", color: T.text3, marginBottom: 2, textTransform: "uppercase" },
-  infoText: { fontSize: 15, fontWeight: "700", color: T.text1 },
+  fraudBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(239, 68, 68, 0.1)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginTop: 12 },
+  fraudText: { fontSize: 12, fontWeight: "800", color: T.error },
 
-  grid: { flexDirection: "row", flexWrap: "wrap", rowGap: 24 },
-  gridItem: { width: "50%" },
-  gridLabel: { fontSize: 12, fontWeight: "600", color: T.text3, marginBottom: 4, textTransform: "uppercase" },
-  gridValue: { fontSize: 15, fontWeight: "700", color: T.text1 },
+  bentoRow: { flexDirection: "row", gap: 16 },
+  bentoGrid: { gap: 16 },
+  
+  bentoBox: { backgroundColor: T.surface, borderRadius: 20, padding: 16, justifyContent: "center", borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  bentoActionBtn: { alignItems: "center", backgroundColor: T.surface },
+  bentoBoxValue: { fontSize: 18, fontWeight: "800", color: T.text1, marginBottom: 2, textTransform: "capitalize", letterSpacing: -0.5 },
+  bentoBoxLabel: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase" },
 
-  dangerCard: { backgroundColor: "#FEF2F2", borderRadius: 24, padding: 24, borderWidth: 1, borderColor: "#FECACA", gap: 12 },
-  dangerTitle: { fontSize: 14, fontWeight: "800", color: "#B91C1C", textTransform: "uppercase", letterSpacing: 0.5 },
-  dangerDesc: { fontSize: 14, color: "#991B1B", opacity: 0.9, lineHeight: 22 },
-  dangerBtn: { backgroundColor: "#DC2626", borderRadius: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  dangerBtnText: { color: "#fff", fontSize: 15, fontWeight: "800" },
+  bentoBoxFull: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border, gap: 16, ...CARD_SHADOW },
+  bentoIconCircle: { width: 48, height: 48, borderRadius: 16, backgroundColor: "rgba(10, 25, 47, 0.05)", alignItems: "center", justifyContent: "center" },
+  bentoBoxLabelText: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase", marginBottom: 2 },
+  bentoBoxValueText: { fontSize: 15, fontWeight: "800", color: T.text1 },
 
-  modalOverlay: { flex: 1, backgroundColor: "rgba(10, 25, 47, 0.4)", justifyContent: "center", alignItems: "center", padding: 24 },
-  modalContainer: { width: "100%", backgroundColor: T.surface, borderRadius: 24, padding: 24, ...CARD_SHADOW },
+  bentoCard: { backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 16 },
+  
+  associationRow: { flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 12 },
+  
+  logRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  logMeta: { fontSize: 12, fontWeight: "600", color: T.text3, marginBottom: 2 },
+  logAction: { fontSize: 14, fontWeight: "700", color: T.text1 },
+  noneText: { fontSize: 14, color: T.text3, fontStyle: "italic" },
+
+  dangerCard: { backgroundColor: "rgba(239, 68, 68, 0.05)", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "rgba(239, 68, 68, 0.2)" },
+  dangerTitle: { fontSize: 16, fontWeight: "800", color: T.error, marginBottom: 4 },
+  dangerDesc: { fontSize: 13, color: T.error, opacity: 0.8, marginBottom: 16 },
+  dangerBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 14, borderRadius: 16, gap: 8 },
+  dangerBtnText: { fontSize: 15, fontWeight: "800", color: "#fff" },
+
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 },
+  modalContainer: { backgroundColor: T.surface, borderRadius: 24, padding: 24, ...CARD_SHADOW },
   modalTitle: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 8 },
-  modalDesc: { fontSize: 14, color: T.text2, lineHeight: 22, marginBottom: 20 },
-  modalInput: { backgroundColor: T.bg, borderRadius: 12, borderWidth: 1, borderColor: T.border, padding: 16, fontSize: 15, color: T.text1, height: 100, textAlignVertical: "top", marginBottom: 24 },
+  modalDesc: { fontSize: 14, color: T.text2, marginBottom: 20, lineHeight: 20 },
+  modalInput: { backgroundColor: T.bg, borderRadius: 16, padding: 16, fontSize: 15, color: T.text1, height: 100, textAlignVertical: "top", marginBottom: 20, borderWidth: 1, borderColor: T.border },
   modalActions: { flexDirection: "row", gap: 12 },
-  modalBtnSecondary: { flex: 1, paddingVertical: 14, borderRadius: 16, alignItems: "center", backgroundColor: T.bg },
+  modalBtnSecondary: { flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: T.bg, alignItems: "center", borderWidth: 1, borderColor: T.border },
   modalBtnSecondaryText: { fontSize: 15, fontWeight: "700", color: T.text2 },
-  modalBtnPrimary: { flex: 1, paddingVertical: 14, borderRadius: 16, alignItems: "center", backgroundColor: T.warning },
+  modalBtnPrimary: { flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: T.warning, alignItems: "center" },
   modalBtnPrimaryText: { fontSize: 15, fontWeight: "700", color: "#fff" },
 });

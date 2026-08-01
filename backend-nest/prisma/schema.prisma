@@ -43,6 +43,8 @@ model User {
   savedItems                SavedItem[]
   serviceRequestsMade       ServiceRequest[]          @relation("CustomerRequests")
   addresses                 UserAddress[]
+  supportTickets            SupportTicket[]
+  moderationActions         ModerationLog[]
 
   @@index([email])
   @@index([role])
@@ -75,6 +77,12 @@ model Company {
   createdAt               DateTime               @default(now()) @map("created_at")
   updatedAt               DateTime               @updatedAt @map("updated_at")
   walletBalance           Decimal                @default(0) @map("wallet_balance") @db.Decimal(10, 2)
+  pendingBalance          Decimal                @default(0) @map("pending_balance") @db.Decimal(10, 2)
+  availableBalance        Decimal                @default(0) @map("available_balance") @db.Decimal(10, 2)
+  platformFeePercent      Decimal?               @map("platform_fee_percent") @db.Decimal(5, 2)
+  completedJobs           Int                    @default(0) @map("completed_jobs")
+  isInsured               Boolean                @default(false) @map("is_insured")
+  completionRate          Decimal                @default(100.0) @map("completion_rate") @db.Decimal(5, 2)
   availabilitySlots       AvailabilitySlot[]
   bookings                Booking[]
   owner                   User                   @relation("CompanyOwner", fields: [ownerId], references: [id])
@@ -88,6 +96,8 @@ model Company {
   serviceAreas            ServiceArea[]
   serviceRequests         ServiceRequest[]
   services                Service[]
+  pricingRules            PricingRule[]
+  complianceReports       ComplianceReport[]
 
   @@index([verificationStatus])
   @@index([subscriptionStatus])
@@ -104,6 +114,7 @@ model CompanyStaff {
   createdAt          DateTime             @default(now())
   creditLimit        Decimal              @default(-50) @map("credit_limit") @db.Decimal(10, 2)
   walletBalance      Decimal              @default(0) @map("wallet_balance") @db.Decimal(10, 2)
+  splitPercent       Decimal?             @map("split_percent") @db.Decimal(5, 2)
   availabilitySlots  AvailabilitySlot[]
   assignedBookings   Booking[]            @relation("AssignedBookings")
   company            Company              @relation(fields: [companyId], references: [id])
@@ -169,6 +180,7 @@ model Service {
   basePrice       Decimal          @map("base_price") @db.Decimal(10, 2)
   discountPrice   Decimal?         @map("discount_price") @db.Decimal(10, 2)
   features        Json?
+  checklist       Json?
   durationMin     Int              @map("duration_min")
   durationMax     Int?             @map("duration_max")
   isActive        Boolean          @default(true) @map("is_active")
@@ -266,8 +278,12 @@ model Booking {
   serviceAddress     String              @map("service_address")
   latitude           Decimal?            @db.Decimal(10, 7)
   longitude          Decimal?            @db.Decimal(10, 7)
+  staffStartLatitude Decimal?            @map("staff_start_latitude") @db.Decimal(10, 7)
+  staffStartLongitude Decimal?           @map("staff_start_longitude") @db.Decimal(10, 7)
   status             BookingStatus       @default(pending)
   progressPercent    Int                 @default(0) @map("progress_percent")
+  checklist          Json?
+  proofOfWorkPhoto   String?             @map("proof_of_work_photo")
   staffNotes         String?             @map("staff_notes")
   totalPrice         Decimal             @map("total_price") @db.Decimal(10, 2)
   platformFee        Decimal             @db.Decimal(10, 2)
@@ -276,17 +292,20 @@ model Booking {
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
   customerNotes      String?             @map("customer_notes")
+  promoCodeId        BigInt?             @map("promo_code_id")
   statusLogs         BookingStatusLog[]
   assignedStaff      CompanyStaff?       @relation("AssignedBookings", fields: [assignedStaffId], references: [id])
   company            Company             @relation(fields: [companyId], references: [id])
   customer           User                @relation("CustomerBookings", fields: [customerId], references: [id])
   service            Service             @relation(fields: [serviceId], references: [id])
+  promoCode          PromoCode?          @relation(fields: [promoCodeId], references: [id])
   cancellation       Cancellation?
   dispute            Dispute?
   invoice            Invoice?
   payment            Payment?
   review             Review?
   walletTransactions WalletTransaction[] @relation("BookingWalletTransactions")
+  conversations      Conversation[]
 
   @@index([customerId], map: "fk_booking_customer")
   @@index([companyId], map: "fk_booking_company")
@@ -401,11 +420,19 @@ model Conversation {
   createdAt    DateTime                  @default(now()) @map("created_at")
   updatedAt    DateTime                  @updatedAt @map("updated_at")
   companyId    BigInt?                   @map("company_id")
+  // 'support' = Customer <-> Company (always open)
+  // 'job'     = Customer <-> Assigned Staff (lifecycle-bound to a booking)
+  type         String                    @default("support") @db.VarChar(20)
+  bookingId    BigInt?                   @map("booking_id")
+  archivedAt   DateTime?                 @map("archived_at")
   participants ConversationParticipant[]
   company      Company?                  @relation(fields: [companyId], references: [id])
+  booking      Booking?                  @relation(fields: [bookingId], references: [id])
   messages     Message[]
 
   @@index([companyId], map: "fk_conversation_company")
+  @@index([bookingId], map: "fk_conversation_booking")
+  @@index([type])
   @@map("conversations")
 }
 
@@ -578,6 +605,7 @@ model Dispute {
   companyResponse String?   @map("company_response")
   adminDecision   String?   @map("admin_decision") @db.VarChar(50)
   refundAmount    Decimal?  @map("refund_amount") @db.Decimal(10, 2)
+  frozenAmount    Decimal?  @map("frozen_amount") @db.Decimal(10, 2)
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
   resolvedAt      DateTime? @map("resolved_at")
@@ -746,7 +774,9 @@ enum CategoryStatus {
 
 enum BookingStatus {
   pending
+  assigned
   confirmed
+  arrived
   in_progress
   completed
   cancelled
@@ -762,7 +792,14 @@ enum PaymentMethod {
 
 enum PaymentStatus {
   pending
+  unpaid
+  processing
   paid
+  escrow
+  pending_release
+  available
+  withdrawn
+  disputed
   failed
   refunded
 }
@@ -772,4 +809,87 @@ enum ServiceRequestStatus {
   approved
   rejected
   cancelled
+}
+
+model PromoCode {
+  id              BigInt    @id @default(autoincrement())
+  code            String    @unique @db.VarChar(50)
+  discountPercent Decimal   @map("discount_percent") @db.Decimal(5, 2)
+  maxUses         Int?      @map("max_uses")
+  usedCount       Int       @default(0) @map("used_count")
+  expiresAt       DateTime? @map("expires_at")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  bookings        Booking[]
+
+  @@map("promo_codes")
+}
+
+model PricingRule {
+  id               Int      @id @default(autoincrement())
+  companyId        BigInt   @map("company_id")
+  name             String   @db.VarChar(100)
+  dayOfWeek        Int?     @map("day_of_week")
+  startHour        Int?     @map("start_hour")
+  endHour          Int?     @map("end_hour")
+  surchargePercent Decimal  @map("surcharge_percent") @db.Decimal(5, 2)
+  isActive         Boolean  @default(true) @map("is_active")
+  company          Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("pricing_rules")
+}
+
+model SupportTicket {
+  id          BigInt    @id @default(autoincrement())
+  userId      BigInt    @map("user_id")
+  subject     String    @db.VarChar(200)
+  description String
+  status      String    @default("open") @db.VarChar(20)
+  priority    String    @default("medium") @db.VarChar(20)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  resolvedAt  DateTime? @map("resolved_at")
+  
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@map("support_tickets")
+}
+
+model ModerationLog {
+  id            BigInt    @id @default(autoincrement())
+  adminId       BigInt    @map("admin_id")
+  entityType    String    @map("entity_type") @db.VarChar(50)
+  entityId      BigInt    @map("entity_id")
+  action        String    @db.VarChar(50)
+  reason        String
+  status        String    @default("pending") @db.VarChar(20)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  
+  admin         User      @relation(fields: [adminId], references: [id])
+
+  @@index([adminId])
+  @@index([entityType, entityId])
+  @@index([status])
+  @@map("moderation_logs")
+}
+
+
+model ComplianceReport {
+  id              BigInt    @id @default(autoincrement())
+  companyId       BigInt    @map("company_id")
+  type            String    @db.VarChar(50)
+  status          String    @default("pending") @db.VarChar(20)
+  documentUrl     String?   @map("document_url")
+  notes           String?
+  reviewedAt      DateTime? @map("reviewed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  company         Company   @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([status])
+  @@map("compliance_reports")
 }

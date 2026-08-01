@@ -53,13 +53,31 @@ let UsersController = class UsersController {
         return this.usersService.updatePreferences(BigInt(user.id), dto);
     }
     getUserById(id) {
-        return this.usersService.getUserById(BigInt(id));
+        try {
+            const parsedId = BigInt(id);
+            return this.usersService.getUserById(parsedId);
+        }
+        catch {
+            throw new common_1.BadRequestException('Invalid user ID format');
+        }
     }
     updateUserPut(id, updateUserDto, user) {
-        return this.usersService.updateUser(BigInt(id), updateUserDto, user);
+        try {
+            const parsedId = BigInt(id);
+            return this.usersService.updateUser(parsedId, updateUserDto, user);
+        }
+        catch {
+            throw new common_1.BadRequestException('Invalid user ID format');
+        }
     }
     updateUserPatch(id, updateUserDto, user) {
-        return this.usersService.updateUser(BigInt(id), updateUserDto, user);
+        try {
+            const parsedId = BigInt(id);
+            return this.usersService.updateUser(parsedId, updateUserDto, user);
+        }
+        catch {
+            throw new common_1.BadRequestException('Invalid user ID format');
+        }
     }
     requestContactUpdate(requestContactUpdateDto, user) {
         return this.usersService.requestContactUpdate(BigInt(user.id), requestContactUpdateDto);

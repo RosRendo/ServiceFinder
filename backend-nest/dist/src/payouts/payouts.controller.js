@@ -29,12 +29,6 @@ let PayoutsController = class PayoutsController {
         if (req.user.companyId)
             return BigInt(req.user.companyId);
         const company = await this.payoutsService.getCompanyByOwnerId(BigInt(req.user.id));
-        const fs = require('fs');
-        fs.writeFileSync('debug_payouts.json', JSON.stringify({
-            userId: req.user.id.toString(),
-            userRole: req.user.role,
-            companyFound: company ? company.id.toString() : null,
-        }, null, 2));
         if (!company) {
             throw new common_1.NotFoundException('No company associated with this user');
         }

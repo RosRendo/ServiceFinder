@@ -203,7 +203,7 @@ export default function ProfileScreen() {
             <View style={s.statsStrip}>
               <TouchableOpacity
                 style={[s.statItem, s.statItemBorder]}
-                onPress={() => router.push("/(customer)/(tabs)/book" as any)}
+                onPress={() => router.push("/(customer)/(tabs)/activity" as any)}
               >
                 <MaterialCommunityIcons name="calendar-check" size={20} color="rgba(255,255,255,0.8)" />
                 <Text style={s.statValue}>—</Text>
@@ -298,27 +298,18 @@ const s = StyleSheet.create({
   statValue: { fontSize: 18, fontWeight: "800", color: "#fff" },
   statLabel: { fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: 0.5 },
 
-  menuGroup: { paddingHorizontal: 24, marginTop: 24 },
-  menuGroupTitle: { fontSize: 11, fontWeight: "800", color: T.text3, letterSpacing: 1.2, marginBottom: 12 },
-  menuCard: { backgroundColor: T.surface, borderRadius: 18, borderWidth: 1, borderColor: T.border, overflow: "hidden" },
-  menuRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, gap: 14 },
+  menuGroup: { marginTop: 24, paddingHorizontal: 24 },
+  menuGroupTitle: { fontSize: 12, fontWeight: "700", color: T.text3, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12, marginLeft: 8 },
+  menuCard: { backgroundColor: T.surface, borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: T.border },
+  menuRow: { flexDirection: "row", alignItems: "center", padding: 16, gap: 16 },
   menuRowBorder: { borderBottomWidth: 1, borderBottomColor: T.border },
-  menuIconBox: {
-    width: 38, height: 38, borderRadius: 12, backgroundColor: T.accentLight,
-    alignItems: "center", justifyContent: "center",
-  },
-  menuIconBoxDanger: { backgroundColor: T.errorBg },
+  menuIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: T.accentLight, alignItems: "center", justifyContent: "center" },
+  menuIconBoxDanger: { backgroundColor: "rgba(239,68,68,0.1)" },
   menuRowContent: { flex: 1 },
-  menuRowTitle: { fontSize: 15, fontWeight: "700", color: T.text1 },
-  menuRowSubtitle: { fontSize: 12, color: T.text3, marginTop: 2, fontWeight: "500" },
-  menuBadge: {
-    backgroundColor: T.accentMid, paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 20, marginRight: 4,
-  },
-  menuBadgeText: { fontSize: 9, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
+  menuRowTitle: { fontSize: 15, fontWeight: "600", color: T.text1, marginBottom: 2 },
+  menuRowSubtitle: { fontSize: 13, color: T.text3 },
+  menuBadge: { backgroundColor: T.error, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginRight: 8 },
+  menuBadgeText: { fontSize: 10, fontWeight: "800", color: "#fff" },
 
-  version: {
-    textAlign: "center", fontSize: 12, color: T.text3,
-    fontWeight: "600", marginTop: 32,
-  },
+  version: { textAlign: "center", marginTop: 40, fontSize: 12, color: T.text3, fontWeight: "500" },
 });

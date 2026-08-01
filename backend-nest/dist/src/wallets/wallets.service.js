@@ -20,6 +20,86 @@ let WalletsService = class WalletsService {
         this.prisma = prisma;
         this.notificationsService = notificationsService;
     }
+    async calculateCompanyLedgerBalances(companyId) {
+        const holdHoursSetting = await this.prisma.systemSetting.findUnique({
+            where: { keyName: 'PAYOUT_HOLD_HOURS' },
+        });
+        const holdHours = holdHoursSetting ? Number(holdHoursSetting.value) : 72;
+        const cutOffDate = new Date(Date.now() - holdHours * 60 * 60 * 1000);
+        const [transactions, pendingPayouts] = await Promise.all([
+            this.prisma.transaction.findMany({
+                where: { ownerType: 'company', ownerId: companyId },
+                orderBy: { createdAt: 'desc' },
+            }),
+            this.prisma.payoutRequest.aggregate({
+                where: { ownerType: 'company', ownerId: companyId, status: 'pending' },
+                _sum: { amount: true },
+            }),
+        ]);
+        const pendingPayoutsSum = Number(pendingPayouts._sum.amount ?? 0);
+        let pendingBalance = 0;
+        let totalAvailableCredits = 0;
+        let totalCommissions = 0;
+        const pendingBookingIds = new Set();
+        for (const t of transactions) {
+            if (t.category === 'service_payment' && t.bookingId) {
+                const isPending = new Date(t.createdAt) > cutOffDate;
+                if (isPending) {
+                    pendingBookingIds.add(t.bookingId.toString());
+                }
+            }
+        }
+        for (const t of transactions) {
+            const amount = Number(t.amount);
+            if (t.category === 'service_payment') {
+                const isPending = new Date(t.createdAt) > cutOffDate;
+                if (isPending) {
+                    pendingBalance += amount;
+                }
+                else {
+                    totalAvailableCredits += amount;
+                }
+            }
+            else if (t.category === 'dispute_freeze' && t.bookingId) {
+                const isPending = pendingBookingIds.has(t.bookingId.toString());
+                if (isPending) {
+                    pendingBalance = Math.max(0, pendingBalance - amount);
+                }
+                else {
+                    totalAvailableCredits = Math.max(0, totalAvailableCredits - amount);
+                }
+            }
+            else if (t.category === 'dispute_release') {
+                totalAvailableCredits += amount;
+            }
+            else if (t.category === 'deposit') {
+                totalAvailableCredits += amount;
+            }
+            else if (t.category === 'payout') {
+                totalAvailableCredits = Math.max(0, totalAvailableCredits - amount);
+            }
+            else if (t.category === 'commission') {
+                totalCommissions += amount;
+            }
+        }
+        let availableBalance = 0;
+        let outstandingFees = 0;
+        if (totalAvailableCredits >= totalCommissions) {
+            availableBalance = totalAvailableCredits - totalCommissions;
+            outstandingFees = 0;
+        }
+        else {
+            availableBalance = 0;
+            outstandingFees = totalCommissions - totalAvailableCredits;
+        }
+        availableBalance = Math.max(0, availableBalance - pendingPayoutsSum);
+        return {
+            pendingBalance,
+            availableBalance,
+            outstandingFees,
+            transactions,
+        };
+    }
     async getCompanyWallet(companyId, userId) {
         const company = await this.prisma.company.findUnique({
             where: { id: companyId },
@@ -28,14 +108,25 @@ let WalletsService = class WalletsService {
             throw new common_1.NotFoundException('Company not found');
         if (company.ownerId !== userId)
             throw new common_1.ForbiddenException('Access denied');
-        const transactions = await this.prisma.transaction.findMany({
-            where: { ownerType: 'company', ownerId: companyId },
-            orderBy: { createdAt: 'desc' },
-            take: 50,
+        const ledger = await this.calculateCompanyLedgerBalances(companyId);
+        const totalPaidOut = await this.prisma.payoutRequest.aggregate({
+            where: { ownerType: 'company', ownerId: companyId, status: 'approved' },
+            _sum: { amount: true },
         });
+        await this.prisma.company.update({
+            where: { id: companyId },
+            data: {
+                availableBalance: ledger.availableBalance,
+                pendingBalance: ledger.pendingBalance,
+            },
+        }).catch(err => console.warn('Failed to sync company balance cache:', err.message));
         return {
-            balance: company.walletBalance,
-            transactions: transactions.map((t) => ({
+            balance: ledger.availableBalance,
+            pendingBalance: ledger.pendingBalance,
+            availableBalance: ledger.availableBalance,
+            outstandingFees: ledger.outstandingFees,
+            totalPaidOut: Number(totalPaidOut._sum.amount ?? 0),
+            transactions: ledger.transactions.slice(0, 50).map((t) => ({
                 ...t,
                 id: t.id.toString(),
                 ownerId: t.ownerId.toString(),
@@ -76,15 +167,12 @@ let WalletsService = class WalletsService {
         });
         if (!company || company.ownerId !== userId)
             throw new common_1.ForbiddenException('Access denied');
-        if (Number(company.walletBalance) < dto.amount) {
-            throw new common_1.BadRequestException('Insufficient wallet balance');
+        const ledger = await this.calculateCompanyLedgerBalances(companyId);
+        if (ledger.availableBalance < dto.amount) {
+            throw new common_1.BadRequestException('Insufficient available balance. Pending earnings have not yet cleared the dispute window.');
         }
         const request = await this.prisma.$transaction(async (tx) => {
-            await tx.company.update({
-                where: { id: companyId },
-                data: { walletBalance: { decrement: dto.amount } },
-            });
-            return tx.payoutRequest.create({
+            const req = await tx.payoutRequest.create({
                 data: {
                     ownerType: 'company',
                     ownerId: companyId,
@@ -95,6 +183,11 @@ let WalletsService = class WalletsService {
                     status: 'pending',
                 },
             });
+            await tx.company.update({
+                where: { id: companyId },
+                data: { availableBalance: { decrement: dto.amount } },
+            });
+            return req;
         });
         return {
             success: true,
@@ -120,6 +213,7 @@ let WalletsService = class WalletsService {
             take: 50,
         });
         return {
+            success: true,
             balance: staff.walletBalance,
             transactions: transactions.map((t) => ({
                 ...t,
@@ -245,7 +339,7 @@ let WalletsService = class WalletsService {
             if (request.ownerType === 'company') {
                 await tx.company.update({
                     where: { id: request.ownerId },
-                    data: { walletBalance: { increment: request.amount } },
+                    data: { availableBalance: { increment: request.amount } },
                 });
             }
         });
@@ -329,7 +423,7 @@ let WalletsService = class WalletsService {
             if (request.ownerType === 'company') {
                 await tx.company.update({
                     where: { id: request.ownerId },
-                    data: { walletBalance: { increment: request.amount } },
+                    data: { availableBalance: { increment: request.amount } },
                 });
             }
             else if (request.ownerType === 'staff') {

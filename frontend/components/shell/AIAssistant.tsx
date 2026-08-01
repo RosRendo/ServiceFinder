@@ -39,7 +39,7 @@ export function AIAssistant() {
 
     // Simulate AI response (replace with actual API call)
     await new Promise((r) => setTimeout(r, 1200));
-    const mockResponses: Record<string, string> = {
+    const preprogrammedResponses: Record<string, string> = {
       "show today's revenue": "Today's revenue is **$4,280** across 38 completed bookings. That's up **12%** vs yesterday ($3,820).",
       "why did revenue drop?": "Revenue dropped 8% last week primarily because **3 top staff members** (John, Maria, Chen) had sick days simultaneously on Thursday, reducing capacity.",
       "which staff performed badly?": "The bottom 3 performers this month by rating are: **Alex (★3.8)**, **Sam (★4.0)**, and **Nadia (★4.1)**. Alex has had 4 customer complaints about late arrivals.",
@@ -49,7 +49,7 @@ export function AIAssistant() {
       "generate monthly report": "I'm generating the July 2026 summary report... It will be ready to download in your Reports section momentarily.",
     };
 
-    const matched = Object.entries(mockResponses).find(([k]) =>
+    const matched = Object.entries(preprogrammedResponses).find(([k]) =>
       text.toLowerCase().includes(k)
     );
     const aiContent = matched

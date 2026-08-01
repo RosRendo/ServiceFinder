@@ -54,12 +54,13 @@ export default function ComplianceUI() {
 
   const updateStatus = async (id: string, newStatus: ComplianceStatus) => {
     try {
-      // await api.patch(`/api/admin/compliance/${id}`, { status: newStatus });
+      await api.patch(`/api/admin/compliance/${id}`, { status: newStatus });
       setDocs(prev => prev.filter(d => d.id !== id));
     } catch (err) {
       console.error("Status update failed", err);
     }
   };
+
 
   const getTypeLabel = (type: string) => {
     switch (type) {

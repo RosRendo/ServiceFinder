@@ -15,8 +15,10 @@ const class_validator_1 = require("class-validator");
 class StartConversationDto {
     companyId;
     targetUserId;
+    type;
+    bookingId;
     static _OPENAPI_METADATA_FACTORY() {
-        return { companyId: { required: false, type: () => String }, targetUserId: { required: false, type: () => String } };
+        return { companyId: { required: false, type: () => String }, targetUserId: { required: false, type: () => String }, type: { required: false, enum: ["support", "job"], enum: ['support', 'job'] }, bookingId: { required: false, type: () => String } };
     }
 }
 exports.StartConversationDto = StartConversationDto;
@@ -30,4 +32,15 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], StartConversationDto.prototype, "targetUserId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsIn)(['support', 'job']),
+    __metadata("design:type", String)
+], StartConversationDto.prototype, "type", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], StartConversationDto.prototype, "bookingId", void 0);
 //# sourceMappingURL=start-conversation.dto.js.map

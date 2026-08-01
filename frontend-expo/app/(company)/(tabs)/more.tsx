@@ -35,43 +35,63 @@ interface MenuItem {
 
 const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
   {
-    title: "Business",
+    title: "Operations (What's happening today?)",
     items: [
-      { id: 1, title: "Business Settings",      subtitle: "Company info & preferences",    icon: "cog-outline",           action: "route", route: "/(company)/settings" },
-      { id: 2, title: "Services",               subtitle: "Manage your service listings",  icon: "briefcase-outline",     action: "route", route: "/(company)/services" },
-      { id: 3, title: "Analytics & Reports",    subtitle: "Performance data & insights",   icon: "chart-box-outline",     action: "route", route: "/(company)/analytics" },
-      { id: 4, title: "Payments & Payouts",     subtitle: "Earnings and payout history",   icon: "credit-card-outline",   action: "route", route: "/(company)/payments" },
-      { id: 12, title: "Subscription & Billing", subtitle: "Manage your plan and billing", icon: "star-circle-outline",   action: "route", route: "/(company)/subscription" },
+      { id: 101, title: "Today's Booking",      subtitle: "Real-time job statuses",         icon: "calendar-today",        action: "route", route: "/(company)/(tabs)/dashboard" },
+      { id: 102, title: "Pending Approval",     subtitle: "Bookings awaiting acceptance",   icon: "check-decagram-outline",action: "route", route: "/(company)/pending" },
+      { id: 103, title: "Dispatch Staff",       subtitle: "Move jobs to available workers", icon: "truck-fast-outline",    action: "route", route: "/(company)/(tabs)/staff" },
+      { id: 104, title: "Staff Availability",   subtitle: "Who is online right now",        icon: "account-clock-outline", action: "route", route: "/(company)/(tabs)/staff" },
+      { id: 105, title: "Coverage",             subtitle: "Geofence / service radius",      icon: "map-marker-radius",     action: "route", route: "/(company)/coverage" },
+      { id: 106, title: "Attendance",           subtitle: "Clock-in / Clock-out tracking",  icon: "fingerprint",           action: "route", route: "/(company)/attendance" },
+      { id: 107, title: "Schedules",            subtitle: "Shift planning",                 icon: "calendar-month-outline",action: "route", route: "/(company)/schedules" },
     ],
   },
   {
-    title: "Team",
+    title: "Finance (How much money?)",
     items: [
-      { id: 5, title: "Staff Management",       subtitle: "View and manage your team",     icon: "account-group-outline", action: "route", route: "/(company)/(tabs)/staff" },
-      { id: 6, title: "Coverage Areas",         subtitle: "Manage service locations",      icon: "map-marker-outline",    action: "route", route: "/(company)/coverage" },
+      { id: 201, title: "Revenue",              subtitle: "Total incoming cash",            icon: "cash-multiple",         action: "route", route: "/(company)/payments" },
+      { id: 202, title: "Salary",               subtitle: "Flat payouts for staff",         icon: "account-cash-outline",  action: "route", route: "/(company)/payments" },
+      { id: 203, title: "Commission",           subtitle: "Split payouts for staff",        icon: "cash-percent",          action: "route", route: "/(company)/payments" },
+      { id: 204, title: "Withdrawal",           subtitle: "Move money to bank",             icon: "bank-transfer-out",     action: "route", route: "/(company)/payments" },
     ],
   },
   {
-    title: "Support",
+    title: "Customer (Are customers happy?)",
     items: [
-      { id: 7, title: "Help & Support",         subtitle: "Get help and contact us",       icon: "help-circle-outline",   action: "route", route: "/(company)/support" },
-      { id: 8, title: "Reviews",                subtitle: "Customer feedback & ratings",   icon: "star-outline",          action: "route", route: "/(company)/reviews" },
+      { id: 301, title: "Complaints",           subtitle: "Dispute resolution tickets",     icon: "alert-octagon-outline", action: "route", route: "/(company)/support" },
+      { id: 302, title: "Reviews",              subtitle: "Public feedback moderation",     icon: "star-half-full",        action: "route", route: "/(company)/reviews" },
+      { id: 303, title: "Support",              subtitle: "Direct messaging with clients",  icon: "message-text-outline",  action: "route", route: "/(company)/support" },
     ],
   },
   {
-    title: "Account & Security",
+    title: "Services (What are we selling?)",
     items: [
-      { id: 21, title: "Personal Profile", subtitle: "Name, email & phone", icon: "account-edit-outline", action: "route", route: "/(company)/edit-profile" },
-      { id: 22, title: "Change Password", subtitle: "Update your password", icon: "lock-reset", action: "route", route: "/(company)/change-password" },
-      { id: 13, title: "Two-Factor Auth",       subtitle: "Enhance account security",      icon: "shield-lock-outline",   action: "mfa" },
+      { id: 401, title: "Catalog",              subtitle: "Create/edit service items",      icon: "format-list-bulleted",  action: "route", route: "/(company)/services" },
+      { id: 402, title: "Pricing",              subtitle: "Base rates, peak surcharges",    icon: "tag-multiple-outline",  action: "route", route: "/(company)/services" },
+      { id: 403, title: "Packages",             subtitle: "Bundles (e.g. 5x Cleaning)",     icon: "package-variant",       action: "route", route: "/(company)/services" },
     ],
   },
   {
-    title: "Legal",
+    title: "Business (How is it configured?)",
     items: [
-      { id: 9,  title: "Terms of Service",      subtitle: "Read our terms",                icon: "file-document-outline", action: "alert", accent: undefined },
-      { id: 10, title: "Privacy Policy",        subtitle: "How we use your data",          icon: "shield-outline",        action: "alert", accent: undefined },
-      { id: 11, title: "About ServiceFinder",   subtitle: "Version 2.4.0 · © 2025",       icon: "information-outline",   action: "alert", accent: undefined },
+      { id: 501, title: "Branches",             subtitle: "Multi-location management",      icon: "storefront-outline",    action: "route", route: "/(company)/settings" },
+      { id: 502, title: "Subscription",         subtitle: "Platform fees/plans",            icon: "star-circle-outline",   action: "route", route: "/(company)/subscription" },
+      { id: 503, title: "Company Profile",      subtitle: "Logos, tax info, HQ",            icon: "domain",                action: "route", route: "/(company)/settings" },
+    ],
+  },
+  {
+    title: "Analytics (How are we growing?)",
+    items: [
+      { id: 601, title: "Growth",               subtitle: "Month-over-month user metrics",  icon: "chart-line",            action: "route", route: "/(company)/analytics" },
+      { id: 602, title: "Performance",          subtitle: "Completion rates, job times",    icon: "chart-bar",             action: "route", route: "/(company)/analytics" },
+    ],
+  },
+  {
+    title: "Security (Is the business safe?)",
+    items: [
+      { id: 701, title: "Password",             subtitle: "Account protection",             icon: "lock-outline",          action: "route", route: "/(company)/change-password" },
+      { id: 702, title: "2FA",                  subtitle: "Multi-factor authentication",    icon: "shield-lock-outline",   action: "mfa" },
+      { id: 703, title: "Legal",                subtitle: "TOS & Privacy policies",         icon: "scale-balance",         action: "route", route: "/(company)/legal" },
     ],
   },
 ];

@@ -3,14 +3,18 @@ export declare class WalletsController {
     private readonly walletsService;
     constructor(walletsService: WalletsService);
     getCompanyWallet(id: string, req: any): Promise<{
-        balance: import("@prisma/client/runtime/library").Decimal;
+        balance: number;
+        pendingBalance: number;
+        availableBalance: number;
+        outstandingFees: number;
+        totalPaidOut: number;
         transactions: {
             id: string;
             ownerId: string;
             bookingId: string | undefined;
             amount: number;
-            description: string;
             createdAt: Date;
+            description: string;
             category: string;
             type: string;
             ownerType: string;
@@ -49,9 +53,9 @@ export declare class WalletsController {
             status: string;
             createdAt: Date;
             updatedAt: Date;
-            ownerType: string;
             accountName: string;
             accountNumber: string;
+            ownerType: string;
             adminNotes: string | null;
             destinationBank: string;
         };
@@ -63,14 +67,15 @@ export declare class WalletsController {
         message: string;
     }>;
     getStaffWallet(id: string, req: any): Promise<{
+        success: boolean;
         balance: import("@prisma/client/runtime/library").Decimal;
         transactions: {
             id: string;
             staffId: string;
             bookingId: string | undefined;
             amount: number;
-            description: string | null;
             createdAt: Date;
+            description: string | null;
             type: string;
         }[];
     }>;
@@ -88,9 +93,9 @@ export declare class WalletsController {
             status: string;
             createdAt: Date;
             updatedAt: Date;
-            ownerType: string;
             accountName: string;
             accountNumber: string;
+            ownerType: string;
             adminNotes: string | null;
             destinationBank: string;
         };
@@ -115,9 +120,9 @@ export declare class WalletsController {
             status: string;
             createdAt: Date;
             updatedAt: Date;
-            ownerType: string;
             accountName: string;
             accountNumber: string;
+            ownerType: string;
             adminNotes: string | null;
             destinationBank: string;
         }[];

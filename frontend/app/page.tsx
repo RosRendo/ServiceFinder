@@ -443,7 +443,7 @@ export default function LandingPage() {
 
         </div>
 
-        {/* Hero Right Column: Phone Mockup */}
+        {/* Hero Right Column: Phone Screen */}
         <div className="lg:col-span-6 flex justify-center items-center relative h-[650px]">
           
           <motion.div 
@@ -484,7 +484,7 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Interactive Phone mockup */}
+          {/* Interactive Phone frame */}
           <motion.div
             style={{
               rotateY: mousePos.x * 20,
@@ -760,7 +760,7 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Animated Mockup Showcase */}
+          {/* Animated App Showcase */}
           <div className="flex justify-center relative max-w-4xl mx-auto">
             
             {/* Left Floating Cards */}
@@ -879,17 +879,28 @@ export default function LandingPage() {
                           </div>
                         </div>
 
-                        {/* Banner */}
-                        <div className="h-28 w-full rounded-2xl overflow-hidden relative border border-slate-100 shadow-sm">
-                          <img 
-                            src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=400&q=80" 
-                            alt="Clean service banner"
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 to-slate-900/10 flex flex-col justify-center p-4">
-                            <span className="text-white font-extrabold text-sm">{lang === "kh" ? "កញ្ចប់សេវាកម្មគេហដ្ឋាន" : "Home Care Package"}</span>
-                            <span className="text-emerald-400 font-bold text-[10px] mt-1">{lang === "kh" ? "ចំណេញ 20%" : "Save 20%"}</span>
-                            <span className="text-white/80 font-semibold text-[9px] mt-0.5">{lang === "kh" ? "ចាប់ពី $25" : "Starting $25"}</span>
+                        {/* Sponsor Carousel */}
+                        <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                          {/* Sponsor 1 */}
+                          <div className="h-28 w-[85%] shrink-0 rounded-2xl overflow-hidden relative shadow-sm snap-center">
+                            <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=400&q=80" className="absolute inset-0 w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/30"></div>
+                            <div className="absolute top-2 left-2 bg-black/60 px-1.5 py-0.5 rounded text-white text-[7px] font-black tracking-widest">SPONSORED</div>
+                            <div className="absolute bottom-3 left-3">
+                              <span className="text-white font-black text-xs block leading-tight">Sparkle Cleaning Co.</span>
+                              <span className="text-white/90 font-semibold text-[8px] mt-0.5 block">Top-rated house cleaning</span>
+                            </div>
+                          </div>
+                          
+                          {/* Sponsor 2 */}
+                          <div className="h-28 w-[85%] shrink-0 rounded-2xl overflow-hidden relative shadow-sm snap-center">
+                            <img src="https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=400&q=80" className="absolute inset-0 w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/30"></div>
+                            <div className="absolute top-2 left-2 bg-black/60 px-1.5 py-0.5 rounded text-white text-[7px] font-black tracking-widest">SPONSORED</div>
+                            <div className="absolute bottom-3 left-3">
+                              <span className="text-white font-black text-xs block leading-tight">Elite Plumbing</span>
+                              <span className="text-white/90 font-semibold text-[8px] mt-0.5 block">24/7 Emergency repairs</span>
+                            </div>
                           </div>
                         </div>
 

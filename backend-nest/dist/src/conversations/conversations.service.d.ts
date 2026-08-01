@@ -9,6 +9,9 @@ export declare class ConversationsService {
     getOrCreateConversation(userId: bigint, dto: StartConversationDto): Promise<{
         data: {
             id: any;
+            type: any;
+            bookingId: any;
+            archivedAt: any;
             updatedAt: any;
             otherUser: {
                 id: any;
@@ -31,6 +34,9 @@ export declare class ConversationsService {
     getMyConversations(userId: bigint): Promise<{
         data: {
             id: any;
+            type: any;
+            bookingId: any;
+            archivedAt: any;
             updatedAt: any;
             otherUser: {
                 id: any;
@@ -84,7 +90,10 @@ export declare class ConversationsService {
                 avatar: string | null;
             };
             isMe: boolean;
+            flaggedAsPhone: boolean;
         };
     }>;
+    archiveJobConversation(bookingId: bigint, holdHours: number): Promise<void>;
+    private conversationInclude;
     private formatConversation;
 }

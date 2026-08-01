@@ -11,10 +11,10 @@ export declare class JwtStrategy extends JwtStrategy_base {
     validate(payload: any): Promise<{
         id: bigint;
         status: import(".prisma/client").$Enums.UserStatus;
+        role: import(".prisma/client").$Enums.UserRole;
+        fullName: string;
         email: string | null;
         phone: string | null;
-        fullName: string;
-        role: import(".prisma/client").$Enums.UserRole;
     }>;
 }
 export {};

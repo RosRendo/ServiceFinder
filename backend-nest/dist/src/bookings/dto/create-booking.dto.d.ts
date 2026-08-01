@@ -8,4 +8,5 @@ export declare class CreateBookingDto {
     latitude?: number;
     longitude?: number;
     notes?: string;
+    promoCode?: string;
 }

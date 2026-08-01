@@ -373,6 +373,28 @@ let CompaniesService = class CompaniesService {
                 ? parseInt(updates.establishedYear)
                 : null;
         }
+        if (updates.coverageRadiusKm !== undefined) {
+            const radius = updates.coverageRadiusKm ? Number(updates.coverageRadiusKm) : 15;
+            const serviceArea = await this.prisma.serviceArea.findFirst({
+                where: { companyId: id },
+            });
+            if (serviceArea) {
+                await this.prisma.serviceArea.update({
+                    where: { id: serviceArea.id },
+                    data: { coverageRadiusKm: radius, city: updates.city || company.city || 'Phnom Penh' },
+                });
+            }
+            else {
+                await this.prisma.serviceArea.create({
+                    data: {
+                        companyId: id,
+                        city: updates.city || company.city || 'Phnom Penh',
+                        coverageRadiusKm: radius,
+                    },
+                });
+            }
+            delete updateData.coverageRadiusKm;
+        }
         const updatedCompany = await this.prisma.company.update({
             where: { id },
             data: updateData,
@@ -463,10 +485,8 @@ let CompaniesService = class CompaniesService {
                 _sum: { amount: true },
             }),
         ]);
-        const escrowBalance = Number(escrowResult._sum.companyEarnings ?? 0);
-        const totalEarnings = Number(completedEarnings._sum.companyEarnings ?? 0);
-        const totalPayouts = Number(paidPayouts._sum.amount ?? 0);
-        const availableBalance = Math.max(0, totalEarnings - totalPayouts);
+        const escrowBalance = Number(company.pendingBalance);
+        const availableBalance = Number(company.availableBalance);
         let totalRevenue = 0;
         let activeBookings = 0;
         let completedCount = 0;
@@ -617,8 +637,32 @@ let CompaniesService = class CompaniesService {
                 subtitle,
             };
         });
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const sixtyDaysAgo = new Date();
+        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+        const prevMonthBookings = await this.prisma.booking.findMany({
+            where: {
+                companyId,
+                status: 'completed',
+                updatedAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
+            },
+            select: { companyEarnings: true },
+        });
+        const currMonthRevenue = monthlyBookings.reduce((sum, b) => sum + Number(b.companyEarnings), 0);
+        const prevMonthRevenue = prevMonthBookings.reduce((sum, b) => sum + Number(b.companyEarnings), 0);
+        const currMonthCount = monthlyBookings.length;
+        const prevMonthCount = prevMonthBookings.length;
+        const revenueGrowth = prevMonthRevenue > 0
+            ? Number((((currMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100).toFixed(1))
+            : (currMonthRevenue > 0 ? 100 : 0);
+        const bookingsGrowth = prevMonthCount > 0
+            ? Number((((currMonthCount - prevMonthCount) / prevMonthCount) * 100).toFixed(1))
+            : (currMonthCount > 0 ? 100 : 0);
         return {
             revenue: totalRevenue,
+            revenueGrowth,
+            bookingsGrowth,
             escrowBalance,
             availableBalance,
             activeBookings,
@@ -662,6 +706,7 @@ let CompaniesService = class CompaniesService {
                         assignedBookings: { where: { status: 'completed' } },
                     },
                 },
+                assignedBookings: true,
                 reviews: true,
             },
         });
@@ -671,7 +716,12 @@ let CompaniesService = class CompaniesService {
                 ? validReviews.reduce((acc, r) => acc + Number(r.staffRating), 0) /
                     validReviews.length
                 : null;
-            const isAvailable = s.status === 'active';
+            const isAvailable = s.status === 'active' && !s.assignedBookings.some(b => b.status === 'in_progress');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const todayJobsCount = s.assignedBookings.filter(b => b.bookingDate >= today && b.bookingDate < tomorrow).length;
             return {
                 id: s.id.toString(),
                 userId: s.userId.toString(),
@@ -681,13 +731,13 @@ let CompaniesService = class CompaniesService {
                 avatar: s.user.avatar,
                 phone: s.user.phone || '+855 12 000 000',
                 role: s.role === 'worker' ? 'Field Agent' : s.role === 'supervisor' ? 'Senior Technician' : 'Manager',
-                status: s.status === 'active' ? 'online' : 'offline',
-                rating: avgRating ? Number(avgRating.toFixed(1)) : (4.5 + Math.random() * 0.4),
-                jobsCompleted: s._count.assignedBookings > 0 ? s._count.assignedBookings : 30 + Math.floor(Math.random() * 20),
-                todayJobs: Math.floor(Math.random() * 4),
-                earningsToday: Math.floor(Math.random() * 50) + 20,
-                pendingPayout: Math.floor(Math.random() * 100) + 50,
-                tips: Math.floor(Math.random() * 20),
+                status: isAvailable ? 'online' : 'offline',
+                rating: avgRating ? Number(avgRating.toFixed(1)) : 0,
+                jobsCompleted: s._count.assignedBookings,
+                todayJobs: todayJobsCount,
+                earningsToday: s.assignedBookings.filter(b => b.status === 'completed' && b.bookingDate >= today && b.bookingDate < tomorrow).reduce((sum, b) => sum + Number(b.staffEarnings), 0),
+                pendingPayout: Number(s.walletBalance),
+                tips: 0,
                 attendance: 90 + Math.floor(Math.random() * 10),
                 onTimeRate: 85 + Math.floor(Math.random() * 15),
                 currentLocation: 'Phnom Penh',
@@ -850,6 +900,7 @@ let CompaniesService = class CompaniesService {
             data: {
                 role: updates.role,
                 status: updates.status,
+                splitPercent: updates.splitPercent !== undefined && updates.splitPercent !== null ? Number(updates.splitPercent) : null,
             },
         });
         return { success: true };
@@ -1180,278 +1231,6 @@ let CompaniesService = class CompaniesService {
                     limit: Number(limit),
                     pages: Math.ceil(total / take),
                 },
-            },
-        };
-    }
-    async getAdminStats() {
-        const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        const oneYearAgo = new Date();
-        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-        const [totalUsers, newUsersThisWeek, totalCompanies, pendingCompanies, totalBookings, activeBookings, totalRevenueRaw, recentUsersRaw, categoriesData, bookingsLastYear, usersLastYear, bookingsData,] = await Promise.all([
-            this.prisma.user.count(),
-            this.prisma.user.count({ where: { createdAt: { gte: oneWeekAgo } } }),
-            this.prisma.company.count(),
-            this.prisma.company.count({ where: { verificationStatus: 'pending' } }),
-            this.prisma.booking.count(),
-            this.prisma.booking.count({
-                where: { status: { in: ['pending', 'in_progress', 'confirmed'] } },
-            }),
-            this.prisma.payment.aggregate({
-                _sum: { amount: true },
-                where: { status: 'paid' },
-            }),
-            this.prisma.user.findMany({
-                take: 5,
-                orderBy: { createdAt: 'desc' },
-                select: {
-                    id: true,
-                    fullName: true,
-                    email: true,
-                    role: true,
-                    status: true,
-                    createdAt: true,
-                },
-            }),
-            this.prisma.category.findMany({
-                include: {
-                    serviceTypes: {
-                        include: {
-                            services: {
-                                include: {
-                                    _count: { select: { bookings: true } },
-                                },
-                            },
-                        },
-                    },
-                },
-            }),
-            this.prisma.booking.findMany({
-                where: { createdAt: { gte: oneYearAgo } },
-                select: { createdAt: true },
-            }),
-            this.prisma.user.findMany({
-                where: { createdAt: { gte: oneYearAgo } },
-                select: { createdAt: true },
-            }),
-            this.prisma.booking.findMany({
-                take: 5,
-                orderBy: { createdAt: 'desc' },
-                include: {
-                    customer: { select: { fullName: true } },
-                    service: {
-                        select: { name: true, company: { select: { name: true } } },
-                    },
-                },
-            }),
-        ]);
-        const totalRevenue = Number(totalRevenueRaw._sum.amount || 0);
-        const recentUsers = recentUsersRaw.map((u) => ({
-            ...u,
-            id: u.id.toString(),
-            createdAt: u.createdAt.toISOString(),
-        }));
-        const recentBookings = bookingsData.map((b) => ({
-            id: b.id.toString(),
-            customerName: b.customer.fullName,
-            serviceName: b.service.name,
-            companyName: b.service.company.name,
-            status: b.status,
-            price: Number(b.totalPrice),
-            createdAt: b.createdAt.toISOString(),
-        }));
-        const topCategories = categoriesData
-            .map((c) => {
-            const bookings = c.serviceTypes.reduce((acc, st) => acc + st.services.reduce((acc2, s) => acc2 + s._count.bookings, 0), 0);
-            return { name: c.name, slug: c.slug, bookings };
-        })
-            .sort((a, b) => b.bookings - a.bookings)
-            .slice(0, 5);
-        const monthNames = [
-            'Jan',
-            'Feb',
-            'Mar',
-            'Apr',
-            'May',
-            'Jun',
-            'Jul',
-            'Aug',
-            'Sep',
-            'Oct',
-            'Nov',
-            'Dec',
-        ];
-        const buckets = [];
-        for (let i = 11; i >= 0; i--) {
-            const d = new Date();
-            d.setMonth(d.getMonth() - i);
-            buckets.push({
-                month: monthNames[d.getMonth()],
-                year: d.getFullYear(),
-                monthIndex: d.getMonth(),
-                bookingCount: 0,
-                userCount: 0,
-            });
-        }
-        bookingsLastYear.forEach((b) => {
-            const m = b.createdAt.getMonth();
-            const y = b.createdAt.getFullYear();
-            const bucket = buckets.find((bkt) => bkt.monthIndex === m && bkt.year === y);
-            if (bucket)
-                bucket.bookingCount++;
-        });
-        usersLastYear.forEach((u) => {
-            const m = u.createdAt.getMonth();
-            const y = u.createdAt.getFullYear();
-            const bucket = buckets.find((bkt) => bkt.monthIndex === m && bkt.year === y);
-            if (bucket)
-                bucket.userCount++;
-        });
-        const bookingsByMonth = buckets.map((b) => ({
-            month: b.month,
-            count: b.bookingCount,
-        }));
-        const usersByMonth = buckets.map((b) => ({
-            month: b.month,
-            count: b.userCount,
-        }));
-        return {
-            success: true,
-            stats: {
-                totalUsers,
-                newUsersThisWeek,
-                totalCompanies,
-                pendingCompanies,
-                totalBookings,
-                activeBookings,
-                totalRevenue,
-                recentUsers,
-                recentBookings,
-                topCategories,
-                bookingsByMonth,
-                usersByMonth,
-            },
-        };
-    }
-    async getAdminAnalytics() {
-        const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        const [totalUsers, totalCompanies, pendingCompanies, totalBookings, activeBookings, completedBookings, cancelledBookings, totalRevenueRaw, categoriesData, topCompaniesData,] = await Promise.all([
-            this.prisma.user.count(),
-            this.prisma.company.count(),
-            this.prisma.company.count({ where: { verificationStatus: 'pending' } }),
-            this.prisma.booking.count(),
-            this.prisma.booking.count({
-                where: { status: { in: ['pending', 'in_progress', 'confirmed'] } },
-            }),
-            this.prisma.booking.count({ where: { status: 'completed' } }),
-            this.prisma.booking.count({ where: { status: 'cancelled' } }),
-            this.prisma.payment.aggregate({
-                _sum: { amount: true },
-                where: { status: 'paid' },
-            }),
-            this.prisma.category.findMany({
-                include: {
-                    serviceTypes: {
-                        include: {
-                            services: {
-                                include: {
-                                    _count: { select: { bookings: true } },
-                                },
-                            },
-                        },
-                    },
-                },
-            }),
-            this.prisma.company.findMany({
-                take: 5,
-                include: {
-                    ratingSummary: true,
-                    _count: { select: { bookings: { where: { status: 'completed' } } } },
-                    bookings: {
-                        where: { payment: { status: 'paid' } },
-                        include: { payment: true },
-                    },
-                },
-            }),
-        ]);
-        const totalRevenue = Number(totalRevenueRaw._sum.amount || 0);
-        const categoryData = categoriesData
-            .map((c) => {
-            const bookings = c.serviceTypes.reduce((acc, st) => acc + st.services.reduce((acc2, s) => acc2 + s._count.bookings, 0), 0);
-            return { name: c.name, value: bookings };
-        })
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 5);
-        const topCompanies = topCompaniesData
-            .map((c) => {
-            const revenue = c.bookings.reduce((sum, b) => sum + Number(b.payment?.amount || 0), 0);
-            return {
-                name: c.name,
-                completedJobs: c._count.bookings,
-                rating: c.ratingSummary?.averageRating
-                    ? Number(c.ratingSummary.averageRating)
-                    : 0,
-                revenue: `$${revenue.toLocaleString()}`,
-            };
-        })
-            .sort((a, b) => b.completedJobs - a.completedJobs);
-        const monthlyData = [
-            { name: 'Jan', bookings: 120, revenue: 4500 },
-            { name: 'Feb', bookings: 150, revenue: 5200 },
-            { name: 'Mar', bookings: 180, revenue: 6100 },
-            { name: 'Apr', bookings: 220, revenue: 8400 },
-            {
-                name: 'May',
-                bookings: Math.max(250, totalBookings),
-                revenue: Math.max(9000, totalRevenue),
-            },
-        ];
-        const statusBreakdown = [
-            { name: 'Completed', value: completedBookings, color: '#10B981' },
-            { name: 'Active', value: activeBookings, color: '#3B82F6' },
-            {
-                name: 'Pending',
-                value: totalBookings -
-                    activeBookings -
-                    completedBookings -
-                    cancelledBookings,
-                color: '#F59E0B',
-            },
-            { name: 'Cancelled', value: cancelledBookings, color: '#EF4444' },
-        ].filter((s) => s.value > 0);
-        if (statusBreakdown.length === 0) {
-            statusBreakdown.push({ name: 'No Data', value: 1, color: '#D1D5DB' });
-        }
-        const weeklyStats = [
-            { day: 'Mon', bookings: Math.floor(totalBookings * 0.1) },
-            { day: 'Tue', bookings: Math.floor(totalBookings * 0.15) },
-            { day: 'Wed', bookings: Math.floor(totalBookings * 0.2) },
-            { day: 'Thu', bookings: Math.floor(totalBookings * 0.18) },
-            { day: 'Fri', bookings: Math.floor(totalBookings * 0.25) },
-            { day: 'Sat', bookings: Math.floor(totalBookings * 0.08) },
-            { day: 'Sun', bookings: Math.floor(totalBookings * 0.04) },
-        ];
-        return {
-            success: true,
-            data: {
-                totalRevenue,
-                revenueGrowth: 15,
-                totalBookings,
-                bookingsGrowth: 12,
-                totalUsers,
-                usersGrowth: 8,
-                totalCompanies,
-                pendingCompanies,
-                activeBookings,
-                completedBookings,
-                cancelledBookings,
-                avgBookingValue: totalBookings > 0 ? Math.round(totalRevenue / totalBookings) : 0,
-                conversionRate: 64,
-                monthlyData,
-                statusBreakdown,
-                weeklyStats,
-                categoryData,
-                topCompanies,
             },
         };
     }

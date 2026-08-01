@@ -8,7 +8,10 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
 import ConfettiCannon from "react-native-confetti-cannon";
+import SignatureScreen, { SignatureViewRef } from "react-native-signature-canvas";
+import { api } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
@@ -27,9 +30,12 @@ export default function JobCompleteScreen() {
   const [afterImage, setAfterImage] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [customerSigned, setCustomerSigned] = useState(false);
+  const [signatureBase64, setSignatureBase64] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showSignaturePad, setShowSignaturePad] = useState(false);
 
+  const signatureRef = useRef<SignatureViewRef>(null);
   const confettiRef = useRef<ConfettiCannon>(null);
 
   const pickImage = async (type: 'before' | 'after') => {
@@ -48,13 +54,38 @@ export default function JobCompleteScreen() {
 
   const isFormValid = beforeImage && afterImage && customerSigned;
 
-  const handleSubmit = () => {
-    if (!isFormValid) return;
+  const handleSubmit = async () => {
+    if (!isFormValid || !signatureBase64) return;
     setSubmitting(true);
     
-    // Simulate API Call for S3 Uploads and DB Status Change
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      // 1. Convert Base64 Signature to File
+      const uri = FileSystem.cacheDirectory + 'signature.png';
+      await FileSystem.writeAsStringAsync(
+        uri, 
+        signatureBase64.replace('data:image/png;base64,', ''), 
+        { encoding: FileSystem.EncodingType.Base64 }
+      );
+
+      // 2. Upload Signature to Cloudinary/S3
+      const formData = new FormData();
+      formData.append('file', {
+        uri,
+        name: `sig_${jobId}.png`,
+        type: 'image/png'
+      } as any);
+
+      const uploadRes = await api.post('/api/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const signatureUrl = uploadRes.data.url;
+
+      // 3. Mark Booking as Complete
+      await api.patch(`/api/bookings/${jobId}/complete`, {
+        proofOfWorkImageUrl: signatureUrl, // In MVP we save signature as proof or just append it
+        notes,
+      });
+
       setShowConfetti(true);
       if (confettiRef.current) {
         confettiRef.current.start();
@@ -62,9 +93,21 @@ export default function JobCompleteScreen() {
       
       // Auto redirect after confetti
       setTimeout(() => {
-        router.back();
+        router.replace("/(staff)/(tabs)/home" as any);
       }, 3500);
-    }, 1500);
+
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to submit completion. " + (err.response?.data?.message || err.message));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSignatureOK = (signature: string) => {
+    setSignatureBase64(signature);
+    setCustomerSigned(true);
+    setShowSignaturePad(false);
   };
 
   return (
@@ -151,28 +194,59 @@ export default function JobCompleteScreen() {
           />
         </View>
 
-        {/* Customer Sign-off (Digital Mock) */}
+        {/* Customer Sign-off (Digital Signature Canvas) */}
         <Text style={s.sectionTitle}>Customer Sign-off</Text>
         <View style={[s.signOffContainer, customerSigned && s.signOffContainerActive]}>
-          <View style={s.signOffRow}>
-            <View style={s.signOffTextWrap}>
-              <Text style={s.signOffTitle}>Hand device to Customer</Text>
-              <Text style={s.signOffSub}>Customer confirms work is completed satisfactorily.</Text>
+          {!showSignaturePad ? (
+            <View style={s.signOffRow}>
+              <View style={s.signOffTextWrap}>
+                <Text style={s.signOffTitle}>Hand device to Customer</Text>
+                <Text style={s.signOffSub}>Customer confirms work is completed satisfactorily.</Text>
+              </View>
+              <TouchableOpacity 
+                style={[s.toggleBtn, customerSigned && s.toggleBtnActive]}
+                onPress={() => setShowSignaturePad(true)}
+              >
+                <MaterialCommunityIcons 
+                  name={customerSigned ? "check" : "draw"} 
+                  size={22} 
+                  color={customerSigned ? "#FFF" : T.accent} 
+                />
+                <Text style={[s.toggleText, customerSigned && s.toggleTextActive]}>
+                  {customerSigned ? "Re-Sign" : "Sign Now"}
+                </Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity 
-              style={[s.toggleBtn, customerSigned && s.toggleBtnActive]}
-              onPress={() => setCustomerSigned(!customerSigned)}
-            >
-              <MaterialCommunityIcons 
-                name={customerSigned ? "check" : "draw"} 
-                size={22} 
-                color={customerSigned ? "#FFF" : T.accent} 
-              />
-              <Text style={[s.toggleText, customerSigned && s.toggleTextActive]}>
-                {customerSigned ? "Signed" : "Sign"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          ) : (
+            <View style={s.signaturePadContainer}>
+              <Text style={s.signatureInstruction}>Please draw your signature below:</Text>
+              <View style={s.signatureBox}>
+                <SignatureScreen
+                  ref={signatureRef}
+                  onOK={handleSignatureOK}
+                  onEmpty={() => alert("Please sign before saving")}
+                  descriptionText=""
+                  clearText="Clear"
+                  confirmText="Save Signature"
+                  webStyle={`.m-signature-pad {box-shadow: none; border: none; } 
+                             .m-signature-pad--body {border: none;}
+                             .m-signature-pad--footer {margin: 0; padding: 10px;}`
+                  }
+                  autoClear={true}
+                  imageType={"image/png"}
+                />
+              </View>
+              <TouchableOpacity style={s.cancelSignBtn} onPress={() => setShowSignaturePad(false)}>
+                <Text style={s.cancelSignText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          {customerSigned && !showSignaturePad && signatureBase64 && (
+            <View style={s.signaturePreviewContainer}>
+              <Image source={{ uri: signatureBase64 }} style={s.signaturePreview} contentFit="contain" />
+            </View>
+          )}
         </View>
 
       </ScrollView>
@@ -267,21 +341,20 @@ const s = StyleSheet.create({
   signOffRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   signOffTextWrap: { flex: 1, paddingRight: 16 },
   signOffTitle: { fontSize: 16, fontWeight: "700", color: T.text1, marginBottom: 4 },
-  signOffSub: { fontSize: 13, color: T.text3, lineHeight: 18 },
-  
-  toggleBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
-    backgroundColor: T.accent + "15",
-  },
-  toggleBtnActive: { backgroundColor: T.success },
+  signOffSub: { fontSize: 13, color: T.text3, marginTop: 4 },
+  toggleBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: T.bg, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: T.border },
+  toggleBtnActive: { backgroundColor: T.success, borderColor: T.success },
   toggleText: { fontSize: 14, fontWeight: "700", color: T.accent },
   toggleTextActive: { color: "#FFF" },
+  signaturePadContainer: { width: '100%', alignItems: 'center' },
+  signatureInstruction: { fontSize: 13, color: T.text2, marginBottom: 12, fontWeight: '600' },
+  signatureBox: { width: '100%', height: 200, backgroundColor: '#FFF', borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: T.border },
+  cancelSignBtn: { marginTop: 12, paddingVertical: 8, paddingHorizontal: 16 },
+  cancelSignText: { color: T.error, fontWeight: '600', fontSize: 14 },
+  signaturePreviewContainer: { width: '100%', height: 100, marginTop: 16, backgroundColor: '#FFF', borderRadius: 12, borderWidth: 1, borderColor: T.border, overflow: 'hidden' },
+  signaturePreview: { width: '100%', height: '100%' },
 
-  footer: {
-    padding: 20, paddingBottom: Platform.OS === 'ios' ? 40 : 20,
-    backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border
-  },
+  footer: { padding: 20, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border },
   submitBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
     backgroundColor: T.accent, paddingVertical: 16, borderRadius: 16, ...CARD_SHADOW

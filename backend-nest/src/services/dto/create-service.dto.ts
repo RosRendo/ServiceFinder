@@ -42,4 +42,7 @@ export class CreateServiceDto {
   @IsString()
   @IsOptional()
   image?: string;
+
+  @IsOptional()
+  checklist?: any;
 }

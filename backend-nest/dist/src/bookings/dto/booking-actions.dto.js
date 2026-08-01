@@ -39,8 +39,9 @@ __decorate([
 class UpdateProgressDto {
     progressPercent;
     staffNotes;
+    checklist;
     static _OPENAPI_METADATA_FACTORY() {
-        return { progressPercent: { required: true, type: () => Number }, staffNotes: { required: false, type: () => String } };
+        return { progressPercent: { required: true, type: () => Number }, staffNotes: { required: false, type: () => String }, checklist: { required: false, type: () => Object } };
     }
 }
 exports.UpdateProgressDto = UpdateProgressDto;
@@ -53,6 +54,10 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateProgressDto.prototype, "staffNotes", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Object)
+], UpdateProgressDto.prototype, "checklist", void 0);
 class CancelBookingDto {
     reason;
     static _OPENAPI_METADATA_FACTORY() {

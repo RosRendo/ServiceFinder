@@ -16,6 +16,7 @@ exports.ConversationsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const chat_gateway_1 = require("./chat.gateway");
+const PHONE_PATTERN = /(\+?\d[\d\s\-().]{6,}\d)/g;
 let ConversationsService = class ConversationsService {
     prisma;
     chatGateway;
@@ -24,6 +25,51 @@ let ConversationsService = class ConversationsService {
         this.chatGateway = chatGateway;
     }
     async getOrCreateConversation(userId, dto) {
+        const channelType = dto.type ?? 'support';
+        if (channelType === 'job') {
+            if (!dto.bookingId) {
+                throw new common_1.BadRequestException('bookingId is required for job conversations');
+            }
+            const bookingId = BigInt(dto.bookingId);
+            const booking = await this.prisma.booking.findUnique({
+                where: { id: bookingId },
+                include: {
+                    assignedStaff: { include: { user: true } },
+                    company: { select: { id: true, name: true, logoUrl: true } },
+                },
+            });
+            if (!booking)
+                throw new common_1.NotFoundException('Booking not found');
+            if (!booking.assignedStaffId || !booking.assignedStaff) {
+                throw new common_1.BadRequestException('No staff assigned to this booking yet. Job chat opens after staff assignment.');
+            }
+            if (!['confirmed', 'in_progress', 'completed'].includes(booking.status)) {
+                throw new common_1.BadRequestException('Job chat is only available for confirmed, in-progress, or recently completed bookings.');
+            }
+            const staffUserId = booking.assignedStaff.userId;
+            const participants = [userId, staffUserId];
+            let existing = await this.prisma.conversation.findFirst({
+                where: {
+                    type: 'job',
+                    bookingId,
+                },
+                include: this.conversationInclude(userId),
+            });
+            if (existing) {
+                return { data: this.formatConversation(existing, userId) };
+            }
+            const conversation = await this.prisma.conversation.create({
+                data: {
+                    type: 'job',
+                    bookingId,
+                    participants: {
+                        create: participants.map((uid) => ({ userId: uid })),
+                    },
+                },
+                include: this.conversationInclude(userId),
+            });
+            return { data: this.formatConversation(conversation, userId) };
+        }
         let otherUserId;
         let companyIdParam;
         if (dto.targetUserId) {
@@ -44,50 +90,19 @@ let ConversationsService = class ConversationsService {
         }
         let existing = await this.prisma.conversation.findFirst({
             where: {
+                type: 'support',
                 ...(companyIdParam ? { companyId: companyIdParam } : {}),
-                participants: {
-                    every: {
-                        userId: { in: [userId, otherUserId] },
-                    },
-                },
                 AND: [
                     { participants: { some: { userId } } },
                     { participants: { some: { userId: otherUserId } } },
                 ],
             },
-            include: {
-                participants: {
-                    include: {
-                        user: {
-                            select: { id: true, fullName: true, avatar: true, role: true },
-                        },
-                    },
-                },
-                company: {
-                    select: {
-                        id: true,
-                        name: true,
-                        logoUrl: true,
-                        ownerId: true,
-                        staff: {
-                            where: { userId },
-                            select: { id: true },
-                            take: 1,
-                        },
-                    },
-                },
-                messages: { orderBy: { createdAt: 'asc' }, take: 1 },
-            },
+            include: this.conversationInclude(userId),
         });
         if ((!existing || existing.messages.length === 0) && companyIdParam) {
             const legacyExisting = await this.prisma.conversation.findFirst({
                 where: {
                     companyId: null,
-                    participants: {
-                        every: {
-                            userId: { in: [userId, otherUserId] },
-                        },
-                    },
                     AND: [
                         { participants: { some: { userId } } },
                         { participants: { some: { userId: otherUserId } } },
@@ -105,35 +120,8 @@ let ConversationsService = class ConversationsService {
                 }
                 existing = await this.prisma.conversation.update({
                     where: { id: legacyExisting.id },
-                    data: { companyId: companyIdParam },
-                    include: {
-                        participants: {
-                            include: {
-                                user: {
-                                    select: {
-                                        id: true,
-                                        fullName: true,
-                                        avatar: true,
-                                        role: true,
-                                    },
-                                },
-                            },
-                        },
-                        company: {
-                            select: {
-                                id: true,
-                                name: true,
-                                logoUrl: true,
-                                ownerId: true,
-                                staff: {
-                                    where: { userId },
-                                    select: { id: true },
-                                    take: 1,
-                                },
-                            },
-                        },
-                        messages: { orderBy: { createdAt: 'asc' }, take: 1 },
-                    },
+                    data: { companyId: companyIdParam, type: 'support' },
+                    include: this.conversationInclude(userId),
                 });
             }
         }
@@ -142,63 +130,20 @@ let ConversationsService = class ConversationsService {
         }
         const conversation = await this.prisma.conversation.create({
             data: {
+                type: 'support',
                 ...(companyIdParam ? { companyId: companyIdParam } : {}),
                 participants: {
                     create: [{ userId }, { userId: otherUserId }],
                 },
             },
-            include: {
-                participants: {
-                    include: {
-                        user: {
-                            select: { id: true, fullName: true, avatar: true, role: true },
-                        },
-                    },
-                },
-                company: {
-                    select: {
-                        id: true,
-                        name: true,
-                        logoUrl: true,
-                        ownerId: true,
-                        staff: {
-                            where: { userId },
-                            select: { id: true },
-                            take: 1,
-                        },
-                    },
-                },
-                messages: { orderBy: { createdAt: 'asc' }, take: 1 },
-            },
+            include: this.conversationInclude(userId),
         });
         return { data: this.formatConversation(conversation, userId) };
     }
     async getMyConversations(userId) {
         const conversations = await this.prisma.conversation.findMany({
             where: { participants: { some: { userId } } },
-            include: {
-                participants: {
-                    include: {
-                        user: {
-                            select: { id: true, fullName: true, avatar: true, role: true },
-                        },
-                    },
-                },
-                company: {
-                    select: {
-                        id: true,
-                        name: true,
-                        logoUrl: true,
-                        ownerId: true,
-                        staff: {
-                            where: { userId },
-                            select: { id: true },
-                            take: 1,
-                        },
-                    },
-                },
-                messages: { orderBy: { createdAt: 'desc' }, take: 1 },
-            },
+            include: this.conversationInclude(userId),
             orderBy: { updatedAt: 'desc' },
         });
         return {
@@ -261,6 +206,19 @@ let ConversationsService = class ConversationsService {
         });
         if (!participant)
             throw new common_1.ForbiddenException('Access denied');
+        const conversation = await this.prisma.conversation.findUnique({
+            where: { id: conversationId },
+        });
+        if (!conversation)
+            throw new common_1.NotFoundException('Conversation not found');
+        if (conversation.type === 'job' && conversation.archivedAt) {
+            const now = new Date();
+            if (conversation.archivedAt <= now) {
+                throw new common_1.ForbiddenException('This job chat has been archived. Start a support conversation to contact the company.');
+            }
+        }
+        PHONE_PATTERN.lastIndex = 0;
+        const flaggedAsPhone = PHONE_PATTERN.test(dto.content);
         const message = await this.prisma.message.create({
             data: { conversationId, senderId: userId, content: dto.content },
             include: {
@@ -271,6 +229,20 @@ let ConversationsService = class ConversationsService {
             where: { id: conversationId },
             data: { updatedAt: new Date() },
         });
+        if (flaggedAsPhone) {
+            await this.prisma.moderationLog
+                .create({
+                data: {
+                    adminId: userId,
+                    entityType: 'message',
+                    entityId: message.id,
+                    action: 'flagged',
+                    reason: 'phone_number_detected',
+                    status: 'pending',
+                },
+            })
+                .catch((e) => console.warn('ModerationLog create failed:', e?.message));
+        }
         const response = {
             data: {
                 id: message.id.toString(),
@@ -283,10 +255,46 @@ let ConversationsService = class ConversationsService {
                     avatar: message.sender.avatar,
                 },
                 isMe: true,
+                flaggedAsPhone,
             },
         };
         this.chatGateway.broadcastNewMessage(conversationId.toString(), response.data);
         return response;
+    }
+    async archiveJobConversation(bookingId, holdHours) {
+        const archivedAt = new Date(Date.now() + holdHours * 60 * 60 * 1000);
+        await this.prisma.conversation.updateMany({
+            where: { type: 'job', bookingId },
+            data: { archivedAt },
+        });
+    }
+    conversationInclude(userId) {
+        return {
+            participants: {
+                include: {
+                    user: {
+                        select: { id: true, fullName: true, avatar: true, role: true },
+                    },
+                },
+            },
+            company: {
+                select: {
+                    id: true,
+                    name: true,
+                    logoUrl: true,
+                    ownerId: true,
+                    staff: {
+                        where: { userId },
+                        select: { id: true },
+                        take: 1,
+                    },
+                },
+            },
+            booking: {
+                select: { id: true, status: true },
+            },
+            messages: { orderBy: { createdAt: 'desc' }, take: 1 },
+        };
     }
     formatConversation(c, myUserId) {
         const otherParticipant = c.participants.find((p) => p.userId !== myUserId);
@@ -296,6 +304,9 @@ let ConversationsService = class ConversationsService {
             (!c.company.staff || c.company.staff.length === 0);
         return {
             id: c.id.toString(),
+            type: c.type,
+            bookingId: c.bookingId?.toString() ?? null,
+            archivedAt: c.archivedAt ?? null,
             updatedAt: c.updatedAt,
             otherUser: isCustomerViewingCompany
                 ? {
@@ -305,7 +316,7 @@ let ConversationsService = class ConversationsService {
                 }
                 : otherParticipant
                     ? {
-                        id: `${otherParticipant.user.id.toString()}_${c.company?.id?.toString() || 'legacy'}`,
+                        id: `${otherParticipant.user.id.toString()}_${c.company?.id?.toString() || c.bookingId?.toString() || 'direct'}`,
                         fullName: c.company
                             ? `${otherParticipant.user.fullName} (${c.company.name})`
                             : otherParticipant.user.fullName,

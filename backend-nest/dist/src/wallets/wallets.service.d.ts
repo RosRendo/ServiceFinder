@@ -4,15 +4,35 @@ export declare class WalletsService {
     private prisma;
     private notificationsService;
     constructor(prisma: PrismaService, notificationsService: NotificationsService);
+    calculateCompanyLedgerBalances(companyId: bigint): Promise<{
+        pendingBalance: number;
+        availableBalance: number;
+        outstandingFees: number;
+        transactions: {
+            id: bigint;
+            createdAt: Date;
+            description: string;
+            category: string;
+            ownerId: bigint;
+            bookingId: bigint | null;
+            amount: import("@prisma/client/runtime/library").Decimal;
+            type: string;
+            ownerType: string;
+        }[];
+    }>;
     getCompanyWallet(companyId: bigint, userId: bigint): Promise<{
-        balance: import("@prisma/client/runtime/library").Decimal;
+        balance: number;
+        pendingBalance: number;
+        availableBalance: number;
+        outstandingFees: number;
+        totalPaidOut: number;
         transactions: {
             id: string;
             ownerId: string;
             bookingId: string | undefined;
             amount: number;
-            description: string;
             createdAt: Date;
+            description: string;
             category: string;
             type: string;
             ownerType: string;
@@ -51,22 +71,23 @@ export declare class WalletsService {
             status: string;
             createdAt: Date;
             updatedAt: Date;
-            ownerType: string;
             accountName: string;
             accountNumber: string;
+            ownerType: string;
             adminNotes: string | null;
             destinationBank: string;
         };
     }>;
     getStaffWallet(staffId: bigint, userId: bigint): Promise<{
+        success: boolean;
         balance: import("@prisma/client/runtime/library").Decimal;
         transactions: {
             id: string;
             staffId: string;
             bookingId: string | undefined;
             amount: number;
-            description: string | null;
             createdAt: Date;
+            description: string | null;
             type: string;
         }[];
     }>;
@@ -84,9 +105,9 @@ export declare class WalletsService {
             status: string;
             createdAt: Date;
             updatedAt: Date;
-            ownerType: string;
             accountName: string;
             accountNumber: string;
+            ownerType: string;
             adminNotes: string | null;
             destinationBank: string;
         };
@@ -115,9 +136,9 @@ export declare class WalletsService {
             status: string;
             createdAt: Date;
             updatedAt: Date;
-            ownerType: string;
             accountName: string;
             accountNumber: string;
+            ownerType: string;
             adminNotes: string | null;
             destinationBank: string;
         }[];

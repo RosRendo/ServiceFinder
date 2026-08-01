@@ -17,6 +17,13 @@ export function ChatMessage({ message, isMe }: ChatMessageProps) {
         <Text style={[s.text, isMe ? s.textMe : s.textThem]}>
           {message.text || (message as any).text}
         </Text>
+        {message.flaggedAsPhone && (
+          <View style={s.warningContainer}>
+            <Text style={s.warningText}>
+              ⚠️ Sharing contact info may violate platform terms. Keep payments & chats secure on the platform.
+            </Text>
+          </View>
+        )}
         <Text style={[s.time, isMe ? s.timeMe : s.timeThem]}>
           {new Date(message.timestamp || (message as any).timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
         </Text>
@@ -41,4 +48,19 @@ const s = StyleSheet.create({
   time: { fontSize: 10, marginTop: 4, textAlign: "right" },
   timeMe: { color: "rgba(255,255,255,0.7)" },
   timeThem: { color: T.text3 },
+
+  warningContainer: {
+    backgroundColor: "#FEF3C7",
+    borderWidth: 1,
+    borderColor: "#FCD34D",
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 6,
+  },
+  warningText: {
+    color: "#92400E",
+    fontSize: 11,
+    fontWeight: "500",
+    lineHeight: 16,
+  },
 });

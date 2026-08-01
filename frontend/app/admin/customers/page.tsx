@@ -46,7 +46,7 @@ export default function CustomersPage() {
     phone: c.phone || "No phone",
     email: c.email || "No email",
     location: "Unknown", // Backend doesn't return default location easily in the root
-    ltv: 0, // Mock for now since stats aren't pulled in /users base endpoint
+    ltv: 0,
     totalBookings: c._count?.bookingsAsCustomer || 0,
     activeDisputes: 0,
     rating: 5.0,

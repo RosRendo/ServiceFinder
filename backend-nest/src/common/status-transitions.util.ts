@@ -1,6 +1,8 @@
 export const VALID_TRANSITIONS: Record<string, string[]> = {
-  pending: ['confirmed', 'in_progress', 'cancelled'],
-  confirmed: ['in_progress', 'cancelled'],
+  pending: ['assigned', 'confirmed', 'arrived', 'in_progress', 'cancelled'],
+  assigned: ['confirmed', 'pending', 'cancelled'],
+  confirmed: ['arrived', 'in_progress', 'cancelled'],
+  arrived: ['in_progress', 'cancelled'],
   in_progress: ['completed'],
   completed: [],
   cancelled: [],

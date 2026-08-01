@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import {
   View, Text, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Alert, TextInput, StyleSheet, Platform
+  ActivityIndicator, RefreshControl, Alert, TextInput, StyleSheet
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -14,8 +14,6 @@ import { useSidebarStore } from "@/store/sidebarStore";
 import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
-
-
 
 type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
 type TicketPriority = "low" | "medium" | "high" | "urgent";
@@ -57,8 +55,10 @@ export default function AdminSupportTicketsScreen() {
     try {
       const params = activeTab !== "all" ? { status: activeTab } : {};
       const res = await api.get("/api/support/tickets", { params });
-      const raw = res.data?.data ?? res.data;
-      setTickets(Array.isArray(raw) ? raw : raw?.tickets ?? []);
+      // Backend returns { success: true, data: [...], meta: {} }
+      // TransformInterceptor passes through because success: true is present
+      const data = res.data?.data ?? [];
+      setTickets(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("Failed to fetch support tickets", e);
     } finally {
@@ -153,9 +153,9 @@ export default function AdminSupportTicketsScreen() {
             </View>
           </View>
 
-          {item.message && (
+          {item.description && (
             <Text style={s.messageText} numberOfLines={isExpanded ? undefined : 2}>
-              {item.message}
+              {item.description}
             </Text>
           )}
 
@@ -299,12 +299,12 @@ const s = StyleSheet.create({
   listContent: { padding: 16, paddingBottom: 60, gap: 16 },
   loadingBox: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  card: { backgroundColor: T.surface, borderRadius: 20,  },
+  card: { backgroundColor: T.surface, borderRadius: 20 },
   cardHeader: { padding: 16 },
   cardHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
   cardTitle: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 4 },
   cardSubtitle: { fontSize: 12, color: T.text3, fontWeight: "500" },
-  
+
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   badgeText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
   priorityRow: { flexDirection: "row", alignItems: "center", gap: 4 },
@@ -315,9 +315,9 @@ const s = StyleSheet.create({
   toggleText: { fontSize: 11, fontWeight: "600", color: T.text3 },
 
   replyArea: { backgroundColor: T.bg, padding: 16, borderTopWidth: 1, borderTopColor: T.border },
-  replyInput: { 
+  replyInput: {
     backgroundColor: T.surface, borderRadius: 12, borderWidth: 1, borderColor: T.border,
-    padding: 12, fontSize: 14, color: T.text1, minHeight: 80, textAlignVertical: "top", marginBottom: 12 
+    padding: 12, fontSize: 14, color: T.text1, minHeight: 80, textAlignVertical: "top", marginBottom: 12
   },
   replyActions: { flexDirection: "row", gap: 12 },
   replyBtn: { flex: 1, borderRadius: 12, height: 44, alignItems: "center", justifyContent: "center" },
@@ -333,4 +333,3 @@ const s = StyleSheet.create({
   emptyText: { fontSize: 16, fontWeight: "700", color: T.text1 },
   emptySubText: { fontSize: 14, color: T.text3, marginTop: 4, textAlign: "center" },
 });
-

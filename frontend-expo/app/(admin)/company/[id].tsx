@@ -1,5 +1,5 @@
 /**
- * Admin Company Details — Premium Deep Navy Redesign (Unified Architecture)
+ * Admin Company Details — Premium Light Redesign
  */
 import React, { useState, useEffect } from "react";
 import { Image } from "expo-image";
@@ -13,8 +13,8 @@ import { Theme } from "@/constants/theme";
 const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
-  android: { elevation: 2 },
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12 },
+  android: { elevation: 3 },
 });
 
 export default function CompanyDetail() {
@@ -62,51 +62,54 @@ export default function CompanyDetail() {
 
   const getStatusStyle = (status: string) => {
     switch (status) {
-      case "verified": return { bg: T.success + "15", color: T.success, icon: "check-decagram" };
-      case "pending": return { bg: T.warning + "15", color: T.warning, icon: "clock-alert-outline" };
-      case "rejected": return { bg: T.error + "15", color: T.error, icon: "close-circle-outline" };
-      default: return { bg: T.bg, color: T.text3, icon: "help-circle-outline" };
+      case "verified": return { bg: "rgba(16, 185, 129, 0.1)", color: "#10B981", icon: "check-circle-outline" };
+      case "pending": return { bg: "rgba(245, 158, 11, 0.1)", color: "#F59E0B", icon: "clock-alert-outline" };
+      case "rejected": return { bg: "rgba(239, 68, 68, 0.1)", color: "#EF4444", icon: "close-circle-outline" };
+      default: return { bg: T.border, color: T.text3, icon: "help-circle-outline" };
     }
   };
 
   if (isLoading) {
     return (
       <SafeAreaView style={s.centerArea} edges={['top', 'left', 'right']}>
-        <ActivityIndicator size="large" color={T.accent} />
+        <ActivityIndicator size="large" color={T.primary} />
       </SafeAreaView>
     );
   }
 
   if (!company) return null;
 
-  const isVerified = company.verificationStatus === 'verified';
-  const isRejected = company.verificationStatus === 'rejected';
+  const isPending = company.verificationStatus === 'pending';
   const sStyle = getStatusStyle(company.verificationStatus);
 
   return (
-    <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.headerBtn}>
-          <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Company Details</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
+    <View style={s.root}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.contentScroll}>
         
-        {/* Hero Card */}
-        <View style={s.heroCard}>
-          <View style={s.coverWrap}>
-            {company.coverImageUrl ? (
-              <Image source={{ uri: company.coverImageUrl }} style={s.coverImage} />
-            ) : (
-              <View style={s.coverPlaceholder}>
-                <MaterialCommunityIcons name="image-outline" size={36} color={T.text3} />
+        {/* Cover Image & Header Nav */}
+        <View style={s.coverArea}>
+          {company.coverImageUrl ? (
+            <Image source={{ uri: company.coverImageUrl }} style={s.coverImage} contentFit="cover" />
+          ) : (
+            <View style={s.coverPlaceholder} />
+          )}
+          <View style={s.coverOverlay} />
+
+          <SafeAreaView edges={['top']}>
+            <View style={s.headerNav}>
+              <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+                <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <View style={[s.statusBadge, { backgroundColor: sStyle.bg }]}>
+                <MaterialCommunityIcons name={sStyle.icon as any} size={14} color={sStyle.color} style={{ marginRight: 6 }} />
+                <Text style={[s.statusText, { color: sStyle.color }]}>{company.verificationStatus}</Text>
               </View>
-            )}
-          </View>
+            </View>
+          </SafeAreaView>
+        </View>
+
+        {/* Floating Profile Details */}
+        <View style={s.profileHeader}>
           <View style={s.logoWrap}>
             {company.logoUrl ? (
               <Image source={{ uri: company.logoUrl }} style={s.logoImg} />
@@ -114,120 +117,70 @@ export default function CompanyDetail() {
               <MaterialCommunityIcons name="domain" size={40} color={T.text3} />
             )}
           </View>
+          
+          <Text style={s.companyName}>{company.name}</Text>
+          <Text style={s.companyReg}>Reg: {company.registrationNumber || "N/A"}</Text>
 
-          <View style={s.heroInfo}>
-            <Text style={s.companyName}>{company.name}</Text>
-            <View style={s.ratingRow}>
-              <MaterialCommunityIcons name="star" size={18} color={T.warning} />
-              <Text style={s.ratingText}>
-                {company.ratingSummary?.averageRating || "N/A"} 
-                <Text style={s.reviewCountText}> ({company.ratingSummary?.totalReviews || 0} reviews)</Text>
-              </Text>
+          <View style={s.statsRow}>
+            <View style={s.statBox}>
+              <Text style={s.statValue}>{company.staff?.length || 0}</Text>
+              <Text style={s.statLabel}>Staff</Text>
             </View>
-            <View style={[s.statusBadge, { backgroundColor: sStyle.bg }]}>
-              <MaterialCommunityIcons name={sStyle.icon as any} size={16} color={sStyle.color} style={{ marginRight: 6 }} />
-              <Text style={[s.statusText, { color: sStyle.color }]}>{company.verificationStatus}</Text>
+            <View style={s.statDivider} />
+            <View style={s.statBox}>
+              <Text style={s.statValue}>{company.services?.length || 0}</Text>
+              <Text style={s.statLabel}>Services</Text>
+            </View>
+            <View style={s.statDivider} />
+            <View style={s.statBox}>
+              <Text style={s.statValue}>{company.serviceAreas?.length || 0}</Text>
+              <Text style={s.statLabel}>Areas</Text>
             </View>
           </View>
         </View>
 
-        {/* Stats Row */}
-        <View style={s.statsRow}>
-          <View style={s.statCard}>
-            <MaterialCommunityIcons name="account-group-outline" size={24} color={T.accentMid} style={{ marginBottom: 4 }} />
-            <Text style={s.statValue}>{company.staff?.length || 0}</Text>
-            <Text style={s.statLabel}>Staff</Text>
-          </View>
-          <View style={s.statCard}>
-            <MaterialCommunityIcons name="briefcase-outline" size={24} color={T.success} style={{ marginBottom: 4 }} />
-            <Text style={s.statValue}>{company.services?.length || 0}</Text>
-            <Text style={s.statLabel}>Services</Text>
-          </View>
-          <View style={s.statCard}>
-            <MaterialCommunityIcons name="map-marker-radius-outline" size={24} color={T.warning} style={{ marginBottom: 4 }} />
-            <Text style={s.statValue}>{company.serviceAreas?.length || 0}</Text>
-            <Text style={s.statLabel}>Areas</Text>
-          </View>
-        </View>
-
-        {/* Description */}
+        {/* Description Section */}
         {company.description && (
           <View style={s.card}>
-            <Text style={s.cardTitle}>About Company</Text>
+            <Text style={s.cardTitle}>About</Text>
             <Text style={s.descText}>{company.description}</Text>
           </View>
         )}
 
-        {/* Owner & Contact */}
+        {/* Contact Info Grid */}
         <View style={s.card}>
           <Text style={s.cardTitle}>Contact Details</Text>
-          <View style={s.infoList}>
-            <View style={s.infoRow}>
-              <View style={s.infoIconWrap}><MaterialCommunityIcons name="account-outline" size={20} color={T.accentMid} /></View>
-              <View style={s.infoTextWrap}>
+          <View style={s.infoGrid}>
+            <View style={s.infoCell}>
+              <View style={s.iconCircle}><MaterialCommunityIcons name="account-outline" size={20} color={T.primary} /></View>
+              <View>
                 <Text style={s.infoLabelText}>Owner</Text>
                 <Text style={s.infoText}>{company.owner?.fullName || 'N/A'}</Text>
               </View>
             </View>
-            <View style={s.infoRow}>
-              <View style={s.infoIconWrap}><MaterialCommunityIcons name="email-outline" size={20} color={T.accentMid} /></View>
-              <View style={s.infoTextWrap}>
+            <View style={s.infoCell}>
+              <View style={s.iconCircle}><MaterialCommunityIcons name="email-outline" size={20} color={T.primary} /></View>
+              <View>
                 <Text style={s.infoLabelText}>Email</Text>
                 <Text style={s.infoText}>{company.owner?.email || 'N/A'}</Text>
               </View>
             </View>
-            <View style={s.infoRow}>
-              <View style={s.infoIconWrap}><MaterialCommunityIcons name="phone-outline" size={20} color={T.accentMid} /></View>
-              <View style={s.infoTextWrap}>
+            <View style={s.infoCell}>
+              <View style={s.iconCircle}><MaterialCommunityIcons name="phone-outline" size={20} color={T.primary} /></View>
+              <View>
                 <Text style={s.infoLabelText}>Phone</Text>
                 <Text style={s.infoText}>{company.phone || company.owner?.phone || 'N/A'}</Text>
               </View>
             </View>
-            <View style={s.infoRow}>
-              <View style={s.infoIconWrap}><MaterialCommunityIcons name="map-marker-outline" size={20} color={T.accentMid} /></View>
-              <View style={s.infoTextWrap}>
+            <View style={s.infoCell}>
+              <View style={s.iconCircle}><MaterialCommunityIcons name="map-marker-outline" size={20} color={T.primary} /></View>
+              <View>
                 <Text style={s.infoLabelText}>Location</Text>
-                <Text style={s.infoText}>{company.address ? `${company.address}, ` : ''}{company.city || 'N/A'}</Text>
-              </View>
-            </View>
-            <View style={s.infoRow}>
-              <View style={s.infoIconWrap}><MaterialCommunityIcons name="identifier" size={20} color={T.accentMid} /></View>
-              <View style={s.infoTextWrap}>
-                <Text style={s.infoLabelText}>Registration ID</Text>
-                <Text style={s.infoText}>{company.registrationNumber || 'None'}</Text>
+                <Text style={s.infoText}>{company.city || 'N/A'}</Text>
               </View>
             </View>
           </View>
         </View>
-        
-        {/* Coverage Areas */}
-        {company.serviceAreas?.length > 0 && (
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Coverage Areas</Text>
-            <View style={s.tagList}>
-              {company.serviceAreas.map((area: any, idx: number) => (
-                <View key={idx} style={s.tag}>
-                  <MaterialCommunityIcons name="map-marker-radius" size={14} color={T.blue} />
-                  <Text style={s.tagText}>{area.city} ({area.coverageRadiusKm}km)</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Services Offered */}
-        {company.services?.length > 0 && (
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Services Offered</Text>
-            <View style={s.tagList}>
-              {company.services.map((service: any) => (
-                <View key={service.id} style={s.tagAlt}>
-                  <Text style={s.tagTextAlt}>{service.name || service.serviceType?.name}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
 
         {/* Verification Document */}
         <View style={s.card}>
@@ -238,106 +191,109 @@ export default function CompanyDetail() {
               onPress={() => {
                 Alert.alert(
                   "Verification Document",
-                  `URL: ${company.verificationDocumentUrl}\n\nOpen this link in a browser to review the document.`,
+                  `URL: ${company.verificationDocumentUrl}\n\nOpen this link in a browser to review.`,
                   [{ text: "OK" }]
                 );
               }}
+              activeOpacity={0.8}
             >
-              <View style={s.docBtnIconBox}>
-                <MaterialCommunityIcons name="file-pdf-box" size={24} color={T.blue} />
+              <View style={s.docIconWrap}>
+                <MaterialCommunityIcons name="file-document-outline" size={24} color={T.primary} />
               </View>
-              <Text style={s.docBtnText}>View Document</Text>
-              <MaterialCommunityIcons name="open-in-new" size={18} color={T.text3} />
+              <View style={s.docTextWrap}>
+                <Text style={s.docBtnTitle}>Identity Document</Text>
+                <Text style={s.docBtnSub}>Tap to view uploaded file</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={24} color={T.text3} />
             </TouchableOpacity>
           ) : (
-            <View style={s.docMissing}>
-              <MaterialCommunityIcons name="file-alert-outline" size={20} color={T.warning} />
-              <Text style={s.docMissingText}>No verification document provided</Text>
-            </View>
+            <Text style={s.noneText}>No documents uploaded.</Text>
           )}
         </View>
 
+        <View style={{ height: isPending ? 120 : 40 }} />
       </ScrollView>
 
-      {/* Footer Actions */}
-      {company.verificationStatus === 'pending' && (
-        <View style={s.footerActions}>
-          <TouchableOpacity
-            style={[s.footerBtnReject, isUpdating && { opacity: 0.5 }]}
-            onPress={() => handleUpdateStatus('rejected')}
-            disabled={isUpdating}
-          >
-            <Text style={s.footerBtnRejectText}>Reject</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[s.footerBtnApprove, isUpdating && { opacity: 0.5 }]}
-            onPress={() => handleUpdateStatus('verified')}
-            disabled={isUpdating}
-          >
-            <Text style={s.footerBtnApproveText}>Approve</Text>
-          </TouchableOpacity>
+      {/* Sticky Bottom Action Bar for Pending */}
+      {isPending && (
+        <View style={s.bottomActionBar}>
+          <SafeAreaView edges={['bottom']}>
+            <View style={s.actionRow}>
+              <TouchableOpacity
+                style={[s.actionBtn, s.rejectBtn]}
+                onPress={() => handleUpdateStatus('rejected')}
+                disabled={isUpdating}
+                activeOpacity={0.8}
+              >
+                {isUpdating ? <ActivityIndicator color={T.error} /> : <Text style={s.rejectText}>Reject</Text>}
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[s.actionBtn, s.approveBtn]}
+                onPress={() => handleUpdateStatus('verified')}
+                disabled={isUpdating}
+                activeOpacity={0.8}
+              >
+                {isUpdating ? <ActivityIndicator color="#FFFFFF" /> : <Text style={s.approveText}>Verify Business</Text>}
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
+  centerArea: { flex: 1, backgroundColor: T.bg, alignItems: "center", justifyContent: "center" },
   root: { flex: 1, backgroundColor: T.bg },
-  centerArea: { flex: 1, backgroundColor: T.bg, justifyContent: "center", alignItems: "center" },
+  contentScroll: { paddingBottom: 20 },
 
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
-  headerBtn: { padding: 4, marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  coverArea: { width: "100%", height: 220, position: "relative" },
+  coverImage: { width: "100%", height: "100%", position: "absolute" },
+  coverPlaceholder: { width: "100%", height: "100%", backgroundColor: T.primary, position: "absolute" },
+  coverOverlay: { position: "absolute", width: "100%", height: "100%", backgroundColor: "rgba(0, 0, 0, 0.4)" },
+  
+  headerNav: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: 12 },
+  backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255, 255, 255, 0.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.3)" },
+  
+  statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: T.surface, ...CARD_SHADOW },
+  statusText: { fontSize: 12, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
 
-  content: { padding: 16, gap: 16, paddingBottom: 60 },
-
-  heroCard: { backgroundColor: T.surface, borderRadius: 24, paddingBottom: 24, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW, overflow: "hidden" },
-  coverWrap: { width: "100%", height: 140, backgroundColor: T.bg },
-  coverImage: { width: "100%", height: "100%" },
-  coverPlaceholder: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: T.bg },
-  logoWrap: { width: 96, height: 96, borderRadius: 28, backgroundColor: T.surface, borderWidth: 4, borderColor: T.surface, position: "absolute", top: 92, left: 24, alignItems: "center", justifyContent: "center", overflow: "hidden", ...CARD_SHADOW },
+  profileHeader: { marginTop: -60, paddingHorizontal: 20, alignItems: "center" },
+  logoWrap: { width: 100, height: 100, borderRadius: 32, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 4, borderColor: T.bg, marginBottom: 16, ...CARD_SHADOW },
   logoImg: { width: "100%", height: "100%" },
-  heroInfo: { marginTop: 60, paddingHorizontal: 24 },
-  companyName: { fontSize: 24, fontWeight: "800", color: T.text1, marginBottom: 4 },
-  ratingRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 16 },
-  ratingText: { fontSize: 15, fontWeight: "700", color: T.text1 },
-  reviewCountText: { color: T.text3, fontWeight: "500" },
-  statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, alignSelf: "flex-start" },
-  statusText: { fontSize: 12, fontWeight: "800", textTransform: "uppercase" },
+  companyName: { fontSize: 26, fontWeight: "800", color: T.text1, marginBottom: 4, textAlign: "center", letterSpacing: -0.5 },
+  companyReg: { fontSize: 14, color: T.text3, marginBottom: 20, textAlign: "center" },
 
-  statsRow: { flexDirection: "row", gap: 12 },
-  statCard: { flex: 1, backgroundColor: T.surface, borderRadius: 24, padding: 20, alignItems: "center", borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  statValue: { fontSize: 24, fontWeight: "800", color: T.text1, marginBottom: 2 },
-  statLabel: { fontSize: 12, color: T.text3, fontWeight: "600", textTransform: "uppercase" },
+  statsRow: { flexDirection: "row", backgroundColor: T.surface, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 20, width: "100%", justifyContent: "space-around", borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  statBox: { alignItems: "center" },
+  statValue: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 4 },
+  statLabel: { fontSize: 12, fontWeight: "600", color: T.text3, textTransform: "uppercase" },
+  statDivider: { width: 1, height: "100%", backgroundColor: T.border },
 
-  card: { backgroundColor: T.surface, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: T.border, gap: 20, ...CARD_SHADOW },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1 },
-  descText: { fontSize: 15, color: T.text2, lineHeight: 24, fontWeight: "500" },
+  card: { backgroundColor: T.surface, borderRadius: 20, padding: 20, marginHorizontal: 20, marginTop: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 16 },
+  descText: { fontSize: 15, color: T.text2, lineHeight: 24 },
 
-  infoList: { gap: 16 },
-  infoRow: { flexDirection: "row", alignItems: "center", gap: 16 },
-  infoIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: T.blue + "10", alignItems: "center", justifyContent: "center" },
-  infoTextWrap: { flex: 1 },
+  infoGrid: { gap: 16 },
+  infoCell: { flexDirection: "row", alignItems: "center", gap: 16 },
+  iconCircle: { width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(10, 25, 47, 0.05)", alignItems: "center", justifyContent: "center" },
   infoLabelText: { fontSize: 12, fontWeight: "600", color: T.text3, marginBottom: 2, textTransform: "uppercase" },
   infoText: { fontSize: 15, fontWeight: "700", color: T.text1 },
 
-  tagList: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  tag: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: T.blue + "15", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
-  tagText: { fontSize: 14, fontWeight: "700", color: T.blue },
-  tagAlt: { backgroundColor: T.bg, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: T.border },
-  tagTextAlt: { fontSize: 14, fontWeight: "600", color: T.text2 },
+  docBtn: { flexDirection: "row", alignItems: "center", backgroundColor: T.bg, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: T.border },
+  docIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(10, 25, 47, 0.05)", alignItems: "center", justifyContent: "center", marginRight: 16 },
+  docTextWrap: { flex: 1 },
+  docBtnTitle: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 2 },
+  docBtnSub: { fontSize: 13, color: T.text3 },
+  noneText: { fontSize: 15, color: T.text3, fontStyle: "italic" },
 
-  docBtn: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: T.bg, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, borderWidth: 1, borderColor: T.border },
-  docBtnIconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: T.blue + "15", alignItems: "center", justifyContent: "center" },
-  docBtnText: { flex: 1, fontSize: 15, fontWeight: "700", color: T.text1 },
-  docMissing: { flexDirection: "row", alignItems: "center", gap: 10, padding: 16, backgroundColor: T.warning + "15", borderRadius: 16 },
-  docMissingText: { fontSize: 15, color: T.warning, fontWeight: "700" },
-
-  footerActions: { flexDirection: "row", gap: 12, padding: 16, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border },
-  footerBtnReject: { flex: 1, paddingVertical: 16, borderRadius: 16, alignItems: "center", backgroundColor: T.error + "15", borderWidth: 1, borderColor: T.error + "30" },
-  footerBtnRejectText: { color: T.error, fontSize: 16, fontWeight: "800" },
-  footerBtnApprove: { flex: 1, paddingVertical: 16, borderRadius: 16, alignItems: "center", backgroundColor: T.accent },
-  footerBtnApproveText: { color: "#fff", fontSize: 16, fontWeight: "800" },
+  bottomActionBar: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border, paddingHorizontal: 20, paddingTop: 16, paddingBottom: Platform.OS === 'ios' ? 0 : 20, ...CARD_SHADOW },
+  actionRow: { flexDirection: "row", gap: 12 },
+  actionBtn: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 16, borderRadius: 16, borderWidth: 1 },
+  rejectBtn: { borderColor: "rgba(239, 68, 68, 0.4)", backgroundColor: "rgba(239, 68, 68, 0.1)" },
+  approveBtn: { borderColor: T.primary, backgroundColor: T.primary },
+  rejectText: { fontSize: 16, fontWeight: "800", color: T.error },
+  approveText: { fontSize: 16, fontWeight: "800", color: "#FFFFFF" },
 });

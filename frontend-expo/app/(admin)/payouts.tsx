@@ -12,8 +12,6 @@ import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
 
-
-
 type PayoutStatus = "pending" | "completed" | "rejected";
 
 export default function AdminPayoutsScreen() {
@@ -23,31 +21,29 @@ export default function AdminPayoutsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
-
   const [filter, setFilter] = useState<PayoutStatus | "all">("all");
   const [typeFilter, setTypeFilter] = useState<"company" | "staff" | "all">("all");
 
   const fetchPayouts = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
-
     try {
       const res = await api.get("/api/admin/payouts");
-      const responseData = res.data?.data ?? res.data;
-      const data = responseData.payouts || responseData.data || [];
+      // Backend returns { success: true, data: [...], meta: {} }
+      // TransformInterceptor passes it through as-is (sees success: true)
+      const data = res.data?.data ?? [];
       const formatted = data.map((p: any) => ({
         ...p,
         companyName: p.company?.name,
         staffName: p.staff?.user?.fullName,
         email: p.company?.owner?.email || p.staff?.user?.email || "",
-        bankDetails: p.payoutType === 'company' 
+        bankDetails: p.payoutType === 'company'
           ? (p.company?.paymentMethods?.find((m: any) => m.isDefault) || p.company?.paymentMethods?.[0])
           : (p.staff?.paymentMethods?.find((m: any) => m.isDefault) || p.staff?.paymentMethods?.[0])
       }));
       setPayouts(formatted);
     } catch (err) {
       console.error("Error fetching payouts:", err);
-      Alert.alert("Error", "Could not fetch payouts.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -77,7 +73,6 @@ export default function AdminPayoutsScreen() {
     ]);
   };
 
-
   const filteredPayouts = payouts.filter(p => {
     if (filter !== "all" && p.status !== filter) return false;
     if (typeFilter !== "all" && p.payoutType !== typeFilter) return false;
@@ -104,11 +99,11 @@ export default function AdminPayoutsScreen() {
           </View>
           <View style={[s.statusBadge, { backgroundColor: getStatusColor(item.status) + "15" }]}>
             <Text style={[s.statusBadgeText, { color: getStatusColor(item.status) }]}>
-              {item.status.toUpperCase()}
+              {item.status?.toUpperCase()}
             </Text>
           </View>
         </View>
-        <Text style={s.amount}>${Number(item.amount).toFixed(2)}</Text>
+        <Text style={s.amount}>${Number(item.amount || 0).toFixed(2)}</Text>
       </View>
 
       <View style={s.cardBody}>
@@ -117,9 +112,9 @@ export default function AdminPayoutsScreen() {
         </Text>
         <Text style={s.recipientEmail}>{item.email}</Text>
         <Text style={s.dateText}>
-          Requested: {new Date(item.requestedAt).toLocaleDateString()}
+          Requested: {item.requestedAt ? new Date(item.requestedAt).toLocaleDateString() : "—"}
         </Text>
-        
+
         {item.bankDetails ? (
           <View style={s.bankBox}>
             <MaterialCommunityIcons name="bank" size={16} color={T.text2} />
@@ -135,8 +130,8 @@ export default function AdminPayoutsScreen() {
 
       {item.status === "pending" && (
         <View style={s.cardFooter}>
-          <TouchableOpacity 
-            style={[s.processBtn, processingId === item.id && { opacity: 0.7 }]} 
+          <TouchableOpacity
+            style={[s.processBtn, processingId === item.id && { opacity: 0.7 }]}
             onPress={() => handleProcess(item.id)}
             disabled={processingId === item.id}
           >
@@ -165,8 +160,8 @@ export default function AdminPayoutsScreen() {
       <View style={s.filtersContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersScroll}>
           {["all", "pending", "completed"].map(f => (
-            <TouchableOpacity 
-              key={f} 
+            <TouchableOpacity
+              key={f}
               style={[s.filterChip, filter === f && s.filterChipActive]}
               onPress={() => setFilter(f as any)}
             >
@@ -177,8 +172,8 @@ export default function AdminPayoutsScreen() {
           ))}
           <View style={s.filterDivider} />
           {["all", "company", "staff"].map(t => (
-            <TouchableOpacity 
-              key={t} 
+            <TouchableOpacity
+              key={t}
               style={[s.filterChip, typeFilter === t && s.filterChipActive]}
               onPress={() => setTypeFilter(t as any)}
             >
@@ -256,4 +251,3 @@ const s = StyleSheet.create({
   processBtn: { backgroundColor: T.accent, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
   processBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 });
-

@@ -22,46 +22,36 @@ let PayoutsService = class PayoutsService {
     }
     async getPayouts(companyId) {
         try {
-            const [payouts, earningsResult, paidPayoutsResult] = await Promise.all([
-                this.prisma.payout.findMany({
-                    where: { companyId },
-                    orderBy: { requestedAt: 'desc' },
-                }),
-                this.prisma.booking.aggregate({
-                    where: { companyId, status: { in: ['completed', 'pending'] } },
-                    _sum: { companyEarnings: true },
-                }),
-                this.prisma.payout.aggregate({
-                    where: { companyId, status: { in: ['completed', 'pending'] } },
-                    _sum: { amount: true },
-                }),
-            ]);
-            const totalEarnings = Number(earningsResult._sum.companyEarnings ?? 0);
-            const totalPaidOut = Number(paidPayoutsResult._sum.amount ?? 0);
-            const availableBalance = totalEarnings - totalPaidOut;
-            return { payouts, availableBalance };
+            const company = await this.prisma.company.findUnique({
+                where: { id: companyId },
+                select: { availableBalance: true, pendingBalance: true },
+            });
+            if (!company)
+                throw new common_1.NotFoundException('Company not found');
+            const payouts = await this.prisma.payout.findMany({
+                where: { companyId },
+                orderBy: { requestedAt: 'desc' },
+            });
+            return {
+                payouts,
+                availableBalance: Number(company.availableBalance),
+                pendingBalance: Number(company.pendingBalance),
+            };
         }
         catch (e) {
-            require('fs').writeFileSync('debug_payouts_error.json', JSON.stringify({ error: e.message, stack: e.stack }));
             throw e;
         }
     }
     async requestPayout(companyId, amount, method) {
         if (amount <= 0)
             throw new common_1.BadRequestException('Amount must be positive');
-        const [earningsResult, paidPayoutsResult] = await Promise.all([
-            this.prisma.booking.aggregate({
-                where: { companyId, status: { in: ['completed', 'pending'] } },
-                _sum: { companyEarnings: true },
-            }),
-            this.prisma.payout.aggregate({
-                where: { companyId, status: { in: ['completed', 'pending'] } },
-                _sum: { amount: true },
-            }),
-        ]);
-        const totalEarnings = Number(earningsResult._sum.companyEarnings ?? 0);
-        const totalPaidOut = Number(paidPayoutsResult._sum.amount ?? 0);
-        const available = totalEarnings - totalPaidOut;
+        const company = await this.prisma.company.findUnique({
+            where: { id: companyId },
+            select: { availableBalance: true, pendingBalance: true },
+        });
+        if (!company)
+            throw new common_1.NotFoundException('Company not found');
+        const available = Number(company.availableBalance);
         if (amount > available) {
             throw new common_1.BadRequestException(`Insufficient balance. Available: $${available.toFixed(2)}`);
         }
@@ -87,7 +77,7 @@ let PayoutsService = class PayoutsService {
             orderBy: { requestedAt: 'desc' },
         });
         const availableBalance = Number(staff.walletBalance);
-        return { payouts, availableBalance };
+        return { success: true, payouts, availableBalance };
     }
     async requestStaffPayout(staffId, amount, method) {
         if (amount <= 0)
@@ -304,7 +294,7 @@ let PayoutsService = class PayoutsService {
                 createdAt: true,
             },
         });
-        return { paymentMethods: methods };
+        return { success: true, paymentMethods: methods };
     }
     async addStaffPaymentMethod(staffId, dto) {
         if (dto.isDefault) {

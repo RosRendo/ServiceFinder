@@ -127,6 +127,69 @@ export class ServiceTypesService {
     };
   }
 
+  async getProvidersForServiceType(slug: string) {
+    const serviceType = await this.prisma.serviceType.findUnique({
+      where: { slug },
+    });
+
+    if (!serviceType || serviceType.status !== 'active') {
+      throw new NotFoundException('Service type not found or not available');
+    }
+
+    const services = await this.prisma.service.findMany({
+      where: {
+        serviceTypeId: serviceType.id,
+        isActive: true,
+      },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true,
+            verificationStatus: true,
+            createdAt: true,
+          }
+        }
+      }
+    });
+
+    // Mock pure facts for the MVP. In production, these come from real aggregated metrics.
+    const providers = services.map(srv => {
+      const idNum = Number(srv.company.id.toString());
+      
+      // Deterministic pseudo-random generation based on company ID
+      const rating = 4.0 + ((idNum * 13) % 11) / 10; // Between 4.0 and 5.0
+      const jobsCompleted = 50 + ((idNum * 47) % 5000); // 50 to 5050
+      const completionRate = 0.85 + ((idNum * 17) % 15) / 100; // 0.85 to 0.99
+      const responseTimeMin = 5 + ((idNum * 7) % 55); // 5 to 60 mins
+      const isInsured = (idNum % 2) === 0;
+
+      return {
+        serviceId: srv.id.toString(),
+        name: srv.name,
+        price: Number(srv.basePrice),
+        discountPrice: srv.discountPrice ? Number(srv.discountPrice) : null,
+        durationMin: srv.durationMin,
+        company: {
+          id: srv.company.id.toString(),
+          name: srv.company.name,
+          logoUrl: srv.company.logoUrl,
+          isVerified: srv.company.verificationStatus === 'verified',
+        },
+        facts: {
+          rating: Number(rating.toFixed(1)),
+          jobsCompleted,
+          completionRate: Number(completionRate.toFixed(2)),
+          responseTimeMin,
+          isInsured,
+        }
+      };
+    });
+
+    return providers;
+  }
+
   async createServiceType(dto: CreateServiceTypeDto) {
     const category = await this.prisma.category.findUnique({
       where: { id: BigInt(dto.categoryId) },

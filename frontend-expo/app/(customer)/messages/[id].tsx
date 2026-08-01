@@ -22,6 +22,11 @@ import { Theme } from "@/constants/theme";
 const T = Theme.colors;
 
 export default function ChatScreen() {
+import { Theme } from "@/constants/theme";
+
+const T = Theme.colors;
+
+export default function ChatScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { id, otherName } = useLocalSearchParams<{ id: string; otherName?: string }>();
@@ -36,12 +41,19 @@ export default function ChatScreen() {
     fetchMessages,
     sendMessage,
     setActiveConversation,
+    conversations,
+    fetchConversations,
   } = useChatStore();
 
   const activeMessages = id ? (messagesByConversation[id] || []) : [];
+  const activeConversation = conversations.find(c => c.id === id);
+  const isArchived = activeConversation?.archivedAt
+    ? new Date(activeConversation.archivedAt) <= new Date()
+    : false;
 
   useEffect(() => {
     if (!id || !token) return;
+    fetchConversations();
     setActiveConversation(id);
     fetchMessages(id);
     connect(token);
@@ -85,6 +97,13 @@ export default function ChatScreen() {
 
         <View style={[s.bubble, isMe ? s.bubbleMe : s.bubbleThem]}>
           <Text style={isMe ? s.bubbleMeText : s.bubbleThemText}>{item.text}</Text>
+          {item.flaggedAsPhone && (
+            <View style={s.warningContainer}>
+              <Text style={s.warningText}>
+                ⚠️ Sharing contact info may violate platform terms. Keep payments & chats secure on the platform.
+              </Text>
+            </View>
+          )}
           <Text style={[s.timeText, isMe ? s.timeTextMe : s.timeTextThem]}>{timeString}</Text>
         </View>
       </View>
@@ -149,7 +168,16 @@ export default function ChatScreen() {
 
       {/* Input Area */}
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ChatInput onSend={handleSend} />
+        {isArchived ? (
+          <View style={s.lockBanner}>
+            <MaterialCommunityIcons name="lock-outline" size={16} color="#92400E" />
+            <Text style={s.lockBannerText}>
+              This job chat is archived because the service booking has been completed.
+            </Text>
+          </View>
+        ) : (
+          <ChatInput onSend={handleSend} />
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -251,4 +279,35 @@ const s = StyleSheet.create({
   },
   emptyTitle: { fontSize: 20, fontWeight: "700", color: T.text1, marginBottom: 8 },
   emptySubtitle: { fontSize: 15, color: T.text2 },
+  warningContainer: {
+    backgroundColor: "#FEF3C7",
+    borderWidth: 1,
+    borderColor: "#FCD34D",
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 6,
+  },
+  warningText: {
+    color: "#92400E",
+    fontSize: 11,
+    fontWeight: "500",
+    lineHeight: 16,
+  },
+  lockBanner: {
+    backgroundColor: "#FEF3C7",
+    borderTopWidth: 1,
+    borderTopColor: "#FCD34D",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  lockBannerText: {
+    color: "#92400E",
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
+  },
 });

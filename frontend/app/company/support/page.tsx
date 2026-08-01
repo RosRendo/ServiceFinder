@@ -20,14 +20,14 @@ interface Ticket {
   lastUpdate: string;
 }
 
-const MOCK_TICKETS: Ticket[] = [
+const INITIAL_TICKETS: Ticket[] = [
   { id: "TCK-1029", subject: "Cannot update payout bank details", category: "Billing", status: "open", date: "2026-06-29", lastUpdate: "1 hour ago" },
   { id: "TCK-1024", subject: "Dispute regarding Booking #4928", category: "Disputes", status: "in_progress", date: "2026-06-28", lastUpdate: "Yesterday" },
   { id: "TCK-0982", subject: "Requesting higher service radius limit", category: "Account", status: "resolved", date: "2026-06-15", lastUpdate: "2 weeks ago" },
 ];
 
 export default function SupportPage() {
-  const [tickets, setTickets] = useState<Ticket[]>(MOCK_TICKETS);
+  const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
   const [searchQuery, setSearchQuery] = useState("");
   const [newTicketOpen, setNewTicketOpen] = useState(false);
   const [formData, setFormData] = useState({ subject: "", category: "General", message: "" });

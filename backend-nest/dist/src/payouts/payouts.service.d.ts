@@ -4,17 +4,18 @@ export declare class PayoutsService {
     constructor(prisma: PrismaService);
     getCompanyByOwnerId(ownerId: bigint): Promise<{
         id: bigint;
-        name: string;
-        description: string | null;
+        latitude: import("@prisma/client/runtime/library").Decimal | null;
+        longitude: import("@prisma/client/runtime/library").Decimal | null;
         createdAt: Date;
         updatedAt: Date;
+        walletBalance: import("@prisma/client/runtime/library").Decimal;
+        name: string;
+        description: string | null;
         email: string | null;
         phone: string | null;
         registrationNumber: string | null;
         address: string | null;
         city: string | null;
-        latitude: import("@prisma/client/runtime/library").Decimal | null;
-        longitude: import("@prisma/client/runtime/library").Decimal | null;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         logoUrl: string | null;
         coverImageUrl: string | null;
@@ -25,7 +26,12 @@ export declare class PayoutsService {
         subscriptionStatus: string;
         trialEndsAt: Date | null;
         nextBillingDate: Date | null;
-        walletBalance: import("@prisma/client/runtime/library").Decimal;
+        pendingBalance: import("@prisma/client/runtime/library").Decimal;
+        availableBalance: import("@prisma/client/runtime/library").Decimal;
+        platformFeePercent: import("@prisma/client/runtime/library").Decimal | null;
+        completedJobs: number;
+        isInsured: boolean;
+        completionRate: import("@prisma/client/runtime/library").Decimal;
         ownerId: bigint;
     } | null>;
     getPayouts(companyId: bigint): Promise<{
@@ -42,6 +48,7 @@ export declare class PayoutsService {
             processedAt: Date | null;
         }[];
         availableBalance: number;
+        pendingBalance: number;
     }>;
     requestPayout(companyId: bigint, amount: number, method: string): Promise<{
         message: string;
@@ -59,6 +66,7 @@ export declare class PayoutsService {
         };
     }>;
     getStaffPayouts(staffId: bigint): Promise<{
+        success: boolean;
         payouts: {
             id: number;
             status: string;
@@ -179,15 +187,16 @@ export declare class PayoutsService {
         message: string;
     }>;
     getStaffPaymentMethods(staffId: bigint): Promise<{
+        success: boolean;
         paymentMethods: {
             id: number;
             createdAt: Date;
             staffId: bigint;
-            qrCodeUrl: string | null;
             type: string;
             accountName: string;
             accountNumber: string;
             routingNumber: string | null;
+            qrCodeUrl: string | null;
             isDefault: boolean;
             isVerified: boolean;
         }[];
@@ -205,11 +214,11 @@ export declare class PayoutsService {
             id: number;
             createdAt: Date;
             staffId: bigint;
-            qrCodeUrl: string | null;
             type: string;
             accountName: string;
             accountNumber: string;
             routingNumber: string | null;
+            qrCodeUrl: string | null;
             isDefault: boolean;
             isVerified: boolean;
         };
@@ -233,41 +242,41 @@ export declare class PayoutsService {
     }>;
     getAllPayouts(status?: string, type?: string): Promise<{
         payouts: ({
+            company: {
+                id: bigint;
+                paymentMethods: {
+                    id: number;
+                    createdAt: Date;
+                    companyId: bigint;
+                    type: string;
+                    accountName: string;
+                    accountNumber: string;
+                    routingNumber: string | null;
+                    qrCodeUrl: string | null;
+                    isDefault: boolean;
+                    isVerified: boolean;
+                }[];
+                name: string;
+                owner: {
+                    fullName: string;
+                    email: string | null;
+                };
+            } | null;
             staff: {
                 id: bigint;
                 user: {
-                    email: string | null;
                     fullName: string;
+                    email: string | null;
                 };
                 paymentMethods: {
                     id: number;
                     createdAt: Date;
                     staffId: bigint;
-                    qrCodeUrl: string | null;
                     type: string;
                     accountName: string;
                     accountNumber: string;
                     routingNumber: string | null;
-                    isDefault: boolean;
-                    isVerified: boolean;
-                }[];
-            } | null;
-            company: {
-                id: bigint;
-                name: string;
-                owner: {
-                    email: string | null;
-                    fullName: string;
-                };
-                paymentMethods: {
-                    id: number;
-                    createdAt: Date;
-                    companyId: bigint;
                     qrCodeUrl: string | null;
-                    type: string;
-                    accountName: string;
-                    accountNumber: string;
-                    routingNumber: string | null;
                     isDefault: boolean;
                     isVerified: boolean;
                 }[];

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { BaseDrawer } from "./BaseDrawer";
-import { Calendar, Clock, MapPin, User, DollarSign, CheckCircle, XCircle, Timer, Loader2, UserPlus, Phone, Briefcase, Building2, ShieldCheck } from "lucide-react";
+import { Calendar, Clock, MapPin, User, DollarSign, CheckCircle, XCircle, Timer, Loader2, UserPlus, Phone, Briefcase, Building2, ShieldCheck, Image as ImageIcon, Map } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/lib/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ export function BookingDrawer({ open, onClose, bookingId, onBookingUpdated }: { 
     const [selectedStaffId, setSelectedStaffId] = useState("");
     const [showAssign, setShowAssign] = useState(false);
     const [loadingStaff, setLoadingStaff] = useState(false);
+    const [showProofImage, setShowProofImage] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -124,10 +126,21 @@ export function BookingDrawer({ open, onClose, bookingId, onBookingUpdated }: { 
             <div className="px-6 py-5 border-b border-border/50 flex items-center justify-between bg-muted/10">
                 <div>
                    <h3 className="text-xl font-black text-foreground mb-1">{booking.service.name}</h3>
-                   <span className={`inline-flex px-2.5 py-1 rounded-full border items-center gap-1.5 font-bold text-xs uppercase tracking-wider ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-                       <StatusIcon className="w-3.5 h-3.5" />
-                       {cfg.label}
-                   </span>
+                   <div className="flex flex-col items-start gap-2">
+                       <span className={`inline-flex px-2.5 py-1 rounded-full border items-center gap-1.5 font-bold text-xs uppercase tracking-wider ${cfg.bg} ${cfg.text} ${cfg.border} relative overflow-hidden`}>
+                           <StatusIcon className="w-3.5 h-3.5" />
+                           {cfg.label}
+                           
+                           {/* Cylon Sweeping Beam for Pending */}
+                           {booking.status === 'pending' && (
+                               <motion.div
+                                   className="absolute top-0 bottom-0 w-8 bg-white/40 blur-[2px]"
+                                   animate={{ left: ["-20%", "120%"] }}
+                                   transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+                               />
+                           )}
+                       </span>
+                   </div>
                 </div>
                 {!booking.assignedStaff && booking.status !== "completed" && booking.status !== "cancelled" && (
                     <Button size="sm" className="rounded-xl h-10 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm" onClick={() => { setShowAssign(!showAssign); fetchStaff(); }}>
@@ -157,6 +170,27 @@ export function BookingDrawer({ open, onClose, bookingId, onBookingUpdated }: { 
                            <p className="text-sm font-bold text-foreground">{booking.serviceAddress}</p>
                        </div>
                     </div>
+                    
+                    {/* Live Staff GPS Tracking Map Link */}
+                    {booking.staffStartLatitude && booking.staffStartLongitude && (
+                        <div className="flex items-start gap-3 pt-3 border-t border-border/50">
+                           <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0 border border-indigo-500/10">
+                               <Map className="w-4 h-4 text-indigo-500" />
+                           </div>
+                           <div className="flex-1">
+                               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Staff Origin Location</p>
+                               <a 
+                                 href={`https://www.google.com/maps/search/?api=1&query=${booking.staffStartLatitude},${booking.staffStartLongitude}`} 
+                                 target="_blank" 
+                                 rel="noreferrer"
+                                 className="text-sm font-bold text-primary hover:underline flex items-center gap-1"
+                               >
+                                 View on Google Maps <MapPin className="w-3 h-3" />
+                               </a>
+                               <p className="text-[10px] text-muted-foreground mt-0.5">Staff dispatched from this location.</p>
+                           </div>
+                        </div>
+                    )}
                 </div>
             </Section>
 
@@ -265,6 +299,55 @@ export function BookingDrawer({ open, onClose, bookingId, onBookingUpdated }: { 
                     </div>
                 </div>
             </Section>
+            
+            {/* Proof of Work */}
+            {booking.proofOfWorkImageUrl && (
+                <Section title={<><ImageIcon className="w-3.5 h-3.5 text-blue-500" /> Proof of Work</>}>
+                    <div className="bg-muted/20 rounded-xl p-4 border border-border/50">
+                        <p className="text-xs font-bold text-muted-foreground mb-3">Job Completion Photo</p>
+                        <div 
+                           className="w-full h-32 rounded-lg bg-muted border border-border overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                           onClick={() => setShowProofImage(true)}
+                        >
+                           {/* Using standard img to avoid next/image strict host checks */}
+                           <img 
+                               src={booking.proofOfWorkImageUrl.replace('localhost', '127.0.0.1')} 
+                               alt="Proof of work" 
+                               className="w-full h-full object-cover" 
+                               onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&q=80' }}
+                           />
+                        </div>
+                    </div>
+                </Section>
+            )}
+
+            {/* Proof of Work Modal */}
+            <AnimatePresence>
+                {showProofImage && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4"
+                        onClick={() => setShowProofImage(false)}
+                    >
+                        <button 
+                            className="absolute top-6 right-6 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setShowProofImage(false); }}
+                        >
+                            <XCircle className="w-6 h-6" />
+                        </button>
+                        <img 
+                            src={booking.proofOfWorkImageUrl.replace('localhost', '127.0.0.1')} 
+                            alt="Full Proof of work" 
+                            className="max-w-full max-h-[85vh] rounded-xl shadow-2xl border border-white/20"
+                            onClick={(e) => e.stopPropagation()}
+                            onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&q=80' }}
+                        />
+                        <p className="text-white/60 text-sm font-medium mt-4">Proof of Work submitted by {booking.assignedStaff?.fullName || 'Staff'}</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
             
             <div className="h-8" />
         </BaseDrawer>

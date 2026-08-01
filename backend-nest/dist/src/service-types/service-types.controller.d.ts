@@ -66,6 +66,26 @@ export declare class ServiceTypesController {
             };
         };
     }>;
+    getProvidersForServiceType(slug: string): Promise<{
+        serviceId: string;
+        name: string;
+        price: number;
+        discountPrice: number | null;
+        durationMin: number;
+        company: {
+            id: string;
+            name: string;
+            logoUrl: string | null;
+            isVerified: boolean;
+        };
+        facts: {
+            rating: number;
+            jobsCompleted: number;
+            completionRate: number;
+            responseTimeMin: number;
+            isInsured: boolean;
+        };
+    }[]>;
     createServiceType(createServiceTypeDto: CreateServiceTypeDto): Promise<{
         message: string;
         data: {
@@ -75,15 +95,15 @@ export declare class ServiceTypesController {
                 id: string;
                 name: string;
             };
-            slug: string;
-            name: string;
-            description: string | null;
-            icon: string | null;
-            imageUrl: string | null;
             status: import(".prisma/client").$Enums.CategoryStatus;
-            displayOrder: number;
             createdAt: Date;
             updatedAt: Date;
+            name: string;
+            description: string | null;
+            slug: string;
+            icon: string | null;
+            imageUrl: string | null;
+            displayOrder: number;
         };
     }>;
     updateServiceType(id: string, updateServiceTypeDto: UpdateServiceTypeDto): Promise<{
@@ -93,25 +113,25 @@ export declare class ServiceTypesController {
             categoryId: string;
             category: {
                 id: bigint;
-                slug: string;
-                name: string;
-                description: string | null;
-                icon: string | null;
-                imageUrl: string | null;
                 status: import(".prisma/client").$Enums.CategoryStatus;
-                displayOrder: number;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
+                description: string | null;
+                slug: string;
+                icon: string | null;
+                imageUrl: string | null;
+                displayOrder: number;
             };
-            slug: string;
-            name: string;
-            description: string | null;
-            icon: string | null;
-            imageUrl: string | null;
             status: import(".prisma/client").$Enums.CategoryStatus;
-            displayOrder: number;
             createdAt: Date;
             updatedAt: Date;
+            name: string;
+            description: string | null;
+            slug: string;
+            icon: string | null;
+            imageUrl: string | null;
+            displayOrder: number;
         };
     }>;
     deleteServiceType(id: string): Promise<{

@@ -19,6 +19,9 @@ export class UpdateProgressDto {
   @IsString()
   @IsOptional()
   staffNotes?: string;
+
+  @IsOptional()
+  checklist?: any;
 }
 
 export class CancelBookingDto {

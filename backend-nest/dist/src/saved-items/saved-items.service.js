@@ -154,6 +154,7 @@ let SavedItemsService = class SavedItemsService {
                 .filter(Boolean);
         }
         return {
+            success: true,
             items: enrichedItems,
             pagination: {
                 total,

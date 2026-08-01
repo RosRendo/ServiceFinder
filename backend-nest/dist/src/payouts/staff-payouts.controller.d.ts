@@ -6,6 +6,7 @@ export declare class StaffPayoutsController {
     constructor(payoutsService: PayoutsService, prisma: PrismaService);
     private getStaffId;
     getPayouts(req: any): Promise<{
+        success: boolean;
         payouts: {
             id: number;
             status: string;
@@ -39,15 +40,16 @@ export declare class StaffPayoutsController {
         };
     }>;
     getPaymentMethods(req: any): Promise<{
+        success: boolean;
         paymentMethods: {
             id: number;
             createdAt: Date;
             staffId: bigint;
-            qrCodeUrl: string | null;
             type: string;
             accountName: string;
             accountNumber: string;
             routingNumber: string | null;
+            qrCodeUrl: string | null;
             isDefault: boolean;
             isVerified: boolean;
         }[];
@@ -58,11 +60,11 @@ export declare class StaffPayoutsController {
             id: number;
             createdAt: Date;
             staffId: bigint;
-            qrCodeUrl: string | null;
             type: string;
             accountName: string;
             accountNumber: string;
             routingNumber: string | null;
+            qrCodeUrl: string | null;
             isDefault: boolean;
             isVerified: boolean;
         };

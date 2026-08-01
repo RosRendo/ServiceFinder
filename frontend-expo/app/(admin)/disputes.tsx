@@ -45,9 +45,10 @@ export default function AdminDisputesScreen() {
   const fetchDisputes = async () => {
     try {
       const params = activeTab !== "all" ? { status: activeTab } : {};
-      const res = await api.get("/api/disputes", { params });
-      const raw = res.data?.data ?? res.data;
-      setDisputes(Array.isArray(raw) ? raw : raw?.disputes ?? []);
+      const res = await api.get("/api/admin/disputes", { params });
+      // Backend returns { success: true, data: [...], meta: {} }
+      const data = res.data?.data ?? [];
+      setDisputes(Array.isArray(data) ? data : (data?.data ?? []));
     } catch (e) {
       console.error("Failed to fetch disputes", e);
     } finally {
@@ -55,6 +56,7 @@ export default function AdminDisputesScreen() {
       setRefreshing(false);
     }
   };
+
 
   useEffect(() => {
     setLoading(true);
@@ -64,7 +66,7 @@ export default function AdminDisputesScreen() {
   const handleReview = async (disputeId: string) => {
     setActionLoading(disputeId);
     try {
-      await api.patch(`/api/disputes/${disputeId}`, { status: "under_review" });
+      await api.patch(`/api/admin/disputes/${disputeId}`, { status: "under_review" });
       await fetchDisputes();
     } catch {
       Alert.alert("Error", "Failed to update dispute status.");
@@ -84,7 +86,7 @@ export default function AdminDisputesScreen() {
           onPress: async () => {
             setActionLoading(disputeId);
             try {
-              await api.patch(`/api/disputes/${disputeId}`, { status: "resolved" });
+              await api.patch(`/api/admin/disputes/${disputeId}`, { status: "resolved" });
               await fetchDisputes();
             } catch {
               Alert.alert("Error", "Failed to resolve dispute.");

@@ -20,14 +20,7 @@ const statusConfig: Record<string, { bg: string; text: string; border: string; l
     cancelled: { bg: "bg-rose-500/10", text: "text-rose-500", border: "border-rose-500/20", label: "Cancelled", icon: XCircle },
 };
 
-interface StaffMember {
-    id: string;
-    fullName: string;
-    role: string;
-    status: string;
-    activeRequests: number;
-    activeBookings: number;
-}
+
 
 interface BookingDetail {
     id: string;
@@ -53,11 +46,7 @@ export default function CompanyBookingDetailPage() {
 
     const [booking, setBooking] = useState<BookingDetail | null>(null);
     const [loading, setLoading] = useState(true);
-    const [staff, setStaff] = useState<StaffMember[]>([]);
-    const [assigning, setAssigning] = useState(false);
-    const [selectedStaffId, setSelectedStaffId] = useState("");
-    const [showAssign, setShowAssign] = useState(false);
-    const [loadingStaff, setLoadingStaff] = useState(false);
+
     const { toast } = useToast();
 
     const fetchBooking = async () => {
@@ -75,33 +64,7 @@ export default function CompanyBookingDetailPage() {
         }
     };
 
-    const fetchStaff = async () => {
-        setLoadingStaff(true);
-        try {
-            const res = await api.get(`/companies/my-company/staff`);
-            const payload = res.data.data || res.data;
-            setStaff(Array.isArray(payload) ? payload : (payload.staff || []));
-        } catch {
-            toast({ title: "Error", description: "Failed to load staff list.", variant: "destructive" });
-        } finally {
-            setLoadingStaff(false);
-        }
-    };
 
-    const handleAssign = async () => {
-        if (!booking || !selectedStaffId) return;
-        setAssigning(true);
-        try {
-            await api.patch(`/bookings/${booking.id}/assign-staff`, { staffId: selectedStaffId });
-            toast({ title: "Success", description: "Staff assigned successfully!" });
-            setShowAssign(false);
-            fetchBooking();
-        } catch (err: any) {
-            toast({ title: "Error", description: err.message || "Failed to assign staff", variant: "destructive" });
-        } finally {
-            setAssigning(false);
-        }
-    };
 
     useEffect(() => { fetchBooking(); }, [id]);
 
@@ -158,13 +121,7 @@ export default function CompanyBookingDetailPage() {
                            </div>
                        </div>
                    </div>
-                   
-                   {!booking.assignedStaff && booking.status !== "completed" && booking.status !== "cancelled" && (
-                       <Button className="rounded-xl h-11 px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm" onClick={() => { setShowAssign(!showAssign); fetchStaff(); }}>
-                           <UserPlus className="w-4 h-4 mr-2" /> Assign Staff
-                       </Button>
-                   )}
-               </div>
+             </div>
             </div>
 
             {/* Main Table Container */}
@@ -268,9 +225,6 @@ export default function CompanyBookingDetailPage() {
                                                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{booking.assignedStaff.role}</p>
                                             </div>
                                         </div>
-                                        <Button variant="outline" size="sm" className="rounded-lg h-8 font-bold border-border" onClick={() => { setShowAssign(!showAssign); fetchStaff(); }}>
-                                            Change
-                                        </Button>
                                     </div>
                                 ) : (
                                     <div className="font-bold text-muted-foreground">Unassigned</div>
@@ -280,65 +234,7 @@ export default function CompanyBookingDetailPage() {
                     </tbody>
                 </table>
 
-                {/* Inline assign panel */}
-                {showAssign && (
-                    <div className="border-t border-border p-6 bg-muted/10 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <h4 className="font-black text-base text-foreground mb-4">Select Staff Member</h4>
-                        {loadingStaff ? (
-                            <div className="flex justify-center py-8">
-                                <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
-                            </div>
-                        ) : staff.length === 0 ? (
-                            <div className="text-center py-8 bg-muted/30 rounded-xl border border-border/40">
-                                <p className="text-sm font-bold text-muted-foreground">No active staff found.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-2 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
-                                {staff.filter(s => s.status !== 'inactive').map((s) => (
-                                    <label
-                                        key={s.id}
-                                        className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedStaffId === s.id
-                                            ? "border-primary bg-primary/5 shadow-sm"
-                                            : "border-border/50 bg-background hover:border-border hover:bg-muted/30"
-                                            }`}
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="staff"
-                                            value={s.id}
-                                            checked={selectedStaffId === s.id}
-                                            onChange={(e) => setSelectedStaffId(e.target.value)}
-                                            className="sr-only"
-                                        />
-                                        <Avatar className="w-12 h-12 rounded-lg border border-border/50 shadow-sm">
-                                            <AvatarFallback className="rounded-lg font-black bg-muted text-foreground">{s.fullName.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1">
-                                            <p className="font-bold text-base text-foreground">{s.fullName}</p>
-                                            <p className="text-xs font-medium text-muted-foreground mt-1">
-                                                <span className="text-primary font-bold">{s.role}</span> · {s.activeRequests} pending · {s.activeBookings} active
-                                            </p>
-                                        </div>
-                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${selectedStaffId === s.id ? 'border-primary bg-primary' : 'border-border'}`}>
-                                            {selectedStaffId === s.id && <CheckCircle className="w-3.5 h-3.5 text-primary-foreground" />}
-                                        </div>
-                                    </label>
-                                ))}
-                            </div>
-                        )}
-                        <div className="flex gap-3 mt-6 max-w-sm">
-                            <Button variant="outline" className="flex-1 rounded-xl h-11 text-sm font-bold border-border" onClick={() => setShowAssign(false)}>Cancel</Button>
-                            <Button
-                                className="flex-1 rounded-xl h-11 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold shadow-sm"
-                                disabled={!selectedStaffId || assigning}
-                                onClick={handleAssign}
-                            >
-                                {assigning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
-                                {assigning ? "Assigning..." : "Confirm"}
-                            </Button>
-                        </div>
-                    </div>
-                )}
+
             </div>
         </div>
     );

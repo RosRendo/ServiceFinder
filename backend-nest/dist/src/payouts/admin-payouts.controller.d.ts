@@ -4,41 +4,41 @@ export declare class AdminPayoutsController {
     constructor(payoutsService: PayoutsService);
     getAllPayouts(status?: string, type?: string): Promise<{
         payouts: ({
+            company: {
+                id: bigint;
+                paymentMethods: {
+                    id: number;
+                    createdAt: Date;
+                    companyId: bigint;
+                    type: string;
+                    accountName: string;
+                    accountNumber: string;
+                    routingNumber: string | null;
+                    qrCodeUrl: string | null;
+                    isDefault: boolean;
+                    isVerified: boolean;
+                }[];
+                name: string;
+                owner: {
+                    fullName: string;
+                    email: string | null;
+                };
+            } | null;
             staff: {
                 id: bigint;
                 user: {
-                    email: string | null;
                     fullName: string;
+                    email: string | null;
                 };
                 paymentMethods: {
                     id: number;
                     createdAt: Date;
                     staffId: bigint;
-                    qrCodeUrl: string | null;
                     type: string;
                     accountName: string;
                     accountNumber: string;
                     routingNumber: string | null;
-                    isDefault: boolean;
-                    isVerified: boolean;
-                }[];
-            } | null;
-            company: {
-                id: bigint;
-                name: string;
-                owner: {
-                    email: string | null;
-                    fullName: string;
-                };
-                paymentMethods: {
-                    id: number;
-                    createdAt: Date;
-                    companyId: bigint;
                     qrCodeUrl: string | null;
-                    type: string;
-                    accountName: string;
-                    accountNumber: string;
-                    routingNumber: string | null;
                     isDefault: boolean;
                     isVerified: boolean;
                 }[];

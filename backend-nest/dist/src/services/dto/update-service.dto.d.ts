@@ -8,4 +8,5 @@ export declare class UpdateServiceDto {
     features?: any;
     image?: string;
     isActive?: boolean;
+    checklist?: any;
 }

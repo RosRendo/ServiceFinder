@@ -1,18 +1,18 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import ChatBubble from "@/components/messages/ChatBubble";
 import ConversationItem from "@/components/messages/ConversationItem";
 import { Button } from "@/components/ui/button";
 import {
-    Send, ArrowLeft, Phone, Video, MoreVertical, ImageIcon, Paperclip, Smile, MessageCircle, Search, Info
+    Send, ArrowLeft, Phone, Video, MoreVertical, ImageIcon, Paperclip, Smile, MessageCircle, Search, Info, Loader2
 } from "lucide-react";
 import { useConversations, useMessages } from "@/lib/hooks/useChat";
 import { useAuthContext } from "@/lib/contexts/AuthContext";
 import { toast } from "sonner";
 import api from "@/lib/api/client";
 
-export default function CompanyMessagesPage() {
+function CompanyMessagesPageContent() {
     const searchParams = useSearchParams();
     const { user } = useAuthContext();
     const { conversations, refetch: refetchConversations } = useConversations();
@@ -26,6 +26,9 @@ export default function CompanyMessagesPage() {
     const { messages, sendMessage } = useMessages(activeConversationId || undefined);
 
     const activeConversation = conversations.find((c) => c.id === activeConversationId);
+    const isArchived = activeConversation?.archivedAt
+        ? new Date(activeConversation.archivedAt) <= new Date()
+        : false;
     const displayUser = activeConversation?.otherUser || newChatUser;
 
     useEffect(() => {
@@ -215,35 +218,41 @@ export default function CompanyMessagesPage() {
 
                             {/* Chat Input */}
                             <div className="p-4 bg-white border-t border-gray-200 shrink-0">
-                                <div className="flex items-end gap-2 bg-gray-50 rounded-lg border border-gray-200 p-2 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
-                                    <div className="flex items-center gap-1 pb-1">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-md"><Paperclip className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-md hidden sm:flex"><ImageIcon className="h-4 w-4" /></Button>
+                                {isArchived ? (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center text-sm text-amber-800 font-medium shadow-sm flex items-center justify-center gap-2">
+                                        🔒 This job chat is archived because the service booking has been completed.
                                     </div>
-                                    <textarea
-                                        value={newMessage}
-                                        onChange={(e) => setNewMessage(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" && !e.shiftKey) {
-                                                e.preventDefault();
-                                                handleSend();
-                                            }
-                                        }}
-                                        placeholder="Type a message..."
-                                        className="flex-1 max-h-32 min-h-[40px] resize-none bg-transparent p-2 text-sm focus:outline-none text-gray-700 placeholder:text-gray-400"
-                                        rows={1}
-                                    />
-                                    <div className="flex items-center gap-2 pb-1">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-md hidden sm:flex"><Smile className="h-4 w-4" /></Button>
-                                        <Button 
-                                            onClick={handleSend} 
-                                            disabled={!newMessage.trim()}
-                                            className="h-8 w-8 p-0 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:hover:bg-blue-600 shadow-sm transition-all"
-                                        >
-                                            <Send className="h-4 w-4" />
-                                        </Button>
+                                ) : (
+                                    <div className="flex items-end gap-2 bg-gray-50 rounded-lg border border-gray-200 p-2 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
+                                        <div className="flex items-center gap-1 pb-1">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-md"><Paperclip className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-md hidden sm:flex"><ImageIcon className="h-4 w-4" /></Button>
+                                        </div>
+                                        <textarea
+                                            value={newMessage}
+                                            onChange={(e) => setNewMessage(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    handleSend();
+                                                }
+                                            }}
+                                            placeholder="Type a message..."
+                                            className="flex-1 max-h-32 min-h-[40px] resize-none bg-transparent p-2 text-sm focus:outline-none text-gray-700 placeholder:text-gray-400"
+                                            rows={1}
+                                        />
+                                        <div className="flex items-center gap-2 pb-1">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-md hidden sm:flex"><Smile className="h-4 w-4" /></Button>
+                                            <Button 
+                                                onClick={handleSend} 
+                                                disabled={!newMessage.trim()}
+                                                className="h-8 w-8 p-0 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:hover:bg-blue-600 shadow-sm transition-all"
+                                            >
+                                                <Send className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </>
                     ) : (
@@ -258,5 +267,17 @@ export default function CompanyMessagesPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function CompanyMessagesPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex-1 flex items-center justify-center bg-background min-h-screen">
+                <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
+            </div>
+        }>
+            <CompanyMessagesPageContent />
+        </Suspense>
     );
 }

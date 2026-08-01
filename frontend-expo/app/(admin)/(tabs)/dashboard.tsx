@@ -68,10 +68,10 @@ export default function AdminDashboard() {
   };
 
   const healthMetrics = [
-    { id: 1, label: t('adminDashboard.totalUsers'), value: formatNumber(metrics?.totalUsers), trend: metrics?.usersGrowth ? `+${metrics.usersGrowth}%` : "+5%", icon: "account-multiple-outline", color: T.blue },
-    { id: 2, label: t('adminDashboard.companies'), value: formatNumber(metrics?.totalCompanies), trend: metrics?.companiesGrowth ? `+${metrics.companiesGrowth}%` : "+8%", icon: "office-building-outline", color: T.success },
-    { id: 3, label: t('adminDashboard.bookings'), value: formatNumber(metrics?.totalBookings), trend: metrics?.bookingsGrowth ? `+${metrics.bookingsGrowth}%` : undefined, icon: "calendar-check-outline", color: T.purple },
-    { id: 4, label: t('adminDashboard.pending'), value: formatNumber(metrics?.pendingCompanies), icon: "clock-alert-outline", color: T.warning },
+    { id: 1, label: t('adminDashboard.totalUsers'), value: formatNumber(metrics?.totalUsers), trend: metrics?.usersGrowth ? `+${metrics.usersGrowth}%` : "+5%", icon: "account-multiple-outline", color: T.blue, route: '/(admin)/(tabs)/users' },
+    { id: 2, label: t('adminDashboard.companies'), value: formatNumber(metrics?.totalCompanies), trend: metrics?.companiesGrowth ? `+${metrics.companiesGrowth}%` : "+8%", icon: "office-building-outline", color: T.success, route: '/(admin)/(tabs)/companies' },
+    { id: 3, label: t('adminDashboard.bookings'), value: formatNumber(metrics?.totalBookings), trend: metrics?.bookingsGrowth ? `+${metrics.bookingsGrowth}%` : undefined, icon: "calendar-check-outline", color: T.purple, route: '/(admin)/(tabs)/analytics' },
+    { id: 4, label: t('adminDashboard.pending'), value: formatNumber(metrics?.pendingCompanies), icon: "clock-alert-outline", color: T.warning, route: '/(admin)/(tabs)/queue' },
   ];
 
   const weeklyData = [40, 65, 50, 85, 60, 95, 75];
@@ -137,13 +137,13 @@ export default function AdminDashboard() {
 
               <View style={s.alertsContainer}>
                 {/* Simulated Alert 1 */}
-                <TouchableOpacity style={s.alertItem} activeOpacity={0.8} onPress={() => router.push('/(admin)/users/USR-4892' as any)}>
+                <TouchableOpacity style={s.alertItem} activeOpacity={0.8} onPress={() => router.push('/(admin)/users/2' as any)}>
                   <View style={[s.alertIconWrap, { backgroundColor: T.error + "15" }]}>
                     <MaterialCommunityIcons name="robot-dead-outline" size={20} color={T.error} />
                   </View>
                   <View style={s.alertBody}>
                     <Text style={s.alertTitle}>High Fraud Score Detected (92/100)</Text>
-                    <Text style={s.alertSubtitle}>User USR-4892 created 5 bookings from same IP in 10 mins.</Text>
+                    <Text style={s.alertSubtitle}>User 2 created 5 bookings from same IP in 10 mins.</Text>
                   </View>
                   <MaterialCommunityIcons name="chevron-right" size={20} color={T.text3} />
                 </TouchableOpacity>
@@ -176,7 +176,7 @@ export default function AdminDashboard() {
                 <View style={[s.queueIconWrap, { backgroundColor: T.error + "15" }]}>
                   <MaterialCommunityIcons name="scale-balance" size={22} color={T.error} />
                 </View>
-                <Text style={s.queueCount}>{metrics?.cancelledBookings || 0}</Text>
+                <Text style={s.queueCount}>{metrics?.activeDisputes || 0}</Text>
                 <Text style={s.queueLabel}>{t('adminDashboard.disputes')}</Text>
               </TouchableOpacity>
 
@@ -184,8 +184,8 @@ export default function AdminDashboard() {
                 <View style={[s.queueIconWrap, { backgroundColor: T.warning + "15" }]}>
                   <MaterialCommunityIcons name="ticket-confirmation-outline" size={22} color={T.warning} />
                 </View>
-                <Text style={s.queueCount}>{metrics?.activeBookings || 0}</Text>
-                <Text style={s.queueLabel}>{t('adminDashboard.active')}</Text>
+                <Text style={s.queueCount}>{metrics?.openTickets || 0}</Text>
+                <Text style={s.queueLabel}>Support</Text>
               </TouchableOpacity>
             </View>
 
@@ -197,7 +197,7 @@ export default function AdminDashboard() {
               </View>
               <View style={s.healthGrid}>
                 {healthMetrics.map((m) => (
-                  <View key={m.id} style={s.healthCard}>
+                  <TouchableOpacity key={m.id} style={s.healthCard} activeOpacity={0.8} onPress={() => m.route && router.push(m.route as any)}>
                     <View style={s.healthIconRow}>
                       <View style={[s.healthIconWrap, { backgroundColor: m.color + "15" }]}>
                         <MaterialCommunityIcons name={m.icon as any} size={20} color={m.color} />
@@ -208,7 +208,7 @@ export default function AdminDashboard() {
                     </View>
                     <Text style={s.healthValue}>{m.value}</Text>
                     <Text style={s.healthLabel}>{m.label}</Text>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>

@@ -47,6 +47,9 @@ let PaymentsController = class PaymentsController {
     createAbaCheckout(dto, req) {
         return this.paymentsService.createAbaCheckout(dto, req.user);
     }
+    generateKhqr(dto, req) {
+        return this.paymentsService.generateKhqr(dto, req.user);
+    }
     completePayment(dto, req) {
         return this.paymentsService.completePayment(dto, req.user);
     }
@@ -148,6 +151,21 @@ __decorate([
     __metadata("design:paramtypes", [payment_dto_1.CheckoutSessionDto, Object]),
     __metadata("design:returntype", void 0)
 ], PaymentsController.prototype, "createAbaCheckout", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Post)('khqr/generate'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Generate KHQR for Booking' }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'KHQR string generated successfully.',
+    }),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [payment_dto_1.CheckoutSessionDto, Object]),
+    __metadata("design:returntype", void 0)
+], PaymentsController.prototype, "generateKhqr", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)('complete'),

@@ -64,6 +64,7 @@ export default function ServiceEdit() {
       durationMin: durationMatch ? parseInt(durationMatch[1]) : service.durationMin,
       durationMax: durationMatch ? parseInt(durationMatch[2]) : service.durationMax,
       features: (formData.get("features") as string).split(',').map(f => f.trim()).filter(Boolean),
+      checklist: (formData.get("checklist") as string).split('\n').map(c => c.trim()).filter(Boolean),
       image: formData.get("image") as string || null,
       isActive
     };
@@ -150,6 +151,17 @@ export default function ServiceEdit() {
                 defaultValue={service.features?.join(', ')}
                 placeholder="Vacuuming All Floors, Dust Surfaces"
                 rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="checklist">Standard Task Checklist (Newline Separated)</Label>
+              <Textarea
+                id="checklist"
+                name="checklist"
+                defaultValue={service.checklist?.join('\n')}
+                placeholder="Clean all surfaces&#10;Empty trash bins&#10;Vacuum floors"
+                rows={4}
               />
             </div>
 

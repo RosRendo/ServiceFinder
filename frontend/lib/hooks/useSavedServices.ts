@@ -92,7 +92,7 @@ export function useToggleSavedService() {
           // Remove from list
           return old.filter(s => s.serviceId !== serviceId);
         } else {
-          // Add a dummy entry (will be replaced by real data on refetch if needed)
+          // Add an optimistic entry
           return [
             ...old,
             {
@@ -100,7 +100,7 @@ export function useToggleSavedService() {
               userId: 'current-user',
               serviceId,
               savedAt: new Date().toISOString(),
-              service: {} as any // Dummy data for optimistic UI
+              service: {} as any // Optimistic UI fallback
             }
           ];
         }

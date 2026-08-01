@@ -44,6 +44,14 @@ export class UpdateCompanyAdminDto {
 
   @IsString()
   @IsOptional()
+  verificationStatus?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsString()
+  @IsOptional()
   description?: string;
 
   @IsString()

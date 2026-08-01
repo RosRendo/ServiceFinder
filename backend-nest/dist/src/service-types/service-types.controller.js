@@ -36,6 +36,9 @@ let ServiceTypesController = class ServiceTypesController {
     getServiceTypeBySlug(slug) {
         return this.serviceTypesService.getServiceTypeBySlug(slug);
     }
+    getProvidersForServiceType(slug) {
+        return this.serviceTypesService.getProvidersForServiceType(slug);
+    }
     createServiceType(createServiceTypeDto) {
         return this.serviceTypesService.createServiceType(createServiceTypeDto);
     }
@@ -74,6 +77,15 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ServiceTypesController.prototype, "getServiceTypeBySlug", null);
+__decorate([
+    (0, common_1.Get)(':slug/providers'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get providers (companies) offering a specific service type' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Return list of providers with pure facts.' }),
+    __param(0, (0, common_1.Param)('slug')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ServiceTypesController.prototype, "getProvidersForServiceType", null);
 __decorate([
     (0, common_1.Post)(),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),

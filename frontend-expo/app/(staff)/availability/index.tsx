@@ -84,10 +84,33 @@ export default function AvailabilityScreen() {
 
   const fetchAvailability = async () => {
     try {
-      // In a real implementation, we would map the actual slots.
-      // For now, we simulate fetching the standard weekly setup.
       const res = await api.get('/api/staff/availability');
-      // Assume the backend gives generic availability or we use the default.
+      const data = res.data;
+      const slots = data?.availability ?? data?.data?.availability ?? [];
+      
+      if (Array.isArray(slots) && slots.length > 0) {
+        const newSched = [...schedule];
+        const dayMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        
+        slots.forEach((slot: any) => {
+          const slotDate = new Date(slot.date);
+          const dayName = dayMap[slotDate.getDay()];
+          const idx = newSched.findIndex(s => s.day === dayName);
+          
+          if (idx !== -1) {
+            const startStr = slot.startTime ? slot.startTime.slice(0, 5) : "09:00";
+            const endStr = slot.endTime ? slot.endTime.slice(0, 5) : "17:00";
+            
+            newSched[idx] = {
+              day: dayName,
+              available: slot.isAvailable,
+              start: startStr,
+              end: endStr
+            };
+          }
+        });
+        setSchedule(newSched);
+      }
     } catch (error) {
       console.warn("Failed to load availability", error);
     } finally {

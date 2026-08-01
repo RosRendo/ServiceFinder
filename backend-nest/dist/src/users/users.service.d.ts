@@ -17,10 +17,10 @@ export declare class UsersService {
             status: import(".prisma/client").$Enums.UserStatus;
             createdAt: Date;
             updatedAt: Date;
+            role: import(".prisma/client").$Enums.UserRole;
+            fullName: string;
             email: string | null;
             phone: string | null;
-            fullName: string;
-            role: import(".prisma/client").$Enums.UserRole;
             lastLoginAt: Date | null;
         }[];
         pagination: {
@@ -49,14 +49,14 @@ export declare class UsersService {
             status: import(".prisma/client").$Enums.UserStatus;
             createdAt: Date;
             updatedAt: Date;
+            role: import(".prisma/client").$Enums.UserRole;
             _count: {
-                bookingsAsCustomer: number;
                 reviews: number;
+                bookingsAsCustomer: number;
             };
+            fullName: string;
             email: string | null;
             phone: string | null;
-            fullName: string;
-            role: import(".prisma/client").$Enums.UserRole;
             lastLoginAt: Date | null;
             auditLogs: {
                 id: bigint;
@@ -80,11 +80,12 @@ export declare class UsersService {
                 id: bigint;
                 status: import(".prisma/client").$Enums.StaffStatus;
                 createdAt: Date;
-                role: import(".prisma/client").$Enums.StaffRole;
-                walletBalance: import("@prisma/client/runtime/library").Decimal;
                 companyId: bigint;
-                creditLimit: import("@prisma/client/runtime/library").Decimal;
                 userId: bigint;
+                role: import(".prisma/client").$Enums.StaffRole;
+                creditLimit: import("@prisma/client/runtime/library").Decimal;
+                walletBalance: import("@prisma/client/runtime/library").Decimal;
+                splitPercent: import("@prisma/client/runtime/library").Decimal | null;
             })[];
         };
     }>;
@@ -94,11 +95,11 @@ export declare class UsersService {
             id: bigint;
             status: import(".prisma/client").$Enums.UserStatus;
             updatedAt: Date;
+            role: import(".prisma/client").$Enums.UserRole;
+            fullName: string;
             email: string | null;
             phone: string | null;
-            fullName: string;
             avatar: string | null;
-            role: import(".prisma/client").$Enums.UserRole;
         };
     }>;
     requestContactUpdate(userId: bigint, dto: RequestContactUpdateDto): Promise<{
@@ -110,11 +111,11 @@ export declare class UsersService {
             id: bigint;
             status: import(".prisma/client").$Enums.UserStatus;
             updatedAt: Date;
+            role: import(".prisma/client").$Enums.UserRole;
+            fullName: string;
             email: string | null;
             phone: string | null;
-            fullName: string;
             avatar: string | null;
-            role: import(".prisma/client").$Enums.UserRole;
         };
     }>;
     deleteUser(id: bigint, currentUser: any): Promise<{
@@ -125,8 +126,8 @@ export declare class UsersService {
         user: {
             id: bigint;
             status: import(".prisma/client").$Enums.UserStatus;
-            email: string | null;
             fullName: string;
+            email: string | null;
         };
     }>;
     updateStaffStatus(userId: bigint, status: 'active' | 'inactive'): Promise<{
@@ -141,8 +142,8 @@ export declare class UsersService {
         platformFees: number;
         recentCompanies: {
             id: bigint;
-            name: string;
             createdAt: Date;
+            name: string;
             verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         }[];
     }>;

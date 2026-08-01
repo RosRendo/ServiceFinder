@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import * as Joi from 'joi';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -38,9 +39,15 @@ import { WalletsModule } from './wallets/wallets.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { FinancialsModule } from './financials/financials.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { PromoCodesModule } from './promo-codes/promo-codes.module';
+import { PricingRulesModule } from './pricing-rules/pricing-rules.module';
+import { SupportModule } from './support/support.module';
+import { ModerationModule } from './moderation/moderation.module';
+import { ComplianceModule } from './compliance/compliance.module';
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: Joi.object({
@@ -139,6 +146,11 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     AnalyticsModule,
     FinancialsModule,
     WebhooksModule,
+    PromoCodesModule,
+    PricingRulesModule,
+    SupportModule,
+    ModerationModule,
+    ComplianceModule,
   ],
   controllers: [AppController],
   providers: [

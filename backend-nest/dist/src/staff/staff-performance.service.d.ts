@@ -3,6 +3,7 @@ export declare class StaffPerformanceService {
     private prisma;
     constructor(prisma: PrismaService);
     getPerformance(staffId: bigint): Promise<{
+        success: boolean;
         staffId: string;
         userId: string;
         user: {
@@ -23,9 +24,14 @@ export declare class StaffPerformanceService {
             avgRating: number;
             totalReviews: number;
             ratingDistribution: number[];
+            todayCompleted: number;
+            todayEarnings: number;
+            weeklyCompleted: number;
+            weeklyEarnings: number;
         };
     }>;
     getWallet(userId: bigint): Promise<{
+        success: boolean;
         walletBalance: number;
         creditLimit: number;
         transactions: {
@@ -37,6 +43,7 @@ export declare class StaffPerformanceService {
         }[];
     }>;
     getStaffReviews(staffId: bigint, page?: number, limit?: number): Promise<{
+        success: boolean;
         reviews: ({
             customer: {
                 id: bigint;
@@ -66,22 +73,24 @@ export declare class StaffPerformanceService {
         };
     }>;
     getAvailability(staffId: bigint): Promise<{
+        success: boolean;
         availability: {
             id: bigint;
-            companyId: bigint;
             startTime: Date;
             endTime: Date;
+            companyId: bigint;
             staffId: bigint | null;
             date: Date;
             isAvailable: boolean;
         }[];
     }>;
     getStaffAvailabilityForCompany(userId: bigint, staffId: string): Promise<{
+        success: boolean;
         availability: {
             id: bigint;
-            companyId: bigint;
             startTime: Date;
             endTime: Date;
+            companyId: bigint;
             staffId: bigint | null;
             date: Date;
             isAvailable: boolean;
@@ -97,6 +106,7 @@ export declare class StaffPerformanceService {
         count: number;
     }>;
     getCompanyStaffPerformance(companyId: bigint): Promise<{
+        success: boolean;
         staff: {
             staffId: string;
             user: {

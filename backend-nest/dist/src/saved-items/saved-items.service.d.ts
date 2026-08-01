@@ -4,6 +4,7 @@ export declare class SavedItemsService {
     private prisma;
     constructor(prisma: PrismaService);
     getSavedItems(userId: bigint, query: any): Promise<{
+        success: boolean;
         items: any[];
         pagination: {
             total: number;

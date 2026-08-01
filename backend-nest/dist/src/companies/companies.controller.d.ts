@@ -19,22 +19,23 @@ export declare class CompaniesController {
         company: {
             owner: {
                 id: bigint;
-                email: string | null;
                 fullName: string;
+                email: string | null;
             };
         } & {
             id: bigint;
-            name: string;
-            description: string | null;
+            latitude: import("@prisma/client/runtime/library").Decimal | null;
+            longitude: import("@prisma/client/runtime/library").Decimal | null;
             createdAt: Date;
             updatedAt: Date;
+            walletBalance: import("@prisma/client/runtime/library").Decimal;
+            name: string;
+            description: string | null;
             email: string | null;
             phone: string | null;
             registrationNumber: string | null;
             address: string | null;
             city: string | null;
-            latitude: import("@prisma/client/runtime/library").Decimal | null;
-            longitude: import("@prisma/client/runtime/library").Decimal | null;
             verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
             logoUrl: string | null;
             coverImageUrl: string | null;
@@ -45,52 +46,59 @@ export declare class CompaniesController {
             subscriptionStatus: string;
             trialEndsAt: Date | null;
             nextBillingDate: Date | null;
-            walletBalance: import("@prisma/client/runtime/library").Decimal;
+            pendingBalance: import("@prisma/client/runtime/library").Decimal;
+            availableBalance: import("@prisma/client/runtime/library").Decimal;
+            platformFeePercent: import("@prisma/client/runtime/library").Decimal | null;
+            completedJobs: number;
+            isInsured: boolean;
+            completionRate: import("@prisma/client/runtime/library").Decimal;
             ownerId: bigint;
         };
     }>;
     getMyCompany(user: any): Promise<{
         services: {
             id: bigint;
-            name: string;
-            description: string | null;
+            checklist: import("@prisma/client/runtime/library").JsonValue | null;
             createdAt: Date;
             updatedAt: Date;
-            discountPrice: import("@prisma/client/runtime/library").Decimal | null;
             companyId: bigint;
+            name: string;
+            serviceTypeId: bigint;
             image: string | null;
+            description: string | null;
             basePrice: import("@prisma/client/runtime/library").Decimal;
+            discountPrice: import("@prisma/client/runtime/library").Decimal | null;
             features: import("@prisma/client/runtime/library").JsonValue | null;
             durationMin: number;
             durationMax: number | null;
             isActive: boolean;
-            serviceTypeId: bigint;
         }[];
         ratingSummary: {
+            companyId: bigint;
             averageRating: import("@prisma/client/runtime/library").Decimal | null;
             totalReviews: number;
             lastUpdated: Date;
-            companyId: bigint;
         } | null;
         serviceAreas: {
             id: bigint;
-            city: string;
             companyId: bigint;
+            city: string;
             coverageRadiusKm: number | null;
         }[];
     } & {
         id: bigint;
-        name: string;
-        description: string | null;
+        latitude: import("@prisma/client/runtime/library").Decimal | null;
+        longitude: import("@prisma/client/runtime/library").Decimal | null;
         createdAt: Date;
         updatedAt: Date;
+        walletBalance: import("@prisma/client/runtime/library").Decimal;
+        name: string;
+        description: string | null;
         email: string | null;
         phone: string | null;
         registrationNumber: string | null;
         address: string | null;
         city: string | null;
-        latitude: import("@prisma/client/runtime/library").Decimal | null;
-        longitude: import("@prisma/client/runtime/library").Decimal | null;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         logoUrl: string | null;
         coverImageUrl: string | null;
@@ -101,11 +109,18 @@ export declare class CompaniesController {
         subscriptionStatus: string;
         trialEndsAt: Date | null;
         nextBillingDate: Date | null;
-        walletBalance: import("@prisma/client/runtime/library").Decimal;
+        pendingBalance: import("@prisma/client/runtime/library").Decimal;
+        availableBalance: import("@prisma/client/runtime/library").Decimal;
+        platformFeePercent: import("@prisma/client/runtime/library").Decimal | null;
+        completedJobs: number;
+        isInsured: boolean;
+        completionRate: import("@prisma/client/runtime/library").Decimal;
         ownerId: bigint;
     }>;
     getMyCompanyMetrics(user: any): Promise<{
         revenue: number;
+        revenueGrowth: number;
+        bookingsGrowth: number;
         escrowBalance: number;
         availableBalance: number;
         activeBookings: number;
@@ -238,9 +253,9 @@ export declare class CompaniesController {
         creditLimit: number;
         user: {
             id: bigint;
+            fullName: string;
             email: string | null;
             phone: string | null;
-            fullName: string;
             avatar: string | null;
         };
         recentBookings: {
@@ -291,8 +306,8 @@ export declare class CompaniesController {
                     name: string;
                 };
             } | null;
-            description: string | null;
             createdAt: Date;
+            description: string | null;
             amount: import("@prisma/client/runtime/library").Decimal;
             type: string;
         }[];
@@ -322,10 +337,10 @@ export declare class CompaniesController {
     getMyCompanyCampaigns(user: any): Promise<{
         id: string;
         companyId: string;
-        name: string;
         status: string;
         createdAt: Date;
         updatedAt: Date;
+        name: string;
         budget: import("@prisma/client/runtime/library").Decimal;
         spent: import("@prisma/client/runtime/library").Decimal;
         impressions: number;
@@ -346,104 +361,20 @@ export declare class CompaniesController {
     getRecommendedCompanies(query: any): Promise<{
         data: any[];
     }>;
-    getAdminStats(): Promise<{
-        success: boolean;
-        stats: {
-            totalUsers: number;
-            newUsersThisWeek: number;
-            totalCompanies: number;
-            pendingCompanies: number;
-            totalBookings: number;
-            activeBookings: number;
-            totalRevenue: number;
-            recentUsers: {
-                id: string;
-                createdAt: string;
-                status: import(".prisma/client").$Enums.UserStatus;
-                email: string | null;
-                fullName: string;
-                role: import(".prisma/client").$Enums.UserRole;
-            }[];
-            recentBookings: {
-                id: string;
-                customerName: string;
-                serviceName: string;
-                companyName: string;
-                status: import(".prisma/client").$Enums.BookingStatus;
-                price: number;
-                createdAt: string;
-            }[];
-            topCategories: {
-                name: string;
-                slug: string;
-                bookings: number;
-            }[];
-            bookingsByMonth: {
-                month: string;
-                count: number;
-            }[];
-            usersByMonth: {
-                month: string;
-                count: number;
-            }[];
-        };
-    }>;
-    getAdminAnalytics(): Promise<{
-        success: boolean;
-        data: {
-            totalRevenue: number;
-            revenueGrowth: number;
-            totalBookings: number;
-            bookingsGrowth: number;
-            totalUsers: number;
-            usersGrowth: number;
-            totalCompanies: number;
-            pendingCompanies: number;
-            activeBookings: number;
-            completedBookings: number;
-            cancelledBookings: number;
-            avgBookingValue: number;
-            conversionRate: number;
-            monthlyData: {
-                name: string;
-                bookings: number;
-                revenue: number;
-            }[];
-            statusBreakdown: {
-                name: string;
-                value: number;
-                color: string;
-            }[];
-            weeklyStats: {
-                day: string;
-                bookings: number;
-            }[];
-            categoryData: {
-                name: string;
-                value: number;
-            }[];
-            topCompanies: {
-                name: string;
-                completedJobs: number;
-                rating: number;
-                revenue: string;
-            }[];
-        };
-    }>;
     getCompaniesByCategory(categorySlug: string, query: any): Promise<{
         success: boolean;
         data: {
             category: {
                 id: string;
-                slug: string;
-                name: string;
-                description: string | null;
-                icon: string | null;
-                imageUrl: string | null;
                 status: import(".prisma/client").$Enums.CategoryStatus;
-                displayOrder: number;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
+                description: string | null;
+                slug: string;
+                icon: string | null;
+                imageUrl: string | null;
+                displayOrder: number;
             };
             companies: any[];
             pagination: {
@@ -459,28 +390,28 @@ export declare class CompaniesController {
         data: {
             category: {
                 id: string;
-                slug: string;
-                name: string;
-                description: string | null;
-                icon: string | null;
-                imageUrl: string | null;
                 status: import(".prisma/client").$Enums.CategoryStatus;
-                displayOrder: number;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
+                description: string | null;
+                slug: string;
+                icon: string | null;
+                imageUrl: string | null;
+                displayOrder: number;
             };
             serviceType: {
                 id: string;
                 categoryId: string;
-                slug: string;
-                name: string;
-                description: string | null;
-                icon: string | null;
-                imageUrl: string | null;
                 status: import(".prisma/client").$Enums.CategoryStatus;
-                displayOrder: number;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
+                description: string | null;
+                slug: string;
+                icon: string | null;
+                imageUrl: string | null;
+                displayOrder: number;
             };
             companies: any[];
             pagination: {
@@ -492,63 +423,64 @@ export declare class CompaniesController {
         };
     }>;
     getCompanyById(id: string): Promise<{
+        staff: {
+            id: bigint;
+        }[];
         services: ({
             serviceType: {
                 category: {
                     id: bigint;
-                    slug: string;
-                    name: string;
-                    description: string | null;
-                    icon: string | null;
-                    imageUrl: string | null;
                     status: import(".prisma/client").$Enums.CategoryStatus;
-                    displayOrder: number;
                     createdAt: Date;
                     updatedAt: Date;
+                    name: string;
+                    description: string | null;
+                    slug: string;
+                    icon: string | null;
+                    imageUrl: string | null;
+                    displayOrder: number;
                 };
             } & {
                 id: bigint;
-                slug: string;
-                name: string;
-                description: string | null;
-                icon: string | null;
-                imageUrl: string | null;
                 status: import(".prisma/client").$Enums.CategoryStatus;
-                displayOrder: number;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
+                description: string | null;
+                slug: string;
+                icon: string | null;
+                imageUrl: string | null;
+                displayOrder: number;
                 categoryId: bigint;
             };
         } & {
             id: bigint;
-            name: string;
-            description: string | null;
+            checklist: import("@prisma/client/runtime/library").JsonValue | null;
             createdAt: Date;
             updatedAt: Date;
-            discountPrice: import("@prisma/client/runtime/library").Decimal | null;
             companyId: bigint;
+            name: string;
+            serviceTypeId: bigint;
             image: string | null;
+            description: string | null;
             basePrice: import("@prisma/client/runtime/library").Decimal;
+            discountPrice: import("@prisma/client/runtime/library").Decimal | null;
             features: import("@prisma/client/runtime/library").JsonValue | null;
             durationMin: number;
             durationMax: number | null;
             isActive: boolean;
-            serviceTypeId: bigint;
         })[];
-        staff: {
-            id: bigint;
-        }[];
         owner: {
             id: bigint;
+            fullName: string;
             email: string | null;
             phone: string | null;
-            fullName: string;
         };
         ratingSummary: {
+            companyId: bigint;
             averageRating: import("@prisma/client/runtime/library").Decimal | null;
             totalReviews: number;
             lastUpdated: Date;
-            companyId: bigint;
         } | null;
         serviceAreas: {
             city: string;
@@ -556,17 +488,18 @@ export declare class CompaniesController {
         }[];
     } & {
         id: bigint;
-        name: string;
-        description: string | null;
+        latitude: import("@prisma/client/runtime/library").Decimal | null;
+        longitude: import("@prisma/client/runtime/library").Decimal | null;
         createdAt: Date;
         updatedAt: Date;
+        walletBalance: import("@prisma/client/runtime/library").Decimal;
+        name: string;
+        description: string | null;
         email: string | null;
         phone: string | null;
         registrationNumber: string | null;
         address: string | null;
         city: string | null;
-        latitude: import("@prisma/client/runtime/library").Decimal | null;
-        longitude: import("@prisma/client/runtime/library").Decimal | null;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         logoUrl: string | null;
         coverImageUrl: string | null;
@@ -577,7 +510,12 @@ export declare class CompaniesController {
         subscriptionStatus: string;
         trialEndsAt: Date | null;
         nextBillingDate: Date | null;
-        walletBalance: import("@prisma/client/runtime/library").Decimal;
+        pendingBalance: import("@prisma/client/runtime/library").Decimal;
+        availableBalance: import("@prisma/client/runtime/library").Decimal;
+        platformFeePercent: import("@prisma/client/runtime/library").Decimal | null;
+        completedJobs: number;
+        isInsured: boolean;
+        completionRate: import("@prisma/client/runtime/library").Decimal;
         ownerId: bigint;
     }>;
     updateCompany(id: string, updateCompanyDto: UpdateCompanyDto, user: any): Promise<{
@@ -585,22 +523,23 @@ export declare class CompaniesController {
         company: {
             owner: {
                 id: bigint;
-                email: string | null;
                 fullName: string;
+                email: string | null;
             };
         } & {
             id: bigint;
-            name: string;
-            description: string | null;
+            latitude: import("@prisma/client/runtime/library").Decimal | null;
+            longitude: import("@prisma/client/runtime/library").Decimal | null;
             createdAt: Date;
             updatedAt: Date;
+            walletBalance: import("@prisma/client/runtime/library").Decimal;
+            name: string;
+            description: string | null;
             email: string | null;
             phone: string | null;
             registrationNumber: string | null;
             address: string | null;
             city: string | null;
-            latitude: import("@prisma/client/runtime/library").Decimal | null;
-            longitude: import("@prisma/client/runtime/library").Decimal | null;
             verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
             logoUrl: string | null;
             coverImageUrl: string | null;
@@ -611,7 +550,12 @@ export declare class CompaniesController {
             subscriptionStatus: string;
             trialEndsAt: Date | null;
             nextBillingDate: Date | null;
-            walletBalance: import("@prisma/client/runtime/library").Decimal;
+            pendingBalance: import("@prisma/client/runtime/library").Decimal;
+            availableBalance: import("@prisma/client/runtime/library").Decimal;
+            platformFeePercent: import("@prisma/client/runtime/library").Decimal | null;
+            completedJobs: number;
+            isInsured: boolean;
+            completionRate: import("@prisma/client/runtime/library").Decimal;
             ownerId: bigint;
         };
     }>;
@@ -620,9 +564,9 @@ export declare class CompaniesController {
     }>;
     addStaffAvailability(staffId: string, dto: AddAvailabilityDto, user: any): Promise<{
         id: bigint;
-        companyId: bigint;
         startTime: Date;
         endTime: Date;
+        companyId: bigint;
         staffId: bigint | null;
         date: Date;
         isAvailable: boolean;

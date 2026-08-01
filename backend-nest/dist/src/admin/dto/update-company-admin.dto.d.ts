@@ -8,6 +8,8 @@ export declare class UpdateServiceDto {
 }
 export declare class UpdateCompanyAdminDto {
     name?: string;
+    verificationStatus?: string;
+    status?: string;
     description?: string;
     address?: string;
     city?: string;

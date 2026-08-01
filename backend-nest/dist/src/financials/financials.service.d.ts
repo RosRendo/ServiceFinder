@@ -5,6 +5,7 @@ export declare class FinancialsService {
     constructor(prisma: PrismaService);
     getWallet(user: any): Promise<{
         balance: number;
+        pendingBalance: number;
         pendingWithdrawals: number;
         payouts: {
             id: string;
@@ -13,9 +14,9 @@ export declare class FinancialsService {
             status: string;
             createdAt: Date;
             updatedAt: Date;
-            ownerType: string;
             accountName: string;
             accountNumber: string;
+            ownerType: string;
             adminNotes: string | null;
             destinationBank: string;
         }[];
@@ -24,8 +25,8 @@ export declare class FinancialsService {
             ownerId: string;
             bookingId: string | undefined;
             amount: number;
-            description: string;
             createdAt: Date;
+            description: string;
             category: string;
             type: string;
             ownerType: string;
@@ -38,9 +39,9 @@ export declare class FinancialsService {
         status: string;
         createdAt: Date;
         updatedAt: Date;
-        ownerType: string;
         accountName: string;
         accountNumber: string;
+        ownerType: string;
         adminNotes: string | null;
         destinationBank: string;
     }>;
@@ -51,9 +52,9 @@ export declare class FinancialsService {
         status: string;
         createdAt: Date;
         updatedAt: Date;
-        ownerType: string;
         accountName: string;
         accountNumber: string;
+        ownerType: string;
         adminNotes: string | null;
         destinationBank: string;
     }[]>;
@@ -64,9 +65,9 @@ export declare class FinancialsService {
         status: string;
         createdAt: Date;
         updatedAt: Date;
-        ownerType: string;
         accountName: string;
         accountNumber: string;
+        ownerType: string;
         adminNotes: string | null;
         destinationBank: string;
     }>;

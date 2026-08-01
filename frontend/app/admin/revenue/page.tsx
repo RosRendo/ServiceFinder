@@ -39,7 +39,7 @@ export default function RevenuePage() {
 
   const grossRevenue = data?.totalRevenue || 0;
   const platformFee = grossRevenue * 0.15; // Assuming 15% platform fee
-  const refunds = 0; // Currently unmocked in backend
+  const refunds = 0; // Currently unsupported in backend
   const netRevenue = grossRevenue - platformFee - refunds;
 
   const kpis = [

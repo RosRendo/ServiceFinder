@@ -2,7 +2,7 @@
  * Welcome Screen — Onboarding Carousel
  */
 import React, { useRef, useState, useEffect } from "react";
-import { View, Text, StyleSheet, Animated, Pressable, ScrollView, Dimensions, NativeSyntheticEvent, NativeScrollEvent, Platform, Easing } from "react-native";
+import { View, Text, StyleSheet, Animated, Pressable, ScrollView, Dimensions, NativeSyntheticEvent, NativeScrollEvent, Platform, Easing, Image, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -115,13 +115,8 @@ export default function WelcomeScreen() {
         {/* Bottom Actions */}
         <View style={s.actionsWrapper}>
           <PressBtn onPress={() => router.push("/login")} style={s.btnPrimary}>
-            <MaterialCommunityIcons name="cellphone-message" size={24} color={T.surface} style={{ marginRight: 8 }} />
-            <Text style={s.btnPrimaryText}>{t('welcome.continuePhone')}</Text>
-          </PressBtn>
-
-          <PressBtn onPress={() => router.push("/login?method=email")} style={s.btnGoogle}>
-            <MaterialCommunityIcons name="email-outline" size={24} color={T.text1} style={{ marginRight: 8 }} />
-            <Text style={s.btnGoogleText}>{t('welcome.continueEmail')}</Text>
+            <Text style={s.btnPrimaryText}>{t('welcome.getStarted', 'Get Started')}</Text>
+            <MaterialCommunityIcons name="arrow-right" size={24} color={T.surface} style={{ marginLeft: 8 }} />
           </PressBtn>
         </View>
       </View>

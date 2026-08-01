@@ -1,5 +1,5 @@
 /**
- * My Bookings Screen — Premium Redesign (Ticket Style)
+ * My Activity Screen — Premium Redesign (Ticket Style)
  */
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
@@ -18,10 +18,6 @@ import { Theme } from "@/constants/theme";
 // ─── Design Tokens ───────────────────────────────────────────
 const T = Theme.colors;
 
-const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },
-  android: { elevation: 4 },
-});
 const TICKET_SHADOW = Platform.select({
   ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 20 },
   android: { elevation: 8 },
@@ -59,9 +55,9 @@ const formatDate = (iso: string, t: any) => {
   if (!iso) return "";
   const d = new Date(iso);
   const now = new Date();
-  if (d.toDateString() === now.toDateString()) return t('book.today');
+  if (d.toDateString() === now.toDateString()) return "Today";
   const tomorrow = new Date(); tomorrow.setDate(now.getDate() + 1);
-  if (d.toDateString() === tomorrow.toDateString()) return t('book.tomorrow');
+  if (d.toDateString() === tomorrow.toDateString()) return "Tomorrow";
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 };
 
@@ -78,14 +74,14 @@ const formatTime = (t: string) => {
   return t;
 };
 
-const getStatusConfig = (status: BookingStatus, t: any) => {
+const getStatusConfig = (status: BookingStatus) => {
   switch (status) {
-    case "pending":    return { color: T.pending,    bg: T.pendingBg,    icon: "clock-outline",        label: t('book.statusPending') };
-    case "confirmed":  return { color: T.confirmed,  bg: T.confirmedBg,  icon: "check-circle-outline", label: t('book.statusConfirmed') };
-    case "in_progress":return { color: T.inprogress, bg: T.inprogressBg, icon: "progress-wrench",      label: t('book.statusInProgress') };
-    case "completed":  return { color: T.completed,  bg: T.completedBg,  icon: "check-decagram",       label: t('book.statusCompleted') };
-    case "cancelled":  return { color: T.cancelled,  bg: T.cancelledBg,  icon: "close-circle-outline", label: t('book.statusCancelled') };
-    case "rejected":   return { color: T.cancelled,  bg: T.cancelledBg,  icon: "close-circle-outline", label: t('book.statusRejected') };
+    case "pending":    return { color: T.pending,    bg: T.pendingBg,    icon: "clock-outline",        label: "Pending" };
+    case "confirmed":  return { color: T.confirmed,  bg: T.confirmedBg,  icon: "check-circle-outline", label: "Confirmed" };
+    case "in_progress":return { color: T.inprogress, bg: T.inprogressBg, icon: "progress-wrench",      label: "In Progress" };
+    case "completed":  return { color: T.completed,  bg: T.completedBg,  icon: "check-decagram",       label: "Completed" };
+    case "cancelled":  return { color: T.cancelled,  bg: T.cancelledBg,  icon: "close-circle-outline", label: "Cancelled" };
+    case "rejected":   return { color: T.cancelled,  bg: T.cancelledBg,  icon: "close-circle-outline", label: "Rejected" };
     default:           return { color: T.text3,      bg: T.accentLight,  icon: "help-circle-outline",  label: status };
   }
 };
@@ -132,7 +128,6 @@ function SkeletonCard({ index }: { index: number }) {
 // ─── Booking Card (Clean Style) ──────────────────────────────
 function BookingCard({ booking, onCancel, index }: { booking: Booking; onCancel: (id: string) => void; index: number }) {
   const router = useRouter();
-  const { t } = useTranslation();
   
   // Staggered Entrance Animation
   const enterAnim = useRef(new Animated.Value(0)).current;
@@ -150,7 +145,7 @@ function BookingCard({ booking, onCancel, index }: { booking: Booking; onCancel:
   const pressIn = () => Animated.timing(scale, { toValue: 0.97, duration: 100, useNativeDriver: true }).start();
   const pressOut = () => Animated.timing(scale, { toValue: 1, duration: 150, useNativeDriver: true }).start();
 
-  const cfg = getStatusConfig(booking.status, t);
+  const cfg = getStatusConfig(booking.status);
   const heroImg =
     booking.service?.image || (booking.service as any)?.serviceType?.imageUrl || (booking.service as any)?.serviceType?.category?.imageUrl ||
     booking.company?.logoUrl;
@@ -179,10 +174,10 @@ function BookingCard({ booking, onCancel, index }: { booking: Booking; onCancel:
             <View style={{ flex: 1, justifyContent: "space-between" }}>
               <View>
                 <Text style={s.cardTitle} numberOfLines={1}>
-                  {booking.service?.name || t('book.serviceBooking')}
+                  {booking.service?.name || "Service Booking"}
                 </Text>
                 <Text style={s.cardProvider} numberOfLines={1}>
-                  {t('book.by')}{booking.company?.name || t('book.serviceProvider')}
+                  by {booking.company?.name || "Service Provider"}
                 </Text>
               </View>
 
@@ -206,13 +201,13 @@ function BookingCard({ booking, onCancel, index }: { booking: Booking; onCancel:
               <View style={s.dateTimeBox}>
                 <View style={s.dateTimeRow}>
                   <MaterialCommunityIcons name="calendar-month-outline" size={16} color={T.text3} />
-                  <Text style={s.dateText}>{formatDate(booking.bookingDate || booking.scheduledAt, t)}</Text>
+                  <Text style={s.dateText}>{formatDate(booking.bookingDate || booking.scheduledAt, null)}</Text>
                 </View>
                 <View style={[s.dateTimeRow, { marginTop: 4 }]}>
                   <MaterialCommunityIcons name="clock-outline" size={16} color={T.text3} />
                   <Text style={s.timeText}>
                     {formatTime(booking.startTime || booking.scheduledAt)}
-                    {booking.service?.durationMin ? ` · ${booking.service.durationMin}${t('home.min')}` : ''}
+                    {booking.service?.durationMin ? ` · ${booking.service.durationMin} mins` : ''}
                   </Text>
                 </View>
               </View>
@@ -225,17 +220,17 @@ function BookingCard({ booking, onCancel, index }: { booking: Booking; onCancel:
                 
                 {booking.status?.toLowerCase() === "pending" && (
                   <TouchableOpacity onPress={(e) => { e.stopPropagation(); onCancel(booking.id); }} style={s.actionBtnOutline} hitSlop={10}>
-                    <Text style={s.actionBtnOutlineText}>{t('book.actionCancel')}</Text>
+                    <Text style={s.actionBtnOutlineText}>Cancel</Text>
                   </TouchableOpacity>
                 )}
                 {booking.status?.toLowerCase() === "confirmed" && (
                   <TouchableOpacity style={s.actionBtnPrimary} hitSlop={10} onPress={(e) => { e.stopPropagation(); router.push(`/(customer)/booking/${booking.id}` as any); }}>
-                    <Text style={s.actionBtnPrimaryText}>{t('book.actionManage')}</Text>
+                    <Text style={s.actionBtnPrimaryText}>Details</Text>
                   </TouchableOpacity>
                 )}
                 {booking.status?.toLowerCase() === "in_progress" && (
                   <TouchableOpacity style={[s.actionBtnPrimary, { backgroundColor: T.inprogress }]} hitSlop={10} onPress={(e) => { e.stopPropagation(); router.push(`/(customer)/booking/${booking.id}` as any); }}>
-                    <Text style={s.actionBtnPrimaryText}>{t('book.actionTrack')}</Text>
+                    <Text style={s.actionBtnPrimaryText}>Track Staff</Text>
                   </TouchableOpacity>
                 )}
                 {booking.status?.toLowerCase() === "completed" && (
@@ -244,12 +239,12 @@ function BookingCard({ booking, onCancel, index }: { booking: Booking; onCancel:
                     hitSlop={10}
                     onPress={(e) => { e.stopPropagation(); router.push(`/(customer)/booking/${booking.id}` as any); }}
                   >
-                    <Text style={s.actionBtnPrimaryText}>{t('book.actionReview')}</Text>
+                    <Text style={s.actionBtnPrimaryText}>Leave Review</Text>
                   </TouchableOpacity>
                 )}
                 {(booking.status?.toLowerCase() === "cancelled" || booking.status?.toLowerCase() === "rejected") && (
                   <TouchableOpacity style={[s.actionBtnPrimary, { backgroundColor: T.accentMid }]} hitSlop={10} onPress={(e) => { e.stopPropagation(); router.push(`/(customer)/booking/${booking.id}` as any); }}>
-                    <Text style={s.actionBtnPrimaryText}>{t('book.actionRebook')}</Text>
+                    <Text style={s.actionBtnPrimaryText}>Rebook</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -285,9 +280,8 @@ function AnimatedEmptyIcon({ activeTab }: { activeTab: string }) {
 }
 
 // ─── Main Screen ─────────────────────────────────────────────
-export default function BookingsScreen() {
+export default function ActivityScreen() {
   const router = useRouter();
-  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"upcoming" | "past" | "cancelled">("upcoming");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -304,7 +298,7 @@ export default function BookingsScreen() {
       });
       setBookings(filtered);
     } catch (e: any) {
-      console.error("[Bookings] load error:", e?.message);
+      console.error("[Activity] load error:", e?.message);
       setBookings([]);
     } finally {
       setIsLoading(false);
@@ -314,16 +308,16 @@ export default function BookingsScreen() {
   useEffect(() => { loadBookings(); }, [loadBookings]);
 
   const handleCancel = (id: string) => {
-    Alert.alert(t('book.alertCancelTitle'), t('book.alertCancelMessage'), [
-      { text: t('book.alertNo'), style: "cancel" },
+    Alert.alert("Cancel Booking", "Are you sure you want to cancel this booking?", [
+      { text: "No", style: "cancel" },
       {
-        text: t('book.alertYesCancel'), style: "destructive",
+        text: "Yes, Cancel", style: "destructive",
         onPress: async () => {
           try {
-            await api.patch(`/api/bookings/${id}/cancel`, { reason: t('book.reasonCancelledByCustomer') });
+            await api.patch(`/api/bookings/${id}/cancel`, { reason: "Cancelled by Customer" });
             loadBookings();
           } catch (e: any) {
-            Alert.alert(t('book.alertError'), e?.response?.data?.message || t('book.alertCouldNotCancel'));
+            Alert.alert("Error", e?.response?.data?.message || "Could not cancel booking.");
           }
         },
       },
@@ -331,9 +325,9 @@ export default function BookingsScreen() {
   };
 
   const TABS = [
-    { key: "upcoming" as const, label: t('book.tabUpcoming') },
-    { key: "past" as const,     label: t('book.tabCompleted') },
-    { key: "cancelled" as const,label: t('book.tabCancelled') },
+    { key: "upcoming" as const, label: "Upcoming" },
+    { key: "past" as const,     label: "Completed" },
+    { key: "cancelled" as const,label: "Cancelled" },
   ];
 
   return (
@@ -341,8 +335,8 @@ export default function BookingsScreen() {
       {/* ── HEADER ────────────────────────────────────────────── */}
       <View style={s.header}>
         <View>
-          <Text style={s.headerEyebrow}>{t('book.yourSchedule')}</Text>
-          <Text style={s.headerTitle}>{t('book.myBookings')}</Text>
+          <Text style={s.headerEyebrow}>Your History & Schedule</Text>
+          <Text style={s.headerTitle}>My Activity</Text>
         </View>
         <TouchableOpacity onPress={loadBookings} style={s.refreshBtn}>
           <Ionicons name="reload" size={18} color={T.text1} />
@@ -385,21 +379,21 @@ export default function BookingsScreen() {
           <Animated.View style={s.emptyState}>
               <AnimatedEmptyIcon activeTab={activeTab} />
             <Text style={s.emptyTitle}>
-              {activeTab === "upcoming" ? t('book.noUpcomingBookings') :
-               activeTab === "past" ? t('book.noCompletedBookings') : t('book.noCancelledBookings')}
+              {activeTab === "upcoming" ? "No Active Services" :
+               activeTab === "past" ? "No Completed Services" : "No Cancelled Services"}
             </Text>
             <Text style={s.emptyBody}>
               {activeTab === "upcoming"
-                ? t('book.readyToBook')
-                : t('book.historyWillAppear')}
+                ? "You don't have any bookings active at the moment."
+                : "Your historical services will display here."}
             </Text>
             {activeTab === "upcoming" && (
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => router.push("/(customer)/(tabs)/explore" as any)}
+                onPress={() => router.push("/(customer)/(tabs)/home" as any)}
                 style={s.emptyBtn}
               >
-                <Text style={s.emptyBtnText}>{t('book.exploreServices')}</Text>
+                <Text style={s.emptyBtnText}>Explore Services</Text>
                 <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
               </TouchableOpacity>
             )}
@@ -418,11 +412,11 @@ export default function BookingsScreen() {
                 <Ionicons name="chatbubbles" size={24} color={T.accentMid} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.supportTitle}>{t('book.needHelp')}</Text>
-                <Text style={s.supportBody}>{t('book.contactSupport')}</Text>
+                <Text style={s.supportTitle}>Need assistance?</Text>
+                <Text style={s.supportBody}>Chat directly with support agents 24/7</Text>
               </View>
               <TouchableOpacity style={s.supportBtn}>
-                <Text style={s.supportBtnText}>{t('book.chat')}</Text>
+                <Text style={s.supportBtnText}>Chat</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -535,4 +529,3 @@ const s = StyleSheet.create({
   },
   supportBtnText: { fontSize: 13, fontWeight: "800", color: T.accent },
 });
-

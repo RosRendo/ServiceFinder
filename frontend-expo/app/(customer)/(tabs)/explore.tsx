@@ -456,7 +456,7 @@ export default function Explore() {
                   <FadeIn key={company.id} delay={i * 100}>
                     <CompanyCard
                       company={company}
-                      onPress={() => router.push(`/company/${company.id}` as any)}
+                      onPress={() => router.push(`/(customer)/company/${company.id}` as any)}
                     />
                   </FadeIn>
                 ))}
@@ -497,7 +497,7 @@ export default function Explore() {
                   <FadeIn key={service.id} delay={i * 100}>
                     <ServiceRow
                       service={service}
-                      onPress={() => router.push(`/(customer)/company/service-modal/${service.id}` as any)}
+                      onPress={() => router.push(`/(customer)/service/${service.id}` as any)}
                     />
                   </FadeIn>
                 ))}
@@ -533,7 +533,7 @@ export default function Explore() {
                   <FadeIn key={company.id} delay={i * 100}>
                     <NearbyRow
                       company={company}
-                      onPress={() => router.push(`/company/${company.id}` as any)}
+                      onPress={() => router.push(`/(customer)/company/${company.id}` as any)}
                     />
                   </FadeIn>
                 ))

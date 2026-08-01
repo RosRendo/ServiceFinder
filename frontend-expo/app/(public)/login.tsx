@@ -60,7 +60,7 @@ export default function Login() {
     setTimeout(() => {
       if (role === "customer") router.replace("/(customer)/(tabs)/home");
       else if (role === "company" || role === "company_admin") router.replace("/(company)/(tabs)/dashboard");
-      else if (role === "staff") router.replace("/(staff)/(tabs)/dashboard");
+      else if (role === "staff") router.replace("/(staff)/(tabs)/today");
       else if (role === "admin") router.replace("/(admin)/(tabs)/dashboard");
       else setError(`Unknown role: ${role}. Contact support.`);
     }, 100);
@@ -200,6 +200,7 @@ export default function Login() {
       <TouchableOpacity style={s.backBtn} onPress={() => {
         if (step === "otp") setStep("phone");
         else if (step === "mfa") setStep("email");
+        else if (step === "email") { setStep("phone"); setError(""); }
         else router.back();
       }}>
         <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
@@ -357,8 +358,25 @@ export default function Login() {
           </>
         )}
 
-        {/* Divider + Social */}
-        {step !== "mfa" && (
+        {/* Social */}
+        {step === "phone" && (
+          <View style={s.socialRow}>
+            <TouchableOpacity onPress={() => handleSocialLogin("google")} style={s.socialBtn} activeOpacity={0.7} disabled={isLoading}>
+               <Image source={{ uri: "https://img.icons8.com/color/48/000000/google-logo.png" }} style={{ width: 26, height: 26 }} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity onPress={() => handleSocialLogin("facebook")} style={s.socialBtn} activeOpacity={0.7} disabled={isLoading}>
+               <MaterialCommunityIcons name="facebook" size={30} color="#1877F2" />
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => { setStep("email"); setError(""); }} style={s.socialBtn} activeOpacity={0.7}>
+               <MaterialCommunityIcons name="email-outline" size={28} color={T.text1} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Email Social Options */}
+        {step === "email" && (
           <>
             <View style={s.dividerBox}>
               <View style={s.dividerLine} />
@@ -378,22 +396,6 @@ export default function Login() {
 
         {/* Footer */}
         <View style={s.footerContainer}>
-          {step === "phone" && (
-            <View style={s.footerRow}>
-              <Text style={s.footerText}>Prefer using a password?</Text>
-              <TouchableOpacity onPress={() => { setStep("email"); setError(""); }}>
-                <Text style={s.footerLink}>Login with Email</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          {step === "email" && (
-            <View style={s.footerRow}>
-              <Text style={s.footerText}>Want to go passwordless?</Text>
-              <TouchableOpacity onPress={() => { setStep("phone"); setError(""); }}>
-                <Text style={s.footerLink}>Login with Phone</Text>
-              </TouchableOpacity>
-            </View>
-          )}
           {step !== "mfa" && (
             <View style={[s.footerRow, { marginTop: 12 }]}>
               <Text style={s.footerText}>{t("auth.noAccount").split("?")[0]}?</Text>
@@ -454,6 +456,18 @@ const s = StyleSheet.create({
 
   btnPrimary: { backgroundColor: T.accent, borderRadius: 14, paddingVertical: 17, alignItems: "center", marginTop: 4 },
   btnPrimaryText: { fontSize: 16, fontWeight: "600", color: "#fff" },
+
+  socialRow: { flexDirection: "row", justifyContent: "center", gap: 16, marginTop: 32 },
+  socialBtn: { 
+    width: 60, height: 60, borderRadius: 16, 
+    backgroundColor: T.surface, 
+    borderWidth: 1, borderColor: T.border, 
+    alignItems: "center", justifyContent: "center",
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+      android: { elevation: 2 },
+    })
+  },
 
   dividerBox: { flexDirection: "row", alignItems: "center", marginVertical: 28 },
   dividerLine: { flex: 1, height: 1, backgroundColor: T.border },

@@ -9,6 +9,7 @@ import {
   UseGuards,
   Query,
   Put,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -93,7 +94,12 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Return user details.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   getUserById(@Param('id') id: string) {
-    return this.usersService.getUserById(BigInt(id));
+    try {
+      const parsedId = BigInt(id);
+      return this.usersService.getUserById(parsedId);
+    } catch {
+      throw new BadRequestException('Invalid user ID format');
+    }
   }
 
   @Put(':id')
@@ -104,7 +110,12 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @CurrentUser() user: any,
   ) {
-    return this.usersService.updateUser(BigInt(id), updateUserDto, user);
+    try {
+      const parsedId = BigInt(id);
+      return this.usersService.updateUser(parsedId, updateUserDto, user);
+    } catch {
+      throw new BadRequestException('Invalid user ID format');
+    }
   }
 
   @Patch(':id')
@@ -115,7 +126,12 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @CurrentUser() user: any,
   ) {
-    return this.usersService.updateUser(BigInt(id), updateUserDto, user);
+    try {
+      const parsedId = BigInt(id);
+      return this.usersService.updateUser(parsedId, updateUserDto, user);
+    } catch {
+      throw new BadRequestException('Invalid user ID format');
+    }
   }
 
   @Post('request-contact-update')

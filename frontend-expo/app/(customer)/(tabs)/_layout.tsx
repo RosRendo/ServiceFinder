@@ -14,9 +14,9 @@ const NAV = {
 
 const TABS = [
   { name: 'home',     icon: 'home-variant-outline', iconActive: 'home-variant', label: 'Home' },
-  { name: 'explore',  icon: 'compass-outline',      iconActive: 'compass',      label: 'Explore' },
-  { name: 'book',     icon: 'calendar-blank-outline', iconActive: 'calendar-check', label: 'Bookings' },
-  { name: 'messages', icon: 'message-outline',      iconActive: 'message',      label: 'Messages' },
+  { name: 'explore',  icon: 'compass-outline',      iconActive: 'compass',        label: 'Explore' },
+  { name: 'activity', icon: 'calendar-blank-outline', iconActive: 'calendar-check', label: 'Activity' },
+  { name: 'message',  icon: 'message-outline',      iconActive: 'message-processing', label: 'Messages' },
   { name: 'profile',  icon: 'account-circle-outline', iconActive: 'account-circle', label: 'Profile' },
 ];
 
@@ -64,7 +64,7 @@ function FloatingTabBar({ state, descriptors, navigation, t }: any) {
                   size={isFocused ? 24 : 22}
                   color={isFocused ? NAV.active : NAV.inactive}
                 />
-                {isFocused && <Text style={nb.label}>{t(`navigation.${tab.name}`)}</Text>}
+                {isFocused && <Text style={nb.label}>{tab.label}</Text>}
               </Animated.View>
             </TouchableOpacity>
           );
@@ -107,8 +107,8 @@ export default function CustomerTabsLayout() {
     >
       <Tabs.Screen name="home" />
       <Tabs.Screen name="explore" />
-      <Tabs.Screen name="book" />
-      <Tabs.Screen name="messages" />
+      <Tabs.Screen name="activity" />
+      <Tabs.Screen name="message" />
       <Tabs.Screen name="profile" />
     </Tabs>
   );

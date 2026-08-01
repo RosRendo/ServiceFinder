@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Theme } from "@/constants/theme";
+import api from "@/utils/api";
 import ConfettiCannon from "react-native-confetti-cannon";
 
 const T = Theme.colors;
@@ -19,49 +20,64 @@ const CARD_SHADOW = Platform.select({
   android: { elevation: 4 },
 });
 
-// Mock Data for escalated refund requests
-const MOCK_REFUNDS = [
-  { id: "RF-1029", disputeId: "DP-8821", company: "CleanPro Services", customer: "Sarah M.", amount: 850.00, status: "pending", date: "2026-07-25" },
-  { id: "RF-1030", disputeId: "DP-8902", company: "Elite Plumbers", customer: "David K.", amount: 150.00, status: "pending", date: "2026-07-24" },
-  { id: "RF-1031", disputeId: "DP-9011", company: "QuickFix HVAC", customer: "Elena R.", amount: 1200.00, status: "pending", date: "2026-07-23" },
-];
-
 export default function RefundsScreen() {
   const router = useRouter();
-  const [activeRefund, setActiveRefund] = useState<any>(MOCK_REFUNDS[0]);
-  const [refundAmount, setRefundAmount] = useState<string>(activeRefund.amount.toString());
+  const [refundQueue, setRefundQueue] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeRefund, setActiveRefund] = useState<any>(null);
+  const [refundAmount, setRefundAmount] = useState<string>("");
   const [absorbFee, setAbsorbFee] = useState<boolean>(false);
-  
   const [pinModalVisible, setPinModalVisible] = useState(false);
   const [pin, setPin] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Math Logic
-  const parsedAmount = parseFloat(refundAmount) || 0;
-  const isFullRefund = parsedAmount >= activeRefund.amount;
-  const stripeFee = (parsedAmount * 0.029) + 0.30;
-  
-  const companyDeduction = absorbFee ? parsedAmount : (parsedAmount + stripeFee);
-  const platformLoss = absorbFee ? stripeFee : 0;
-  const requiresSuperAdmin = parsedAmount > 500;
+  // Fetch resolved disputes that have a refundAmount set (i.e., pending refund execution)
+  const fetchRefundQueue = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/api/admin/disputes", { params: { status: "resolved" } });
+      const responseData = res.data?.data ?? res.data;
+      const list = Array.isArray(responseData) ? responseData : (responseData?.data ?? []);
+      // Only show disputes where a refund amount was set
+      const withRefunds = list.filter((d: any) => Number(d.refundAmount) > 0);
+      setRefundQueue(withRefunds);
+      if (withRefunds.length > 0) {
+        setActiveRefund(withRefunds[0]);
+        setRefundAmount(withRefunds[0].refundAmount?.toString() || "");
+      }
+    } catch (err) {
+      console.error("Error fetching refund queue", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchRefundQueue(); }, []);
 
   useEffect(() => {
-    setRefundAmount(activeRefund.amount.toString());
-    setAbsorbFee(false);
-    setPin("");
+    if (activeRefund) {
+      setRefundAmount(activeRefund.refundAmount?.toString() || activeRefund.amount?.toString() || "");
+      setAbsorbFee(false);
+      setPin("");
+    }
   }, [activeRefund]);
 
+
+  // Math Logic
+  const parsedAmount = parseFloat(refundAmount) || 0;
+  const isFullRefund = activeRefund ? parsedAmount >= Number(activeRefund.refundAmount || activeRefund.amount || 0) : false;
+  const khqrFee = parsedAmount * 0.01; // 1% approximate for KHQR gateway
+  const companyDeduction = absorbFee ? parsedAmount : (parsedAmount + khqrFee);
+  const platformLoss = absorbFee ? khqrFee : 0;
+  const requiresSuperAdmin = parsedAmount > 500;
+
   const initiateRefund = () => {
+    if (!activeRefund) return;
     if (parsedAmount <= 0) {
       Alert.alert("Invalid Amount", "Refund amount must be greater than $0.");
       return;
     }
-    if (parsedAmount > activeRefund.amount) {
-      Alert.alert("Invalid Amount", "Cannot refund more than the original transaction amount.");
-      return;
-    }
-    
     if (requiresSuperAdmin) {
       setPinModalVisible(true);
     } else {
@@ -69,21 +85,27 @@ export default function RefundsScreen() {
     }
   };
 
-  const executeRefund = () => {
+  const executeRefund = async () => {
     setPinModalVisible(false);
     setIsProcessing(true);
-
-    // Simulate API Call to Stripe
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      // Resolve the dispute and mark the payment as refunded via KHQR
+      await api.patch(`/api/admin/disputes/${activeRefund.id}`, {
+        status: "closed",
+        adminDecision: `KHQR refund of $${parsedAmount.toFixed(2)} initiated.`,
+        refundAmount: parsedAmount,
+      });
       setShowConfetti(true);
-      
       Alert.alert(
-        "Refund Successful", 
-        `$${parsedAmount.toFixed(2)} has been successfully refunded to ${activeRefund.customer}.`,
-        [{ text: "Done" }]
+        "Refund Initiated",
+        `$${parsedAmount.toFixed(2)} KHQR refund has been recorded. Please complete the bank transfer manually via Bakong/ABA.`,
+        [{ text: "Done", onPress: () => { setShowConfetti(false); fetchRefundQueue(); } }]
       );
-    }, 1500);
+    } catch (err) {
+      Alert.alert("Error", "Failed to process refund.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handlePinSubmit = () => {
@@ -94,6 +116,7 @@ export default function RefundsScreen() {
       setPin("");
     }
   };
+
 
   return (
     <SafeAreaView style={s.root} edges={["top", "left", "right"]}>
@@ -120,44 +143,62 @@ export default function RefundsScreen() {
           <View style={s.paneHeader}>
             <Text style={s.paneTitle}>Pending Execution</Text>
             <View style={s.countBadge}>
-              <Text style={s.countText}>{MOCK_REFUNDS.length}</Text>
+              <Text style={s.countText}>{refundQueue.length}</Text>
             </View>
           </View>
           
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.queueList}>
-            {MOCK_REFUNDS.map((rf) => {
-              const isActive = activeRefund.id === rf.id;
-              return (
-                <TouchableOpacity 
-                  key={rf.id} 
-                  style={[s.queueItem, isActive && s.queueItemActive]}
-                  onPress={() => setActiveRefund(rf)}
-                  activeOpacity={0.8}
-                >
-                  <View style={s.queueTopRow}>
-                    <Text style={[s.queueId, isActive && { color: "#fff" }]}>{rf.id}</Text>
-                    <Text style={[s.queueAmount, isActive && { color: "#fff" }]}>${rf.amount.toFixed(2)}</Text>
-                  </View>
-                  <Text style={[s.queueCompany, isActive && { color: "rgba(255,255,255,0.7)" }]}>{rf.company}</Text>
-                  <Text style={[s.queueCustomer, isActive && { color: "rgba(255,255,255,0.7)" }]}>Cust: {rf.customer}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+          {loading ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator color={T.accent} />
+            </View>
+          ) : refundQueue.length === 0 ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+              <MaterialCommunityIcons name="check-circle-outline" size={36} color={T.success} />
+              <Text style={{ color: T.text2, textAlign: 'center', marginTop: 8, fontSize: 13 }}>No pending refunds in queue</Text>
+            </View>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.queueList}>
+              {refundQueue.map((rf) => {
+                const isActive = activeRefund?.id === rf.id;
+                const refAmt = Number(rf.refundAmount || rf.booking?.totalPrice || 0);
+                return (
+                  <TouchableOpacity 
+                    key={rf.id} 
+                    style={[s.queueItem, isActive && s.queueItemActive]}
+                    onPress={() => setActiveRefund(rf)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={s.queueTopRow}>
+                      <Text style={[s.queueId, isActive && { color: "#fff" }]}>#{rf.id}</Text>
+                      <Text style={[s.queueAmount, isActive && { color: "#fff" }]}>${refAmt.toFixed(2)}</Text>
+                    </View>
+                    <Text style={[s.queueCompany, isActive && { color: "rgba(255,255,255,0.7)" }]}>{rf.company?.name ?? "—"}</Text>
+                    <Text style={[s.queueCustomer, isActive && { color: "rgba(255,255,255,0.7)" }]}>Cust: {rf.customer?.fullName ?? "—"}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
         </View>
 
         {/* RIGHT PANE: Action Center */}
         <View style={s.rightPane}>
+          {!activeRefund ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <MaterialCommunityIcons name="bank-transfer" size={40} color={T.text3} />
+              <Text style={{ color: T.text3, marginTop: 8, fontSize: 14 }}>Select a refund to process</Text>
+            </View>
+          ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.actionContent}>
             
             {/* Context Card */}
             <View style={s.contextCard}>
               <View style={s.contextHeader}>
                 <MaterialCommunityIcons name="scale-balance" size={24} color={T.text1} />
-                <Text style={s.contextTitle}>Dispute Reference: {activeRefund.disputeId}</Text>
+                <Text style={s.contextTitle}>Dispute #{activeRefund.id}</Text>
               </View>
               <Text style={s.contextDesc}>
-                This refund was escalated from the dispute resolution center. Max refundable amount is ${activeRefund.amount.toFixed(2)}.
+                {activeRefund.description || "Refund escalated from dispute resolution."} Max refundable: ${Number(activeRefund.refundAmount || 0).toFixed(2)}.
               </Text>
             </View>
 
@@ -191,8 +232,8 @@ export default function RefundsScreen() {
                   {absorbFee && <MaterialCommunityIcons name="check" size={16} color="#fff" />}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.toggleTitle}>Platform Absorbs Stripe Fee</Text>
-                  <Text style={s.toggleDesc}>If checked, the platform pays the ${stripeFee.toFixed(2)} processing fee instead of deducting it from the company's escrow.</Text>
+                  <Text style={s.toggleTitle}>Platform Absorbs KHQR Fee</Text>
+                  <Text style={s.toggleDesc}>If checked, the platform pays the ${khqrFee.toFixed(2)} KHQR gateway fee instead of deducting it from the company's escrow.</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -249,6 +290,7 @@ export default function RefundsScreen() {
             </TouchableOpacity>
 
           </ScrollView>
+          )}
         </View>
       </View>
 

@@ -34,16 +34,51 @@ let DisputesService = class DisputesService {
         });
         if (existing)
             throw new common_1.BadRequestException('A dispute already exists for this booking');
-        const dispute = await this.prisma.dispute.create({
-            data: {
-                bookingId,
-                customerId,
-                companyId: booking.companyId,
-                type: dto.type,
-                description: dto.description,
-                photos: dto.photos ? JSON.stringify(dto.photos) : null,
-                status: 'open',
-            },
+        const frozenAmount = Number(booking.companyEarnings || 0);
+        const dispute = await this.prisma.$transaction(async (tx) => {
+            let pendingBalance = Number(booking.company.pendingBalance);
+            let availableBalance = Number(booking.company.availableBalance);
+            let freezeFromPending = 0;
+            let freezeFromAvailable = 0;
+            if (frozenAmount > 0) {
+                if (pendingBalance >= frozenAmount) {
+                    freezeFromPending = frozenAmount;
+                }
+                else {
+                    freezeFromPending = pendingBalance;
+                    freezeFromAvailable = frozenAmount - pendingBalance;
+                }
+                await tx.company.update({
+                    where: { id: booking.companyId },
+                    data: {
+                        pendingBalance: { decrement: freezeFromPending },
+                        availableBalance: { decrement: freezeFromAvailable },
+                    },
+                });
+                await tx.transaction.create({
+                    data: {
+                        ownerType: 'company',
+                        ownerId: booking.companyId,
+                        amount: frozenAmount,
+                        type: 'debit',
+                        category: 'dispute_freeze',
+                        description: `Earnings frozen for dispute on booking #${bookingId}`,
+                        bookingId,
+                    },
+                });
+            }
+            return tx.dispute.create({
+                data: {
+                    bookingId,
+                    customerId,
+                    companyId: booking.companyId,
+                    type: dto.type,
+                    description: dto.description,
+                    photos: dto.photos ? JSON.stringify(dto.photos) : null,
+                    status: 'open',
+                    frozenAmount: frozenAmount > 0 ? frozenAmount : null,
+                },
+            });
         });
         return { message: 'Dispute filed successfully', dispute };
     }
@@ -107,21 +142,60 @@ let DisputesService = class DisputesService {
         return { message: 'Response submitted', dispute: updated };
     }
     async resolveDispute(id, dto) {
-        const dispute = await this.prisma.dispute.findUnique({ where: { id } });
+        const dispute = await this.prisma.dispute.findUnique({
+            where: { id },
+            include: { booking: true },
+        });
         if (!dispute)
             throw new common_1.NotFoundException('Dispute not found');
         if (dispute.status === 'resolved')
             throw new common_1.BadRequestException('Dispute already resolved');
-        const updated = await this.prisma.dispute.update({
-            where: { id },
-            data: {
-                adminDecision: dto.decision,
-                refundAmount: dto.refundAmount ?? null,
-                status: 'resolved',
-                resolvedAt: new Date(),
-                updatedAt: new Date(),
-            },
+        const frozenAmount = Number(dispute.frozenAmount || 0);
+        await this.prisma.$transaction(async (tx) => {
+            await tx.dispute.update({
+                where: { id },
+                data: {
+                    adminDecision: dto.decision,
+                    refundAmount: dto.refundAmount ?? null,
+                    status: 'resolved',
+                    resolvedAt: new Date(),
+                    updatedAt: new Date(),
+                },
+            });
+            if (frozenAmount > 0) {
+                if (dto.decision === 'refund') {
+                    await tx.transaction.create({
+                        data: {
+                            ownerType: 'company',
+                            ownerId: dispute.companyId,
+                            amount: frozenAmount,
+                            type: 'debit',
+                            category: 'dispute_refund',
+                            description: `Frozen earnings forfeited due to refund decision on dispute #${id}`,
+                            bookingId: dispute.bookingId,
+                        },
+                    });
+                }
+                else if (dto.decision === 'release' || dto.decision === 'no_action') {
+                    await tx.company.update({
+                        where: { id: dispute.companyId },
+                        data: { availableBalance: { increment: frozenAmount } },
+                    });
+                    await tx.transaction.create({
+                        data: {
+                            ownerType: 'company',
+                            ownerId: dispute.companyId,
+                            amount: frozenAmount,
+                            type: 'credit',
+                            category: 'dispute_release',
+                            description: `Frozen earnings released to available balance after dispute #${id} resolved`,
+                            bookingId: dispute.bookingId,
+                        },
+                    });
+                }
+            }
         });
+        const updated = await this.prisma.dispute.findUnique({ where: { id } });
         return { message: 'Dispute resolved', dispute: updated };
     }
 };

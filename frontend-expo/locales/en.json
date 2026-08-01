@@ -538,6 +538,7 @@
     "paymentSummary": "Payment Summary",
     "method": "Method",
     "status": "Status",
+    "getDirections": "Get Directions",
     "yourPay": "Your Pay",
     "walletBalanceWarning": "Wallet balance below limit. Top up to accept cash jobs.",
     "startJob": "Start Job",

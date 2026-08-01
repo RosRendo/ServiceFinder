@@ -45,6 +45,12 @@ export declare class PaymentsService {
             return_url: string;
         };
     }>;
+    generateKhqr(dto: CheckoutSessionDto, user: any): Promise<{
+        message: string;
+        qrString: any;
+        amount: string;
+        billNumber: any;
+    }>;
     handleKhqrWebhook(body: any, headers: any): Promise<{
         status: string;
         message: string;

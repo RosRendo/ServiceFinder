@@ -19,13 +19,21 @@ export default function ChatScreen() {
   const { token } = useAuthStore();
   const { 
     messagesByConversation, isLoading, isConnected, 
-    connect, disconnect, fetchMessages, sendMessage, setActiveConversation 
+    connect, disconnect, fetchMessages, sendMessage, setActiveConversation,
+    conversations, fetchConversations
   } = useChatStore();
 
   const activeMessages = id ? (messagesByConversation[id] || []) : [];
+  const activeConversation = conversations.find(c => c.id === id);
+  const isArchived = activeConversation?.archivedAt
+    ? new Date(activeConversation.archivedAt) <= new Date()
+    : false;
 
   useEffect(() => {
     if (!id || !token) return;
+    
+    // Fetch conversations list to ensure we have the conversation details/metadata (like archivedAt)
+    fetchConversations();
     
     // Set active conversation and fetch initial messages
     setActiveConversation(id);
@@ -91,7 +99,16 @@ export default function ChatScreen() {
 
       {/* Input */}
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ChatInput onSend={handleSend} />
+        {isArchived ? (
+          <View className="bg-amber-50 border-t border-amber-200 px-4 py-4 flex-row items-center justify-center gap-2">
+            <MaterialCommunityIcons name="lock-outline" size={16} color="#92400E" />
+            <Text className="text-amber-800 text-xs font-semibold text-center">
+              This job chat is archived because the booking has been completed.
+            </Text>
+          </View>
+        ) : (
+          <ChatInput onSend={handleSend} />
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

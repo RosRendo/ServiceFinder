@@ -39,6 +39,43 @@ export const Theme = {
     warning: "#F59E0B",     // Amber warning
     warningBg: "#FFFBEB",
     info: "#2563EB",
+
+    // ── Missing Tokens (TS fixes) ───────────────────────────────────
+    gold: "#F59E0B",
+    successLight: "#D1FAE5",
+    successText: "#065F46",
+    inputBg: "#F1F5F9",
+    inputBgDisabled: "#E2E8F0",
+    
+    // Semantic aliases
+    greenBg: "#D1FAE5",
+    greenDot: "#10B981",
+    greenText: "#065F46",
+    
+    grayBg: "#F1F5F9",
+    grayDot: "#94A3B8",
+    grayText: "#475569",
+    
+    blueBg: "#DBEAFE",
+    blueBorder: "#BFDBFE",
+    blueDot: "#3B82F6",
+    blueText: "#1E3A8A",
+
+    // More Missing Tokens
+    inprogress: "#3B82F6",
+    inprogressBg: "#DBEAFE",
+    completed: "#10B981",
+    completedBg: "#D1FAE5",
+    cancelled: "#EF4444",
+    cancelledBg: "#FEF2F2",
+    confirmed: "#10B981",
+    confirmedBg: "#D1FAE5",
+    errorBorder: "#FCA5A5",
+    tag: "#F1F5F9",
+    bubbleMe: "#0A192F",
+    bubbleThem: "#F1F5F9",
+    bubbleMeText: "#FFFFFF",
+    bubbleThemText: "#0F172A",
   }
 };
 

@@ -7,31 +7,32 @@ export declare class DisputesService {
         message: string;
         dispute: {
             id: number;
-            description: string;
             status: string;
             createdAt: Date;
             updatedAt: Date;
-            companyId: bigint;
             customerId: bigint;
+            companyId: bigint;
+            description: string;
             bookingId: bigint;
             type: string;
             photos: string | null;
             companyResponse: string | null;
             adminDecision: string | null;
             refundAmount: import("@prisma/client/runtime/library").Decimal | null;
+            frozenAmount: import("@prisma/client/runtime/library").Decimal | null;
             resolvedAt: Date | null;
         };
     }>;
     getDisputes(role: string, userId: bigint, companyId?: bigint): Promise<{
         disputes: ({
-            customer: {
-                id: bigint;
-                email: string | null;
-                fullName: string;
-            };
             company: {
                 id: bigint;
                 name: string;
+            };
+            customer: {
+                id: bigint;
+                fullName: string;
+                email: string | null;
             };
             booking: {
                 id: bigint;
@@ -40,33 +41,34 @@ export declare class DisputesService {
             };
         } & {
             id: number;
-            description: string;
             status: string;
             createdAt: Date;
             updatedAt: Date;
-            companyId: bigint;
             customerId: bigint;
+            companyId: bigint;
+            description: string;
             bookingId: bigint;
             type: string;
             photos: string | null;
             companyResponse: string | null;
             adminDecision: string | null;
             refundAmount: import("@prisma/client/runtime/library").Decimal | null;
+            frozenAmount: import("@prisma/client/runtime/library").Decimal | null;
             resolvedAt: Date | null;
         })[];
     }>;
     getDisputeById(id: number, userId: bigint, role: string): Promise<{
         dispute: {
-            customer: {
-                id: bigint;
-                email: string | null;
-                fullName: string;
-                avatar: string | null;
-            };
             company: {
                 id: bigint;
                 name: string;
                 logoUrl: string | null;
+            };
+            customer: {
+                id: bigint;
+                fullName: string;
+                email: string | null;
+                avatar: string | null;
             };
             booking: {
                 id: bigint;
@@ -76,18 +78,19 @@ export declare class DisputesService {
             };
         } & {
             id: number;
-            description: string;
             status: string;
             createdAt: Date;
             updatedAt: Date;
-            companyId: bigint;
             customerId: bigint;
+            companyId: bigint;
+            description: string;
             bookingId: bigint;
             type: string;
             photos: string | null;
             companyResponse: string | null;
             adminDecision: string | null;
             refundAmount: import("@prisma/client/runtime/library").Decimal | null;
+            frozenAmount: import("@prisma/client/runtime/library").Decimal | null;
             resolvedAt: Date | null;
         };
     }>;
@@ -95,18 +98,19 @@ export declare class DisputesService {
         message: string;
         dispute: {
             id: number;
-            description: string;
             status: string;
             createdAt: Date;
             updatedAt: Date;
-            companyId: bigint;
             customerId: bigint;
+            companyId: bigint;
+            description: string;
             bookingId: bigint;
             type: string;
             photos: string | null;
             companyResponse: string | null;
             adminDecision: string | null;
             refundAmount: import("@prisma/client/runtime/library").Decimal | null;
+            frozenAmount: import("@prisma/client/runtime/library").Decimal | null;
             resolvedAt: Date | null;
         };
     }>;
@@ -114,19 +118,20 @@ export declare class DisputesService {
         message: string;
         dispute: {
             id: number;
-            description: string;
             status: string;
             createdAt: Date;
             updatedAt: Date;
-            companyId: bigint;
             customerId: bigint;
+            companyId: bigint;
+            description: string;
             bookingId: bigint;
             type: string;
             photos: string | null;
             companyResponse: string | null;
             adminDecision: string | null;
             refundAmount: import("@prisma/client/runtime/library").Decimal | null;
+            frozenAmount: import("@prisma/client/runtime/library").Decimal | null;
             resolvedAt: Date | null;
-        };
+        } | null;
     }>;
 }

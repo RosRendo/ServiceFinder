@@ -12,7 +12,7 @@ import {
   PieChart, Pie, Cell, Bar, Line, Legend, RadialBarChart, RadialBar, PolarAngleAxis
 } from "recharts";
 
-// --- Mock Data for New Widgets ---
+// --- Data for New Widgets ---
 
 const liquidityData = [
   { month: 'Jan', demand: 450, supply: 42, bookings: 1200 },

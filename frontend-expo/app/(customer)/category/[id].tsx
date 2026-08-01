@@ -409,7 +409,7 @@ export default function CategoryScreen() {
                   <Text style={s.limitedBadge}>LIMITED TIME</Text>
                 </View>
 
-                <PressCard onPress={() => router.push(`/(customer)/company/service-modal/${featuredService.id}` as any)}>
+                <PressCard onPress={() => router.push(`/(customer)/service/${featuredService.id}` as any)}>
                   <View style={s.featuredCard}>
                     <Image
                       source={{ uri: featuredService.image || featuredService.serviceType?.imageUrl || featuredService.serviceType?.category?.imageUrl || activeCategory?.imageUrl || featuredService.company?.logoUrl || `https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600` }}
@@ -459,7 +459,7 @@ export default function CategoryScreen() {
           <View style={{ paddingHorizontal: 24, paddingBottom: 12 }}>
             <FadeIn delay={i < 10 ? i * 100 : 0}>
               <PressCard
-                onPress={() => router.push(`/(customer)/company/service-modal/${service.id}` as any)}
+                onPress={() => router.push(`/(customer)/service/${service.id}` as any)}
               >
                 <View style={s.companyCard}>
                   <Image

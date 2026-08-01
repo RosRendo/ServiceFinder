@@ -312,25 +312,6 @@ export class CompaniesController {
     return this.companiesService.getRecommendedCompanies(query);
   }
 
-  @Get('admin/stats')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get global stats for the admin dashboard' })
-  @ApiResponse({ status: 200, description: 'Return global admin stats.' })
-  getAdminStats() {
-    return this.companiesService.getAdminStats();
-  }
-
-  @Get('admin/analytics')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get deep analytics data for admin dashboard' })
-  @ApiResponse({ status: 200, description: 'Return admin analytics data.' })
-  getAdminAnalytics() {
-    return this.companiesService.getAdminAnalytics();
-  }
 
   @Get('categories/:categorySlug')
   @UseInterceptors(CacheInterceptor)

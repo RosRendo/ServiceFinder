@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, BarChart3, ListTodo, CalendarDays,
-  Users, MapPin, Wrench, Wallet, MessageCircle, Star, Settings, Megaphone, LifeBuoy
+  Users, MapPin, Wrench, Wallet, MessageCircle, Star, Settings, Megaphone, LifeBuoy, DollarSign
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,7 @@ const navGroups = [
     group: "Catalog",
     items: [
       { name: "Services", href: "/company/services", icon: Wrench },
+      { name: "Peak Pricing", href: "/company/pricing", icon: DollarSign },
     ],
   },
   {

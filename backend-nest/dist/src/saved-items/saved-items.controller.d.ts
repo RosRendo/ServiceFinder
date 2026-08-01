@@ -4,6 +4,7 @@ export declare class SavedItemsController {
     private readonly savedItemsService;
     constructor(savedItemsService: SavedItemsService);
     getSavedItems(req: any, query: any): Promise<{
+        success: boolean;
         items: any[];
         pagination: {
             total: number;

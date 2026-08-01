@@ -41,11 +41,11 @@ export default function CompaniesKanban() {
   const fetchCompanies = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      // Fetch all companies. The API might support ?status=all but we just omit to get all.
-      // If the backend has pagination we would need a bigger limit for Kanban.
-      const response = await api.get(`/api/companies?limit=100`);
-      const responseData = response.data.data || response.data;
-      setCompanies(responseData.companies || []);
+      // Use admin endpoint to fetch ALL companies including non-verified
+      const response = await api.get(`/api/admin/companies?limit=100`);
+      // Backend returns { success: true, data: [...], pagination: {} }
+      const data = response.data?.data ?? [];
+      setCompanies(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch companies:", error);
     } finally {

@@ -17,6 +17,7 @@ export declare class PayoutsController {
             processedAt: Date | null;
         }[];
         availableBalance: number;
+        pendingBalance: number;
     }>;
     requestPayout(req: any, body: {
         amount: number;

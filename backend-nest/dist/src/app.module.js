@@ -46,6 +46,7 @@ const core_1 = require("@nestjs/core");
 const throttler_1 = require("@nestjs/throttler");
 const cache_manager_1 = require("@nestjs/cache-manager");
 const cache_manager_redis_yet_1 = require("cache-manager-redis-yet");
+const event_emitter_1 = require("@nestjs/event-emitter");
 const Joi = __importStar(require("joi"));
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
@@ -80,6 +81,11 @@ const wallets_module_1 = require("./wallets/wallets.module");
 const analytics_module_1 = require("./analytics/analytics.module");
 const financials_module_1 = require("./financials/financials.module");
 const webhooks_module_1 = require("./webhooks/webhooks.module");
+const promo_codes_module_1 = require("./promo-codes/promo-codes.module");
+const pricing_rules_module_1 = require("./pricing-rules/pricing-rules.module");
+const support_module_1 = require("./support/support.module");
+const moderation_module_1 = require("./moderation/moderation.module");
+const compliance_module_1 = require("./compliance/compliance.module");
 let AppModule = class AppModule {
     configure(consumer) {
         consumer.apply(logger_middleware_1.LoggerMiddleware).forRoutes('*');
@@ -89,6 +95,7 @@ exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            event_emitter_1.EventEmitterModule.forRoot(),
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
                 validationSchema: Joi.object({
@@ -180,6 +187,11 @@ exports.AppModule = AppModule = __decorate([
             analytics_module_1.AnalyticsModule,
             financials_module_1.FinancialsModule,
             webhooks_module_1.WebhooksModule,
+            promo_codes_module_1.PromoCodesModule,
+            pricing_rules_module_1.PricingRulesModule,
+            support_module_1.SupportModule,
+            moderation_module_1.ModerationModule,
+            compliance_module_1.ComplianceModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

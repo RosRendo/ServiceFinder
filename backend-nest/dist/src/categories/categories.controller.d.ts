@@ -31,15 +31,15 @@ export declare class CategoriesController {
             serviceTypes: {
                 id: string;
                 categoryId: string;
-                slug: string;
-                name: string;
-                description: string | null;
-                icon: string | null;
-                imageUrl: string | null;
                 status: import(".prisma/client").$Enums.CategoryStatus;
-                displayOrder: number;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
+                description: string | null;
+                slug: string;
+                icon: string | null;
+                imageUrl: string | null;
+                displayOrder: number;
             }[];
         };
     }>;
@@ -47,30 +47,30 @@ export declare class CategoriesController {
         message: string;
         data: {
             id: string;
-            slug: string;
-            name: string;
-            description: string | null;
-            icon: string | null;
-            imageUrl: string | null;
             status: import(".prisma/client").$Enums.CategoryStatus;
-            displayOrder: number;
             createdAt: Date;
             updatedAt: Date;
+            name: string;
+            description: string | null;
+            slug: string;
+            icon: string | null;
+            imageUrl: string | null;
+            displayOrder: number;
         };
     }>;
     updateCategory(id: string, updateCategoryDto: UpdateCategoryDto): Promise<{
         message: string;
         data: {
             id: string;
-            slug: string;
-            name: string;
-            description: string | null;
-            icon: string | null;
-            imageUrl: string | null;
             status: import(".prisma/client").$Enums.CategoryStatus;
-            displayOrder: number;
             createdAt: Date;
             updatedAt: Date;
+            name: string;
+            description: string | null;
+            slug: string;
+            icon: string | null;
+            imageUrl: string | null;
+            displayOrder: number;
         };
     }>;
     deleteCategory(id: string): Promise<{

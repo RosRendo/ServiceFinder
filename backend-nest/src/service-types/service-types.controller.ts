@@ -48,6 +48,13 @@ export class ServiceTypesController {
     return this.serviceTypesService.getServiceTypeBySlug(slug);
   }
 
+  @Get(':slug/providers')
+  @ApiOperation({ summary: 'Get providers (companies) offering a specific service type' })
+  @ApiResponse({ status: 200, description: 'Return list of providers with pure facts.' })
+  getProvidersForServiceType(@Param('slug') slug: string) {
+    return this.serviceTypesService.getProvidersForServiceType(slug);
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')

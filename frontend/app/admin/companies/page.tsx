@@ -5,7 +5,8 @@ import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { StatusBadge } from "@/components/grid/StatusBadge";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
 import { CompanyDrawer, CompanyRow } from "@/components/drawers/CompanyDrawer";
-import { Search, Download, Building2, Star, Loader2 } from "lucide-react";
+import { AddCompanyModal } from "@/components/admin/AddCompanyModal";
+import { Search, Download, Building2, Star, Loader2, Plus } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
 
@@ -14,6 +15,7 @@ export default function CompaniesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
   const [activeCompany, setActiveCompany] = useState<CompanyRow | null>(null);
   
   const [companies, setCompanies] = useState<any[]>([]);
@@ -51,14 +53,15 @@ export default function CompaniesPage() {
     phone: c.phone || "No phone",
     staffCount: c._count?.staffMembers || 0,
     platformFee: c.platformFeePercent || 15, // default
-    rating: 5.0, // mock
-    totalRevenue: 0, // mock
-    totalBookings: 0, // mock
+    rating: 5.0,
+    totalRevenue: 0,
+    totalBookings: 0,
     status: c.verificationStatus || "pending_verification",
     joinedDate: new Date(c.createdAt).toLocaleDateString(),
     verified: c.verificationStatus === "active" || c.verificationStatus === "verified",
-    services: [], // mock for now
-    documents: [], // mock for now
+    services: [],
+    documents: c.verificationDocumentUrl ? [{ label: "KYC Documents", verified: c.verificationStatus === "active" || c.verificationStatus === "verified" }] : [],
+    verificationDocumentUrl: c.verificationDocumentUrl || undefined,
   }));
 
   const columns: Column<CompanyRow>[] = [
@@ -108,6 +111,9 @@ export default function CompaniesPage() {
         <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-foreground hover:bg-muted/50 bg-background">
           <Download className="w-3.5 h-3.5 opacity-70" /> Export
         </button>
+        <button onClick={() => setAddModalOpen(true)} className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 shadow-sm transition-colors">
+          <Plus className="w-3.5 h-3.5" /> New Company
+        </button>
       </div>
 
       <div className="shrink-0 flex items-center gap-6 px-6 py-2.5 border-b border-border bg-muted/10">
@@ -140,7 +146,8 @@ export default function CompaniesPage() {
       <BulkActionBar selectedCount={selectedIds.size} onClear={() => setSelectedIds(new Set())}
         actions={[{ icon: Download, label: "Export", onClick: () => {} }]} />
 
-      <CompanyDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} company={activeCompany} />
+      <AddCompanyModal open={addModalOpen} onClose={() => setAddModalOpen(false)} onSuccess={fetchCompanies} />
+      <CompanyDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} company={activeCompany} onSuccess={fetchCompanies} />
     </div>
   );
 }

@@ -229,15 +229,24 @@ async function main() {
     await prisma.review.deleteMany();
     await prisma.payment.deleteMany();
     await prisma.bookingStatusLog.deleteMany();
+    await prisma.dispute.deleteMany();
     await prisma.booking.deleteMany();
     await prisma.serviceRequest.deleteMany();
     await prisma.availabilitySlot.deleteMany();
     await prisma.companyRatingSummary.deleteMany();
     await prisma.serviceArea.deleteMany();
+    await prisma.walletTransaction.deleteMany();
     await prisma.staffPaymentMethod.deleteMany();
     await prisma.companyStaff.deleteMany();
     await prisma.service.deleteMany();
+    await prisma.complianceReport.deleteMany();
+    await prisma.payout.deleteMany();
     await prisma.company.deleteMany();
+    await prisma.supportTicket.deleteMany();
+    await prisma.moderationLog.deleteMany();
+    await prisma.userAddress.deleteMany();
+    await prisma.notification.deleteMany();
+    await prisma.savedItem.deleteMany();
     await prisma.refreshToken.deleteMany();
     await prisma.auditLog.deleteMany();
     let totalBookings = 0;
@@ -303,30 +312,39 @@ async function main() {
         const feeRate = 0.10;
         const makeBooking = (svc, price) => {
             const fee = parseFloat((price * feeRate).toFixed(2));
-            return { totalPrice: parseFloat((price + fee).toFixed(2)), platformFee: fee, companyEarnings: parseFloat((price - fee).toFixed(2)) };
+            const staffEarnings = parseFloat((price * 0.59).toFixed(2));
+            const companyEarnings = parseFloat((price - fee - staffEarnings).toFixed(2));
+            return {
+                totalPrice: parseFloat((price + fee).toFixed(2)),
+                platformFee: fee,
+                companyEarnings,
+                staffEarnings
+            };
         };
         const testCustomer = customers[0];
         const testStaff = staffMembers[0];
-        const bPending = await prisma.booking.create({
-            data: {
-                customerId: testCustomer.id, companyId: company.id, serviceId: svc0.id,
-                bookingDate: tomorrow,
-                startTime: new Date('1970-01-01T09:00:00Z'),
-                endTime: new Date('1970-01-01T11:00:00Z'),
-                serviceAddress: addresses[0].addr, latitude: addresses[0].lat, longitude: addresses[0].lng,
-                status: 'pending',
-                ...makeBooking(svc0, Number(svc0.basePrice)),
-            },
-        });
-        await prisma.bookingStatusLog.create({ data: { bookingId: bPending.id, newStatus: 'pending', changedBy: testCustomer.id } });
-        await prisma.payment.create({
-            data: { bookingId: bPending.id, userId: testCustomer.id, method: 'cash', amount: bPending.totalPrice, status: 'pending' },
-        });
+        for (let i = 0; i < 8; i++) {
+            const bPending = await prisma.booking.create({
+                data: {
+                    customerId: testCustomer.id, companyId: company.id, serviceId: svc0.id,
+                    bookingDate: tomorrow,
+                    startTime: new Date('1970-01-01T09:00:00Z'),
+                    endTime: new Date('1970-01-01T11:00:00Z'),
+                    serviceAddress: addresses[i % addresses.length].addr, latitude: addresses[i % addresses.length].lat, longitude: addresses[i % addresses.length].lng,
+                    status: 'pending',
+                    ...makeBooking(svc0, Number(svc0.basePrice) + (i * 5)),
+                },
+            });
+            await prisma.bookingStatusLog.create({ data: { bookingId: bPending.id, newStatus: 'pending', changedBy: testCustomer.id } });
+            await prisma.payment.create({
+                data: { bookingId: bPending.id, userId: testCustomer.id, method: 'cash', amount: bPending.totalPrice, status: 'pending' },
+            });
+            totalBookings++;
+        }
         const bConfirmed = await prisma.booking.create({
             data: {
                 customerId: testCustomer.id, companyId: company.id, serviceId: svc1.id,
-                assignedStaffId: testStaff.id,
-                bookingDate: tomorrow,
+                bookingDate: today,
                 startTime: new Date('1970-01-01T14:00:00Z'),
                 endTime: new Date('1970-01-01T16:00:00Z'),
                 serviceAddress: addresses[1].addr, latitude: addresses[1].lat, longitude: addresses[1].lng,
@@ -342,12 +360,11 @@ async function main() {
         const bInProgress = await prisma.booking.create({
             data: {
                 customerId: testCustomer.id, companyId: company.id, serviceId: svc0.id,
-                assignedStaffId: testStaff.id,
                 bookingDate: today,
                 startTime: new Date('1970-01-01T08:00:00Z'),
                 endTime: new Date('1970-01-01T10:00:00Z'),
                 serviceAddress: addresses[2].addr, latitude: addresses[2].lat, longitude: addresses[2].lng,
-                status: 'in_progress', progressPercent: 55,
+                status: 'pending', progressPercent: 0,
                 actualStartTime: new Date(),
                 ...makeBooking(svc0, Number(svc0.basePrice)),
             },
@@ -406,6 +423,129 @@ async function main() {
             data: { bookingId: bCancelled.id, userId: testCustomer.id, method: 'cash', amount: bCancelled.totalPrice, status: 'refunded' },
         });
         totalBookings += 5;
+    }
+    const adminUser = await prisma.user.findFirst({ where: { role: 'admin' } });
+    if (adminUser) {
+        await prisma.supportTicket.createMany({
+            data: [
+                { userId: customer1.id, subject: 'App crashes on booking screen', description: 'Every time I try to book a service, the app crashes.', status: 'open', priority: 'high' },
+                { userId: customer2.id, subject: 'Payment not going through', description: 'My KHQR payment failed but money was deducted.', status: 'in_progress', priority: 'urgent' },
+                { userId: customer3.id, subject: 'How to change my address?', description: 'I moved recently and want to update my default address.', status: 'resolved', priority: 'low' },
+                { userId: owners[0].id, subject: 'Cannot update service price', description: 'The dashboard gives me an error when updating prices.', status: 'open', priority: 'medium' },
+            ],
+        });
+        await prisma.moderationLog.createMany({
+            data: [
+                { adminId: adminUser.id, entityType: 'user', entityId: customer1.id, action: 'warn', reason: 'Inappropriate language in chat.', status: 'pending' },
+                { adminId: adminUser.id, entityType: 'company', entityId: owners[1].id, action: 'suspend', reason: 'Multiple complaints about no-shows.', status: 'resolved' },
+                { adminId: adminUser.id, entityType: 'review', entityId: BigInt(1), action: 'remove', reason: 'Review contained spam.', status: 'pending' },
+            ],
+        });
+        const allCompanies = await prisma.company.findMany({ take: 3 });
+        if (allCompanies.length >= 3) {
+            await prisma.complianceReport.createMany({
+                data: [
+                    { companyId: allCompanies[0].id, type: 'business_license', status: 'verified', documentUrl: 'https://example.com/doc1.pdf', notes: 'Looks good.' },
+                    { companyId: allCompanies[1].id, type: 'insurance', status: 'pending', documentUrl: 'https://example.com/doc2.pdf', notes: 'Waiting on third-party verification.' },
+                    { companyId: allCompanies[2].id, type: 'background_check', status: 'rejected', documentUrl: 'https://example.com/doc3.pdf', notes: 'Document is expired.' },
+                ],
+            });
+        }
+        const completedBookings = await prisma.booking.findMany({ where: { status: 'completed' }, take: 3 });
+        if (completedBookings.length >= 2) {
+            for (let i = 0; i < Math.min(completedBookings.length, 3); i++) {
+                const bk = completedBookings[i];
+                const alreadyExists = await prisma.dispute.findUnique({ where: { bookingId: bk.id } });
+                if (!alreadyExists) {
+                    await prisma.dispute.create({
+                        data: {
+                            bookingId: bk.id,
+                            customerId: bk.customerId,
+                            companyId: bk.companyId,
+                            type: i === 0 ? 'service_quality' : 'no_show',
+                            description: i === 0
+                                ? 'The cleaner did not show up at the agreed time.'
+                                : 'The service did not match the description in the listing.',
+                            status: i === 0 ? 'open' : 'resolved',
+                            adminDecision: i === 0 ? null : 'Partial refund approved.',
+                            refundAmount: i === 0 ? null : Number(bk.totalPrice) * 0.5,
+                        },
+                    });
+                }
+            }
+        }
+        const payoutCompanies = await prisma.company.findMany({ where: { verificationStatus: 'verified' }, take: 2 });
+        for (const co of payoutCompanies) {
+            const existing = await prisma.payout.findFirst({ where: { companyId: co.id } });
+            if (!existing) {
+                await prisma.payout.create({
+                    data: {
+                        companyId: co.id,
+                        payoutType: 'company',
+                        amount: 1200.00,
+                        status: 'pending',
+                        method: 'KHQR / ABA Bank',
+                    },
+                });
+            }
+        }
+        await prisma.userAddress.createMany({
+            data: [
+                { userId: customer1.id, label: 'Home', address: '12 Norodom Blvd, Phnom Penh', isDefault: true, latitude: 11.5696, longitude: 104.9210 },
+                { userId: customer1.id, label: 'Office', address: '45 Monivong Blvd, Phnom Penh', isDefault: false, latitude: 11.5566, longitude: 104.9280 },
+                { userId: customer2.id, label: 'Home', address: '8 Street 271, Phnom Penh', isDefault: true, latitude: 11.5520, longitude: 104.9180 },
+            ],
+        });
+        const firstCompany = await prisma.company.findFirst();
+        const firstService = await prisma.service.findFirst();
+        if (firstCompany && firstService) {
+            await prisma.savedItem.createMany({
+                data: [
+                    { userId: customer1.id, itemType: 'company', itemId: firstCompany.id },
+                    { userId: customer1.id, itemType: 'service', itemId: firstService.id },
+                ],
+            });
+        }
+        await prisma.notification.createMany({
+            data: [
+                { userId: customer1.id, title: 'Booking Confirmed', body: 'Your cleaning booking has been confirmed by Sara Cleaning.', type: 'booking', isRead: false },
+                { userId: customer1.id, title: 'Refund Completed', body: 'A manual KHQR refund of $22.50 has been recorded for your cancelled booking.', type: 'payment', isRead: true },
+                { userId: customer2.id, title: 'New Message', body: 'You have a new message from GreenThumb Pros.', type: 'message', isRead: false },
+            ],
+        });
+        const allStaff = await prisma.companyStaff.findMany({ include: { user: true } });
+        for (const staff of allStaff) {
+            await prisma.companyStaff.update({
+                where: { id: staff.id },
+                data: {
+                    walletBalance: 245.50,
+                    creditLimit: 100.00,
+                },
+            });
+            await prisma.staffPaymentMethod.create({
+                data: {
+                    staffId: staff.id,
+                    type: 'ABA Bank',
+                    accountName: staff.user.fullName.toUpperCase(),
+                    accountNumber: '000 ' + Math.floor(100000 + Math.random() * 899999) + ' 123',
+                    isDefault: true,
+                    isVerified: true,
+                },
+            });
+            await prisma.walletTransaction.createMany({
+                data: [
+                    { staffId: staff.id, amount: 80.00, type: 'credit', description: 'Earnings for Booking #1024' },
+                    { staffId: staff.id, amount: 120.00, type: 'credit', description: 'Earnings for Booking #1028' },
+                    { staffId: staff.id, amount: 50.00, type: 'debit', description: 'Payout Request Transferred' },
+                ],
+            });
+            await prisma.payout.createMany({
+                data: [
+                    { staffId: staff.id, payoutType: 'staff', amount: 50.00, status: 'completed', method: 'ABA Bank', processedAt: new Date() },
+                    { staffId: staff.id, payoutType: 'staff', amount: 35.00, status: 'pending', method: 'ABA Bank' },
+                ],
+            });
+        }
     }
 }
 main()

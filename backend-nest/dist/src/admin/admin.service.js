@@ -56,7 +56,7 @@ let AdminService = class AdminService {
         this.notificationsService = notificationsService;
     }
     async getAnalytics() {
-        const [totalUsers, totalCompanies, pendingCompanies, totalBookings, completedBookings, cancelledBookings, revenueResult,] = await Promise.all([
+        const [totalUsers, totalCompanies, pendingCompanies, totalBookings, completedBookings, cancelledBookings, revenueResult, activeDisputes, openTickets,] = await Promise.all([
             this.prisma.user.count(),
             this.prisma.company.count(),
             this.prisma.company.count({ where: { verificationStatus: 'pending' } }),
@@ -67,6 +67,8 @@ let AdminService = class AdminService {
                 where: { status: 'completed' },
                 _sum: { totalPrice: true, companyEarnings: true },
             }),
+            this.prisma.dispute.count({ where: { status: 'open' } }),
+            this.prisma.supportTicket.count({ where: { status: 'open' } }),
         ]);
         const totalRevenue = Number(revenueResult._sum.totalPrice || 0);
         const totalCompanyEarnings = Number(revenueResult._sum.companyEarnings || 0);
@@ -75,22 +77,49 @@ let AdminService = class AdminService {
             { name: 'Platform Commission', value: platformRevenue, fill: '#8b5cf6' },
             { name: 'Company Payouts', value: totalCompanyEarnings, fill: '#3b82f6' },
         ];
-        const registrationTrend = [
-            { name: 'Jan', users: 10, companies: 2 },
-            { name: 'Feb', users: 20, companies: 5 },
-            { name: 'Mar', users: 35, companies: 8 },
-            { name: 'Apr', users: 50, companies: 12 },
-            { name: 'May', users: 80, companies: 20 },
-            { name: 'Jun', users: 120, companies: 35 },
-        ];
-        const monthlyData = [
-            { name: 'Jan', revenue: 5000, bookings: 45 },
-            { name: 'Feb', revenue: 8000, bookings: 75 },
-            { name: 'Mar', revenue: 15000, bookings: 120 },
-            { name: 'Apr', revenue: 22000, bookings: 180 },
-            { name: 'May', revenue: 35000, bookings: 250 },
-            { name: 'Jun', revenue: 50000, bookings: 380 },
-        ];
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+        sixMonthsAgo.setDate(1);
+        sixMonthsAgo.setHours(0, 0, 0, 0);
+        const [recentUsers, recentCompanies, recentBookings] = await Promise.all([
+            this.prisma.user.findMany({
+                where: { createdAt: { gte: sixMonthsAgo } },
+                select: { createdAt: true },
+            }),
+            this.prisma.company.findMany({
+                where: { createdAt: { gte: sixMonthsAgo } },
+                select: { createdAt: true },
+            }),
+            this.prisma.booking.findMany({
+                where: { createdAt: { gte: sixMonthsAgo } },
+                select: {
+                    createdAt: true,
+                    status: true,
+                    totalPrice: true,
+                    service: { select: { serviceType: { select: { name: true } } } }
+                },
+            }),
+        ]);
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const months = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            months.push({
+                name: monthNames[d.getMonth()],
+                monthKey: `${d.getFullYear()}-${d.getMonth()}`,
+            });
+        }
+        const registrationTrend = months.map((m) => {
+            const uCount = recentUsers.filter(u => `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` === m.monthKey).length;
+            const cCount = recentCompanies.filter(c => `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` === m.monthKey).length;
+            return { name: m.name, users: uCount, companies: cCount };
+        });
+        const monthlyData = months.map((m) => {
+            const bks = recentBookings.filter(b => `${b.createdAt.getFullYear()}-${b.createdAt.getMonth()}` === m.monthKey);
+            const rev = bks.filter(b => b.status === 'completed').reduce((sum, b) => sum + Number(b.totalPrice || 0), 0);
+            return { name: m.name, revenue: rev, bookings: bks.length };
+        });
         const statuses = await this.prisma.booking.groupBy({
             by: ['status'],
             _count: { id: true },
@@ -104,12 +133,30 @@ let AdminService = class AdminService {
                     ? '#ef4444'
                     : '#f59e0b',
         }));
-        const categoryData = [
-            { name: 'Cleaning', value: 120 },
-            { name: 'Plumbing', value: 85 },
-            { name: 'Electrical', value: 60 },
-            { name: 'Landscaping', value: 45 },
-        ];
+        const catMap = new Map();
+        for (const b of recentBookings) {
+            if (b.status === 'completed' && b.service?.serviceType?.name) {
+                catMap.set(b.service.serviceType.name, (catMap.get(b.service.serviceType.name) || 0) + 1);
+            }
+        }
+        const categoryData = Array.from(catMap.entries())
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5);
+        const thisMonthKey = months[5].monthKey;
+        const lastMonthKey = months[4].monthKey;
+        const usersThisMonth = recentUsers.filter(u => `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` === thisMonthKey).length;
+        const usersLastMonth = recentUsers.filter(u => `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` === lastMonthKey).length;
+        const usersGrowth = usersLastMonth ? Number(((usersThisMonth - usersLastMonth) / usersLastMonth * 100).toFixed(1)) : (usersThisMonth > 0 ? 100 : 0);
+        const compThisMonth = recentCompanies.filter(c => `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` === thisMonthKey).length;
+        const compLastMonth = recentCompanies.filter(c => `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` === lastMonthKey).length;
+        const companiesGrowth = compLastMonth ? Number(((compThisMonth - compLastMonth) / compLastMonth * 100).toFixed(1)) : (compThisMonth > 0 ? 100 : 0);
+        const revThisMonth = monthlyData[5].revenue;
+        const revLastMonth = monthlyData[4].revenue;
+        const revenueGrowth = revLastMonth ? Number(((revThisMonth - revLastMonth) / revLastMonth * 100).toFixed(1)) : (revThisMonth > 0 ? 100 : 0);
+        const bksThisMonth = monthlyData[5].bookings;
+        const bksLastMonth = monthlyData[4].bookings;
+        const bookingsGrowth = bksLastMonth ? Number(((bksThisMonth - bksLastMonth) / bksLastMonth * 100).toFixed(1)) : (bksThisMonth > 0 ? 100 : 0);
         const weeklyStats = [];
         const today = new Date();
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -153,25 +200,27 @@ let AdminService = class AdminService {
         }));
         return {
             totalRevenue,
-            revenueGrowth: 12.5,
+            revenueGrowth,
             totalBookings,
-            bookingsGrowth: 8.2,
+            bookingsGrowth,
             activeBookings: totalBookings - completedBookings - cancelledBookings,
             totalUsers,
-            usersGrowth: 5.4,
+            usersGrowth,
             totalCompanies,
             pendingCompanies,
-            companiesGrowth: 15.3,
+            companiesGrowth,
             avgBookingValue: totalBookings > 0 ? Math.round(totalRevenue / totalBookings) : 0,
             conversionRate: 18.2,
             completedBookings,
             cancelledBookings,
+            openTickets,
             monthlyData,
             statusBreakdown,
             categoryData,
             weeklyStats,
             topCompanies,
             registrationTrend,
+            activeDisputes,
         };
     }
     async getUsers(query) {
@@ -209,6 +258,7 @@ let AdminService = class AdminService {
             this.prisma.user.count({ where }),
         ]);
         return {
+            success: true,
             data: users.map((u) => ({ ...u, id: u.id.toString() })),
             meta: { total, page: Number(page), limit: take },
         };
@@ -282,6 +332,7 @@ let AdminService = class AdminService {
             this.prisma.company.count({ where }),
         ]);
         return {
+            success: true,
             data: companies.map((c) => ({
                 ...c,
                 id: c.id.toString(),
@@ -464,6 +515,7 @@ let AdminService = class AdminService {
             this.prisma.dispute.count({ where }),
         ]);
         return {
+            success: true,
             data: disputes.map((d) => ({
                 ...d,
                 bookingId: d.bookingId.toString(),
@@ -516,9 +568,17 @@ let AdminService = class AdminService {
         });
     }
     async processRefund(paymentId, body) {
+        const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+        if (!payment)
+            throw new common_2.NotFoundException('Payment not found');
+        const updatedPayment = await this.prisma.payment.update({
+            where: { id: paymentId },
+            data: { status: 'refunded' },
+        });
         return {
-            message: 'Refund processed successfully',
+            message: 'KHQR Refund marked as processed. Please ensure the transfer is completed via your banking gateway (e.g. ABA/Bakong).',
             paymentId: paymentId.toString(),
+            status: updatedPayment.status,
         };
     }
     async getTransactions(query) {
@@ -579,6 +639,7 @@ let AdminService = class AdminService {
             this.prisma.payout.count({ where }),
         ]);
         return {
+            success: true,
             data: payouts.map((p) => ({
                 ...p,
                 amount: p.amount ? p.amount.toString() : '0',

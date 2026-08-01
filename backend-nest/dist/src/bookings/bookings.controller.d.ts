@@ -14,6 +14,7 @@ export declare class BookingsController {
         };
     }>;
     getMyAssignedBookings(req: any, query: any): Promise<{
+        success: boolean;
         bookings: any[];
         pagination: {
             total: number;
@@ -61,7 +62,17 @@ export declare class BookingsController {
         message: string;
         booking: any;
     }>;
-    startJob(id: string, req: any): Promise<{
+    acceptAssignment(id: string, req: any): Promise<{
+        success: boolean;
+        message: string;
+        booking: any;
+    }>;
+    rejectAssignment(id: string, req: any): Promise<{
+        success: boolean;
+        message: string;
+        booking: any;
+    }>;
+    startJob(id: string, body: any, req: any): Promise<{
         success: boolean;
         message: string;
         booking: any;
@@ -71,7 +82,7 @@ export declare class BookingsController {
         message: string;
         booking: any;
     }>;
-    completeJob(id: string, req: any): Promise<{
+    completeJob(id: string, body: any, req: any): Promise<{
         success: boolean;
         message: string;
         booking: any;

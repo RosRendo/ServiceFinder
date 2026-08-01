@@ -12,11 +12,15 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
   isMe?: boolean;
+  flaggedAsPhone?: boolean;
 }
 
 export interface ChatConversation {
   id: string;
   updatedAt?: string;
+  type?: string;
+  bookingId?: string | null;
+  archivedAt?: string | null;
   otherUser: {
     id: string;
     fullName: string;
@@ -43,7 +47,7 @@ interface ChatState {
   fetchConversations: () => Promise<void>;
   fetchMessages: (conversationId: string) => Promise<void>;
   sendMessage: (conversationId: string, content: string) => Promise<{ success: boolean; data?: any; error?: string }>;
-  startConversation: (companyId: string) => Promise<{ success: boolean; conversationId?: string; error?: string }>;
+  startConversation: (params: { companyId?: string; targetUserId?: string }) => Promise<{ success: boolean; conversationId?: string; error?: string }>;
   setActiveConversation: (id: string | null) => void;
 }
 
@@ -88,6 +92,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         text: data.content || data.text,
         timestamp: data.createdAt || new Date().toISOString(),
         isMe: data.isMe ?? (String(data.senderId) === String(myUserId)),
+        flaggedAsPhone: data.flaggedAsPhone ?? false,
       };
 
       set((state) => {
@@ -164,6 +169,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           text: m.content ?? m.text ?? "",
           timestamp: m.createdAt ?? m.timestamp ?? "",
           isMe,
+          flaggedAsPhone: m.flaggedAsPhone ?? false,
         };
       });
 
@@ -193,7 +199,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         senderId: newMsg.sender?.id ?? newMsg.senderId,
         text: newMsg.content ?? content,
         timestamp: newMsg.createdAt || new Date().toISOString(),
-        isMe: true
+        isMe: true,
+        flaggedAsPhone: newMsg.flaggedAsPhone ?? false
       };
 
       set((state) => {
@@ -213,10 +220,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  startConversation: async (companyId: string) => {
+  startConversation: async (params: { companyId?: string; targetUserId?: string }) => {
     try {
       set({ isLoading: true });
-      const res = await api.post("/api/conversations", { companyId });
+      const res = await api.post("/api/conversations", params);
       const data = res.data?.data || res.data;
       
       if (data && data.id) {

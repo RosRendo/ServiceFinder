@@ -150,6 +150,7 @@ export class SavedItemsService {
     }
 
     return {
+      success: true,
       items: enrichedItems,
       pagination: {
         total,

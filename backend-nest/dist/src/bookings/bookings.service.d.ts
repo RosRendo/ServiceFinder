@@ -5,6 +5,9 @@ import { AdminGateway } from '../admin/admin.gateway';
 import { SettingsService } from '../settings/settings.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PromoCodesService } from '../promo-codes/promo-codes.service';
+import { ConversationsService } from '../conversations/conversations.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 export declare class BookingsService {
     private prisma;
     private bookingsGateway;
@@ -12,7 +15,10 @@ export declare class BookingsService {
     private settingsService;
     private analytics;
     private notificationsService;
-    constructor(prisma: PrismaService, bookingsGateway: BookingsGateway, adminGateway: AdminGateway, settingsService: SettingsService, analytics: AnalyticsService, notificationsService: NotificationsService);
+    private promoCodesService;
+    private conversationsService;
+    private eventEmitter;
+    constructor(prisma: PrismaService, bookingsGateway: BookingsGateway, adminGateway: AdminGateway, settingsService: SettingsService, analytics: AnalyticsService, notificationsService: NotificationsService, promoCodesService: PromoCodesService, conversationsService: ConversationsService, eventEmitter: EventEmitter2);
     getAllBookings(query: any, user: any): Promise<{
         bookings: any[];
         pagination: {
@@ -61,17 +67,27 @@ export declare class BookingsService {
         message: string;
         booking: any;
     }>;
-    startJob(id: bigint, userId: bigint): Promise<{
+    acceptAssignment(id: bigint, userId: bigint): Promise<{
         success: boolean;
         message: string;
         booking: any;
     }>;
-    updateProgress(id: bigint, userId: bigint, progressPercent: number, staffNotes?: string): Promise<{
+    rejectAssignment(id: bigint, userId: bigint): Promise<{
         success: boolean;
         message: string;
         booking: any;
     }>;
-    completeJob(id: bigint, userId: bigint): Promise<{
+    startJob(id: bigint, userId: bigint, staffStartLat?: number, staffStartLng?: number): Promise<{
+        success: boolean;
+        message: string;
+        booking: any;
+    }>;
+    updateProgress(id: bigint, userId: bigint, progressPercent: number, staffNotes?: string, checklist?: any): Promise<{
+        success: boolean;
+        message: string;
+        booking: any;
+    }>;
+    completeJob(id: bigint, userId: bigint, proofOfWorkPhoto?: string): Promise<{
         success: boolean;
         message: string;
         booking: any;
@@ -81,6 +97,7 @@ export declare class BookingsService {
         booking: any;
     }>;
     getMyAssignedBookings(userId: bigint, query: any): Promise<{
+        success: boolean;
         bookings: any[];
         pagination: {
             total: number;

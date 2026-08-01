@@ -98,7 +98,7 @@ export class BookingsController {
 
   @Patch(':id/assign-staff')
   @UseGuards(RolesGuard)
-  @Roles('admin', 'company_admin')
+  @Roles('admin', 'company_admin', 'staff')
   @ApiOperation({ summary: 'Assign staff to booking (Admin/Company Admin)' })
   @ApiResponse({ status: 200, description: 'Staff successfully assigned.' })
   assignStaff(
@@ -110,12 +110,28 @@ export class BookingsController {
     return this.bookingsService.assignStaff(BigInt(id), dto.staffId, user);
   }
 
+  @Patch(':id/accept')
+  @ApiOperation({ summary: 'Accept a job assignment (Assigned staff only)' })
+  @ApiResponse({ status: 200, description: 'Job assignment successfully accepted.' })
+  acceptAssignment(@Param('id') id: string, @Request() req) {
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+    return this.bookingsService.acceptAssignment(BigInt(id), BigInt(user.id));
+  }
+
+  @Patch(':id/reject')
+  @ApiOperation({ summary: 'Reject a job assignment (Assigned staff only)' })
+  @ApiResponse({ status: 200, description: 'Job assignment successfully rejected.' })
+  rejectAssignment(@Param('id') id: string, @Request() req) {
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+    return this.bookingsService.rejectAssignment(BigInt(id), BigInt(user.id));
+  }
+
   @Patch(':id/start')
   @ApiOperation({ summary: 'Start a job (Assigned staff only)' })
   @ApiResponse({ status: 200, description: 'Job successfully started.' })
-  startJob(@Param('id') id: string, @Request() req) {
+  startJob(@Param('id') id: string, @Body() body: any, @Request() req) {
     const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
-    return this.bookingsService.startJob(BigInt(id), BigInt(user.id));
+    return this.bookingsService.startJob(BigInt(id), BigInt(user.id), body?.staffStartLatitude, body?.staffStartLongitude);
   }
 
   @Patch(':id/progress')
@@ -135,15 +151,20 @@ export class BookingsController {
       BigInt(user.id),
       dto.progressPercent,
       dto.staffNotes,
+      dto.checklist
     );
   }
 
   @Patch(':id/complete')
   @ApiOperation({ summary: 'Complete a job (Assigned staff only)' })
   @ApiResponse({ status: 200, description: 'Job successfully completed.' })
-  completeJob(@Param('id') id: string, @Request() req) {
+  completeJob(
+    @Param('id') id: string, 
+    @Body() body: any,
+    @Request() req
+  ) {
     const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
-    return this.bookingsService.completeJob(BigInt(id), BigInt(user.id));
+    return this.bookingsService.completeJob(BigInt(id), BigInt(user.id), body?.proofOfWorkPhoto);
   }
 
   @Patch(':id/cancel')

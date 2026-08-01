@@ -25,22 +25,9 @@ const FAB_SHADOW = Platform.select({
   android: { elevation: 8 },
 });
 
-// Mock center (San Francisco)
+// Default center (San Francisco)
 const BASE_LAT = 37.7749;
 const BASE_LNG = -122.4194;
-
-const getMockLocation = (id: string) => {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const offsetLat = (hash % 100) / 3000;
-  const offsetLng = ((hash >> 2) % 100) / 3000;
-  return {
-    latitude: BASE_LAT + offsetLat,
-    longitude: BASE_LNG + offsetLng,
-  };
-};
 
 const PulseDot = ({ color }: { color: string }) => {
   const scale = useRef(new Animated.Value(1)).current;
@@ -153,7 +140,10 @@ export default function Staff() {
             }}
           >
             {filteredStaff.map((member) => {
-              const loc = getMockLocation(member.id?.toString() || '0');
+              const loc = { 
+                latitude: member.latitude || BASE_LAT + (Math.random() - 0.5) * 0.02, 
+                longitude: member.longitude || BASE_LNG + (Math.random() - 0.5) * 0.02 
+              };
               const isAct = member.status === 'active';
               return (
                 <Marker key={member.id} coordinate={loc} title={member.fullName}>

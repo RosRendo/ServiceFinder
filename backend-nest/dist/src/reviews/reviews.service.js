@@ -64,7 +64,7 @@ let ReviewsService = class ReviewsService {
                 }
                 : null,
         }));
-        return { reviews: formatted };
+        return { success: true, reviews: formatted };
     }
     async getAllReviews(query) {
         const { companyId, customerId, staffId, page = 1, limit = 10 } = query;

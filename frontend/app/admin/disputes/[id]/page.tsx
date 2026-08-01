@@ -45,7 +45,7 @@ export default function DisputeDetailPage() {
 
   const [decisionNotes, setDecisionNotes] = useState("");
   const [refundAmount, setRefundAmount] = useState("");
-  const [decisionType, setDecisionType] = useState<"refunded" | "dismissed" | "partial_refund" | "">("");
+  const [decisionType, setDecisionType] = useState<"accept_claim" | "accept_company" | "mediation" | "">("");
 
   if (isLoading) return (
     <div className="min-h-screen flex items-center justify-center pb-20">
@@ -73,9 +73,9 @@ export default function DisputeDetailPage() {
     resolveMutation.mutate(
       {
         id: id as string,
-        decision: decisionType as "refunded" | "dismissed" | "partial_refund",
+        decision: decisionType as "accept_claim" | "accept_company" | "mediation",
         notes: decisionNotes,
-        refundAmount: decisionType === 'dismissed' ? 0 : parseFloat(refundAmount) || 0
+        refundAmount: decisionType === 'accept_company' ? 0 : parseFloat(refundAmount) || 0
       },
       {
         onSuccess: () => {
@@ -168,7 +168,7 @@ export default function DisputeDetailPage() {
 
                         <div className="space-y-6 relative z-10">
                             <div className="flex flex-wrap gap-3">
-                                {["refunded", "partial_refund", "dismissed"].map((type) => (
+                                {["accept_claim", "mediation", "accept_company"].map((type) => (
                                     <Button
                                         key={type}
                                         variant={decisionType === type ? "default" : "outline"}
@@ -184,7 +184,7 @@ export default function DisputeDetailPage() {
                                 ))}
                             </div>
 
-                            {decisionType && decisionType !== "dismissed" && (
+                            {decisionType && decisionType !== "accept_company" && (
                                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-2">
                                     <label className="text-[10px] font-black text-gray-500 font-medium ml-1">Refund Amount ($)</label>
                                     <Input

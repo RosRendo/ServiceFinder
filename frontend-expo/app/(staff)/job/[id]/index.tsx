@@ -1,10 +1,12 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Image } from "expo-image";
-import { ScrollView, Text, View, TouchableOpacity, Alert, ActivityIndicator, StyleSheet, Platform, Linking, Dimensions } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Alert, ActivityIndicator, StyleSheet, Platform, Linking, Dimensions, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import MapView, { Marker, Polyline } from "react-native-maps";
+import MapViewDirections from 'react-native-maps-directions';
+import * as Location from 'expo-location';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withDelay, Easing } from "react-native-reanimated";
 import { api, useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
@@ -62,6 +64,7 @@ function PulsingMarker({ color = T.secondary, delay = 0 }) {
 
 export default function JobDetailScreen() {
   const router = useRouter();
+  const mapRef = useRef<MapView>(null);
   const { id } = useLocalSearchParams();
   const { t } = useTranslation();
   const { user } = useAuthStore();
@@ -69,6 +72,22 @@ export default function JobDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [wallet, setWallet] = useState<number>(0);
   const [creditLimit, setCreditLimit] = useState<number>(0);
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [photoModalVisible, setPhotoModalVisible] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          let loc = await Location.getCurrentPositionAsync({});
+          setLocation(loc);
+        }
+      } catch (e) {
+        console.warn("Location not available");
+      }
+    })();
+  }, []);
 
   const fetchJob = async () => {
     try {
@@ -79,8 +98,9 @@ export default function JobDetailScreen() {
       try {
         if (user?.staffProfile?.id) {
           const walletRes = await api.get("/api/wallets/staff/" + user.staffProfile.id);
-          setWallet(walletRes.data?.walletBalance || 0);
-          setCreditLimit(walletRes.data?.creditLimit || 0);
+          const walletData = walletRes.data?.data || walletRes.data || {};
+          setWallet(Number(walletData.balance ?? walletData.walletBalance ?? 0));
+          setCreditLimit(Number(walletData.creditLimit ?? 0));
         }
       } catch (e) {
         console.warn("Wallet data not available");
@@ -105,15 +125,14 @@ export default function JobDetailScreen() {
   };
 
   const handleMessage = async () => {
-    if (!jobData?.customerId && !jobData?.customer?.id) {
-      Alert.alert(t('staffBooking.errorTitle'), t('staffBooking.customerInfoNotAvail'));
-      return;
-    }
     try {
-      const targetId = jobData.customerId || jobData.customer?.id;
-      const res = await api.post("/api/conversations", { targetUserId: targetId.toString() });
-      const conversation = res.data?.data?.data || res.data?.data || res.data;
-      router.push(`/(staff)/messages/${conversation.id}?otherName=${encodeURIComponent(jobData.customer?.fullName || t('staffBooking.unknownCustomer'))}` as any);
+      const res = await api.post("/api/conversations", { 
+        type: 'job',
+        bookingId: id.toString()
+      });
+      const responseData = res.data?.data || res.data;
+      const conversation = responseData?.data || responseData;
+      router.push(`/(staff)/messages/${conversation.id}?otherName=${encodeURIComponent(jobData?.customer?.fullName || t('staffBooking.unknownCustomer'))}` as any);
     } catch (e) {
       Alert.alert(t('staffBooking.errorTitle'), t('staffBooking.couldNotStartConv'));
     }
@@ -128,9 +147,23 @@ export default function JobDetailScreen() {
     else Alert.alert(t('staffBooking.noLocationTitle'), t('staffBooking.noAddressFound'));
   };
 
+  const handleArrive = async () => {
+    try {
+      await api.patch(`/api/bookings/${id}/status`, { status: "arrived" });
+      fetchJob();
+    } catch (e: any) {
+      Alert.alert(t('staffBooking.errorTitle'), "Could not update status to arrived");
+    }
+  };
+
   const handleStartJob = async () => {
     try {
-      await api.patch(`/api/bookings/${id}/start`);
+      const payload: any = {};
+      if (location) {
+        payload.staffStartLatitude = location.coords.latitude;
+        payload.staffStartLongitude = location.coords.longitude;
+      }
+      await api.patch(`/api/bookings/${id}/start`, payload);
       router.push(`/(staff)/job/${id}/execution` as any);
     } catch (e: any) {
       const msg = e.response?.data?.message || e.message || t('staffBooking.couldNotStartJob');
@@ -167,17 +200,32 @@ export default function JobDetailScreen() {
   }
 
   const isActionable = jobData.status === "confirmed" || jobData.status === "pending";
+  const isArrived = jobData.status === "arrived";
   const isInProgress = jobData.status === "in_progress";
   const isCompleted = jobData.status === "completed";
 
   const statusColor = isCompleted ? T.success : isInProgress ? T.warning : T.primary;
   const statusBg = isCompleted ? T.successLight : isInProgress ? T.warningLight : T.primaryLight;
 
-  // Fake staff coordinate slightly offset from customer for the map visualization
-  const customerLat = jobData.latitude || 11.5564;
-  const customerLng = jobData.longitude || 104.9282;
-  const staffLat = customerLat - 0.003;
-  const staffLng = customerLng - 0.003;
+  const customerLat = jobData.latitude ? Number(jobData.latitude) : 11.5564;
+  const customerLng = jobData.longitude ? Number(jobData.longitude) : 104.9282;
+  const staffLat = jobData.staffStartLatitude ? Number(jobData.staffStartLatitude) : (location?.coords.latitude || customerLat - 0.003);
+  const staffLng = jobData.staffStartLongitude ? Number(jobData.staffStartLongitude) : (location?.coords.longitude || customerLng - 0.003);
+
+  const fitMapToRoute = () => {
+    if (mapRef.current && staffLat && staffLng && customerLat && customerLng) {
+      mapRef.current.fitToCoordinates(
+        [
+          { latitude: staffLat, longitude: staffLng },
+          { latitude: customerLat, longitude: customerLng }
+        ],
+        {
+          edgePadding: { top: 60, right: 60, bottom: 60, left: 60 },
+          animated: true,
+        }
+      );
+    }
+  };
 
   return (
     <SafeAreaView style={s.root} edges={["top", "left", "right"]}>
@@ -193,6 +241,48 @@ export default function JobDetailScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
+
+        {/* Action Buttons (Moved to top to prevent bottom nav overlap) */}
+        <View style={s.actionContainer}>
+          {isActionable && (
+            <TouchableOpacity onPress={handleArrive} style={s.primaryBtn} activeOpacity={0.85}>
+              <MaterialCommunityIcons name="map-marker-radius" size={24} color="#fff" />
+              <Text style={s.primaryBtnText}>Arrive at Location</Text>
+            </TouchableOpacity>
+          )}
+          {isArrived && (
+            jobData.paymentMethod === 'cash' && wallet <= creditLimit ? (
+              <View style={s.warningBanner}>
+                <MaterialCommunityIcons name="alert-circle" size={20} color={T.error} />
+                <Text style={s.warningText}>
+                  {t('staffBooking.walletBalanceWarning')}
+                </Text>
+              </View>
+            ) : (
+              <TouchableOpacity onPress={handleStartJob} style={s.primaryBtn} activeOpacity={0.85}>
+                <MaterialCommunityIcons name="play-circle" size={24} color="#fff" />
+                <Text style={s.primaryBtnText}>{t('staffBooking.startJob')}</Text>
+              </TouchableOpacity>
+            )
+          )}
+          {isInProgress && (
+            <>
+              <TouchableOpacity onPress={() => router.push(`/(staff)/job/${id}/execution` as any)} style={s.primaryBtn} activeOpacity={0.85}>
+                <MaterialCommunityIcons name="clipboard-text-play" size={24} color="#fff" />
+                <Text style={s.primaryBtnText}>{t('staffBooking.continueExecution')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleCompleteJob} style={s.secondaryBtn} activeOpacity={0.85}>
+                <Text style={s.secondaryBtnText}>{t('staffBooking.markCompleted')}</Text>
+              </TouchableOpacity>
+            </>
+          )}
+          {isCompleted && (
+            <View style={[s.primaryBtn, { backgroundColor: T.success }]}>
+              <MaterialCommunityIcons name="check-decagram" size={24} color="#fff" />
+              <Text style={s.primaryBtnText}>{t('staffBooking.jobCompletedSuccess')}</Text>
+            </View>
+          )}
+        </View>
 
         {/* Hero Card */}
         <View style={s.card}>
@@ -269,12 +359,15 @@ export default function JobDetailScreen() {
           
           <View style={s.mapContainer}>
             <MapView
+              ref={mapRef}
               style={s.map}
+              onMapReady={fitMapToRoute}
+              onLayout={fitMapToRoute}
               initialRegion={{
-                latitude: (customerLat + staffLat) / 2,
-                longitude: (customerLng + staffLng) / 2,
-                latitudeDelta: 0.015,
-                longitudeDelta: 0.015,
+                latitude: customerLat,
+                longitude: customerLng,
+                latitudeDelta: 0.008,
+                longitudeDelta: 0.008,
               }}
               scrollEnabled={false}
               zoomEnabled={false}
@@ -285,29 +378,57 @@ export default function JobDetailScreen() {
               </Marker>
               
               {/* Staff Marker */}
-              <Marker coordinate={{ latitude: staffLat, longitude: staffLng }} title={t('staffBooking.yourLocation')}>
-                <PulsingMarker color={T.secondary} delay={500} />
-              </Marker>
+              {staffLat && staffLng && (
+                <Marker coordinate={{ latitude: staffLat, longitude: staffLng }} title={t('staffBooking.yourLocation')}>
+                  <PulsingMarker color={T.secondary} delay={500} />
+                </Marker>
+              )}
 
               {/* Connecting Line */}
-              <Polyline
-                coordinates={[
-                  { latitude: staffLat, longitude: staffLng },
-                  { latitude: customerLat, longitude: customerLng }
-                ]}
-                strokeColor={T.primary}
-                strokeWidth={2}
-                lineDashPattern={[5, 5]}
-              />
+              {staffLat && staffLng && (
+                process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY && process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY !== 'AIza_placeholder_for_maps' ? (
+                  <MapViewDirections
+                    origin={{ latitude: staffLat, longitude: staffLng }}
+                    destination={{ latitude: customerLat, longitude: customerLng }}
+                    apikey={process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}
+                    strokeWidth={2}
+                    strokeColor={T.secondary}
+                  />
+                ) : (
+                  <Polyline
+                    coordinates={[
+                      { latitude: staffLat, longitude: staffLng },
+                      { latitude: customerLat, longitude: customerLng }
+                    ]}
+                    strokeColor={T.secondary}
+                    strokeWidth={2}
+                    lineDashPattern={[5, 5]}
+                  />
+                )
+              )}
             </MapView>
             <View style={s.mapOverlay}>
               <TouchableOpacity onPress={handleGetDirections} style={s.directionsBtn} activeOpacity={0.9}>
                 <MaterialCommunityIcons name="navigation-variant" size={20} color="#fff" />
-                <Text style={s.directionsBtnText}>{t('staffBooking.navigateClient')}</Text>
+                <Text style={s.directionsBtnText}>{t('staffBooking.getDirections')}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
+
+        {/* Proof of Work */}
+        {jobData.proofOfWorkPhoto && (
+          <View style={s.card}>
+            <Text style={s.cardLabel}>PROOF OF WORK</Text>
+            <TouchableOpacity activeOpacity={0.8} onPress={() => setPhotoModalVisible(true)}>
+              <Image
+                source={{ uri: jobData.proofOfWorkPhoto }}
+                style={{ width: '100%', height: 220, borderRadius: 16 }}
+                contentFit="cover"
+              />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Payment Summary */}
         {jobData.payment && (
@@ -332,44 +453,24 @@ export default function JobDetailScreen() {
           </View>
         )}
 
-        <View style={{ height: 160 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Bottom Actions */}
-      <View style={s.bottomBar}>
-        {isActionable && (
-          jobData.paymentMethod === 'cash' && wallet <= creditLimit ? (
-            <View style={s.warningBanner}>
-              <MaterialCommunityIcons name="alert-circle" size={20} color={T.error} />
-              <Text style={s.warningText}>
-                {t('staffBooking.walletBalanceWarning')}
-              </Text>
-            </View>
-          ) : (
-            <TouchableOpacity onPress={handleStartJob} style={s.primaryBtn} activeOpacity={0.85}>
-              <MaterialCommunityIcons name="play-circle" size={24} color="#fff" />
-              <Text style={s.primaryBtnText}>{t('staffBooking.startJob')}</Text>
-            </TouchableOpacity>
-          )
-        )}
-        {isInProgress && (
-          <>
-            <TouchableOpacity onPress={() => router.push(`/(staff)/job/${id}/execution` as any)} style={s.primaryBtn} activeOpacity={0.85}>
-              <MaterialCommunityIcons name="clipboard-text-play" size={24} color="#fff" />
-              <Text style={s.primaryBtnText}>{t('staffBooking.continueExecution')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleCompleteJob} style={s.secondaryBtn} activeOpacity={0.85}>
-              <Text style={s.secondaryBtnText}>{t('staffBooking.markCompleted')}</Text>
-            </TouchableOpacity>
-          </>
-        )}
-        {isCompleted && (
-          <View style={[s.primaryBtn, { backgroundColor: T.success }]}>
-            <MaterialCommunityIcons name="check-decagram" size={24} color="#fff" />
-            <Text style={s.primaryBtnText}>{t('staffBooking.jobCompletedSuccess')}</Text>
-          </View>
-        )}
-      </View>
+      {/* Full Screen Photo Modal */}
+      <Modal visible={photoModalVisible} transparent={true} animationType="fade">
+        <View style={s.modalBackground}>
+          <TouchableOpacity style={s.modalCloseBtn} onPress={() => setPhotoModalVisible(false)}>
+            <MaterialCommunityIcons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+          {jobData?.proofOfWorkPhoto && (
+            <Image
+              source={{ uri: jobData.proofOfWorkPhoto }}
+              style={s.modalImage}
+              contentFit="contain"
+            />
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -434,26 +535,19 @@ const s = StyleSheet.create({
   paymentLabel: { fontSize: 11, fontWeight: "700", color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 },
   paymentValue: { fontSize: 16, fontWeight: "800", color: T.text },
 
-  // Bottom bar
-  bottomBar: {
-    position: "absolute", bottom: 0, left: 0, right: 0,
-    backgroundColor: "rgba(255,255,255,0.95)", borderTopWidth: 1, borderTopColor: T.border,
-    paddingHorizontal: 20, paddingTop: 16, paddingBottom: Platform.OS === "ios" ? 34 : 24,
-    gap: 12,
-  },
-  primaryBtn: {
-    backgroundColor: T.primary, paddingVertical: 18, borderRadius: 20,
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12,
-  },
-  primaryBtnText: { fontSize: 16, fontWeight: "800", color: "#fff" },
-  secondaryBtn: {
-    backgroundColor: T.bg, paddingVertical: 16, borderRadius: 20,
-    alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: T.primaryLight,
-  },
-  secondaryBtnText: { fontSize: 15, fontWeight: "800", color: T.primary },
+  // Modal
+  modalBackground: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
+  modalCloseBtn: { position: 'absolute', top: 50, right: 20, zIndex: 10, padding: 8 },
+  modalImage: { width: '100%', height: '80%' },
 
-  warningBanner: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#FEF2F2", padding: 16, borderRadius: 16 },
-  warningText: { flex: 1, color: T.error, fontWeight: "700", fontSize: 13 },
+  // Action Container at the top
+  actionContainer: { gap: 12, marginBottom: 8 },
+  primaryBtn: { backgroundColor: T.primary, paddingVertical: 16, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
+  primaryBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  secondaryBtn: { backgroundColor: T.primaryLight, paddingVertical: 16, borderRadius: 16, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: T.border },
+  secondaryBtnText: { color: T.primary, fontSize: 16, fontWeight: "700" },
+  warningBanner: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: T.errorLight, padding: 16, borderRadius: 16 },
+  warningText: { flex: 1, color: T.error, fontSize: 14, fontWeight: "600", lineHeight: 20 },
 
   // Animated Marker Styles
   markerContainer: { width: 50, height: 50, alignItems: "center", justifyContent: "center" },

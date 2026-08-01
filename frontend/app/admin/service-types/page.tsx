@@ -1,13 +1,35 @@
 "use client";
+
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Loader2, Tag, Layers } from "lucide-react";
-import { toast } from "sonner";
+import { Plus, Edit2, Trash2, Search, Loader2, Tag, Layers } from "lucide-react";
+import { useToast } from "@/lib/hooks/use-toast";
+import api from "@/lib/api/client";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-function slugify(t: string) { return t.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-"); }
+function slugify(t: string) {
+  return t.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
+}
 
-interface ServiceType { id: string; name: string; slug: string; description: string; categoryId: string; category?: { id: string; name: string }; icon?: string; status: string; }
-interface Category { id: string; name: string; }
+interface ServiceType {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  categoryId: string;
+  category?: { id: string; name: string };
+  icon?: string;
+  status: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+}
 
 export default function AdminServiceTypesPage() {
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
@@ -15,114 +37,189 @@ export default function AdminServiceTypesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<ServiceType | null>(null);
-  const [formData, setFormData] = useState({ name: "", slug: "", description: "", categoryId: "", icon: "", status: "active" });
+  const [search, setSearch] = useState("");
+  const { toast } = useToast();
 
-  useEffect(() => { fetchServiceTypes(); fetchCategories(); }, []);
+  const [formData, setFormData] = useState({
+    name: "",
+    slug: "",
+    description: "",
+    categoryId: "",
+    icon: "",
+    status: "active"
+  });
 
   const fetchServiceTypes = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/service-types`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      if (res.ok) setServiceTypes(data.data?.data || data.data || []);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+      const res = await api.get("/service-types");
+      const payload = res.data.data || res.data;
+      setServiceTypes(Array.isArray(payload) ? payload : payload.data || []);
+    } catch {
+      toast({ title: "Error", description: "Failed to load service types", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`);
-      const data = await res.json();
-      if (res.ok) {
-        const cats = data.data?.data || data.data || data.categories || [];
-        setCategories(Array.isArray(cats) ? cats : []);
-      }
+      const res = await api.get("/categories");
+      const payload = res.data.data || res.data;
+      setCategories(Array.isArray(payload) ? payload : payload.data || []);
     } catch {}
   };
 
+  useEffect(() => {
+    fetchServiceTypes();
+    fetchCategories();
+  }, []);
+
+  const filtered = serviceTypes.filter((s) =>
+    s.name?.toLowerCase().includes(search.toLowerCase()) ||
+    s.slug?.toLowerCase().includes(search.toLowerCase()) ||
+    s.category?.name?.toLowerCase().includes(search.toLowerCase())
+  );
+
   const openModal = (type: ServiceType | null) => {
     setEditing(type);
-    setFormData(type ? { name: type.name, slug: type.slug, description: type.description || "", categoryId: type.categoryId, icon: type.icon || "", status: type.status } : { name: "", slug: "", description: "", categoryId: "", icon: "", status: "active" });
+    setFormData(
+      type
+        ? {
+            name: type.name,
+            slug: type.slug,
+            description: type.description || "",
+            categoryId: type.categoryId.toString(),
+            icon: type.icon || "",
+            status: type.status || "active"
+          }
+        : { name: "", slug: "", description: "", categoryId: "", icon: "", status: "active" }
+    );
     setShowModal(true);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async () => {
+    if (!formData.name.trim() || !formData.categoryId) {
+      toast({ title: "Error", description: "Name and Category are required", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const url = editing ? `${process.env.NEXT_PUBLIC_API_URL}/api/service-types/${editing.id}` : `${process.env.NEXT_PUBLIC_API_URL}/api/service-types`;
-      const res = await fetch(url, { method: editing ? "PUT" : "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(formData) });
-      if (res.ok) { toast.success(editing ? "Updated" : "Created"); setShowModal(false); fetchServiceTypes(); }
-      else { const e = await res.json(); toast.error(e.message || "Failed"); }
-    } catch { toast.error("Error"); }
+      const payload = {
+        ...formData,
+        categoryId: formData.categoryId
+      };
+      if (editing) {
+        await api.put(`/service-types/${editing.id}`, payload);
+        toast({ title: "Success", description: "Service type updated successfully" });
+      } else {
+        await api.post("/service-types", payload);
+        toast({ title: "Success", description: "Service type created successfully" });
+      }
+      setShowModal(false);
+      fetchServiceTypes();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.response?.data?.message || "Failed to save service type", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this service type?")) return;
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/service-types/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) { toast.success("Deleted"); fetchServiceTypes(); } else toast.error("Failed to delete");
+    try {
+      await api.delete(`/service-types/${id}`);
+      toast({ title: "Success", description: "Service type deleted successfully" });
+      fetchServiceTypes();
+    } catch {
+      toast({ title: "Error", description: "Failed to delete service type", variant: "destructive" });
+    }
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full overflow-hidden relative p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Service Types</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage service sub-categories for companies</p>
+          <h1 className="text-2xl font-bold text-foreground">Service Types</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Manage service sub-categories for companies</p>
         </div>
-        <button onClick={() => openModal(null)} className="inline-flex items-center gap-2 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors">
-          <Plus className="w-4 h-4" /> Add Service Type
-        </button>
+        <Button onClick={() => openModal(null)} className="bg-violet-600 hover:bg-violet-700 text-white font-bold">
+          <Plus className="w-4 h-4 mr-2" /> Add Service Type
+        </Button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      {/* Filter Bar */}
+      <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-3 shrink-0">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-muted/20 text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60"
+            placeholder="Search service types..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="text-xs text-muted-foreground font-medium ml-auto">{filtered.length} items</div>
+      </div>
+
+      {/* Table Content */}
+      <div className="flex-1 bg-card border border-border rounded-xl overflow-hidden relative">
         {loading ? (
-          <div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-gray-300" /></div>
-        ) : serviceTypes.length === 0 ? (
+          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <Tag className="w-10 h-10 text-gray-200 mb-3" />
-            <p className="text-sm font-medium text-gray-500 mb-3">No service types yet</p>
-            <button onClick={() => openModal(null)} className="px-3 py-1.5 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors">Add Service Type</button>
+            <Tag className="w-10 h-10 text-muted/50 mb-3" />
+            <p className="text-sm font-medium text-muted-foreground mb-3">No service types found</p>
+            <Button onClick={() => openModal(null)} variant="outline" size="sm">Add Service Type</Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-auto h-full">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100 text-xs text-gray-500 font-medium">
-                  <th className="px-5 py-3 text-left">Service Type</th>
-                  <th className="px-5 py-3 text-left">Category</th>
-                  <th className="px-5 py-3 text-left">Slug</th>
-                  <th className="px-5 py-3 text-left">Status</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
+                <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                  <th className="px-6 py-3.5 text-left">Service Type</th>
+                  <th className="px-6 py-3.5 text-left">Category</th>
+                  <th className="px-6 py-3.5 text-left">Slug</th>
+                  <th className="px-6 py-3.5 text-left">Status</th>
+                  <th className="px-6 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
-                {serviceTypes.map((type) => (
-                  <tr key={type.id} className="hover:bg-gray-50 transition-colors group cursor-pointer" onClick={() => openModal(type)}>
-                    <td className="px-5 py-3.5">
+              <tbody className="divide-y divide-border/60">
+                {filtered.map((type) => (
+                  <tr key={type.id} className="hover:bg-muted/10 transition-colors group">
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <span className="text-lg">{type.icon || "✨"}</span>
                         <div>
-                          <div className="font-medium text-gray-900">{type.name}</div>
-                          {type.description && <div className="text-xs text-gray-400 truncate max-w-[200px]">{type.description}</div>}
+                          <div className="font-semibold text-foreground">{type.name}</div>
+                          {type.description && <div className="text-xs text-muted-foreground truncate max-w-[250px]">{type.description}</div>}
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span className="flex items-center gap-1.5 text-xs text-gray-600">
-                        <Layers className="w-3.5 h-3.5 text-gray-400" />{type.category?.name || "—"}
+                    <td className="px-6 py-4">
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                        <Layers className="w-3.5 h-3.5 opacity-70" />
+                        {type.category?.name || "—"}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-xs text-gray-400">{type.slug}</td>
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${type.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>{type.status}</span>
+                    <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{type.slug}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${type.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground"}`}>
+                        {type.status || "active"}
+                      </span>
                     </td>
-                    <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openModal(type)} className="px-2.5 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-md flex items-center gap-1 transition-colors"><Edit2 className="w-3 h-3" /> Edit</button>
-                        <button onClick={() => handleDelete(type.id)} className="px-2.5 py-1 text-xs font-medium text-rose-500 hover:bg-rose-50 rounded-md transition-colors">Delete</button>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="outline" size="sm" onClick={() => openModal(type)} className="h-8 text-xs font-semibold text-violet-600 hover:text-violet-700 border-violet-100 hover:border-violet-200">
+                          <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDelete(type.id)} className="h-8 text-xs font-semibold text-rose-600 hover:text-rose-700 border-rose-100 hover:border-rose-200">
+                          <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -133,61 +230,101 @@ export default function AdminServiceTypesPage() {
         )}
       </div>
 
+      {/* Dialog */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-md rounded-lg border border-gray-200 bg-white shadow-xl p-0 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <DialogHeader>
-              <DialogTitle className="text-base font-semibold text-gray-900">{editing ? "Edit Service Type" : "Add Service Type"}</DialogTitle>
-              <DialogDescription className="text-xs text-gray-500">{editing ? "Update this service type." : "Create a new service type."}</DialogDescription>
-            </DialogHeader>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Service Type" : "Add Service Type"}</DialogTitle>
+            <DialogDescription>
+              {editing ? "Update details for this service sub-category." : "Create a new service sub-category."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name <span className="text-rose-500">*</span></Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setFormData((p) => ({ ...p, name: v, slug: editing ? p.slug : slugify(v) }));
+                }}
+                placeholder="e.g. Deep Cleaning"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug <span className="text-rose-500">*</span></Label>
+                <Input
+                  id="slug"
+                  value={formData.slug}
+                  onChange={(e) => setFormData((p) => ({ ...p, slug: slugify(e.target.value) }))}
+                  placeholder="deep-cleaning"
+                  className="font-mono text-xs"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="icon">Icon (Emoji)</Label>
+                <Input
+                  id="icon"
+                  value={formData.icon}
+                  onChange={(e) => setFormData((p) => ({ ...p, icon: e.target.value }))}
+                  placeholder="🧹"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Parent Category <span className="text-rose-500">*</span></Label>
+              <Select value={formData.categoryId} onValueChange={(v) => setFormData((p) => ({ ...p, categoryId: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Parent Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id.toString()}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={formData.status} onValueChange={(v) => setFormData((p) => ({ ...p, status: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
+                placeholder="Describe this service type..."
+                rows={3}
+                className="resize-none"
+              />
+            </div>
           </div>
-          <form onSubmit={handleSave}>
-            <div className="px-6 py-5 space-y-4">
-              {[
-                { label: "Name *", key: "name", placeholder: "e.g. Deep Cleaning", required: true },
-                { label: "Slug *", key: "slug", placeholder: "deep-cleaning", mono: true, required: true },
-                { label: "Icon (Emoji)", key: "icon", placeholder: "🧹" },
-              ].map((f) => (
-                <div key={f.key} className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-600">{f.label}</label>
-                  <input required={f.required} value={(formData as any)[f.key]}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (f.key === "name") setFormData((p) => ({ ...p, name: v, slug: editing ? p.slug : slugify(v) }));
-                      else setFormData((p) => ({ ...p, [f.key]: f.key === "slug" ? slugify(v) : v }));
-                    }}
-                    placeholder={f.placeholder}
-                    className={`w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors ${f.mono ? "font-mono" : ""}`}
-                  />
-                </div>
-              ))}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-600">Category</label>
-                <select value={formData.categoryId} onChange={(e) => setFormData((p) => ({ ...p, categoryId: e.target.value }))}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors">
-                  <option value="">Select category</option>
-                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-600">Status</label>
-                <select value={formData.status} onChange={(e) => setFormData((p) => ({ ...p, status: e.target.value }))}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors">
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-600">Description</label>
-                <textarea value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} rows={3} placeholder="Describe this service type..."
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 resize-none transition-colors" />
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-              <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-md transition-colors">Cancel</button>
-              <button type="submit" className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors">{editing ? "Save Changes" : "Create"}</button>
-            </div>
-          </form>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowModal(false)} disabled={loading}>Cancel</Button>
+            <Button onClick={handleSave} disabled={loading} className="font-bold">
+              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {editing ? "Save Changes" : "Create Service Type"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

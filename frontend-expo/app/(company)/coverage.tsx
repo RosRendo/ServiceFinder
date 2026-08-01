@@ -71,6 +71,7 @@ export default function CoverageAreas() {
   const [address, setAddress] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
+  const [coverageRadiusKm, setCoverageRadiusKm] = useState(15);
   const { user, isLoading: authLoading } = useAuthStore();
 
   const loadCompany = useCallback(async (isRefresh = false) => {
@@ -86,6 +87,8 @@ export default function CoverageAreas() {
         setAddress(data.address ?? "");
         setLatitude(data.latitude ? String(data.latitude) : "");
         setLongitude(data.longitude ? String(data.longitude) : "");
+        const radius = data.serviceAreas?.[0]?.coverageRadiusKm || 15;
+        setCoverageRadiusKm(Number(radius));
       }
     } catch (error) {
       console.error("Failed to load company", error);
@@ -105,6 +108,7 @@ export default function CoverageAreas() {
         city, address,
         latitude: latitude ? String(latitude) : undefined,
         longitude: longitude ? String(longitude) : undefined,
+        coverageRadiusKm: Number(coverageRadiusKm),
       });
       Alert.alert("Saved!", "Coverage area updated successfully.");
     } catch {
@@ -196,7 +200,7 @@ export default function CoverageAreas() {
                         />
                         <Circle
                           center={{ latitude: mapLat, longitude: mapLng }}
-                          radius={SERVICE_RADIUS_METERS}
+                          radius={coverageRadiusKm * 1000}
                           fillColor="rgba(30, 58, 138, 0.15)" // T.accentMid with opacity
                           strokeColor="rgba(30, 58, 138, 0.5)"
                           strokeWidth={2}
@@ -271,17 +275,39 @@ export default function CoverageAreas() {
                 )}
               </View>
 
-              {/* Service Details Card */}
+              {/* Interactive Service Radius Geofencing */}
               <View style={[s.card, { marginTop: 8 }]}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 }}>
                   <View style={s.infoIconWrap}>
                     <MaterialCommunityIcons name="radar" size={24} color={T.accentMid} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.cardTitle}>Service Radius</Text>
-                    <Text style={s.infoText}>Your company currently covers a theoretical {SERVICE_RADIUS_METERS / 1000}km radius from your base location. Customers outside this area may not be able to book you.</Text>
+                    <Text style={s.cardTitle}>Dynamic Geofence Radius</Text>
+                    <Text style={{ fontSize: 12, color: T.text3 }}>Set the maximum search distance from your HQ base.</Text>
                   </View>
                 </View>
+
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: T.bg, padding: 12, borderRadius: 16, marginBottom: 12 }}>
+                  <TouchableOpacity 
+                    onPress={() => setCoverageRadiusKm(prev => Math.max(5, prev - 5))}
+                    style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: T.border }}
+                  >
+                    <MaterialCommunityIcons name="minus" size={20} color={T.text1} />
+                  </TouchableOpacity>
+
+                  <Text style={{ fontSize: 18, fontWeight: "800", color: T.accentMid }}>{coverageRadiusKm} km</Text>
+
+                  <TouchableOpacity 
+                    onPress={() => setCoverageRadiusKm(prev => Math.min(100, prev + 5))}
+                    style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: T.border }}
+                  >
+                    <MaterialCommunityIcons name="plus" size={20} color={T.text1} />
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={{ fontSize: 11, color: T.text3, textAlign: "center", lineHeight: 16 }}>
+                  Active geofencing prevents customers living further than {coverageRadiusKm}km away from booking your team.
+                </Text>
               </View>
             </>
           )}

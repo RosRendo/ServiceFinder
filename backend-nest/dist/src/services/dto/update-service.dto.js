@@ -22,8 +22,9 @@ class UpdateServiceDto {
     features;
     image;
     isActive;
+    checklist;
     static _OPENAPI_METADATA_FACTORY() {
-        return { serviceTypeId: { required: false, type: () => String }, name: { required: false, type: () => String }, description: { required: false, type: () => String }, basePrice: { required: false, type: () => Number }, durationMin: { required: false, type: () => Number }, durationMax: { required: false, type: () => Number }, features: { required: false, type: () => Object }, image: { required: false, type: () => String }, isActive: { required: false, type: () => Boolean } };
+        return { serviceTypeId: { required: false, type: () => String }, name: { required: false, type: () => String }, description: { required: false, type: () => String }, basePrice: { required: false, type: () => Number }, durationMin: { required: false, type: () => Number }, durationMax: { required: false, type: () => Number }, features: { required: false, type: () => Object }, image: { required: false, type: () => String }, isActive: { required: false, type: () => Boolean }, checklist: { required: false, type: () => Object } };
     }
 }
 exports.UpdateServiceDto = UpdateServiceDto;
@@ -71,4 +72,8 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Boolean)
 ], UpdateServiceDto.prototype, "isActive", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Object)
+], UpdateServiceDto.prototype, "checklist", void 0);
 //# sourceMappingURL=update-service.dto.js.map

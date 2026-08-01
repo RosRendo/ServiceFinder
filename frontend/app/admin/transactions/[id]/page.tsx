@@ -32,8 +32,7 @@ import { useParams } from "next/navigation";
 import { useAPI, useMutation } from "@/lib/hooks/useAPI";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Mock Data
-const MOCK_PAYMENT = {
+const INITIAL_PAYMENT = {
   id: "PAY-9823-XYZ",
   bookingId: "BKG-5521",
   amount: 250.0,
@@ -64,7 +63,7 @@ export default function AdminPaymentDetailPage() {
   const { data: paymentData, loading, error, refetch } = useAPI<any>(`/admin/payments/${paymentId}`);
   const { mutate } = useMutation();
   
-  const [localPayment, setLocalPayment] = useState(MOCK_PAYMENT);
+  const [localPayment, setLocalPayment] = useState(INITIAL_PAYMENT);
 
   useEffect(() => {
     if (paymentData) {

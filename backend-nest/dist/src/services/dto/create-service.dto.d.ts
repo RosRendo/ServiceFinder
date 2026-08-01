@@ -8,4 +8,5 @@ export declare class CreateServiceDto {
     durationMax: number;
     features?: any;
     image?: string;
+    checklist?: any;
 }

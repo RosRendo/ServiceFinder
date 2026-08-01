@@ -60,6 +60,8 @@ __decorate([
 ], UpdateServiceDto.prototype, "description", void 0);
 class UpdateCompanyAdminDto {
     name;
+    verificationStatus;
+    status;
     description;
     address;
     city;
@@ -76,7 +78,7 @@ class UpdateCompanyAdminDto {
     detailHighlights;
     services;
     static _OPENAPI_METADATA_FACTORY() {
-        return { name: { required: false, type: () => String }, description: { required: false, type: () => String }, address: { required: false, type: () => String }, city: { required: false, type: () => String }, phone: { required: false, type: () => String }, email: { required: false, type: () => String }, logoUrl: { required: false, type: () => String }, coverImageUrl: { required: false, type: () => String }, verificationDocumentUrl: { required: false, type: () => String }, registrationNumber: { required: false, type: () => String }, establishedYear: { required: false, type: () => Number }, latitude: { required: false, type: () => Number }, longitude: { required: false, type: () => Number }, cardHighlights: { required: false, type: () => [String] }, detailHighlights: { required: false, type: () => [String] }, services: { required: false, type: () => [require("./update-company-admin.dto").UpdateServiceDto] } };
+        return { name: { required: false, type: () => String }, verificationStatus: { required: false, type: () => String }, status: { required: false, type: () => String }, description: { required: false, type: () => String }, address: { required: false, type: () => String }, city: { required: false, type: () => String }, phone: { required: false, type: () => String }, email: { required: false, type: () => String }, logoUrl: { required: false, type: () => String }, coverImageUrl: { required: false, type: () => String }, verificationDocumentUrl: { required: false, type: () => String }, registrationNumber: { required: false, type: () => String }, establishedYear: { required: false, type: () => Number }, latitude: { required: false, type: () => Number }, longitude: { required: false, type: () => Number }, cardHighlights: { required: false, type: () => [String] }, detailHighlights: { required: false, type: () => [String] }, services: { required: false, type: () => [require("./update-company-admin.dto").UpdateServiceDto] } };
     }
 }
 exports.UpdateCompanyAdminDto = UpdateCompanyAdminDto;
@@ -85,6 +87,16 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateCompanyAdminDto.prototype, "name", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateCompanyAdminDto.prototype, "verificationStatus", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateCompanyAdminDto.prototype, "status", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),

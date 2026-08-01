@@ -117,6 +117,7 @@ export class ServicesService {
       durationMax: service.durationMax,
       isActive: service.isActive,
       image: service.image,
+      checklist: service.checklist,
       company: {
         id: service.company.id.toString(),
         name: service.company.name,
@@ -186,6 +187,9 @@ export class ServicesService {
           : null,
         reviewCount: service.company.ratingSummary?.totalReviews || 0,
         serviceAreas: service.company.serviceAreas,
+        completedJobs: service.company.completedJobs,
+        isInsured: service.company.isInsured,
+        completionRate: Number(service.company.completionRate),
       },
       serviceType: {
         id: service.serviceType.id.toString(),
@@ -229,6 +233,7 @@ export class ServicesService {
         durationMin: dto.durationMin,
         durationMax: dto.durationMax,
         features: dto.features || [],
+        checklist: dto.checklist || [],
       },
     });
 
@@ -249,6 +254,7 @@ export class ServicesService {
         companyId: service.companyId.toString(),
         serviceTypeId: service.serviceTypeId.toString(),
         basePrice: Number(service.basePrice),
+        checklist: service.checklist,
       },
     };
   }
@@ -296,6 +302,7 @@ export class ServicesService {
         companyId: updatedService.companyId.toString(),
         serviceTypeId: updatedService.serviceTypeId.toString(),
         basePrice: Number(updatedService.basePrice),
+        checklist: updatedService.checklist,
       },
     };
   }
@@ -419,6 +426,9 @@ export class ServicesService {
             city: true,
             logoUrl: true,
             verificationStatus: true,
+            completedJobs: true,
+            isInsured: true,
+            completionRate: true,
           },
         },
         serviceType: { include: { category: true } },
@@ -440,6 +450,9 @@ export class ServicesService {
               city: true,
               logoUrl: true,
               verificationStatus: true,
+              completedJobs: true,
+              isInsured: true,
+              completionRate: true,
             },
           },
           serviceType: { include: { category: true } },
@@ -467,6 +480,9 @@ export class ServicesService {
         city: service.company.city,
         logoUrl: service.company.logoUrl,
         verified: service.company.verificationStatus === 'verified',
+        completedJobs: service.company.completedJobs,
+        isInsured: service.company.isInsured,
+        completionRate: Number(service.company.completionRate),
       },
       serviceType: {
         id: service.serviceType.id.toString(),
@@ -500,6 +516,9 @@ export class ServicesService {
             city: true,
             logoUrl: true,
             verificationStatus: true,
+            completedJobs: true,
+            isInsured: true,
+            completionRate: true,
           },
         },
         serviceType: { include: { category: true } },
@@ -528,6 +547,9 @@ export class ServicesService {
         city: service.company.city,
         logoUrl: service.company.logoUrl,
         verified: service.company.verificationStatus === 'verified',
+        completedJobs: service.company.completedJobs,
+        isInsured: service.company.isInsured,
+        completionRate: Number(service.company.completionRate),
       },
       serviceType: {
         id: service.serviceType.id.toString(),

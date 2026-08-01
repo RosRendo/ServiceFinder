@@ -27,6 +27,11 @@ const ChatBubble = ({ message, currentUserId }: ChatBubbleProps) => {
         )}
       >
         <p className="text-sm leading-relaxed">{message.text}</p>
+        {message.flaggedAsPhone && (
+          <div className="mt-2 flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-[11px] text-amber-700 font-medium">
+            <span>⚠️ Sharing contact info may violate platform terms. Keep payments & chats secure on the platform.</span>
+          </div>
+        )}
         <div
           className={cn(
             "mt-1 flex items-center gap-1 text-[10px]",

@@ -7,6 +7,9 @@ export declare class ConversationsController {
     startConversation(req: any, dto: StartConversationDto): Promise<{
         data: {
             id: any;
+            type: any;
+            bookingId: any;
+            archivedAt: any;
             updatedAt: any;
             otherUser: {
                 id: any;
@@ -32,6 +35,9 @@ export declare class ConversationsController {
     getMyConversations(req: any): Promise<{
         data: {
             id: any;
+            type: any;
+            bookingId: any;
+            archivedAt: any;
             updatedAt: any;
             otherUser: {
                 id: any;
@@ -82,6 +88,7 @@ export declare class ConversationsController {
                 avatar: string | null;
             };
             isMe: boolean;
+            flaggedAsPhone: boolean;
         };
     }>;
 }

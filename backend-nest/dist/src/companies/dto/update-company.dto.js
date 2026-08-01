@@ -27,8 +27,9 @@ class UpdateCompanyDto {
     establishedYear;
     verificationStatus;
     verificationDocumentUrl;
+    coverageRadiusKm;
     static _OPENAPI_METADATA_FACTORY() {
-        return { name: { required: false, type: () => String }, description: { required: false, type: () => String }, registrationNumber: { required: false, type: () => String }, address: { required: false, type: () => String }, city: { required: false, type: () => String }, latitude: { required: false, type: () => String }, longitude: { required: false, type: () => String }, phone: { required: false, type: () => String }, email: { required: false, type: () => String, format: "email" }, logoUrl: { required: false, type: () => String }, coverImageUrl: { required: false, type: () => String }, establishedYear: { required: false, type: () => String }, verificationStatus: { required: false, enum: ["verified", "pending", "rejected"] }, verificationDocumentUrl: { required: false, type: () => String } };
+        return { name: { required: false, type: () => String }, description: { required: false, type: () => String }, registrationNumber: { required: false, type: () => String }, address: { required: false, type: () => String }, city: { required: false, type: () => String }, latitude: { required: false, type: () => String }, longitude: { required: false, type: () => String }, phone: { required: false, type: () => String }, email: { required: false, type: () => String, format: "email" }, logoUrl: { required: false, type: () => String }, coverImageUrl: { required: false, type: () => String }, establishedYear: { required: false, type: () => String }, verificationStatus: { required: false, enum: ["pending", "verified", "rejected"] }, verificationDocumentUrl: { required: false, type: () => String }, coverageRadiusKm: { required: false, type: () => Number } };
     }
 }
 exports.UpdateCompanyDto = UpdateCompanyDto;
@@ -102,4 +103,8 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateCompanyDto.prototype, "verificationDocumentUrl", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], UpdateCompanyDto.prototype, "coverageRadiusKm", void 0);
 //# sourceMappingURL=update-company.dto.js.map

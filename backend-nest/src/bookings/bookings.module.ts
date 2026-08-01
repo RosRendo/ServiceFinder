@@ -7,15 +7,20 @@ import { AdminModule } from '../admin/admin.module';
 import { SettingsModule } from '../settings/settings.module';
 
 import { NotificationsModule } from '../notifications/notifications.module';
+import { PromoCodesModule } from '../promo-codes/promo-codes.module';
+import { ConversationsModule } from '../conversations/conversations.module';
+import { BookingListener } from './listeners/booking.listener';
 
 @Module({
   imports: [
     PrismaModule,
     SettingsModule,
     NotificationsModule,
+    PromoCodesModule,
     forwardRef(() => AdminModule),
+    forwardRef(() => ConversationsModule),
   ],
-  providers: [BookingsService, BookingsGateway],
+  providers: [BookingsService, BookingsGateway, BookingListener],
   controllers: [BookingsController],
   exports: [BookingsService, BookingsGateway],
 })

@@ -33,20 +33,6 @@ export class PayoutsController {
       BigInt(req.user.id),
     );
 
-    const fs = require('fs');
-    fs.writeFileSync(
-      'debug_payouts.json',
-      JSON.stringify(
-        {
-          userId: req.user.id.toString(),
-          userRole: req.user.role,
-          companyFound: company ? company.id.toString() : null,
-        },
-        null,
-        2,
-      ),
-    );
-
     if (!company) {
       throw new NotFoundException('No company associated with this user');
     }

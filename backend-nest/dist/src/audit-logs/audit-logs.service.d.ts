@@ -16,8 +16,8 @@ export declare class AuditLogsService {
             entityId: string | null;
             user: {
                 id: string;
-                email: string | null;
                 fullName: string;
+                email: string | null;
                 avatar: string | null;
             } | null;
             createdAt: Date;

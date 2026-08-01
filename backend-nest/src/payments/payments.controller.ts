@@ -114,6 +114,18 @@ export class PaymentsController {
     return this.paymentsService.createAbaCheckout(dto, req.user);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post('khqr/generate')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Generate KHQR for Booking' })
+  @ApiResponse({
+    status: 201,
+    description: 'KHQR string generated successfully.',
+  })
+  generateKhqr(@Body() dto: CheckoutSessionDto, @Request() req) {
+    return this.paymentsService.generateKhqr(dto, req.user);
+  }
+
   // ─── Cash / Alt Payments ────────────────────────────────────────────────────
 
   @UseGuards(JwtAuthGuard)

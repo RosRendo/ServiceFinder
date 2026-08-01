@@ -19,8 +19,9 @@ export default function CustomerLayout() {
       {/* ── Bottom Tab Navigator ─────────────────── */}
       <Stack.Screen name="(tabs)" />
 
-      {/* ── Category ─────────────────────────────── */}
+      {/* ── Category & Service ──────────────────────── */}
       <Stack.Screen name="category/[id]" />
+      <Stack.Screen name="service/[id]" />
 
       {/* ── Map View ─────────────────────────────── */}
       <Stack.Screen name="map-view" />
@@ -36,7 +37,8 @@ export default function CustomerLayout() {
       <Stack.Screen name="company/service-modal/[id]" />
 
       {/* ── Booking Flow ─────────────────────────── */}
-      <Stack.Screen name="booking/create" />
+      <Stack.Screen name="booking/[id]/tracking" />
+      <Stack.Screen name="booking/cancel" />
       <Stack.Screen name="booking/[id]" />
       <Stack.Screen name="checkout" />
 

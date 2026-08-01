@@ -47,8 +47,10 @@ export default function CompanyStaffPage() {
   }, []);
 
   const filtered = staff.filter((s) => {
-    const matchSearch = !search || [s.user?.fullName, s.role, s.id].some((v) => v?.toString().toLowerCase().includes(search.toLowerCase()));
-    const matchStatus = statusFilter === "all" || s.user?.status === statusFilter || s.status === statusFilter;
+    const name = s.user?.fullName || s.fullName || s.name || "";
+    const status = s.user?.status || s.status || "offline";
+    const matchSearch = !search || [name, s.role, s.id].some((v) => v?.toString().toLowerCase().includes(search.toLowerCase()));
+    const matchStatus = statusFilter === "all" || status === statusFilter;
     return matchSearch && matchStatus;
   });
 
@@ -63,8 +65,8 @@ export default function CompanyStaffPage() {
     {
       key: "name", header: "Name", sortable: true,
       render: (r) => {
-        const name = r.user?.fullName || "Unknown Staff";
-        const status = r.user?.status || "offline";
+        const name = r.user?.fullName || r.fullName || r.name || "Unknown Staff";
+        const status = r.user?.status || r.status || "offline";
         return (
           <div className="flex items-center gap-2.5">
             <div className="relative">
@@ -78,6 +80,7 @@ export default function CompanyStaffPage() {
         );
       }
     },
+    { key: "email", header: "Email", sortable: true, render: (r) => <span className="text-muted-foreground text-sm">{r.user?.email || r.email || "N/A"}</span> },
     { key: "role", header: "Role", render: (r) => <span className="text-muted-foreground text-xs">{r.role?.replace(/_/g, " ")}</span> },
     { key: "status", header: "Status", render: (r) => <StatusBadge status={r.user?.status || r.status || 'offline'} /> },
     {
@@ -125,9 +128,9 @@ export default function CompanyStaffPage() {
       <div className="shrink-0 flex items-center gap-6 px-6 py-2.5 border-b border-border bg-background">
         {[
           { label: "Total", value: staff.length, color: "text-foreground" },
-          { label: "Online", value: staff.filter((s) => s.user?.status === "online").length, color: "text-emerald-400" },
-          { label: "On Job", value: staff.filter((s) => s.user?.status === "on_job").length, color: "text-violet-400" },
-          { label: "Offline", value: staff.filter((s) => s.user?.status === "offline" || !s.user?.status).length, color: "text-slate-400" },
+          { label: "Online", value: staff.filter((s) => (s.user?.status || s.status) === "online").length, color: "text-emerald-400" },
+          { label: "On Job", value: staff.filter((s) => (s.user?.status || s.status) === "on_job").length, color: "text-violet-400" },
+          { label: "Offline", value: staff.filter((s) => { const st = s.user?.status || s.status; return st === "offline" || !st; }).length, color: "text-slate-400" },
         ].map((s) => (
           <div key={s.label} className="flex items-center gap-2 text-xs">
             <span className="text-muted-foreground">{s.label}</span>
@@ -149,7 +152,7 @@ export default function CompanyStaffPage() {
         actions={[{ icon: Download, label: "Export", onClick: () => {} }]} />
 
       {activeStaff && (
-          <StaffDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} staff={{
+          <StaffDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onSuccess={fetchStaff} staff={{
               id: activeStaff.id,
               name: activeStaff.user?.fullName || "Unknown",
               role: activeStaff.role,
@@ -164,6 +167,7 @@ export default function CompanyStaffPage() {
               onTimeRate: activeStaff.onTimeRate || 100,
               phone: activeStaff.user?.phone || activeStaff.phone || "No phone",
               activeJob: undefined,
+              splitPercent: activeStaff.splitPercent !== undefined && activeStaff.splitPercent !== null ? Number(activeStaff.splitPercent) : null,
               compliance: [],
               schedule: [],
               currentLocation: "Unknown"

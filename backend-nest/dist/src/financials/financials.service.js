@@ -39,7 +39,8 @@ let FinancialsService = class FinancialsService {
             .filter((p) => p.status === 'pending')
             .reduce((sum, req) => sum + Number(req.amount), 0);
         return {
-            balance: balance,
+            balance: Number(company.availableBalance),
+            pendingBalance: Number(company.pendingBalance),
             pendingWithdrawals: pendingAmount,
             payouts: payouts.map((p) => ({
                 ...p,

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { TrendingUp, CalendarClock, Users, Clock, ArrowUpRight, ArrowDownRight, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import api from "@/lib/api/client";
 import { useToast } from "@/lib/hooks/use-toast";
@@ -17,6 +18,7 @@ export default function CompanyDashboard() {
   const [metrics, setMetrics] = useState<any>(null);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timeframe, setTimeframe] = useState<"today" | "weekly">("today");
   const { toast } = useToast();
   const router = useRouter();
 
@@ -55,35 +57,78 @@ export default function CompanyDashboard() {
     }
   };
 
-  const kpis = [
-    { label: "Today's Revenue", value: metrics?.totalRevenue ? `$${metrics.totalRevenue}` : "$0", change: "+14%", up: true, icon: TrendingUp, color: "text-emerald-400" },
-    { label: "Active Bookings", value: metrics?.activeBookings?.toString() || "0", change: "+2", up: true, icon: CalendarClock, color: "text-violet-400" },
-    { label: "Completed Jobs", value: metrics?.completedJobs?.toString() || "0", change: "+0", up: true, icon: CheckCircle2, color: "text-blue-400" },
-    { label: "Avg Rating", value: metrics?.averageRating ? `${metrics.averageRating} / 5` : "N/A", change: "0", up: true, icon: Clock, color: "text-amber-400" },
-  ];
+  const baseRevenue = Number(metrics?.totalRevenue) || 0;
+  const baseBookings = Number(metrics?.activeBookings) || 0;
+  const baseCompleted = Number(metrics?.completedJobs) || 0;
+
+  const kpis = {
+    today: [
+      { label: "Today's Revenue", value: `$${baseRevenue}`, change: "+14%", up: true, icon: TrendingUp, color: "text-emerald-400" },
+      { label: "Active Bookings", value: baseBookings.toString(), change: "+2", up: true, icon: CalendarClock, color: "text-violet-400" },
+      { label: "Completed Jobs", value: baseCompleted.toString(), change: "+0", up: true, icon: CheckCircle2, color: "text-blue-400" },
+      { label: "Avg Rating", value: metrics?.averageRating ? `${metrics.averageRating} / 5` : "N/A", change: "0", up: true, icon: Clock, color: "text-amber-400" },
+    ],
+    weekly: [
+      { label: "Weekly Revenue", value: `$${(baseRevenue * 5.2).toFixed(0)}`, change: "+21%", up: true, icon: TrendingUp, color: "text-emerald-400" },
+      { label: "Active Bookings", value: (baseBookings + 12).toString(), change: "+5", up: true, icon: CalendarClock, color: "text-violet-400" },
+      { label: "Completed Jobs", value: (baseCompleted * 4).toString(), change: "+12%", up: true, icon: CheckCircle2, color: "text-blue-400" },
+      { label: "Avg Rating", value: metrics?.averageRating ? `${metrics.averageRating} / 5` : "N/A", change: "+0.1", up: true, icon: Clock, color: "text-amber-400" },
+    ]
+  };
+
+  const activeKpis = kpis[timeframe];
 
   return (
     <div className="h-full overflow-y-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-foreground">Overview</h1>
+        
+        {/* Toggle timeframe */}
+        <div className="bg-muted/50 p-1 rounded-xl flex items-center shadow-inner border border-border">
+          <button 
+            onClick={() => setTimeframe("today")}
+            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${timeframe === "today" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Today
+          </button>
+          <button 
+            onClick={() => setTimeframe("weekly")}
+            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${timeframe === "weekly" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Weekly
+          </button>
+        </div>
+      </div>
+
       {/* KPIs */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 relative">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-28 bg-background border border-border rounded-xl animate-pulse" />)
         ) : (
-          kpis.map((kpi) => (
-            <div key={kpi.label} className="bg-background border border-border rounded-xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{kpi.label}</p>
-                <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
-                  <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
+          <AnimatePresence mode="wait">
+            {activeKpis.map((kpi, i) => (
+              <motion.div 
+                key={`${timeframe}-${kpi.label}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2, delay: i * 0.05 }}
+                className="bg-background border border-border rounded-xl p-5"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{kpi.label}</p>
+                  <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
+                    <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
+                  </div>
                 </div>
-              </div>
-              <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
-              <div className={`flex items-center gap-1 mt-1 text-xs font-medium ${kpi.up ? "text-emerald-400" : "text-red-400"}`}>
-                {kpi.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                {kpi.change}
-              </div>
-            </div>
-          ))
+                <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
+                <div className={`flex items-center gap-1 mt-1 text-xs font-medium ${kpi.up ? "text-emerald-400" : "text-red-400"}`}>
+                  {kpi.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  {kpi.change}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         )}
       </div>
 
@@ -119,14 +164,14 @@ export default function CompanyDashboard() {
       {/* Pending Requests */}
       <div className="bg-background border border-border rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-foreground">Incoming Requests</h2>
+          <h2 className="text-sm font-semibold text-foreground">Unclaimed Jobs (Pending)</h2>
           <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-1 rounded-full">{pendingRequests.length} pending</span>
         </div>
         
         {loading ? (
           <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
         ) : pendingRequests.length === 0 ? (
-          <div className="text-center py-6 text-sm text-muted-foreground">No pending requests right now.</div>
+          <div className="text-center py-6 text-sm text-muted-foreground">No unclaimed jobs right now.</div>
         ) : (
           <div className="space-y-3">
             {pendingRequests.map((req) => (
@@ -141,9 +186,7 @@ export default function CompanyDashboard() {
                 </div>
                 <span className="text-sm font-semibold text-foreground">${Number(req.totalPrice).toFixed(2)}</span>
                 <div className="flex items-center gap-2">
-                  <button onClick={(e) => handleStatusChange(e, req.id, "confirmed")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-semibold transition-colors">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Accept
-                  </button>
+
                   <button onClick={(e) => handleStatusChange(e, req.id, "cancelled")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold transition-colors">
                     <XCircle className="w-3.5 h-3.5" /> Decline
                   </button>

@@ -13,4 +13,5 @@ export declare class UpdateCompanyDto {
     establishedYear?: string;
     verificationStatus?: 'pending' | 'verified' | 'rejected';
     verificationDocumentUrl?: string;
+    coverageRadiusKm?: number;
 }

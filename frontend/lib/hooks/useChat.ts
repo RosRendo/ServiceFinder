@@ -5,6 +5,9 @@ import { useSocket } from "@/lib/hooks/useSocket";
 export interface ChatConversation {
   id: string;
   updatedAt?: string;
+  type?: string;
+  bookingId?: string | null;
+  archivedAt?: string | null;
   otherUser: {
     id: string;
     fullName: string;
@@ -23,9 +26,9 @@ export interface ChatMessage {
   senderId: string;
   senderName: string;
   text: string;
-  
   timestamp: string;
   read?: boolean;
+  flaggedAsPhone?: boolean;
 }
 
 interface UseConversationsResult {
@@ -129,6 +132,7 @@ export function useMessages(conversationId?: string): UseMessagesResult {
           text: m.content ?? m.text ?? "",
           timestamp: m.createdAt ?? m.timestamp ?? "",
           read: m.read ?? false,
+          flaggedAsPhone: m.flaggedAsPhone ?? false,
         }))
       );
     } catch (err: any) {
@@ -150,11 +154,15 @@ export function useMessages(conversationId?: string): UseMessagesResult {
       conversationId: convoId,
       recipientId,
       companyId,
+      type,
+      bookingId,
     }: {
       content: string;
       conversationId?: string;
       recipientId?: string;
       companyId?: string;
+      type?: string;
+      bookingId?: string;
     }) => {
       try {
         const token = localStorage.getItem("token");
@@ -165,14 +173,14 @@ export function useMessages(conversationId?: string): UseMessagesResult {
 
         // Step 1: get or create conversation
         let activeConvoId = convoId;
-        if (!activeConvoId && (companyId || recipientId)) {
+        if (!activeConvoId && (companyId || recipientId || bookingId)) {
           const convoRes = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL}/api/conversations`,
             {
               method: "POST",
               credentials: "include",
               headers,
-              body: JSON.stringify({ companyId, targetUserId: recipientId }),
+              body: JSON.stringify({ companyId, targetUserId: recipientId, type, bookingId }),
             },
           );
           const convoData = await convoRes.json().catch(() => ({}));
@@ -210,6 +218,7 @@ export function useMessages(conversationId?: string): UseMessagesResult {
             text: newMsg.content,
             timestamp: newMsg.createdAt,
             read: false,
+            flaggedAsPhone: newMsg.flaggedAsPhone ?? false,
           };
           setMessages((prev) => [...prev, chatMsg]);
         }

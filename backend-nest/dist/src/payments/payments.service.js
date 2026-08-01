@@ -47,6 +47,7 @@ exports.PaymentsService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const aba_hash_util_1 = require("./utils/aba-hash.util");
+const bakong_khqr_1 = require("bakong-khqr");
 const crypto = __importStar(require("crypto"));
 const prisma_service_1 = require("../prisma/prisma.service");
 let PaymentsService = PaymentsService_1 = class PaymentsService {
@@ -250,8 +251,88 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             },
         };
     }
+    async generateKhqr(dto, user) {
+        const bookingId = BigInt(dto.bookingId);
+        const booking = await this.prisma.booking.findUnique({
+            where: { id: bookingId },
+            include: { customer: true },
+        });
+        if (!booking)
+            throw new common_1.NotFoundException('Booking not found');
+        if (booking.customerId !== BigInt(user.id))
+            throw new common_1.ForbiddenException('Access denied');
+        if (booking.status !== 'pending')
+            throw new common_1.BadRequestException('This booking has already been processed');
+        const amount = Number(booking.totalPrice).toFixed(2);
+        const merchantId = this.config.get('KHQR_MERCHANT_ID') || 'khqr_merchant_placeholder';
+        const acquirerId = this.config.get('KHQR_ACQUIRER_ID') || 'DEV_BANK';
+        const merchantName = this.config.get('KHQR_MERCHANT_NAME') || 'Service Finder';
+        const qrInfo = new bakong_khqr_1.khqrData();
+        qrInfo.merchantId = merchantId;
+        qrInfo.merchantName = merchantName;
+        qrInfo.acquirerBankId = acquirerId;
+        qrInfo.currency = 'USD';
+        qrInfo.amount = amount;
+        qrInfo.billNumber = `BK-${bookingId.toString()}`;
+        const qrString = bakong_khqr_1.BakongKHQR.generateMerchant(qrInfo);
+        const existingPayment = await this.prisma.payment.findUnique({
+            where: { bookingId },
+        });
+        if (existingPayment) {
+            await this.prisma.payment.update({
+                where: { id: existingPayment.id },
+                data: {
+                    method: 'wallet',
+                    amount: booking.totalPrice,
+                    transactionRef: `KHQR-${bookingId}`,
+                    status: 'pending',
+                },
+            });
+        }
+        else {
+            await this.prisma.payment.create({
+                data: {
+                    bookingId,
+                    userId: booking.customerId,
+                    method: 'wallet',
+                    amount: booking.totalPrice,
+                    transactionRef: `KHQR-${bookingId}`,
+                    status: 'pending',
+                },
+            });
+        }
+        return {
+            message: 'KHQR generated successfully',
+            qrString: qrString?.data?.qr || qrString?.qr || qrString,
+            amount,
+            billNumber: qrInfo.billNumber,
+        };
+    }
     async handleKhqrWebhook(body, headers) {
         this.logger.log(`Received KHQR Webhook: ${JSON.stringify(body)}`);
+        const billNumber = body.billNumber || body.bill_number || body.tran_id;
+        const amount = body.amount;
+        if (billNumber) {
+            const bookingIdStr = billNumber.replace('BK-', '').replace('KHQR-', '');
+            const bookingId = BigInt(bookingIdStr);
+            const payment = await this.prisma.payment.findUnique({
+                where: { bookingId },
+            });
+            if (payment) {
+                await this.prisma.$transaction(async (tx) => {
+                    await tx.payment.update({
+                        where: { id: payment.id },
+                        data: { status: 'paid', paidAt: new Date() },
+                    });
+                    await tx.booking.update({
+                        where: { id: bookingId },
+                        data: { status: 'confirmed' },
+                    });
+                    await this.notify(tx, payment.userId, '💰 Payment Confirmed', `Your KHQR payment of $${amount || Number(payment.amount).toFixed(2)} has been successfully confirmed.`);
+                });
+                return { status: 'success', message: 'Payment successfully applied' };
+            }
+        }
         return { status: 'success', message: 'Webhook received' };
     }
     async handleAbaWebhook(body) {

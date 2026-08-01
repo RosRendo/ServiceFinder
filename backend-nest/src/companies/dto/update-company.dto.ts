@@ -56,4 +56,7 @@ export class UpdateCompanyDto {
   @IsString()
   @IsOptional()
   verificationDocumentUrl?: string;
+
+  @IsOptional()
+  coverageRadiusKm?: number;
 }

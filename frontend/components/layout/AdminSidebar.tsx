@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, LineChart, Building2, ShieldCheck,
-  Users, Layers, Wrench, ShieldAlert, Wallet, FileText, Settings,
+  Users, Layers, Wrench, ShieldAlert, Wallet, FileText, Settings, Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,7 @@ const navGroups = [
     items: [
       { name: "Categories", href: "/admin/categories", icon: Layers },
       { name: "Service Types", href: "/admin/service-types", icon: Wrench },
+      { name: "Promo Codes", href: "/admin/promotions", icon: Tag },
     ],
   },
   {

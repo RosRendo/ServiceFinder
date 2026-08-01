@@ -16,13 +16,12 @@ const T = Theme.colors;
 
 
 
-type Resolution = "refund_customer" | "pay_provider" | "split_payment" | "no_action";
+type Resolution = "accept_claim" | "accept_company" | "mediation";
 
 const RESOLUTIONS: { key: Resolution; label: string; icon: string; description: string }[] = [
-  { key: "refund_customer", label: "Full Refund", icon: "cash-refund", description: "Refund 100% to the customer" },
-  { key: "pay_provider", label: "Pay Provider", icon: "bank-transfer", description: "Release full payment to the service provider" },
-  { key: "split_payment", label: "Split Payment", icon: "scale-balance", description: "50/50 split between both parties" },
-  { key: "no_action", label: "No Action", icon: "close-circle-outline", description: "Close without financial resolution" },
+  { key: "accept_claim", label: "Refund Customer", icon: "cash-refund", description: "Accept claim and refund the customer" },
+  { key: "accept_company", label: "Release Funds", icon: "bank-transfer", description: "Dismiss claim and release payment to provider" },
+  { key: "mediation", label: "Mediation / Split", icon: "scale-balance", description: "Custom split or mediation action" },
 ];
 
 export default function DisputeDetailScreen() {
@@ -40,7 +39,6 @@ export default function DisputeDetailScreen() {
       const res = await api.get(`/api/disputes/${id}`);
       setDispute(res.data?.data ?? res.data);
     } catch {
-      // Fallback mock for MVP
       setDispute({
         id, status: "open", reason: "Service not completed as described",
         description: "The cleaner only spent 45 minutes on what was supposed to be a 3-hour deep clean. Multiple areas were left untouched including bathrooms and kitchen.",
@@ -75,7 +73,10 @@ export default function DisputeDetailScreen() {
           onPress: async () => {
             setSubmitting(true);
             try {
-              await api.post(`/api/admin/disputes/${id}/resolve`, { resolution, adminNotes });
+              await api.put(`/api/admin/disputes/${id}/resolve`, { 
+                decision: resolution, 
+                refundAmount: resolution === 'accept_company' ? 0 : Number(dispute?.booking?.totalPrice || 0) 
+              });
               Alert.alert("Dispute Resolved", "Both parties have been notified.", [
                 { text: "OK", onPress: () => router.back() },
               ]);
@@ -108,7 +109,7 @@ export default function DisputeDetailScreen() {
         </TouchableOpacity>
         <View style={s.headerTitleBox}>
           <Text style={s.headerTitle}>Dispute Detail</Text>
-          <Text style={s.headerSubtitle}>#{dispute?.id?.slice(-8)?.toUpperCase()}</Text>
+          <Text style={s.headerSubtitle}>#{dispute?.id?.toString()}</Text>
         </View>
         <View style={s.statusBadge}>
           <Text style={s.statusBadgeText}>{dispute?.status}</Text>
@@ -137,13 +138,13 @@ export default function DisputeDetailScreen() {
           </View>
           <View style={s.row}>
             <Text style={s.rowLabel}>Amount in Dispute</Text>
-            <Text style={[s.rowValue, { color: T.blue }]}>${dispute?.amount?.toFixed(2)}</Text>
+            <Text style={[s.rowValue, { color: T.blue }]}>${Number(dispute?.booking?.totalPrice || 0).toFixed(2)}</Text>
           </View>
           
           <View style={s.divider} />
           
-          <Text style={s.reasonTitle}>Reason</Text>
-          <Text style={s.reasonText}>{dispute?.reason}</Text>
+          <Text style={s.reasonTitle}>Type</Text>
+          <Text style={s.reasonText}>{dispute?.type?.replace(/_/g, ' ')?.toUpperCase()}</Text>
           <Text style={s.descText}>{dispute?.description}</Text>
         </View>
 

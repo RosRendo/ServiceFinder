@@ -92,7 +92,9 @@ export default function SubscriptionScreen() {
   const fetchSubscription = async () => {
     try {
       const res = await api.get("/api/companies/subscription");
-      const data = res.data;
+      // Service returns { success: true, data: { plan, trialEndsAt } }
+      // Interceptor passes through (sees success: true), so actual data is at res.data.data
+      const data = res.data?.data ?? res.data;
       setCurrentPlan(data?.plan || "starter");
       if (data?.trialEndsAt) {
         const daysLeft = Math.max(
@@ -108,6 +110,7 @@ export default function SubscriptionScreen() {
       setLoading(false);
     }
   };
+
 
   const handleUpgrade = (plan: Plan) => {
     if (plan.id === currentPlan) return;

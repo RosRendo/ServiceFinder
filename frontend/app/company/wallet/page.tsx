@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Wallet, ArrowUpRight, ArrowDownRight, Clock, Plus, Loader2, DollarSign } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, Clock, Plus, Loader2, DollarSign, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,7 @@ interface Transaction {
 
 export default function CompanyWalletPage() {
   const { user } = useAuth();
-  const [wallet, setWallet] = useState<{ balance: number, pendingWithdrawals: number, transactions: Transaction[] } | null>(null);
+  const [wallet, setWallet] = useState<{ balance: number, pendingBalance?: number, pendingWithdrawals: number, transactions: Transaction[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -101,6 +101,7 @@ export default function CompanyWalletPage() {
   }
 
   const balance = wallet?.balance || 0;
+  const pendingEarnings = wallet?.pendingBalance || 0;
   const pending = wallet?.pendingWithdrawals || 0;
   const lifetime = (wallet?.transactions || []).filter(t => t.type === 'credit').reduce((sum, t) => sum + t.amount, 0);
 
@@ -164,15 +165,25 @@ export default function CompanyWalletPage() {
       <main className="max-w-5xl mx-auto px-4 lg:px-0 py-8 space-y-6">
         
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
                 <Wallet className="w-5 h-5 text-emerald-600" />
               </div>
-              <h3 className="font-medium text-gray-500">Available Balance</h3>
+              <h3 className="font-medium text-gray-500 text-sm">Available Balance</h3>
             </div>
-            <p className="text-3xl font-bold text-gray-900">${balance.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-gray-900">${balance.toFixed(2)}</p>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
+                <Lock className="w-5 h-5 text-indigo-600" />
+              </div>
+              <h3 className="font-medium text-gray-500 text-sm">Pending Earnings</h3>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">${pendingEarnings.toFixed(2)}</p>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
@@ -180,19 +191,19 @@ export default function CompanyWalletPage() {
               <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
                 <Clock className="w-5 h-5 text-amber-600" />
               </div>
-              <h3 className="font-medium text-gray-500">Pending Withdrawals</h3>
+              <h3 className="font-medium text-gray-500 text-sm">Pending Payouts</h3>
             </div>
-            <p className="text-3xl font-bold text-gray-900">${pending.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-gray-900">${pending.toFixed(2)}</p>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
                 <ArrowDownRight className="w-5 h-5 text-blue-600" />
               </div>
-              <h3 className="font-medium text-gray-500">Lifetime Earnings</h3>
+              <h3 className="font-medium text-gray-500 text-sm">Lifetime Earnings</h3>
             </div>
-            <p className="text-3xl font-bold text-gray-900">${lifetime.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-gray-900">${lifetime.toFixed(2)}</p>
           </motion.div>
         </div>
 

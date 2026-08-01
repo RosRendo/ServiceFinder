@@ -63,7 +63,7 @@ export class ReviewsService {
         : null,
     }));
 
-    return { reviews: formatted };
+    return { success: true, reviews: formatted };
   }
 
   async getAllReviews(query: any) {

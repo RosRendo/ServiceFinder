@@ -22,13 +22,21 @@ export default function AdminChatScreen() {
   const { token } = useAuthStore();
   const { 
     messagesByConversation, isLoading, isConnected, 
-    connect, disconnect, fetchMessages, sendMessage, setActiveConversation 
+    connect, disconnect, fetchMessages, sendMessage, setActiveConversation,
+    conversations, fetchConversations
   } = useChatStore();
 
   const activeMessages = id ? (messagesByConversation[id] || []) : [];
+  const activeConversation = conversations.find(c => c.id === id);
+  const isArchived = activeConversation?.archivedAt
+    ? new Date(activeConversation.archivedAt) <= new Date()
+    : false;
 
   useEffect(() => {
     if (!id || !token) return;
+    
+    // Fetch conversations list to ensure we have the conversation details/metadata (like archivedAt)
+    fetchConversations();
     
     // Set active conversation and fetch initial messages
     setActiveConversation(id);
@@ -61,10 +69,10 @@ export default function AdminChatScreen() {
           <Text style={s.avatarText}>{nameInitial}</Text>
         </View>
         <View style={s.headerInfo}>
-          <Text style={s.titleText} numberOfLines={1}>{otherName ?? "Conversation"}</Text>
+          <Text style={s.titleText} numberOfLines={1}>{otherName ?? "Chat"}</Text>
           <View style={s.statusRow}>
-            <View style={[s.statusDot, { backgroundColor: isConnected ? T.success : T.text3 }]} />
-            <Text style={s.statusText}>{isConnected ? "Online" : "Connecting..."}</Text>
+            <View style={[s.statusDot, { backgroundColor: isConnected ? T.success : "#94A3B8" }]} />
+            <Text style={s.statusText}>{isConnected ? "Online" : "Offline"}</Text>
           </View>
         </View>
       </View>
@@ -94,7 +102,16 @@ export default function AdminChatScreen() {
 
       {/* Input */}
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ChatInput onSend={handleSend} />
+        {isArchived ? (
+          <View style={s.lockBanner}>
+            <MaterialCommunityIcons name="lock-outline" size={16} color="#92400E" />
+            <Text style={s.lockBannerText}>
+              This job chat is archived because the service booking has been completed.
+            </Text>
+          </View>
+        ) : (
+          <ChatInput onSend={handleSend} />
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -116,5 +133,22 @@ const s = StyleSheet.create({
   statusText: { fontSize: 12, color: T.text3, fontWeight: "500" },
   loadingBox: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyBox: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 80 },
-  emptyText: { fontSize: 14, color: T.text3, marginTop: 8, fontWeight: "500" }
+  emptyText: { fontSize: 14, color: T.text3, marginTop: 8, fontWeight: "500" },
+  lockBanner: {
+    backgroundColor: "#FEF3C7",
+    borderTopWidth: 1,
+    borderTopColor: "#FCD34D",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  lockBannerText: {
+    color: "#92400E",
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
+  },
 });
