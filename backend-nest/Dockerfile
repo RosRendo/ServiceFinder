@@ -26,4 +26,4 @@ RUN mkdir -p logs && chown -R node:node logs
 USER node
 EXPOSE 5000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/src/main.js"]
