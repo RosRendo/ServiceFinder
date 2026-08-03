@@ -141,8 +141,8 @@ export default function PayoutsPage() {
         ) : (
           <DataGrid columns={columns} data={filtered}
             selectedIds={selectedIds}
-            onSelectRow={(id) => setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; })}
-            onSelectAll={() => setSelectedIds((prev) => prev.size === filtered.length ? new Set() : new Set(filtered.map((p) => p.id)))}
+            onToggleRow={(id) => setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; })}
+            onToggleAll={() => setSelectedIds((prev) => prev.size === filtered.length ? new Set() : new Set(filtered.map((p) => p.id)))}
             emptyMessage="No payouts found." />
         )}
       </div>

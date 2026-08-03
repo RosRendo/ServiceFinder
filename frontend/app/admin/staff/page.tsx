@@ -170,7 +170,7 @@ export default function StaffPage() {
           </div>
         ) : (
           <DataGrid columns={columns} data={filtered} onRowClick={(r) => { setActiveStaff(r); setDrawerOpen(true); }}
-            selectedIds={selectedIds} onSelectRow={toggleRow} onSelectAll={toggleAll} emptyMessage="No staff found." />
+            selectedIds={selectedIds} onToggleRow={toggleRow} onToggleAll={toggleAll} emptyMessage="No staff found." />
         )}
       </div>
 

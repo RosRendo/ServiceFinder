@@ -138,8 +138,8 @@ export default function BookingsPage() {
             columns={columns}
             data={filtered}
             selectedIds={selectedIds}
-            onSelectRow={toggleRow}
-            onSelectAll={toggleAll}
+            onToggleRow={toggleRow}
+            onToggleAll={toggleAll}
             onRowClick={(row) => openDrawer(row.id)}
             emptyMessage={search ? "No bookings found matching your search." : "No bookings found in the system."}
           />

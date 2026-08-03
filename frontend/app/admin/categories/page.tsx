@@ -131,7 +131,7 @@ export default function CategoriesPage() {
       )
     },
     {
-      key: "actions", header: "Actions", align: "right",
+      key: "actions", header: "Actions",
       render: (c) => (
         <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
           <button 

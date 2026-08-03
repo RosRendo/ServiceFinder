@@ -9,7 +9,7 @@ import {
     TrendingUp, FileText, UserCheck, Activity,
     Building2, MapPin, Map, Globe, User, ShieldAlert,
     Ban, Clock, Calendar, Briefcase, Users, Edit2, DollarSign, Receipt,
-    History, AlertTriangle, PlayCircle, Mail, Phone
+    History, AlertTriangle, PlayCircle, Mail, Phone, RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,7 +26,7 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
     const { toast } = useToast();
     const [isActioning, setIsActioning] = useState(false);
 
-    const { data: company, loading, error, mutate } = useAPI(`/api/admin/companies/${resolvedParams.id}`);
+    const { data: company, loading, error, refetch } = useAPI(`/api/admin/companies/${resolvedParams.id}`);
 
     const handleVerify = async () => {
         if (!confirm("Are you sure you want to approve this company?")) return;
@@ -34,7 +34,7 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
         try {
             await api.post(`/admin/companies/${resolvedParams.id}/verify`);
             toast({ title: "Company Approved", description: "The company has been verified." });
-            mutate();
+            refetch();
         } catch (err) {
             toast({ title: "Error", description: "Failed to verify company.", variant: "destructive" });
         } finally {

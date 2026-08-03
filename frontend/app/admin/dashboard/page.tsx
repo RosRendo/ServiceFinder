@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 export default function AdminDashboard() {
-  const { data, loading, mutate } = useAPI<any>('/api/admin/analytics');
+  const { data, loading, refetch } = useAPI<any>('/api/admin/analytics');
   const router = useRouter();
   const [timeframe, setTimeframe] = useState<"today" | "weekly">("today");
   const [growthMetric, setGrowthMetric] = useState<"revenue" | "bookings" | "users" | "companies">("revenue");
@@ -21,7 +21,7 @@ export default function AdminDashboard() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await mutate();
+    await refetch();
     setTimeout(() => setIsRefreshing(false), 500);
   };
 

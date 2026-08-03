@@ -20,14 +20,14 @@ const COLORS = ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ec4899", "#14b8a6"
 // NOTE: Chart data is dynamically sourced from the API (data.monthlyData, data.serviceBreakdown, etc.)
 
 export default function CompanyAnalyticsPage() {
-  const { data, loading, mutate } = useAPI<any>('/companies/my-company/metrics');
+  const { data, loading, refetch } = useAPI<any>('/companies/my-company/metrics');
   const [activeTab, setActiveTab] = useState<"overview" | "bookings" | "customers" | "staff" | "services" | "reviews">("overview");
   const [timeframe, setTimeframe] = useState("30");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await mutate();
+    await refetch();
     setTimeout(() => setIsRefreshing(false), 500);
   };
 

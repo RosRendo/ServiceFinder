@@ -234,8 +234,8 @@ export default function DispatchCenter() {
         ) : (
           <DataGrid
             selectedIds={selectedIds}
-            onSelectRow={(id) => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; })}
-            onSelectAll={() => setSelectedIds(p => p.size === filtered.length ? new Set() : new Set(filtered.map((x: any) => x.id)))}
+            onToggleRow={(id) => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; })}
+            onToggleAll={() => setSelectedIds(p => p.size === filtered.length ? new Set() : new Set(filtered.map((x: any) => x.id)))}
             columns={columns}
             data={filtered}
             onRowClick={(row) => {

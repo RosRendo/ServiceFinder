@@ -20,14 +20,14 @@ const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 // Fallback arrays are used ONLY when the server returns no data (e.g., empty DB).
 
 export default function AdminAnalyticsPage() {
-  const { data, loading, mutate } = useAPI<any>('/api/admin/analytics');
+  const { data, loading, refetch } = useAPI<any>('/api/admin/analytics');
   const [activeTab, setActiveTab] = useState<"overview" | "revenue" | "bookings" | "marketplace">("overview");
   const [timeframe, setTimeframe] = useState("30");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await mutate();
+    await refetch();
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
@@ -68,6 +68,11 @@ export default function AdminAnalyticsPage() {
   const topCompaniesData = (data?.topCompanies || []) as Array<{ name: string; revenue: string; rating: number; completedJobs: number }>;
   const registrationTrend = (data?.registrationTrend || []) as Array<{ name: string; users: number; companies: number }>;
   const statusBreakdown = (data?.statusBreakdown || []) as Array<{ name: string; value: number; color: string }>;
+  const categorySaturationData = (data?.categorySaturationData || [
+    { name: 'Cleaning', value: 85, fill: '#3b82f6', status: 'High Demand' },
+    { name: 'Plumbing', value: 45, fill: '#10b981', status: 'Balanced' },
+    { name: 'Electrical', value: 65, fill: '#f59e0b', status: 'Growing' }
+  ]) as Array<{ name: string; value: number; fill: string; status: string }>;
 
   return (
     <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-6 font-sans">
@@ -233,7 +238,7 @@ export default function AdminAnalyticsPage() {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(val: number) => `${val.toLocaleString()} bookings`} />
+                        <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(val: any) => `${Number(val).toLocaleString()} bookings`} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
