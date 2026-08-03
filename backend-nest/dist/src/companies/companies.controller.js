@@ -39,6 +39,10 @@ let CompaniesController = class CompaniesController {
     getMyCompany(user) {
         return this.companiesService.getMyCompany(BigInt(user.id));
     }
+    async updateMyCompany(user, body) {
+        const company = await this.companiesService.getMyCompany(BigInt(user.id));
+        return this.companiesService.updateCompany(company.id, BigInt(user.id), user.role, body);
+    }
     getMyCompanyMetrics(user) {
         return this.companiesService.getMyCompanyMetrics(BigInt(user.id));
     }
@@ -49,6 +53,10 @@ let CompaniesController = class CompaniesController {
         const company = await this.companiesService.getMyCompany(BigInt(user.id));
         return this.companiesService.getCompanyCustomers(company.id, query);
     }
+    async getMyCompanyCustomer(user, customerId) {
+        const company = await this.companiesService.getMyCompany(BigInt(user.id));
+        return this.companiesService.getCompanyCustomerDetail(company.id, BigInt(customerId));
+    }
     async getMyCompanyReviews(user, query) {
         const company = await this.companiesService.getMyCompany(BigInt(user.id));
         if (!company) {
@@ -56,12 +64,35 @@ let CompaniesController = class CompaniesController {
         }
         return this.companiesService.getCompanyReviews(company.id, query);
     }
+    async getMyCompanyReview(user, reviewId) {
+        const company = await this.companiesService.getMyCompany(BigInt(user.id));
+        return this.companiesService.getCompanyReviewDetail(company.id, BigInt(reviewId));
+    }
     async getMyCompanyRevenue(user) {
         const company = await this.companiesService.getMyCompany(BigInt(user.id));
         if (!company) {
             throw new common_1.NotFoundException('Company not found');
         }
         return this.companiesService.getCompanyRevenue(company.id);
+    }
+    async getMyCompanyServices(user) {
+        const company = await this.companiesService.getMyCompany(BigInt(user.id));
+        if (!company) {
+            throw new common_1.NotFoundException('Company not found');
+        }
+        return this.companiesService.getCompanyServices(company.id);
+    }
+    async getMyCompanyService(user, serviceId) {
+        const company = await this.companiesService.getMyCompany(BigInt(user.id));
+        return this.companiesService.getCompanyServiceDetail(company.id, BigInt(serviceId));
+    }
+    async createMyCompanyService(user, body) {
+        const company = await this.companiesService.getMyCompany(BigInt(user.id));
+        return this.companiesService.createCompanyService(company.id, body);
+    }
+    async updateMyCompanyService(user, serviceId, body) {
+        const company = await this.companiesService.getMyCompany(BigInt(user.id));
+        return this.companiesService.updateCompanyService(company.id, BigInt(serviceId), body);
     }
     getStaffMemberById(staffId, user) {
         return this.companiesService.getStaffMemberById(BigInt(staffId), BigInt(user.id));
@@ -174,6 +205,19 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], CompaniesController.prototype, "getMyCompany", null);
 __decorate([
+    (0, common_1.Put)('my-company'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Update current user company details' }),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], CompaniesController.prototype, "updateMyCompany", null);
+__decorate([
     (0, common_1.Get)('my-company/metrics'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('company_admin'),
@@ -211,6 +255,19 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CompaniesController.prototype, "getMyCompanyCustomers", null);
 __decorate([
+    (0, common_1.Get)('my-company/customers/:customerId'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: "Get customer detail for the user's company" }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Return company customer detail.' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('customerId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], CompaniesController.prototype, "getMyCompanyCustomer", null);
+__decorate([
     (0, common_1.Get)('my-company/reviews'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('company_admin'),
@@ -224,6 +281,19 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CompaniesController.prototype, "getMyCompanyReviews", null);
 __decorate([
+    (0, common_1.Get)('my-company/reviews/:reviewId'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Get current company review detail' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Return review detail for the current company.' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('reviewId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], CompaniesController.prototype, "getMyCompanyReview", null);
+__decorate([
     (0, common_1.Get)('my-company/revenue'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('company_admin'),
@@ -235,6 +305,58 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], CompaniesController.prototype, "getMyCompanyRevenue", null);
+__decorate([
+    (0, common_1.Get)('my-company/services'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Get current company services' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Return services for the current company.' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], CompaniesController.prototype, "getMyCompanyServices", null);
+__decorate([
+    (0, common_1.Get)('my-company/services/:serviceId'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Get current company service detail' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Return service detail for the current company.' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('serviceId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], CompaniesController.prototype, "getMyCompanyService", null);
+__decorate([
+    (0, common_1.Post)('my-company/services'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Create a new service' }),
+    openapi.ApiResponse({ status: 201 }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], CompaniesController.prototype, "createMyCompanyService", null);
+__decorate([
+    (0, common_1.Put)('my-company/services/:serviceId'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Update an existing service' }),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('serviceId')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", Promise)
+], CompaniesController.prototype, "updateMyCompanyService", null);
 __decorate([
     (0, common_1.Get)('staff/:staffId'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),

@@ -52,6 +52,7 @@ export declare class CompaniesController {
             completedJobs: number;
             isInsured: boolean;
             completionRate: import("@prisma/client/runtime/library").Decimal;
+            coverageRadiusKm: number;
             ownerId: bigint;
         };
     }>;
@@ -115,7 +116,50 @@ export declare class CompaniesController {
         completedJobs: number;
         isInsured: boolean;
         completionRate: import("@prisma/client/runtime/library").Decimal;
+        coverageRadiusKm: number;
         ownerId: bigint;
+    }>;
+    updateMyCompany(user: any, body: any): Promise<{
+        message: string;
+        company: {
+            owner: {
+                id: bigint;
+                fullName: string;
+                email: string | null;
+            };
+        } & {
+            id: bigint;
+            latitude: import("@prisma/client/runtime/library").Decimal | null;
+            longitude: import("@prisma/client/runtime/library").Decimal | null;
+            createdAt: Date;
+            updatedAt: Date;
+            walletBalance: import("@prisma/client/runtime/library").Decimal;
+            name: string;
+            description: string | null;
+            email: string | null;
+            phone: string | null;
+            registrationNumber: string | null;
+            address: string | null;
+            city: string | null;
+            verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+            logoUrl: string | null;
+            coverImageUrl: string | null;
+            verificationDocumentUrl: string | null;
+            establishedYear: number | null;
+            cardHighlights: import("@prisma/client/runtime/library").JsonValue;
+            detailHighlights: import("@prisma/client/runtime/library").JsonValue;
+            subscriptionStatus: string;
+            trialEndsAt: Date | null;
+            nextBillingDate: Date | null;
+            pendingBalance: import("@prisma/client/runtime/library").Decimal;
+            availableBalance: import("@prisma/client/runtime/library").Decimal;
+            platformFeePercent: import("@prisma/client/runtime/library").Decimal | null;
+            completedJobs: number;
+            isInsured: boolean;
+            completionRate: import("@prisma/client/runtime/library").Decimal;
+            coverageRadiusKm: number;
+            ownerId: bigint;
+        };
     }>;
     getMyCompanyMetrics(user: any): Promise<{
         revenue: number;
@@ -208,6 +252,38 @@ export declare class CompaniesController {
             pages: number;
         };
     }>;
+    getMyCompanyCustomer(user: any, customerId: string): Promise<{
+        id: string;
+        fullName: string;
+        email: string | null;
+        phone: string | null;
+        profilePictureUrl: string | null;
+        status: import(".prisma/client").$Enums.UserStatus;
+        memberSince: Date;
+        stats: {
+            totalBookings: number;
+            ltv: number;
+            activeDisputes: number;
+            lastActivity: Date | null;
+        };
+        bookings: {
+            id: string;
+            serviceName: string;
+            serviceCategory: string;
+            date: Date;
+            startTime: Date;
+            endTime: Date;
+            status: import(".prisma/client").$Enums.BookingStatus;
+            amount: import("@prisma/client/runtime/library").Decimal;
+            staffName: string | null;
+            dispute: {
+                id: string;
+                status: string;
+                reason: string;
+            } | null;
+            hasMessages: boolean;
+        }[];
+    }>;
     getMyCompanyReviews(user: any, query: any): Promise<{
         reviews: {
             id: string;
@@ -227,21 +303,198 @@ export declare class CompaniesController {
             pages: number;
         };
     }>;
+    getMyCompanyReview(user: any, reviewId: string): Promise<{
+        id: string;
+        customer: {
+            name: string;
+            email: string | null;
+            phone: string | null;
+            avatar: string | null;
+        };
+        staff: {
+            name: string;
+            avatar: string | null | undefined;
+        };
+        booking: {
+            id: string;
+            date: Date;
+            service: string;
+            amount: import("@prisma/client/runtime/library").Decimal;
+        };
+        rating: number;
+        text: string;
+        staffRating: number | null;
+        staffText: string | null;
+        date: string;
+        status: string;
+        dispute: {
+            id: string;
+            status: string;
+            reason: string;
+            createdAt: Date;
+        } | null;
+    }>;
     getMyCompanyRevenue(user: any): Promise<{
-        revenueData: {
-            gross: number;
-            net: number;
-            day: string;
-        }[];
         kpis: {
             label: string;
             value: string;
-            change: string;
             up: boolean;
+            pct: string;
         }[];
+        trendData: {
+            day: string;
+            gross: number;
+            net: number;
+        }[];
+        breakdown: {
+            gross: number;
+            platformFee: number;
+            staffPayout: number;
+            discounts: number;
+            refunds: number;
+            net: number;
+        };
+        serviceData: {
+            name: string;
+            revenue: number;
+            percentage: number;
+        }[];
+        staffData: {
+            badge: string | null;
+            id: string;
+            name: string;
+            avatar: string;
+            jobs: number;
+            revenue: number;
+            rating: number;
+        }[];
+        transactions: {
+            id: string;
+            date: string;
+            customer: string;
+            staff: string;
+            gross: number;
+            fee: number;
+            net: number;
+            payment: string;
+            status: import(".prisma/client").$Enums.BookingStatus;
+        }[];
+    }>;
+    getMyCompanyServices(user: any): Promise<{
+        id: string;
+        companyId: string;
+        serviceTypeId: string;
+        basePrice: number;
+        discountPrice: number | null;
+        serviceType: {
+            category: {
+                id: bigint;
+                status: import(".prisma/client").$Enums.CategoryStatus;
+                createdAt: Date;
+                updatedAt: Date;
+                name: string;
+                description: string | null;
+                slug: string;
+                icon: string | null;
+                imageUrl: string | null;
+                displayOrder: number;
+            };
+        } & {
+            id: bigint;
+            status: import(".prisma/client").$Enums.CategoryStatus;
+            createdAt: Date;
+            updatedAt: Date;
+            name: string;
+            description: string | null;
+            slug: string;
+            icon: string | null;
+            imageUrl: string | null;
+            displayOrder: number;
+            categoryId: bigint;
+        };
+        checklist: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
+        name: string;
+        image: string | null;
+        description: string | null;
+        features: import("@prisma/client/runtime/library").JsonValue | null;
+        durationMin: number;
+        durationMax: number | null;
+        isActive: boolean;
+    }[]>;
+    getMyCompanyService(user: any, serviceId: string): Promise<{
+        id: string;
+        name: string;
+        description: string | null;
+        basePrice: number;
+        discountPrice: number | null;
+        isActive: boolean;
+        image: string | null;
+        category: string;
+        type: string;
+        stats: {
+            totalBookings: number;
+            completedBookings: number;
+            activeBookings: number;
+            totalRevenue: number;
+        };
+        recentBookings: {
+            id: string;
+            status: import(".prisma/client").$Enums.BookingStatus;
+            amount: number;
+            date: Date;
+        }[];
+    }>;
+    createMyCompanyService(user: any, body: any): Promise<{
+        id: bigint;
+        checklist: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
+        companyId: bigint;
+        name: string;
+        serviceTypeId: bigint;
+        image: string | null;
+        description: string | null;
+        basePrice: import("@prisma/client/runtime/library").Decimal;
+        discountPrice: import("@prisma/client/runtime/library").Decimal | null;
+        features: import("@prisma/client/runtime/library").JsonValue | null;
+        durationMin: number;
+        durationMax: number | null;
+        isActive: boolean;
+    }>;
+    updateMyCompanyService(user: any, serviceId: string, body: any): Promise<{
+        id: bigint;
+        checklist: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
+        companyId: bigint;
+        name: string;
+        serviceTypeId: bigint;
+        image: string | null;
+        description: string | null;
+        basePrice: import("@prisma/client/runtime/library").Decimal;
+        discountPrice: import("@prisma/client/runtime/library").Decimal | null;
+        features: import("@prisma/client/runtime/library").JsonValue | null;
+        durationMin: number;
+        durationMax: number | null;
+        isActive: boolean;
     }>;
     getStaffMemberById(staffId: string, user: any): Promise<{
         id: string;
+        generatedRevenue: number;
+        completionRate: number;
+        acceptanceRate: number;
+        cancellationRate: number;
+        onTimeArrival: number;
+        returnRate: number;
+        attendance: {
+            present: number;
+            late: number;
+            absent: number;
+            hours: string;
+            overtime: string;
+        };
         userId: string;
         role: import(".prisma/client").$Enums.StaffRole;
         status: import(".prisma/client").$Enums.StaffStatus;
@@ -516,6 +769,7 @@ export declare class CompaniesController {
         completedJobs: number;
         isInsured: boolean;
         completionRate: import("@prisma/client/runtime/library").Decimal;
+        coverageRadiusKm: number;
         ownerId: bigint;
     }>;
     updateCompany(id: string, updateCompanyDto: UpdateCompanyDto, user: any): Promise<{
@@ -556,6 +810,7 @@ export declare class CompaniesController {
             completedJobs: number;
             isInsured: boolean;
             completionRate: import("@prisma/client/runtime/library").Decimal;
+            coverageRadiusKm: number;
             ownerId: bigint;
         };
     }>;

@@ -40,7 +40,7 @@ export default function CompanyPayoutsPage() {
   const fetchWallet = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/financials/wallet');
+      const res = await api.get('/wallets/my-company');
       const payload = res.data?.data || res.data;
       
       const p = payload.payouts || [];
@@ -70,7 +70,7 @@ export default function CompanyPayoutsPage() {
 
     setActionLoading(true);
     try {
-      await api.post('/financials/payout-requests', { amount, methodId: 'bank_transfer' });
+      await api.post('/wallets/my-company/payout', { amount, methodId: 'bank_transfer' });
       toast.success("Payout request submitted successfully.");
       setIsRequestModalOpen(false);
       setPayoutAmount("");
@@ -104,8 +104,8 @@ export default function CompanyPayoutsPage() {
       {/* Header */}
       <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border">
         <div>
-          <h1 className="text-lg font-bold text-foreground">Payouts & Earnings</h1>
-          <p className="text-sm text-muted-foreground">Manage your available balance and track payout history.</p>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Payouts & Earnings</h1>
+          <p className="text-sm font-medium text-muted-foreground mt-1">Manage your available balance and track payout history.</p>
         </div>
         <div className="flex items-center gap-3">
           <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted/60 transition-colors">
@@ -114,7 +114,7 @@ export default function CompanyPayoutsPage() {
           <button 
             onClick={() => { setPayoutAmount(balance.available.toString()); setIsRequestModalOpen(true); }}
             disabled={loading || balance.available <= 0}
-            className="flex items-center gap-2 h-9 px-4 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowUpRight className="w-3.5 h-3.5" /> Request Payout
           </button>
@@ -161,7 +161,7 @@ export default function CompanyPayoutsPage() {
         <h2 className="text-sm font-semibold text-foreground mb-4">Payout History</h2>
         {loading ? (
           <div className="absolute inset-0 z-50 bg-background/50 backdrop-blur-sm flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : (
           <DataGrid 
@@ -182,13 +182,13 @@ export default function CompanyPayoutsPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="bg-violet-500/10 border border-violet-500/20 p-4 rounded-xl flex items-center justify-between">
+          <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-center justify-between">
             <div>
-              <p className="text-xs text-violet-500 font-semibold uppercase tracking-wider">Available Balance</p>
+              <p className="text-xs text-primary font-semibold uppercase tracking-wider">Available Balance</p>
               <p className="text-2xl font-bold text-foreground mt-1">${balance.available.toFixed(2)}</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
-              <DollarSign className="w-5 h-5 text-violet-600" />
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <DollarSign className="w-5 h-5 text-primary" />
             </div>
           </div>
 
@@ -241,7 +241,7 @@ export default function CompanyPayoutsPage() {
           <button 
             onClick={handleRequestPayout}
             disabled={actionLoading || !payoutAmount || parseFloat(payoutAmount) <= 0 || parseFloat(payoutAmount) > balance.available}
-            className="w-full flex items-center justify-center h-10 rounded-lg bg-violet-600 text-white font-medium hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center h-10 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Transfer'}
           </button>
@@ -250,3 +250,4 @@ export default function CompanyPayoutsPage() {
     </div>
   );
 }
+

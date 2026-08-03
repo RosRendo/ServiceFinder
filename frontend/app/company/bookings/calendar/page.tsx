@@ -13,6 +13,7 @@ import {
   Loader2,
   Calendar as CalendarIcon,
   XCircle,
+  Search,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -38,7 +39,7 @@ interface CalendarBooking {
 const STATUS_STYLES: Record<BookingStatus, string> = {
   confirmed:   "bg-blue-500/10 text-blue-600 border-blue-500/20",
   pending:     "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  in_progress: "bg-violet-500/10 text-violet-600 border-violet-500/20",
+  in_progress: "bg-primary/10 text-primary border-primary/20",
   completed:   "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
   cancelled:   "bg-rose-500/10 text-rose-600 border-rose-500/20",
 };
@@ -46,7 +47,7 @@ const STATUS_STYLES: Record<BookingStatus, string> = {
 const STATUS_DOT: Record<BookingStatus, string> = {
   confirmed:   "bg-blue-500",
   pending:     "bg-amber-500",
-  in_progress: "bg-violet-500",
+  in_progress: "bg-primary",
   completed:   "bg-emerald-500",
   cancelled:   "bg-rose-500",
 };
@@ -105,9 +106,9 @@ function DayDetailPanel({ bookings, onOpen }: { bookings: CalendarBooking[]; onO
           >
             <button
               onClick={() => onOpen(b.id)}
-              className="block w-full text-left p-4 rounded-xl border border-border hover:border-violet-500/30 hover:shadow-sm transition-all bg-background group relative overflow-hidden"
+              className="block w-full text-left p-4 rounded-xl border border-border hover:border-primary/30 hover:shadow-sm transition-all bg-background group relative overflow-hidden"
             >
-              <div className="absolute top-0 left-0 w-1 h-full bg-border group-hover:bg-violet-500 transition-colors" />
+              <div className="absolute top-0 left-0 w-1 h-full bg-border group-hover:bg-primary transition-colors" />
               <div className="flex items-start justify-between gap-2 mb-3">
                 <span className="font-semibold text-foreground text-sm">{b.service}</span>
                 <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full border", STATUS_STYLES[b.status])}>
@@ -131,7 +132,7 @@ function DayDetailPanel({ bookings, onOpen }: { bookings: CalendarBooking[]; onO
               {b.staff && (
                 <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
                   <span className="text-[10px] font-bold text-muted-foreground font-medium">Assigned To</span>
-                  <span className="text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-md">{b.staff}</span>
+                  <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{b.staff}</span>
                 </div>
               )}
             </button>
@@ -154,6 +155,7 @@ export default function DispatchCalendar() {
   
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeBookingId, setActiveBookingId] = useState<string | null>(null);
+  const [panelSearch, setPanelSearch] = useState("");
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -209,7 +211,15 @@ export default function DispatchCalendar() {
   };
 
   const bookingsForDay = (day: number) => bookings.filter((b) => b.day === day);
-  const selectedDayBookings = selectedDay ? bookingsForDay(selectedDay) : [];
+  const selectedDayBookingsRaw = selectedDay ? bookingsForDay(selectedDay) : [];
+  
+  const selectedDayBookings = selectedDayBookingsRaw.filter(b => {
+    if (!panelSearch) return true;
+    const q = panelSearch.toLowerCase();
+    return b.customer.toLowerCase().includes(q) || 
+           b.service.toLowerCase().includes(q) || 
+           (b.staff && b.staff.toLowerCase().includes(q));
+  });
 
   const totalBookings = bookings.length;
   const confirmed = bookings.filter((b) => b.status === "confirmed").length;
@@ -221,21 +231,21 @@ export default function DispatchCalendar() {
         {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dispatch Calendar</h1>
-          <p className="text-sm text-muted-foreground mt-1">Visual overview of scheduled jobs and assignments</p>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Dispatch Calendar</h1>
+          <p className="text-sm font-medium text-muted-foreground mt-1">Visual overview of scheduled jobs and assignments</p>
         </div>
         <Link href="/company/bookings">
-          <button className="flex items-center gap-2 h-9 px-4 text-sm font-medium border border-border rounded-lg bg-background hover:bg-muted/60 text-foreground transition-colors shadow-sm">
+          <Button variant="outline" className="flex items-center gap-2 h-9 px-4">
             <List className="w-4 h-4" /> 
             <span className="hidden sm:inline">List View</span>
-          </button>
+          </Button>
         </Link>
       </div>
 
       {/* Stats strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
         {[
-          { label: "Total Bookings", value: totalBookings, icon: CalendarIcon, color: "text-violet-600", bg: "bg-violet-500/10 border-violet-500/20" },
+          { label: "Total Bookings", value: totalBookings, icon: CalendarIcon, color: "text-primary", bg: "bg-primary/10 border-primary/20" },
           { label: "Confirmed", value: confirmed, icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
           { label: "Pending", value: pending, icon: AlertCircle, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
         ].map((s, i) => (
@@ -317,13 +327,13 @@ export default function DispatchCalendar() {
                       "bg-background min-h-[100px] p-2 flex flex-col text-left transition-all relative group",
                       "hover:bg-muted/30",
                       isSelected && "ring-2 ring-violet-500 ring-inset z-10",
-                      isToday && !isSelected && "bg-violet-500/5"
+                      isToday && !isSelected && "bg-primary/5"
                     )}
                   >
-                    {isToday && <div className="absolute top-0 left-0 w-full h-1 bg-violet-500" />}
+                    {isToday && <div className="absolute top-0 left-0 w-full h-1 bg-primary" />}
                     <span className={cn(
                       "text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full mb-2 transition-colors",
-                      isToday ? "bg-violet-500 text-white mt-1" : 
+                      isToday ? "bg-primary text-white mt-1" : 
                       isSelected ? "bg-foreground text-background" : "text-muted-foreground group-hover:text-foreground"
                     )}>
                       {day}
@@ -359,7 +369,7 @@ export default function DispatchCalendar() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
-            className="lg:col-span-4 bg-background border border-border rounded-2xl shadow-sm flex flex-col"
+            className="lg:col-span-4 bg-background border border-border rounded-2xl shadow-sm flex flex-col max-h-[700px]"
           >
             <div className="p-5 border-b border-border bg-muted/20 shrink-0">
               <h3 className="text-lg font-bold text-foreground">
@@ -367,9 +377,21 @@ export default function DispatchCalendar() {
               </h3>
               <p className="text-xs font-medium text-muted-foreground mt-1">
                 {selectedDay
-                  ? `${selectedDayBookings.length} booking${selectedDayBookings.length !== 1 ? "s" : ""} scheduled`
+                  ? `${selectedDayBookingsRaw.length} booking${selectedDayBookingsRaw.length !== 1 ? "s" : ""} scheduled`
                   : "Select a day to view bookings"}
               </p>
+              
+              {selectedDay && selectedDayBookingsRaw.length > 0 && (
+                <div className="relative mt-3">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <input
+                    value={panelSearch}
+                    onChange={(e) => setPanelSearch(e.target.value)}
+                    placeholder="Search bookings..."
+                    className="w-full h-8 pl-8 pr-3 text-xs bg-background border border-border rounded-md outline-none focus:border-primary/60 placeholder:text-muted-foreground"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
@@ -393,4 +415,5 @@ export default function DispatchCalendar() {
     </div>
   );
 }
+
 

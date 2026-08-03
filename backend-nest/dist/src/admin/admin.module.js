@@ -14,6 +14,7 @@ const prisma_module_1 = require("../prisma/prisma.module");
 const admin_gateway_1 = require("./admin.gateway");
 const bookings_module_1 = require("../bookings/bookings.module");
 const notifications_module_1 = require("../notifications/notifications.module");
+const mail_module_1 = require("../mail/mail.module");
 let AdminModule = class AdminModule {
 };
 exports.AdminModule = AdminModule;
@@ -23,6 +24,7 @@ exports.AdminModule = AdminModule = __decorate([
             prisma_module_1.PrismaModule,
             notifications_module_1.NotificationsModule,
             (0, common_1.forwardRef)(() => bookings_module_1.BookingsModule),
+            mail_module_1.MailModule,
         ],
         controllers: [admin_controller_1.AdminController],
         providers: [admin_service_1.AdminService, admin_gateway_1.AdminGateway],

@@ -20,7 +20,7 @@ const T = Theme.colors;
 
 const NAV_ITEMS = [
   { name: "Dashboard",      icon: "view-dashboard-outline",   route: "/(company)/dashboard" },
-  { name: "Bookings",       icon: "calendar-check-outline",   route: "/(company)/bookings" },
+  { name: "Operations",     icon: "radar",                    route: "/(company)/operations" },
   { name: "Staff",          icon: "account-group-outline",    route: "/(company)/staff" },
   { name: "Messages",       icon: "message-outline",          route: "/(company)/messages" },
   { name: "Services",       icon: "briefcase-outline",        route: "/(company)/services" },

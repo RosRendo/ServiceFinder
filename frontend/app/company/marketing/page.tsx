@@ -106,11 +106,11 @@ export default function CompanyMarketing() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Marketing & Promos</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Grow your bookings with targeted promotions and actionable insights.</p>
+          <h1 className="text-xl font-semibold text-foreground">Marketing & Promos</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Grow your bookings with targeted promotions and actionable insights.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="h-9 px-4 text-sm font-medium border-gray-200" onClick={fetchCampaigns}>
+          <Button variant="outline" className="h-9 px-4 text-sm font-medium border-border" onClick={fetchCampaigns}>
             <RefreshCcw className="w-4 h-4 mr-2" /> Refresh
           </Button>
           <Dialog open={showNewForm} onOpenChange={setShowNewForm}>
@@ -171,13 +171,13 @@ export default function CompanyMarketing() {
       {/* Stats Overview */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {metrics.map((m) => (
-          <div key={m.label} className="bg-white border border-gray-200 rounded-lg p-5 flex items-center gap-4">
-            <div className="p-3 bg-gray-50 rounded-md shrink-0">
-              <m.icon className="w-5 h-5 text-gray-600" />
+          <div key={m.label} className="bg-background border border-border rounded-lg p-5 flex items-center gap-4">
+            <div className="p-3 bg-muted/50 rounded-md shrink-0">
+              <m.icon className="w-5 h-5 text-muted-foreground" />
             </div>
             <div>
-              <div className="text-xs font-medium text-gray-500 mb-0.5">{m.label}</div>
-              <div className="text-2xl font-semibold text-gray-900">{m.value}</div>
+              <div className="text-xs font-medium text-muted-foreground mb-0.5">{m.label}</div>
+              <div className="text-2xl font-semibold text-foreground">{m.value}</div>
             </div>
           </div>
         ))}
@@ -187,61 +187,61 @@ export default function CompanyMarketing() {
         
         {/* Main Content - Campaigns List (Col Span 2) */}
         <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Tag className="w-4 h-4 text-gray-400" /> Active Campaigns
           </h2>
           
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+          <div className="bg-background border border-border rounded-lg shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-muted/50 border-b border-border">
                   <tr>
-                    <th className="px-4 py-3 font-semibold text-gray-600">Campaign</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600">Code</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600">Performance</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600">Status</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground">Campaign</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground">Code</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground">Performance</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground">Status</th>
                     <th className="px-4 py-3 text-right"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-border/50">
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                      <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                         <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-gray-400" />
                         Loading campaigns...
                       </td>
                     </tr>
                   ) : campaigns.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                      <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                         No campaigns found. Create one to get started!
                       </td>
                     </tr>
                   ) : (
                     campaigns.map((c) => (
-                      <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
+                      <tr key={c.id} className="hover:bg-muted/50/50 transition-colors">
                         <td className="px-4 py-3">
-                          <div className="font-medium text-gray-900">{c.name}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">Expires: {c.expires}</div>
+                          <div className="font-medium text-foreground">{c.name}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">Expires: {c.expires}</div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-mono font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-xs border border-blue-100">{c.code}</span>
-                            <button onClick={() => handleCopy(c.code)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                            <button onClick={() => handleCopy(c.code)} className="text-gray-400 hover:text-muted-foreground transition-colors">
                               {copiedCode === c.code ? <CopyCheck className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                             </button>
                           </div>
-                          <div className="text-xs font-medium text-gray-500 mt-1">{c.discount}</div>
+                          <div className="text-xs font-medium text-muted-foreground mt-1">{c.discount}</div>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-gray-900 font-medium">{c.uses} / {c.maxUses || '∞'} uses</div>
-                          <div className="text-xs text-gray-500 mt-0.5">${c.revenue.toLocaleString()} revenue</div>
+                          <div className="text-foreground font-medium">{c.uses} / {c.maxUses || '∞'} uses</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">${c.revenue.toLocaleString()} revenue</div>
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
                             c.status === "active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
                             c.status === "paused" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                            "bg-gray-50 text-gray-700 border-gray-200"
+                            "bg-muted/50 text-muted-foreground border-border"
                           }`}>
                             {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
                           </span>
@@ -249,13 +249,13 @@ export default function CompanyMarketing() {
                         <td className="px-4 py-3 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-muted-foreground">
                                 <MoreVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-40">
-                              <DropdownMenuItem className="cursor-pointer text-gray-700"><Edit className="w-4 h-4 mr-2" /> Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer text-gray-700"><Copy className="w-4 h-4 mr-2" /> Duplicate</DropdownMenuItem>
+                              <DropdownMenuItem className="cursor-pointer text-muted-foreground"><Edit className="w-4 h-4 mr-2" /> Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="cursor-pointer text-muted-foreground"><Copy className="w-4 h-4 mr-2" /> Duplicate</DropdownMenuItem>
                               <DropdownMenuItem className="cursor-pointer text-rose-600 focus:text-rose-600" onClick={() => handleDelete(c.id)}>
                                 <Trash2 className="w-4 h-4 mr-2" /> Delete
                               </DropdownMenuItem>
@@ -273,27 +273,27 @@ export default function CompanyMarketing() {
 
         {/* Sidebar - Growth Tips (Col Span 1) */}
         <div className="lg:col-span-1 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Lightbulb className="w-4 h-4 text-amber-500" /> Growth Playbook
           </h2>
           
-          <div className="bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
-            <div className="divide-y divide-gray-100">
+          <div className="bg-background border border-border rounded-lg p-1 shadow-sm">
+            <div className="divide-y divide-border/50">
               {tips.map((t, i) => (
-                <div key={i} className="p-4 flex gap-3 hover:bg-gray-50 transition-colors rounded-md group">
-                  <div className="mt-0.5 text-gray-400 group-hover:text-gray-600 transition-colors">
+                <div key={i} className="p-4 flex gap-3 hover:bg-muted/50 transition-colors rounded-md group">
+                  <div className="mt-0.5 text-gray-400 group-hover:text-muted-foreground transition-colors">
                     <t.icon className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-900">{t.title}</h3>
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">{t.body}</p>
+                    <h3 className="text-sm font-semibold text-foreground">{t.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{t.body}</p>
                   </div>
                 </div>
               ))}
             </div>
             
-            <div className="p-4 pt-3 mt-1 border-t border-gray-100">
-              <Button variant="outline" className="w-full text-xs font-medium border-gray-200">
+            <div className="p-4 pt-3 mt-1 border-t border-border/50">
+              <Button variant="outline" className="w-full text-xs font-medium border-border">
                 View More Tips <ExternalLink className="w-3 h-3 ml-2" />
               </Button>
             </div>
@@ -304,3 +304,4 @@ export default function CompanyMarketing() {
     </div>
   );
 }
+

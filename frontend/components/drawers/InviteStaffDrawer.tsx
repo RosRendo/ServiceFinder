@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BaseDrawer } from "./BaseDrawer";
 import { useToast } from "@/lib/hooks/use-toast";
 import { UserPlus, Loader2, Mail, Phone, User, Briefcase } from "lucide-react";
@@ -10,9 +10,10 @@ interface InviteStaffDrawerProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  staff?: any;
 }
 
-export function InviteStaffDrawer({ open, onClose, onSuccess }: InviteStaffDrawerProps) {
+export function InviteStaffDrawer({ open, onClose, onSuccess, staff }: InviteStaffDrawerProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const [successData, setSuccessData] = useState<{ password?: string, email: string } | null>(null);
@@ -23,25 +24,56 @@ export function InviteStaffDrawer({ open, onClose, onSuccess }: InviteStaffDrawe
     role: "cleaner",
   });
 
+  useEffect(() => {
+    if (open) {
+      if (staff) {
+        setFormData({
+          fullName: staff.user?.fullName || staff.fullName || "",
+          email: staff.user?.email || staff.email || "",
+          phone: staff.user?.phone || staff.phone || "",
+          role: staff.role || "cleaner",
+        });
+      } else {
+        setFormData({
+          fullName: "",
+          email: "",
+          phone: "",
+          role: "cleaner",
+        });
+      }
+      setSuccessData(null);
+    }
+  }, [open, staff]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
-      const res = await api.post("/companies/staff", formData);
-      const newStaff = res.data?.data || res.data;
-      
-      toast({
-        title: "Staff Added",
-        description: "Staff member successfully added to your company.",
-      });
-      
-      setSuccessData({ 
-        password: newStaff.defaultPassword || undefined,
-        email: formData.email 
-      });
-      
-      onSuccess();
+      if (staff?.id) {
+        await api.put(`/companies/my-company/staff/${staff.id}`, formData);
+        toast({
+          title: "Staff Updated",
+          description: "Staff details have been updated successfully.",
+        });
+        onSuccess();
+        onClose();
+      } else {
+        const res = await api.post("/companies/staff", formData);
+        const newStaff = res.data?.data || res.data;
+        
+        toast({
+          title: "Staff Added",
+          description: "Staff member successfully added to your company.",
+        });
+        
+        setSuccessData({ 
+          password: newStaff.defaultPassword || undefined,
+          email: formData.email 
+        });
+        
+        onSuccess();
+      }
     } catch (err: any) {
       toast({
         title: "Error",
@@ -57,8 +89,8 @@ export function InviteStaffDrawer({ open, onClose, onSuccess }: InviteStaffDrawe
     <BaseDrawer 
       open={open} 
       onClose={onClose} 
-      title="Create Staff Account" 
-      subtitle="Add a new member to your workforce."
+      title={staff ? "Edit Staff Account" : "Create Staff Account"}
+      subtitle={staff ? "Update details for this staff member." : "Add a new member to your workforce."}
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
         <div className="w-16 h-16 rounded-2xl bg-violet-100 flex items-center justify-center text-violet-600 mx-auto mb-6 shadow-sm border border-violet-200">
@@ -132,7 +164,7 @@ export function InviteStaffDrawer({ open, onClose, onSuccess }: InviteStaffDrawe
             disabled={loading}
             className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-violet-600 text-white font-semibold hover:bg-violet-700 transition-all disabled:opacity-50"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Staff Account"}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (staff ? "Save Changes" : "Create Staff Account")}
           </button>
         </div>
       </form>

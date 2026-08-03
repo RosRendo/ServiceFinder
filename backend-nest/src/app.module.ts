@@ -79,12 +79,12 @@ import { ComplianceModule } from './compliance/compliance.module';
             {
               name: 'short',
               ttl: 1000,
-              limit: 10,
+              limit: 30,
             },
             {
               name: 'medium',
               ttl: 60000,
-              limit: 100,
+              limit: 300,
             },
           ],
           storage,

@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class SettingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   async getAllSettings() {
     const settings = await this.prisma.systemSetting.findMany();
@@ -55,6 +59,8 @@ export class SettingsService {
     });
 
     await Promise.all(updates);
+    
+    this.eventEmitter.emit('settings.updated', dto);
 
     return { message: 'Settings updated successfully' };
   }

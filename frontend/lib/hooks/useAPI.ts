@@ -121,8 +121,13 @@ export function useAPI<T = any>(
     } catch (err: any) {
       const errorMessage = err.message || "Network error";
 
+      // Ignore abort errors
+      if (err.name === "AbortError") {
+        return;
+      }
+
       // Retry logic
-      if (retryCount.current < retry && err.name !== "AbortError") {
+      if (retryCount.current < retry) {
         retryCount.current++;
         setTimeout(fetchData, 1000 * retryCount.current);
         return;

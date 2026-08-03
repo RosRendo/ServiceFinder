@@ -74,19 +74,19 @@ function ChartBar({ item, index }: { item: any, index: number }) {
   
   useEffect(() => {
     Animated.timing(heightAnim, {
-      toValue: Math.max(item.value, 4),
+      toValue: Math.max(item.value || item.actualValue || 0, 4),
       duration: 800,
       delay: index * 100,
       useNativeDriver: false
     }).start();
-  }, [item.value]);
+  }, [item.value, item.actualValue]);
 
   return (
     <View style={s.chartBarContainer}>
       <Animated.View style={[s.chartBarBg, { height: heightAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }) }]}>
         <View style={[s.chartBarFill, item.latest && s.chartBarFillLatest]} />
       </Animated.View>
-      <Text style={[s.chartBarLabel, item.latest && s.chartBarLabelLatest]}>{item.label}</Text>
+      <Text style={[s.chartBarLabel, item.latest && s.chartBarLabelLatest]}>{item.label || item.day}</Text>
     </View>
   );
 }
@@ -276,9 +276,13 @@ export default function Dashboard() {
                 </View>
 
                 <View style={s.chartBarsWrap}>
-                  {metrics?.weeklyData?.map((item: any, idx: number) => (
-                    <ChartBar key={idx} item={item} index={idx} />
-                  ))}
+                  {metrics?.weeklyData && metrics.weeklyData.length > 0 ? (
+                    metrics.weeklyData.map((item: any, idx: number) => (
+                      <ChartBar key={idx} item={{...item, latest: idx === metrics.weeklyData.length - 1}} index={idx} />
+                    ))
+                  ) : (
+                    <Text style={s.emptyText}>No data for this period</Text>
+                  )}
                 </View>
               </View>
 

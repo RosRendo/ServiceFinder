@@ -512,13 +512,26 @@ export class BookingsService {
     const updated = await this.prisma.$transaction(async (tx) => {
       // Platform only tracks companyEarnings = totalPrice - platformFee.
       // No staff earnings recalculation — staff payroll is Company's responsibility.
-      const u = await tx.booking.update({
-        where: { id },
-        data: { 
+      
+      const updateResult = await tx.booking.updateMany({
+        where: {
+          id,
+          assignedStaffId: null, // Critical: Only claim if unassigned
+          status: { in: ['pending', 'confirmed'] },
+        },
+        data: {
           assignedStaffId: BigInt(staffId),
           status: 'assigned',
           // staffEarnings stays 0 — platform does not manage staff payroll
         },
+      });
+
+      if (updateResult.count === 0) {
+        throw new ConflictException('Job already taken or no longer available.');
+      }
+
+      const u = await tx.booking.findUnique({
+        where: { id },
         include: {
           customer: true,
           company: true,
@@ -526,6 +539,10 @@ export class BookingsService {
           assignedStaff: { include: { user: true } },
         },
       });
+
+      if (!u) {
+        throw new ConflictException('Failed to retrieve updated booking.');
+      }
 
       await tx.bookingStatusLog.create({
         data: {
@@ -565,7 +582,93 @@ export class BookingsService {
     return result;
   }
 
+  /**
+   * Open Pool mode: A staff member claims an unassigned booking from their own company's pool.
+   * Enforces: company must be in 'open_pool' mode, booking must be unassigned, staff must belong to that company.
+   */
+  async claimBooking(bookingId: bigint, userId: bigint) {
+    // 1. Verify staff record and get companyId
+    const staff = await this.prisma.companyStaff.findFirst({
+      where: { userId, status: 'active' },
+      include: { company: true },
+    });
+    if (!staff) throw new ForbiddenException('You are not registered as active staff');
+
+    // 2. Check company is in open_pool mode
+    if (staff.company.bookingMode !== 'open_pool') {
+      throw new BadRequestException(
+        'This company uses Dispatch Mode. Your manager assigns bookings to you.',
+      );
+    }
+
+    // 3. Load the booking
+    const booking = await this.findOrFail(bookingId, true);
+
+    // 4. Verify booking belongs to the same company
+    if (booking.companyId.toString() !== staff.companyId.toString()) {
+      throw new ForbiddenException('This booking does not belong to your company');
+    }
+
+    // 5. Booking must be pending and unassigned
+    if (booking.status !== 'pending') {
+      throw new BadRequestException('Only pending bookings can be claimed');
+    }
+    if (booking.assignedStaffId) {
+      throw new ConflictException('This booking has already been claimed by another staff member');
+    }
+
+    // 6. Assign and confirm in a transaction
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.booking.update({
+        where: { id: bookingId },
+        data: { assignedStaffId: staff.id, status: 'confirmed' },
+        include: {
+          customer: true,
+          company: true,
+          service: true,
+          assignedStaff: { include: { user: true } },
+        },
+      });
+
+      await tx.bookingStatusLog.create({
+        data: {
+          bookingId,
+          oldStatus: booking.status,
+          newStatus: 'confirmed',
+          changedBy: userId,
+        },
+      });
+
+      return u;
+    });
+
+    const result = {
+      success: true,
+      message: 'Booking claimed successfully',
+      booking: this.serializeBooking(updated),
+    };
+
+    this.bookingsGateway.broadcastBookingUpdate(
+      bookingId.toString(),
+      'confirmed',
+      result.booking,
+    );
+
+    this.eventEmitter.emit(
+      'booking.accepted',
+      new BookingAcceptedEvent(
+        bookingId,
+        staff.id,
+        booking.companyId,
+        booking.customerId,
+      ),
+    );
+
+    return result;
+  }
+
   async acceptAssignment(id: bigint, userId: bigint) {
+
     const staff = await this.prisma.companyStaff.findFirst({
       where: { userId },
     });

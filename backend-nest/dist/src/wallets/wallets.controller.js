@@ -24,6 +24,12 @@ let WalletsController = class WalletsController {
     constructor(walletsService) {
         this.walletsService = walletsService;
     }
+    async getMyCompanyWallet(req) {
+        return this.walletsService.getMyCompanyWallet(BigInt(req.user.id));
+    }
+    async requestMyCompanyPayout(req, dto) {
+        return this.walletsService.requestMyCompanyPayout(BigInt(req.user.id), dto);
+    }
     getCompanyWallet(id, req) {
         return this.walletsService.getCompanyWallet(BigInt(id), BigInt(req.user.id));
     }
@@ -59,6 +65,25 @@ let WalletsController = class WalletsController {
     }
 };
 exports.WalletsController = WalletsController;
+__decorate([
+    (0, common_1.Get)('my-company'),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], WalletsController.prototype, "getMyCompanyWallet", null);
+__decorate([
+    (0, common_1.Post)('my-company/payout'),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    openapi.ApiResponse({ status: 201 }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], WalletsController.prototype, "requestMyCompanyPayout", null);
 __decorate([
     (0, common_1.Get)('company/:id'),
     (0, roles_decorator_1.Roles)('company_admin'),

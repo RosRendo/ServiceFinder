@@ -23,8 +23,11 @@ export interface ChatConversation {
   archivedAt?: string | null;
   otherUser: {
     id: string;
+    rawUserId?: string;
     fullName: string;
     avatar: string | null;
+    workingStatus?: string;
+    lastSeen?: string | null;
   } | null;
   lastMessage: {
     content: string;
@@ -133,6 +136,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const res = await api.get("/api/conversations");
       const list = res.data?.data?.data || res.data?.data || res.data?.conversations || res.data || [];
       set({ conversations: Array.isArray(list) ? list : [] });
+
+      // Initialize presence store with initial statuses from conversations
+      if (Array.isArray(list)) {
+        const statuses: Record<string, { status: string; lastSeen: string | null }> = {};
+        list.forEach((c: any) => {
+          if (c.otherUser && c.otherUser.rawUserId) {
+            statuses[c.otherUser.rawUserId] = {
+              status: c.otherUser.workingStatus || 'offline',
+              lastSeen: c.otherUser.lastSeen || null,
+            };
+          }
+        });
+        const { usePresenceStore } = require('./presenceStore');
+        usePresenceStore.getState().initializeStatuses(statuses);
+      }
     } catch (err: any) {
       set({ error: err.message || "Failed to load conversations" });
     } finally {

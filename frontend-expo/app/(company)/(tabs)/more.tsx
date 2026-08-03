@@ -44,6 +44,7 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
       { id: 105, title: "Coverage",             subtitle: "Geofence / service radius",      icon: "map-marker-radius",     action: "route", route: "/(company)/coverage" },
       { id: 106, title: "Attendance",           subtitle: "Clock-in / Clock-out tracking",  icon: "fingerprint",           action: "route", route: "/(company)/attendance" },
       { id: 107, title: "Schedules",            subtitle: "Shift planning",                 icon: "calendar-month-outline",action: "route", route: "/(company)/schedules" },
+      { id: 108, title: "Available Jobs",        subtitle: "Claim open pool bookings",       icon: "hand-pointing-right",   action: "route", route: "/(company)/available-jobs" },
     ],
   },
   {
@@ -61,6 +62,7 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
       { id: 301, title: "Complaints",           subtitle: "Dispute resolution tickets",     icon: "alert-octagon-outline", action: "route", route: "/(company)/support" },
       { id: 302, title: "Reviews",              subtitle: "Public feedback moderation",     icon: "star-half-full",        action: "route", route: "/(company)/reviews" },
       { id: 303, title: "Support",              subtitle: "Direct messaging with clients",  icon: "message-text-outline",  action: "route", route: "/(company)/support" },
+      { id: 304, title: "Client CRM",           subtitle: "Search past customers & history",icon: "card-account-details-outline", action: "route", route: "/(company)/customers" },
     ],
   },
   {
@@ -80,10 +82,11 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
     ],
   },
   {
-    title: "Analytics (How are we growing?)",
+    title: "Analytics & Marketing",
     items: [
       { id: 601, title: "Growth",               subtitle: "Month-over-month user metrics",  icon: "chart-line",            action: "route", route: "/(company)/analytics" },
       { id: 602, title: "Performance",          subtitle: "Completion rates, job times",    icon: "chart-bar",             action: "route", route: "/(company)/analytics" },
+      { id: 603, title: "Coupons",              subtitle: "Run flash sales & promotions",   icon: "ticket-percent-outline",action: "route", route: "/(company)/marketing" },
     ],
   },
   {

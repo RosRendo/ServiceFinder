@@ -21,7 +21,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function CompanyTransactionsPage() {
-  const { data, loading } = useAPI<{ transactions: Transaction[] }>('/api/financials/wallet');
+  const { data, loading } = useAPI<{ transactions: Transaction[] }>('/api/wallets/my-company');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export default function CompanyTransactionsPage() {
       </div>
     )},
     { key: "type", header: "Type", sortable: true, render: (t) => (
-      <span className={cn("text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 w-fit", TYPE_COLORS[t.type] || "text-slate-500 bg-slate-100")}>
+      <span className={cn("text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 w-fit", TYPE_COLORS[t.type] || "text-muted-foreground bg-muted")}>
         {t.type === 'credit' ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
         {t.type}
       </span>
@@ -63,8 +63,8 @@ export default function CompanyTransactionsPage() {
       {/* Header */}
       <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border">
         <div>
-          <h1 className="text-lg font-bold text-foreground">Transactions</h1>
-          <p className="text-sm text-muted-foreground">A complete ledger of all your earnings, fees, and payouts.</p>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Transactions</h1>
+          <p className="text-sm font-medium text-muted-foreground mt-1">A complete ledger of all your earnings, fees, and payouts.</p>
         </div>
         <div className="flex items-center gap-3">
           <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted/60 transition-colors">
@@ -113,3 +113,4 @@ export default function CompanyTransactionsPage() {
     </div>
   );
 }
+

@@ -32,6 +32,7 @@ export declare class PayoutsService {
         completedJobs: number;
         isInsured: boolean;
         completionRate: import("@prisma/client/runtime/library").Decimal;
+        coverageRadiusKm: number;
         ownerId: bigint;
     } | null>;
     getPayouts(companyId: bigint): Promise<{

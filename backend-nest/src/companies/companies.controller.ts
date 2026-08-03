@@ -70,6 +70,16 @@ export class CompaniesController {
     return this.companiesService.getMyCompany(BigInt(user.id));
   }
 
+  @Put('my-company')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update current user company details' })
+  async updateMyCompany(@CurrentUser() user: any, @Body() body: any) {
+    const company = await this.companiesService.getMyCompany(BigInt(user.id));
+    return this.companiesService.updateCompany(company.id, BigInt(user.id), user.role, body);
+  }
+
   @Get('my-company/metrics')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('company_admin')
@@ -101,6 +111,20 @@ export class CompaniesController {
     return this.companiesService.getCompanyCustomers(company.id, query);
   }
 
+  @Get('my-company/customers/:customerId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get customer detail for the user's company" })
+  @ApiResponse({ status: 200, description: 'Return company customer detail.' })
+  async getMyCompanyCustomer(
+    @CurrentUser() user: any,
+    @Param('customerId') customerId: string,
+  ) {
+    const company = await this.companiesService.getMyCompany(BigInt(user.id));
+    return this.companiesService.getCompanyCustomerDetail(company.id, BigInt(customerId));
+  }
+
   @Get('my-company/reviews')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('company_admin')
@@ -115,6 +139,20 @@ export class CompaniesController {
     return this.companiesService.getCompanyReviews(company.id, query);
   }
 
+  @Get('my-company/reviews/:reviewId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current company review detail' })
+  @ApiResponse({ status: 200, description: 'Return review detail for the current company.' })
+  async getMyCompanyReview(
+    @CurrentUser() user: any,
+    @Param('reviewId') reviewId: string,
+  ) {
+    const company = await this.companiesService.getMyCompany(BigInt(user.id));
+    return this.companiesService.getCompanyReviewDetail(company.id, BigInt(reviewId));
+  }
+
   @Get('my-company/revenue')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('company_admin')
@@ -127,6 +165,58 @@ export class CompaniesController {
       throw new NotFoundException('Company not found');
     }
     return this.companiesService.getCompanyRevenue(company.id);
+  }
+
+  @Get('my-company/services')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current company services' })
+  @ApiResponse({ status: 200, description: 'Return services for the current company.' })
+  async getMyCompanyServices(@CurrentUser() user: any) {
+    const company = await this.companiesService.getMyCompany(BigInt(user.id));
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+    return this.companiesService.getCompanyServices(company.id);
+  }
+
+  @Get('my-company/services/:serviceId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current company service detail' })
+  @ApiResponse({ status: 200, description: 'Return service detail for the current company.' })
+  async getMyCompanyService(
+    @CurrentUser() user: any,
+    @Param('serviceId') serviceId: string,
+  ) {
+    const company = await this.companiesService.getMyCompany(BigInt(user.id));
+    return this.companiesService.getCompanyServiceDetail(company.id, BigInt(serviceId));
+  }
+
+  @Post('my-company/services')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new service' })
+  async createMyCompanyService(@CurrentUser() user: any, @Body() body: any) {
+    const company = await this.companiesService.getMyCompany(BigInt(user.id));
+    return this.companiesService.createCompanyService(company.id, body);
+  }
+
+  @Put('my-company/services/:serviceId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update an existing service' })
+  async updateMyCompanyService(
+    @CurrentUser() user: any,
+    @Param('serviceId') serviceId: string,
+    @Body() body: any
+  ) {
+    const company = await this.companiesService.getMyCompany(BigInt(user.id));
+    return this.companiesService.updateCompanyService(company.id, BigInt(serviceId), body);
   }
 
   @Get('staff/:staffId')

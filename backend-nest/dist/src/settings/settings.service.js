@@ -12,10 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SettingsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const event_emitter_1 = require("@nestjs/event-emitter");
 let SettingsService = class SettingsService {
     prisma;
-    constructor(prisma) {
+    eventEmitter;
+    constructor(prisma, eventEmitter) {
         this.prisma = prisma;
+        this.eventEmitter = eventEmitter;
     }
     async getAllSettings() {
         const settings = await this.prisma.systemSetting.findMany();
@@ -57,12 +60,14 @@ let SettingsService = class SettingsService {
             });
         });
         await Promise.all(updates);
+        this.eventEmitter.emit('settings.updated', dto);
         return { message: 'Settings updated successfully' };
     }
 };
 exports.SettingsService = SettingsService;
 exports.SettingsService = SettingsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        event_emitter_1.EventEmitter2])
 ], SettingsService);
 //# sourceMappingURL=settings.service.js.map

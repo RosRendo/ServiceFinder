@@ -8,11 +8,14 @@ import { UpdateCompanyAdminDto } from './dto/update-company-admin.dto';
 import { UpdateUserAdminDto } from './dto/update-user-admin.dto';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 
+import { MailService } from '../mail/mail.service';
+
 @Injectable()
 export class AdminService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private mailService: MailService,
   ) {}
 
   async getAnalytics() {
@@ -887,5 +890,136 @@ export class AdminService {
       ownerId: result.user.id.toString(),
       servicesCount: result.createdServices.length,
     };
+  }
+
+  // ─── Email Templates ─────────────────────────────────────────────────────────
+
+  async getEmailTemplates() {
+    // We don't have this in Prisma schema globally available as typing since it's ungenerated but we can use any
+    const templates = await (this.prisma as any).emailTemplate.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    return {
+      success: true,
+      data: templates,
+    };
+  }
+
+  async createEmailTemplate(dto: any) {
+    const template = await (this.prisma as any).emailTemplate.create({
+      data: {
+        templateId: dto.templateId,
+        name: dto.name,
+        description: dto.description,
+        subject: dto.subject,
+        body: dto.body,
+        variables: dto.variables || [],
+        status: dto.status || 'active',
+      },
+    });
+    return {
+      success: true,
+      data: template,
+      message: 'Template created successfully',
+    };
+  }
+
+  async updateEmailTemplate(id: number, dto: any) {
+    const template = await (this.prisma as any).emailTemplate.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        description: dto.description,
+        subject: dto.subject,
+        body: dto.body,
+        variables: dto.variables,
+        status: dto.status,
+      },
+    });
+    return {
+      success: true,
+      data: template,
+      message: 'Template updated successfully',
+    };
+  }
+
+  async seedEmailTemplates() {
+    const defaultTemplates = [
+      {
+        templateId: "welcome",
+        name: "Welcome Email",
+        description: "Sent when a user signs up",
+        subject: "Welcome to ServiceFinder, {{user_name}}!",
+        body: "Hi {{user_name}},\n\nWelcome to ServiceFinder! We're thrilled to have you on board.\n\nBest,\nThe ServiceFinder Team",
+        variables: ["user_name", "company_name", "login_url"],
+        status: "active"
+      },
+      {
+        templateId: "password_reset",
+        name: "Password Reset",
+        description: "Sent when a user requests a password reset",
+        subject: "Reset Your Password - ServiceFinder",
+        body: "Hi {{user_name}},\n\nWe received a request to reset your password. Click the link below to choose a new one:\n\n{{reset_url}}\n\nIf you did not request this, please ignore this email.\n\nBest,\nThe ServiceFinder Team",
+        variables: ["user_name", "reset_url", "expiry_time"],
+        status: "active"
+      }
+    ];
+
+    for (const t of defaultTemplates) {
+      await (this.prisma as any).emailTemplate.upsert({
+        where: { templateId: t.templateId },
+        update: {},
+        create: t,
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Templates seeded successfully',
+    };
+  }
+
+  async testEmailTemplate(dto: any) {
+    // Generate dummy values for variables to populate the template
+    let subject = dto.subject || 'Test Email';
+    let body = dto.body || 'This is a test email.';
+    
+    const dummyVariables: Record<string, string> = {
+      user_name: 'John Doe',
+      company_name: 'Test Company',
+      reset_url: 'https://example.com/reset',
+      expiry_time: '15 minutes',
+      login_url: 'https://example.com/login',
+      date: '2023-10-25',
+      time: '14:00'
+    };
+
+    if (dto.variables && Array.isArray(dto.variables)) {
+      dto.variables.forEach((v: string) => {
+        const value = dummyVariables[v] || `[${v}]`;
+        const regex = new RegExp(`{{${v}}}`, 'g');
+        subject = subject.replace(regex, value);
+        body = body.replace(regex, value);
+      });
+    }
+
+    // Default test email to admin's email or a system default if not provided
+    const testToEmail = dto.testEmail || 'admin@servicefinder.test'; 
+    const text = body.replace(/<[^>]+>/g, '');
+
+    try {
+      await this.mailService.sendMail(testToEmail, subject, text, body);
+      return {
+        success: true,
+        message: 'Test email logic triggered and email sent',
+        preview: { subject, body }
+      };
+    } catch (e: any) {
+      return {
+        success: false,
+        message: 'Failed to send test email: ' + e.message,
+        preview: { subject, body }
+      };
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsOptional, IsString, IsIn } from 'class-validator';
 
 export class UpdateCompanyDto {
   @IsString()
@@ -59,4 +59,9 @@ export class UpdateCompanyDto {
 
   @IsOptional()
   coverageRadiusKm?: number;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['dispatch', 'open_pool'])
+  bookingMode?: string;
 }

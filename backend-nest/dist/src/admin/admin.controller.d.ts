@@ -87,6 +87,8 @@ export declare class AdminController {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            workingStatus: string;
+            lastSeen: Date | null;
             lastLoginAt: Date | null;
             pushToken: string | null;
             mfaEnabled: boolean;
@@ -107,6 +109,8 @@ export declare class AdminController {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            workingStatus: string;
+            lastSeen: Date | null;
             lastLoginAt: Date | null;
             pushToken: string | null;
             mfaEnabled: boolean;
@@ -163,6 +167,7 @@ export declare class AdminController {
             completedJobs: number;
             isInsured: boolean;
             completionRate: import("@prisma/client/runtime/library").Decimal;
+            coverageRadiusKm: number;
         }[];
         pagination: {
             total: number;
@@ -204,6 +209,7 @@ export declare class AdminController {
             completedJobs: number;
             isInsured: boolean;
             completionRate: import("@prisma/client/runtime/library").Decimal;
+            coverageRadiusKm: number;
         };
     }>;
     getCompanyDetails(id: string): Promise<{
@@ -271,6 +277,7 @@ export declare class AdminController {
         completedJobs: number;
         isInsured: boolean;
         completionRate: import("@prisma/client/runtime/library").Decimal;
+        coverageRadiusKm: number;
     }>;
     createCompanyAdmin(dto: CreateCompanyAdminDto): Promise<{
         message: string;
@@ -432,6 +439,7 @@ export declare class AdminController {
                 completedJobs: number;
                 isInsured: boolean;
                 completionRate: import("@prisma/client/runtime/library").Decimal;
+                coverageRadiusKm: number;
             } | null;
             staff: {
                 id: string;
@@ -524,6 +532,8 @@ export declare class AdminController {
                     phone: string | null;
                     avatar: string | null;
                     passwordHash: string | null;
+                    workingStatus: string;
+                    lastSeen: Date | null;
                     lastLoginAt: Date | null;
                     pushToken: string | null;
                     mfaEnabled: boolean;
@@ -562,6 +572,7 @@ export declare class AdminController {
                     completedJobs: number;
                     isInsured: boolean;
                     completionRate: import("@prisma/client/runtime/library").Decimal;
+                    coverageRadiusKm: number;
                 } | null;
                 bookingDate: Date;
                 startTime: Date;
@@ -596,6 +607,32 @@ export declare class AdminController {
             total: number;
             page: number;
             limit: number;
+        };
+    }>;
+    getEmailTemplates(): Promise<{
+        success: boolean;
+        data: any;
+    }>;
+    createEmailTemplate(dto: any): Promise<{
+        success: boolean;
+        data: any;
+        message: string;
+    }>;
+    updateEmailTemplate(id: string, dto: any): Promise<{
+        success: boolean;
+        data: any;
+        message: string;
+    }>;
+    seedEmailTemplates(): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    testEmailTemplate(dto: any): Promise<{
+        success: boolean;
+        message: string;
+        preview: {
+            subject: any;
+            body: any;
         };
     }>;
 }

@@ -3,10 +3,12 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { CreateCompanyAdminDto } from './dto/create-company-admin.dto';
 import { UpdateCompanyAdminDto } from './dto/update-company-admin.dto';
 import { UpdateUserAdminDto } from './dto/update-user-admin.dto';
+import { MailService } from '../mail/mail.service';
 export declare class AdminService {
     private prisma;
     private notificationsService;
-    constructor(prisma: PrismaService, notificationsService: NotificationsService);
+    private mailService;
+    constructor(prisma: PrismaService, notificationsService: NotificationsService, mailService: MailService);
     getAnalytics(): Promise<{
         totalRevenue: number;
         revenueGrowth: number;
@@ -89,6 +91,8 @@ export declare class AdminService {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            workingStatus: string;
+            lastSeen: Date | null;
             lastLoginAt: Date | null;
             pushToken: string | null;
             mfaEnabled: boolean;
@@ -109,6 +113,8 @@ export declare class AdminService {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            workingStatus: string;
+            lastSeen: Date | null;
             lastLoginAt: Date | null;
             pushToken: string | null;
             mfaEnabled: boolean;
@@ -159,6 +165,7 @@ export declare class AdminService {
             completedJobs: number;
             isInsured: boolean;
             completionRate: import("@prisma/client/runtime/library").Decimal;
+            coverageRadiusKm: number;
         }[];
         pagination: {
             total: number;
@@ -232,6 +239,7 @@ export declare class AdminService {
         completedJobs: number;
         isInsured: boolean;
         completionRate: import("@prisma/client/runtime/library").Decimal;
+        coverageRadiusKm: number;
     }>;
     updateCompany(id: bigint, dto: UpdateCompanyAdminDto): Promise<{
         message: string;
@@ -266,6 +274,7 @@ export declare class AdminService {
             completedJobs: number;
             isInsured: boolean;
             completionRate: import("@prisma/client/runtime/library").Decimal;
+            coverageRadiusKm: number;
         };
     }>;
     setCompanyVerification(id: bigint, status: string, reason?: string): Promise<{
@@ -412,6 +421,7 @@ export declare class AdminService {
                 completedJobs: number;
                 isInsured: boolean;
                 completionRate: import("@prisma/client/runtime/library").Decimal;
+                coverageRadiusKm: number;
             } | null;
             staff: {
                 id: string;
@@ -474,6 +484,8 @@ export declare class AdminService {
                     phone: string | null;
                     avatar: string | null;
                     passwordHash: string | null;
+                    workingStatus: string;
+                    lastSeen: Date | null;
                     lastLoginAt: Date | null;
                     pushToken: string | null;
                     mfaEnabled: boolean;
@@ -512,6 +524,7 @@ export declare class AdminService {
                     completedJobs: number;
                     isInsured: boolean;
                     completionRate: import("@prisma/client/runtime/library").Decimal;
+                    coverageRadiusKm: number;
                 } | null;
                 bookingDate: Date;
                 startTime: Date;
@@ -568,5 +581,31 @@ export declare class AdminService {
         companyId: string;
         ownerId: string;
         servicesCount: number;
+    }>;
+    getEmailTemplates(): Promise<{
+        success: boolean;
+        data: any;
+    }>;
+    createEmailTemplate(dto: any): Promise<{
+        success: boolean;
+        data: any;
+        message: string;
+    }>;
+    updateEmailTemplate(id: number, dto: any): Promise<{
+        success: boolean;
+        data: any;
+        message: string;
+    }>;
+    seedEmailTemplates(): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    testEmailTemplate(dto: any): Promise<{
+        success: boolean;
+        message: string;
+        preview: {
+            subject: any;
+            body: any;
+        };
     }>;
 }

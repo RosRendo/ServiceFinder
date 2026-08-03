@@ -202,4 +202,36 @@ export class AdminController {
   getInvoices(@Query() query: any) {
     return this.adminService.getInvoices(query);
   }
+
+  // ─── Email Templates ─────────────────────────────────────────────────────────
+
+  @Get('emails')
+  @ApiOperation({ summary: 'List all email templates' })
+  getEmailTemplates() {
+    return this.adminService.getEmailTemplates();
+  }
+
+  @Post('emails')
+  @ApiOperation({ summary: 'Create an email template' })
+  createEmailTemplate(@Body() dto: any) {
+    return this.adminService.createEmailTemplate(dto);
+  }
+
+  @Patch('emails/:id')
+  @ApiOperation({ summary: 'Update an email template' })
+  updateEmailTemplate(@Param('id') id: string, @Body() dto: any) {
+    return this.adminService.updateEmailTemplate(+id, dto);
+  }
+
+  @Post('emails/seed')
+  @ApiOperation({ summary: 'Seed default email templates' })
+  seedEmailTemplates() {
+    return this.adminService.seedEmailTemplates();
+  }
+
+  @Post('emails/test')
+  @ApiOperation({ summary: 'Test an email template' })
+  testEmailTemplate(@Body() dto: any) {
+    return this.adminService.testEmailTemplate(dto);
+  }
 }

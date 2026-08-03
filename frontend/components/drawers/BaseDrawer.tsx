@@ -50,14 +50,14 @@ export function BaseDrawer({ open, onClose, title, subtitle, children, width = "
       <div
         ref={drawerRef}
         className={cn(
-          "fixed right-0 top-0 bottom-0 z-50 flex flex-col bg-background border-l border-border shadow-2xl",
+          "fixed right-0 top-0 bottom-0 z-50 flex flex-col bg-background border-l border-border shadow-2xl h-[100dvh]",
           "transition-transform duration-300 ease-in-out",
           widthMap[width],
           open ? "translate-x-0" : "translate-x-full"
         )}
       >
         {/* Header */}
-        <div className="flex items-start justify-between px-6 py-4 border-b border-border shrink-0">
+        <div className="flex items-start justify-between px-6 py-4 border-b border-border shrink-0 bg-background z-10">
           <div>
             {title && <h2 className="text-base font-semibold text-foreground">{title}</h2>}
             {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
@@ -71,8 +71,10 @@ export function BaseDrawer({ open, onClose, title, subtitle, children, width = "
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto">
-          {children}
+        <div className="flex-1 overflow-y-auto overscroll-contain h-full relative">
+          <div className="pb-8 min-h-full">
+            {children}
+          </div>
         </div>
       </div>
     </>

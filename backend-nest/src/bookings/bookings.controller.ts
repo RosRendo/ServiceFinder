@@ -126,6 +126,14 @@ export class BookingsController {
     return this.bookingsService.rejectAssignment(BigInt(id), BigInt(user.id));
   }
 
+  @Patch(':id/claim')
+  @ApiOperation({ summary: 'Claim an unassigned booking from the company pool (Open Pool mode, Staff only)' })
+  @ApiResponse({ status: 200, description: 'Booking successfully claimed.' })
+  claimBooking(@Param('id') id: string, @Request() req) {
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+    return this.bookingsService.claimBooking(BigInt(id), BigInt(user.id));
+  }
+
   @Patch(':id/start')
   @ApiOperation({ summary: 'Start a job (Assigned staff only)' })
   @ApiResponse({ status: 200, description: 'Job successfully started.' })

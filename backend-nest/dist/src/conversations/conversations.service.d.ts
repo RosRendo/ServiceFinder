@@ -17,12 +17,18 @@ export declare class ConversationsService {
                 id: any;
                 fullName: any;
                 avatar: any;
+                workingStatus: string;
+                lastSeen: null;
+                rawUserId?: undefined;
                 role?: undefined;
             } | {
                 id: string;
+                rawUserId: any;
                 fullName: any;
                 avatar: any;
                 role: any;
+                workingStatus: any;
+                lastSeen: any;
             } | null;
             lastMessage: {
                 content: any;
@@ -42,12 +48,18 @@ export declare class ConversationsService {
                 id: any;
                 fullName: any;
                 avatar: any;
+                workingStatus: string;
+                lastSeen: null;
+                rawUserId?: undefined;
                 role?: undefined;
             } | {
                 id: string;
+                rawUserId: any;
                 fullName: any;
                 avatar: any;
                 role: any;
+                workingStatus: any;
+                lastSeen: any;
             } | null;
             lastMessage: {
                 content: any;

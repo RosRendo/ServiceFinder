@@ -1,34 +1,28 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
-import { BaseDrawer } from "@/components/drawers/BaseDrawer";
-import { Search, Star, CheckCircle2, EyeOff, Flag, Loader2 } from "lucide-react";
+import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { ReviewDrawer, ReviewRow } from "@/components/drawers/ReviewDrawer";
+import { Search, Star, CheckCircle2, EyeOff, Flag, Loader2, Edit2, Eye, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
 
-interface ReviewRow {
-  id: string;
-  customer: string;
-  company: string;
-  staff: string;
-  rating: number;
-  text: string;
-  service: string;
-  date: string;
-  status: "visible" | "hidden" | "flagged";
-}
+
 
 const STATUS_COLORS: Record<string, string> = {
   visible: "text-emerald-500 bg-emerald-500/10 border border-emerald-500/20",
-  hidden: "text-slate-500 bg-slate-500/10 border border-slate-500/20",
+  hidden: "text-muted-foreground bg-muted/500/10 border border-slate-500/20",
   flagged: "text-rose-500 bg-rose-500/10 border border-rose-500/20",
 };
 
 export default function CompanyReviewsPage() {
+  const router = useRouter();
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -113,48 +107,57 @@ export default function CompanyReviewsPage() {
             <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
           </div>
         ) : (
-          <DataGrid columns={columns} data={filtered}
+          <DataGrid
+            selectedIds={selectedIds}
+            onSelectRow={(id) => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; })}
+            onSelectAll={() => setSelectedIds(p => p.size === filtered.length ? new Set() : new Set(filtered.map((x: any) => x.id)))}
+            columns={columns} data={filtered}
             onRowClick={(r) => { setActive(r); setDrawerOpen(true); }}
             emptyMessage="No reviews found." />
         )}
       </div>
 
-      <BaseDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={`Review #${active?.id.substring(0,8)}`} subtitle={`${active?.customer} · ${active?.service}`}>
-        {active && (
-          <div className="p-6 space-y-6">
-            <div className="flex items-center gap-1.5 border-b border-border pb-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className={cn("w-5 h-5", i < active.rating ? "text-amber-500 fill-current" : "text-muted-foreground/30")} />
-              ))}
-              <span className="text-sm font-medium text-foreground ml-2">{active.rating}/5</span>
-            </div>
-            
-            <div className="p-4 bg-muted/30 border border-border rounded-xl relative">
-              <span className="absolute -top-3 -left-2 text-4xl text-muted-foreground/20 font-serif">"</span>
-              <p className="text-sm text-foreground italic leading-relaxed relative z-10">{active.text}</p>
-              <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground border-t border-border/50 pt-3">
-                <span className="font-medium text-foreground">{active.customer}</span>
-                <span>{new Date(active.date).toLocaleDateString()}</span>
-              </div>
-            </div>
+      <ReviewDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} review={active} />
 
-            <div className="space-y-3 text-sm bg-muted/10 border border-border rounded-xl p-4">
-              <div className="flex justify-between items-center"><span className="text-muted-foreground">Company</span><span className="font-medium">{active.company}</span></div>
-              <div className="flex justify-between items-center"><span className="text-muted-foreground">Staff</span><span>{active.staff}</span></div>
-              <div className="flex justify-between items-center"><span className="text-muted-foreground">Service</span><span>{active.service}</span></div>
-            </div>
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        actions={[
+          {
+            icon: Eye,
+            label: "View Detail",
+            onClick: () => {
+              const id = Array.from(selectedIds)[0];
+              if (id) {
+                router.push(`/company/reviews/${id}`);
+              }
+  
+            }
+          },
+          {
+            icon: Edit2,
+            label: "Edit",
+            onClick: () => {
+              const id = Array.from(selectedIds)[0];
 
-            <div className="grid grid-cols-2 gap-3 pt-4">
-              <button className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground text-xs font-medium transition-colors border border-border">
-                <EyeOff className="w-4 h-4" /> Hide Review
-              </button>
-              <button className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 text-xs font-medium transition-colors border border-rose-500/20">
-                <Flag className="w-4 h-4" /> Report Issue
-              </button>
-            </div>
-          </div>
-        )}
-      </BaseDrawer>
+              const r = filtered.find((x: any) => x.id === id);
+              if (r) {
+                setActive(r);
+                setDrawerOpen(true);
+              }
+  
+            }
+          },
+          {
+            icon: Trash2,
+            label: "Delete",
+            variant: "danger",
+            onClick: () => {
+              setSelectedIds(new Set());
+            }
+          }
+        ]}
+      />
     </div>
   );
 }

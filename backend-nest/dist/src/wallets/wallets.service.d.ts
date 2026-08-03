@@ -20,6 +20,54 @@ export declare class WalletsService {
             ownerType: string;
         }[];
     }>;
+    getMyCompanyWallet(userId: bigint): Promise<{
+        payouts: {
+            id: string;
+            ownerId: string;
+            amount: number;
+            requestedAt: Date;
+            status: string;
+            createdAt: Date;
+            updatedAt: Date;
+            accountName: string;
+            accountNumber: string;
+            ownerType: string;
+            destinationBank: string;
+            adminNotes: string | null;
+        }[];
+        balance: number;
+        pendingBalance: number;
+        availableBalance: number;
+        outstandingFees: number;
+        totalPaidOut: number;
+        transactions: {
+            id: string;
+            ownerId: string;
+            bookingId: string | undefined;
+            amount: number;
+            createdAt: Date;
+            description: string;
+            category: string;
+            type: string;
+            ownerType: string;
+        }[];
+    }>;
+    requestMyCompanyPayout(userId: bigint, dto: any): Promise<{
+        success: boolean;
+        request: {
+            id: string;
+            ownerId: string;
+            amount: number;
+            status: string;
+            createdAt: Date;
+            updatedAt: Date;
+            accountName: string;
+            accountNumber: string;
+            ownerType: string;
+            destinationBank: string;
+            adminNotes: string | null;
+        };
+    }>;
     getCompanyWallet(companyId: bigint, userId: bigint): Promise<{
         balance: number;
         pendingBalance: number;
@@ -52,9 +100,9 @@ export declare class WalletsService {
             createdAt: Date;
             updatedAt: Date;
             ownerType: string;
+            adminNotes: string | null;
             bankName: string;
             proofOfTransferUrl: string;
-            adminNotes: string | null;
         };
     }>;
     requestPayout(companyId: bigint, userId: bigint, dto: {
@@ -74,8 +122,8 @@ export declare class WalletsService {
             accountName: string;
             accountNumber: string;
             ownerType: string;
-            adminNotes: string | null;
             destinationBank: string;
+            adminNotes: string | null;
         };
     }>;
     getStaffWallet(staffId: bigint, userId: bigint): Promise<{
@@ -108,8 +156,8 @@ export declare class WalletsService {
             accountName: string;
             accountNumber: string;
             ownerType: string;
-            adminNotes: string | null;
             destinationBank: string;
+            adminNotes: string | null;
         };
     }>;
     clearStaffDebt(companyId: bigint, staffId: bigint, userId: bigint, amount: number): Promise<{
@@ -125,9 +173,9 @@ export declare class WalletsService {
             createdAt: Date;
             updatedAt: Date;
             ownerType: string;
+            adminNotes: string | null;
             bankName: string;
             proofOfTransferUrl: string;
-            adminNotes: string | null;
         }[];
         payouts: {
             id: string;
@@ -139,8 +187,8 @@ export declare class WalletsService {
             accountName: string;
             accountNumber: string;
             ownerType: string;
-            adminNotes: string | null;
             destinationBank: string;
+            adminNotes: string | null;
         }[];
     }>;
     approveDeposit(id: bigint, adminNotes?: string): Promise<{

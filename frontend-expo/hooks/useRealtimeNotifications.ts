@@ -139,6 +139,12 @@ export function useRealtimeNotifications() {
         socket.on(event, (data) => handleSocketEvent(event, data));
       });
 
+      // Presence Tracking
+      socket.on('user_status_changed', (data: { userId: string, status: string, lastSeen: string }) => {
+        const { usePresenceStore } = require('@/store/presenceStore');
+        usePresenceStore.getState().updateStatus(data.userId, data.status, data.lastSeen);
+      });
+
       // Generic fallback for custom events
       socket.on('notification', (data: { type: string; title: string; body: string; payload?: any }) => {
         addNotification({

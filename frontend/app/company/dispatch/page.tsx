@@ -1,8 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Loader2, Calendar, Clock, Map, UserPlus, RefreshCw, AlertCircle, MessageCircle } from "lucide-react";
+import { Search, Loader2, Calendar, Clock, Map, UserPlus, RefreshCw, AlertCircle, MessageCircle, Edit2, Eye, Trash2 } from "lucide-react";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
+import { BulkActionBar } from "@/components/grid/BulkActionBar";
 import { StatusBadge } from "@/components/grid/StatusBadge";
 import {
   Dialog,
@@ -194,26 +195,7 @@ export default function DispatchCenter() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0 px-6 py-5 border-b border-border bg-background">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Map className="w-6 h-6 text-violet-500" />
-              Dispatch Center
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm">Manage active jobs and dispatch staff in real-time.</p>
-          </div>
-          <button
-            onClick={fetchDispatchBookings}
-            className="flex items-center gap-2 h-9 px-4 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" /> Refresh Board
-          </button>
-        </div>
-      </div>
-
-      {/* Filter Bar */}
+      {/* Unified Filter Bar */}
       <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -221,38 +203,41 @@ export default function DispatchCenter() {
             className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60" />
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => setActiveTab("active")} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTab === "active" ? "bg-violet-500/20 text-violet-400" : "text-muted-foreground hover:bg-muted/60"}`}>
+          <button onClick={() => setActiveTab("active")} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTab === "active" ? "bg-violet-500/10 text-violet-500 border border-violet-500/20" : "text-muted-foreground hover:bg-muted/50 border border-transparent"}`}>
             Active & In-Progress
           </button>
-          <button onClick={() => setActiveTab("unassigned")} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${activeTab === "unassigned" ? "bg-violet-500/20 text-violet-400" : "text-muted-foreground hover:bg-muted/60"}`}>
+          <button onClick={() => setActiveTab("unassigned")} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${activeTab === "unassigned" ? "bg-violet-500/10 text-violet-500 border border-violet-500/20" : "text-muted-foreground hover:bg-muted/50 border border-transparent"}`}>
             Pending Assignment
             {bookings.filter(b => !b.assignedStaffId).length > 0 && activeTab !== "unassigned" && (
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
             )}
           </button>
-          <button onClick={() => setActiveTab("all")} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTab === "all" ? "bg-violet-500/20 text-violet-400" : "text-muted-foreground hover:bg-muted/60"}`}>
+          <button onClick={() => setActiveTab("all")} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTab === "all" ? "bg-violet-500/10 text-violet-500 border border-violet-500/20" : "text-muted-foreground hover:bg-muted/50 border border-transparent"}`}>
             All Today
           </button>
         </div>
+        <div className="flex-1" />
+        <button
+          onClick={fetchDispatchBookings}
+          className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted/50 transition-colors shadow-sm bg-background"
+        >
+          <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" /> Refresh Board
+        </button>
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-hidden p-6 pt-0 mt-6 relative">
+      <div className="flex-1 overflow-hidden">
         {loading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">
-            <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
           </div>
         ) : (
           <DataGrid
+            selectedIds={selectedIds}
+            onSelectRow={(id) => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; })}
+            onSelectAll={() => setSelectedIds(p => p.size === filtered.length ? new Set() : new Set(filtered.map((x: any) => x.id)))}
             columns={columns}
             data={filtered}
-            selectedIds={selectedIds}
-            onSelectRow={(id) => {
-              setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-            }}
-            onSelectAll={() => {
-              setSelectedIds(prev => prev.size === filtered.length ? new Set() : new Set(filtered.map(b => b.id)));
-            }}
             onRowClick={(row) => {
               setActiveBookingId(row.id);
               setDrawerOpen(true);
@@ -282,7 +267,7 @@ export default function DispatchCenter() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Select Staff</label>
               {loadingStaff ? (
-                <div className="text-sm text-gray-500">Loading staff...</div>
+                <div className="text-sm text-muted-foreground">Loading staff...</div>
               ) : (
                 <select
                   value={selectedStaffId}
@@ -316,8 +301,45 @@ export default function DispatchCenter() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        actions={[
+          {
+            icon: Eye,
+            label: "View Detail",
+            onClick: () => {
+              const id = Array.from(selectedIds)[0];
+              if (id) {
+                router.push(`/company/bookings/${id}`);
+              }
+  
+            }
+          },
+          {
+            icon: Edit2,
+            label: "Edit",
+            onClick: () => {
+              const id = Array.from(selectedIds)[0];
 
+              const b = filtered.find((x: any) => x.id === id);
+              if (b) {
+                setActiveBookingId(b.id);
+                setDrawerOpen(true);
+              }
+  
+            }
+          },
+          {
+            icon: Trash2,
+            label: "Delete",
+            variant: "danger",
+            onClick: () => {
+              setSelectedIds(new Set());
+            }
+          }
+        ]}
+      />
     </div>
   );
 }

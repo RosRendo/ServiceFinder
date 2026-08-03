@@ -41,26 +41,53 @@ var __importStar = (this && this.__importStar) || (function () {
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var MailService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MailService = void 0;
 const common_1 = require("@nestjs/common");
 const nodemailer = __importStar(require("nodemailer"));
 const config_1 = require("@nestjs/config");
-let MailService = class MailService {
+const prisma_service_1 = require("../prisma/prisma.service");
+const event_emitter_1 = require("@nestjs/event-emitter");
+let MailService = MailService_1 = class MailService {
     configService;
-    transporter;
-    constructor(configService) {
+    prisma;
+    transporter = null;
+    logger = new common_1.Logger(MailService_1.name);
+    constructor(configService, prisma) {
         this.configService = configService;
-        const smtpHost = this.configService.get('SMTP_HOST');
+        this.prisma = prisma;
+    }
+    handleSettingsUpdated(payload) {
+        this.logger.log('Settings updated, clearing email transporter cache');
+        this.transporter = null;
+    }
+    async getTransporter() {
+        if (this.transporter)
+            return this.transporter;
+        const settings = await this.prisma.systemSetting.findMany({
+            where: {
+                keyName: {
+                    in: ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass'],
+                },
+            },
+        });
+        const settingsMap = settings.reduce((acc, curr) => {
+            acc[curr.keyName] = curr.value;
+            return acc;
+        }, {});
+        const smtpHost = settingsMap['smtp_host'] || this.configService.get('SMTP_HOST');
+        const smtpUser = settingsMap['smtp_user'] || this.configService.get('SMTP_USER');
+        const smtpPass = settingsMap['smtp_pass'] || this.configService.get('SMTP_PASS');
         if (smtpHost) {
-            const port = parseInt(this.configService.get('SMTP_PORT') || '465', 10);
+            const port = parseInt(settingsMap['smtp_port'] || this.configService.get('SMTP_PORT') || '465', 10);
             this.transporter = nodemailer.createTransport({
                 host: smtpHost,
                 port: port,
                 secure: port === 465,
                 auth: {
-                    user: this.configService.get('SMTP_USER'),
-                    pass: this.configService.get('SMTP_PASS'),
+                    user: smtpUser,
+                    pass: smtpPass,
                 },
             });
         }
@@ -68,31 +95,68 @@ let MailService = class MailService {
             this.transporter = nodemailer.createTransport({
                 service: 'gmail',
                 auth: {
-                    user: this.configService.get('SMTP_USER'),
-                    pass: this.configService.get('SMTP_PASS'),
+                    user: smtpUser,
+                    pass: smtpPass,
                 },
             });
         }
+        return this.transporter;
+    }
+    renderTemplate(templateString, variables) {
+        let result = templateString;
+        for (const [key, value] of Object.entries(variables)) {
+            const regex = new RegExp(`{{${key}}}`, 'g');
+            result = result.replace(regex, value);
+        }
+        return result;
+    }
+    async fetchAndSendTemplate(templateId, to, variables, fallbackTemplate) {
+        try {
+            const dbTemplate = await this.prisma.emailTemplate.findUnique({
+                where: { templateId },
+            });
+            let subject = '';
+            let html = '';
+            let text = '';
+            if (dbTemplate && dbTemplate.status === 'active') {
+                subject = this.renderTemplate(dbTemplate.subject, variables);
+                html = this.renderTemplate(dbTemplate.body, variables);
+                text = html.replace(/<[^>]+>/g, '');
+            }
+            else if (fallbackTemplate) {
+                subject = fallbackTemplate.subject;
+                html = fallbackTemplate.html;
+                text = fallbackTemplate.text;
+            }
+            else {
+                this.logger.warn(`Template ${templateId} not found and no fallback provided.`);
+                return;
+            }
+            await this.sendMail(to, subject, text, html);
+        }
+        catch (error) {
+            this.logger.error(`Failed to send template ${templateId}`, error);
+        }
     }
     async sendPasswordResetEmail(to, code, userName) {
-        const template = this.getPasswordResetTemplate(code, userName);
-        await this.sendMail(to, template.subject, template.text, template.html);
+        const fallback = this.getPasswordResetTemplate(code, userName);
+        await this.fetchAndSendTemplate('password_reset', to, { user_name: userName, reset_url: code, expiry_time: '15 minutes' }, fallback);
     }
     async sendStaffWelcomeEmail(to, tempPassword, companyName, userName) {
         const loginUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
-        const template = this.getStaffWelcomeTemplate(userName, companyName, tempPassword, loginUrl);
-        await this.sendMail(to, template.subject, template.text, template.html);
+        const fallback = this.getStaffWelcomeTemplate(userName, companyName, tempPassword, loginUrl);
+        await this.fetchAndSendTemplate('staff_welcome', to, { user_name: userName, company_name: companyName, temp_password: tempPassword, login_url: loginUrl }, fallback);
     }
     async sendBookingConfirmationEmail(to, customerName, serviceName, companyName, date, time) {
-        const template = this.getBookingConfirmationTemplate(customerName, serviceName, companyName, date, time);
-        await this.sendMail(to, template.subject, template.text, template.html);
+        const fallback = this.getBookingConfirmationTemplate(customerName, serviceName, companyName, date, time);
+        await this.fetchAndSendTemplate('booking_confirmation', to, { customer_name: customerName, service_name: serviceName, company_name: companyName, date, time }, fallback);
     }
     async sendNewBookingEmail(to, companyName, serviceName, date, time) {
         const year = new Date().getFullYear();
         const subject = `New Booking Request for ${serviceName}`;
         const text = `Hi ${companyName},\n\nYou have a new booking request for ${serviceName} on ${date} at ${time}.\nPlease log in to your dashboard to review.\n\n© ${year} Service Finder. All rights reserved.`;
         const html = `<div style="font-family: sans-serif; padding: 20px;"><h2>New Booking Request</h2><p>Hi ${companyName},</p><p>You have a new booking request for <strong>${serviceName}</strong> on ${date} at ${time}.</p><p>Please log in to your dashboard to review and confirm.</p></div>`;
-        await this.sendMail(to, subject, text, html);
+        await this.fetchAndSendTemplate('new_booking', to, { company_name: companyName, service_name: serviceName, date, time }, { subject, html, text });
     }
     async sendBookingStatusChangedEmail(to, customerName, serviceName, status) {
         const year = new Date().getFullYear();
@@ -113,7 +177,7 @@ let MailService = class MailService {
         const subject = `Booking Update: ${serviceName}`;
         const text = `Hi ${customerName},\n\nYour booking for ${serviceName} ${statusText}.\n\n© ${year} Service Finder.`;
         const html = `<div style="font-family: sans-serif; padding: 20px;"><h2>Booking Update</h2><p>Hi ${customerName},</p><p>Your booking for <strong>${serviceName}</strong> ${statusText}.</p></div>`;
-        await this.sendMail(to, subject, text, html);
+        await this.fetchAndSendTemplate('booking_status_changed', to, { customer_name: customerName, service_name: serviceName, status_text: statusText }, { subject, html, text });
     }
     async sendCompanyVerifiedEmail(to, companyName, approved) {
         const year = new Date().getFullYear();
@@ -124,20 +188,23 @@ let MailService = class MailService {
             ? `Hi ${companyName},\n\nGood news! Your company verification has been approved. You can now start accepting bookings on Service Finder.\n\n© ${year} Service Finder.`
             : `Hi ${companyName},\n\nUnfortunately, your company verification was rejected. Please log in to your dashboard to update your details and resubmit.\n\n© ${year} Service Finder.`;
         const html = `<div style="font-family: sans-serif; padding: 20px;"><h2>${approved ? 'Company Verified!' : 'Verification Update'}</h2><p>${text.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br/>')}</p></div>`;
-        await this.sendMail(to, subject, text, html);
+        await this.fetchAndSendTemplate(approved ? 'company_verified' : 'company_rejected', to, { company_name: companyName }, { subject, html, text });
     }
     async sendPayoutProcessedEmail(to, companyName, amount) {
         const year = new Date().getFullYear();
         const subject = `💰 Payout Processed`;
         const text = `Hi ${companyName},\n\nYour payout of $${amount.toFixed(2)} has been successfully processed.\n\n© ${year} Service Finder.`;
         const html = `<div style="font-family: sans-serif; padding: 20px;"><h2>Payout Processed</h2><p>Hi ${companyName},</p><p>Your payout of <strong>$${amount.toFixed(2)}</strong> has been successfully processed.</p></div>`;
-        await this.sendMail(to, subject, text, html);
+        await this.fetchAndSendTemplate('payout_processed', to, { company_name: companyName, amount: amount.toFixed(2) }, { subject, html, text });
     }
     async sendMail(to, subject, text, html) {
         try {
-            const fromEmail = this.configService.get('SMTP_FROM_EMAIL') ||
-                this.configService.get('SMTP_USER');
-            await this.transporter.sendMail({
+            const transporter = await this.getTransporter();
+            const settings = await this.prisma.systemSetting.findUnique({
+                where: { keyName: 'smtp_from_email' }
+            });
+            const fromEmail = settings?.value || this.configService.get('SMTP_FROM_EMAIL') || this.configService.get('SMTP_USER');
+            await transporter.sendMail({
                 from: '"Service Finder" <' + fromEmail + '>',
                 to,
                 subject,
@@ -146,7 +213,7 @@ let MailService = class MailService {
             });
         }
         catch (error) {
-            console.error('Error sending email:', error);
+            this.logger.error('Error sending email:', error);
             throw error;
         }
     }
@@ -264,8 +331,15 @@ let MailService = class MailService {
     }
 };
 exports.MailService = MailService;
-exports.MailService = MailService = __decorate([
+__decorate([
+    (0, event_emitter_1.OnEvent)('settings.updated'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], MailService.prototype, "handleSettingsUpdated", null);
+exports.MailService = MailService = MailService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [config_1.ConfigService])
+    __metadata("design:paramtypes", [config_1.ConfigService,
+        prisma_service_1.PrismaService])
 ], MailService);
 //# sourceMappingURL=mail.service.js.map

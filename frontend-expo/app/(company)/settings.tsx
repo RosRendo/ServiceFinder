@@ -55,6 +55,10 @@ export default function Settings() {
   const [city, setCity] = useState("");
   const [verificationDocumentUrl, setVerificationDocumentUrl] = useState("");
 
+  // Operations
+  const [bookingMode, setBookingMode] = useState<"dispatch" | "open_pool">("dispatch");
+  const [savingMode, setSavingMode] = useState(false);
+
   const loadCompany = useCallback(async (isRefresh = false) => {
     if (isRefresh) { setRefreshing(true); } else { setLoading(true); }
     try {
@@ -71,6 +75,7 @@ export default function Settings() {
         setAddress(data.address || "");
         setCity(data.city || "");
         setVerificationDocumentUrl(data.verificationDocumentUrl || "");
+        setBookingMode((data.bookingMode as any) || "dispatch");
       }
     } catch (error) {
       console.error("Failed to load company profile", error);
@@ -107,6 +112,22 @@ export default function Settings() {
       Alert.alert("Error", "Could not update company profile.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveBookingMode = async (mode: "dispatch" | "open_pool") => {
+    if (!companyId || savingMode) return;
+    setSavingMode(true);
+    const previous = bookingMode;
+    setBookingMode(mode);
+    try {
+      await api.put(`/api/companies/${companyId}`, { bookingMode: mode });
+      Alert.alert("Saved", `Booking mode set to ${mode === "dispatch" ? "Dispatch" : "Open Pool"}`);
+    } catch {
+      setBookingMode(previous); // Revert on error
+      Alert.alert("Error", "Could not save booking mode.");
+    } finally {
+      setSavingMode(false);
     }
   };
 
@@ -210,6 +231,63 @@ export default function Settings() {
                 <Text style={s.helperText}>Provide a link to your business license or ID for admin verification.</Text>
               </View>
 
+              {/* Operations Section */}
+              <View style={s.section}>
+                <View style={s.sectionHeader}>
+                  <MaterialCommunityIcons name="cog-outline" size={20} color={T.accentMid} />
+                  <Text style={s.sectionTitle}>Operations</Text>
+                </View>
+                <Text style={s.modeLabel}>Booking Assignment Mode</Text>
+
+                {/* Dispatch Mode Card */}
+                <TouchableOpacity
+                  style={[s.modeCard, bookingMode === "dispatch" && s.modeCardActive]}
+                  onPress={() => handleSaveBookingMode("dispatch")}
+                  disabled={savingMode}
+                  activeOpacity={0.7}
+                >
+                  <View style={s.modeCardInner}>
+                    <View style={[s.modeIconWrap, bookingMode === "dispatch" && s.modeIconWrapActive]}>
+                      <MaterialCommunityIcons name="account-arrow-right" size={22} color={bookingMode === "dispatch" ? T.accent : T.text3} />
+                    </View>
+                    <View style={s.modeCardText}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <Text style={[s.modeTitle, bookingMode === "dispatch" && { color: T.accent }]}>Dispatch Mode</Text>
+                        {bookingMode === "dispatch" && (
+                          <View style={s.activeBadge}><Text style={s.activeBadgeText}>ACTIVE</Text></View>
+                        )}
+                      </View>
+                      <Text style={s.modeDesc}>You manually assign each job to a specific staff member. Full control over every booking.</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Open Pool Mode Card */}
+                <TouchableOpacity
+                  style={[s.modeCard, bookingMode === "open_pool" && s.modeCardActive, { marginTop: 10 }]}
+                  onPress={() => handleSaveBookingMode("open_pool")}
+                  disabled={savingMode}
+                  activeOpacity={0.7}
+                >
+                  <View style={s.modeCardInner}>
+                    <View style={[s.modeIconWrap, bookingMode === "open_pool" && s.modeIconWrapActive]}>
+                      <MaterialCommunityIcons name="account-group-outline" size={22} color={bookingMode === "open_pool" ? T.accent : T.text3} />
+                    </View>
+                    <View style={s.modeCardText}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <Text style={[s.modeTitle, bookingMode === "open_pool" && { color: T.accent }]}>Open Pool Mode</Text>
+                        {bookingMode === "open_pool" && (
+                          <View style={s.activeBadge}><Text style={s.activeBadgeText}>ACTIVE</Text></View>
+                        )}
+                      </View>
+                      <Text style={s.modeDesc}>New bookings go into a shared pool. Staff claim and accept jobs directly from the app.</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {savingMode && <Text style={{ fontSize: 12, color: T.text3, marginTop: 8 }}>Saving mode...</Text>}
+              </View>
+
             </>
           )}
         </ScrollView>
@@ -238,7 +316,7 @@ const s = StyleSheet.create({
   logoContainer: {
     width: 90, height: 90, borderRadius: 45, backgroundColor: T.accentLight,
     alignItems: "center", justifyContent: "center", marginBottom: 12,
-    },
+  },
   editBadge: {
     position: "absolute", bottom: 0, right: 0,
     backgroundColor: T.accentMid, width: 28, height: 28, borderRadius: 14,
@@ -247,17 +325,36 @@ const s = StyleSheet.create({
   },
   changeLogoText: { fontSize: 14, fontWeight: "700", color: T.accentMid },
 
-  section: { backgroundColor: T.surface, padding: 20, borderRadius: 16,
+  section: { backgroundColor: T.surface, padding: 20, borderRadius: 16, gap: 12,
     ...CARD_SHADOW, borderWidth: 1, borderColor: T.border },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
   sectionTitle: { fontSize: 16, fontWeight: "800", color: T.text1 },
 
-  inputContainer: { gap: 8 },
+  inputContainer: { gap: 6 },
   inputLabel: { fontSize: 13, fontWeight: "700", color: T.text2 },
   input: {
     backgroundColor: T.bg, borderWidth: 1, borderColor: T.border, borderRadius: 12,
     paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: T.text1, fontWeight: "500"
   },
   textArea: { minHeight: 100, paddingTop: 14 },
-  helperText: { fontSize: 12, color: T.text3, marginTop: -4, lineHeight: 18 }
+  helperText: { fontSize: 12, color: T.text3, marginTop: -4, lineHeight: 18 },
+
+  // Booking Mode styles
+  modeLabel: { fontSize: 13, fontWeight: "700", color: T.text2, marginBottom: 4 },
+  modeCard: {
+    borderWidth: 2, borderColor: T.border, borderRadius: 12,
+    padding: 14, backgroundColor: T.bg,
+  },
+  modeCardActive: { borderColor: T.accent, backgroundColor: T.accent + "08" },
+  modeCardInner: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  modeIconWrap: {
+    width: 42, height: 42, borderRadius: 10, backgroundColor: T.border,
+    alignItems: "center", justifyContent: "center",
+  },
+  modeIconWrapActive: { backgroundColor: T.accent + "20" },
+  modeCardText: { flex: 1 },
+  modeTitle: { fontSize: 14, fontWeight: "700", color: T.text1 },
+  modeDesc: { fontSize: 12, color: T.text2, marginTop: 4, lineHeight: 18 },
+  activeBadge: { backgroundColor: T.accent + "20", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  activeBadgeText: { fontSize: 10, fontWeight: "800", color: T.accent },
 });

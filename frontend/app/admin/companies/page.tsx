@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { StatusBadge } from "@/components/grid/StatusBadge";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
 import { CompanyDrawer, CompanyRow } from "@/components/drawers/CompanyDrawer";
 import { AddCompanyModal } from "@/components/admin/AddCompanyModal";
-import { Search, Download, Building2, Star, Loader2, Plus } from "lucide-react";
+import { Search, Download, Building2, Star, Loader2, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
 
 export default function CompaniesPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -137,14 +139,47 @@ export default function CompaniesPage() {
           </div>
         ) : (
           <DataGrid columns={columns} data={mappedCompanies} onRowClick={(r) => { setActiveCompany(r); setDrawerOpen(true); }}
-            selectedIds={selectedIds} onSelectRow={toggleRow}
-            onSelectAll={() => setSelectedIds((prev) => prev.size === mappedCompanies.length ? new Set() : new Set(mappedCompanies.map((c) => c.id)))}
+            selectedIds={selectedIds} onToggleRow={toggleRow}
+            onToggleAll={() => setSelectedIds((prev) => prev.size === mappedCompanies.length ? new Set() : new Set(mappedCompanies.map((c) => c.id)))}
             emptyMessage="No companies found." />
         )}
       </div>
 
       <BulkActionBar selectedCount={selectedIds.size} onClear={() => setSelectedIds(new Set())}
-        actions={[{ icon: Download, label: "Export", onClick: () => {} }]} />
+        actions={[
+          ...(selectedIds.size === 1 ? [
+            { icon: Eye, label: "View Profile", onClick: () => {
+                const id = Array.from(selectedIds)[0];
+                router.push(`/admin/companies/${id}`);
+              }
+            },
+            { icon: Edit, label: "Edit", onClick: () => {
+                const company = mappedCompanies.find(c => c.id === Array.from(selectedIds)[0]);
+                if (company) {
+                  setActiveCompany(company);
+                  setDrawerOpen(true);
+                }
+              }
+            }
+          ] : []),
+          { icon: Trash2, label: "Delete", onClick: async () => {
+              if (!confirm(`Are you sure you want to delete ${selectedIds.size} companie(s)?`)) return;
+              let successCount = 0;
+              for (const id of Array.from(selectedIds)) {
+                try {
+                  await api.delete(`/companies/${id}`);
+                  successCount++;
+                } catch (e) {
+                  console.error(e);
+                }
+              }
+              toast({ title: "Companies Deleted", description: `Successfully deleted ${successCount} companie(s).` });
+              setSelectedIds(new Set());
+              fetchCompanies();
+            }
+          },
+          { icon: Download, label: "Export CSV", onClick: () => {} },
+        ]} />
 
       <AddCompanyModal open={addModalOpen} onClose={() => setAddModalOpen(false)} onSuccess={fetchCompanies} />
       <CompanyDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} company={activeCompany} onSuccess={fetchCompanies} />

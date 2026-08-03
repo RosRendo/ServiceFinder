@@ -17,8 +17,8 @@ export declare class FinancialsService {
             accountName: string;
             accountNumber: string;
             ownerType: string;
-            adminNotes: string | null;
             destinationBank: string;
+            adminNotes: string | null;
         }[];
         transactions: {
             id: string;
@@ -42,8 +42,8 @@ export declare class FinancialsService {
         accountName: string;
         accountNumber: string;
         ownerType: string;
-        adminNotes: string | null;
         destinationBank: string;
+        adminNotes: string | null;
     }>;
     getAllPayoutRequests(): Promise<{
         id: string;
@@ -55,8 +55,8 @@ export declare class FinancialsService {
         accountName: string;
         accountNumber: string;
         ownerType: string;
-        adminNotes: string | null;
         destinationBank: string;
+        adminNotes: string | null;
     }[]>;
     processPayoutRequest(id: bigint, dto: ProcessPayoutDto): Promise<{
         id: string;
@@ -68,7 +68,7 @@ export declare class FinancialsService {
         accountName: string;
         accountNumber: string;
         ownerType: string;
-        adminNotes: string | null;
         destinationBank: string;
+        adminNotes: string | null;
     }>;
 }

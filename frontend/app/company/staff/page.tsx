@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { StatusBadge } from "@/components/grid/StatusBadge";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
 import { StaffDrawer } from "@/components/drawers/StaffDrawer";
 import { InviteStaffDrawer } from "@/components/drawers/InviteStaffDrawer";
-import { Search, Download, UserPlus, Star, Loader2 } from "lucide-react";
+import { Search, Download, UserPlus, Star, Loader2, Eye, Edit, Trash2, Edit2 } from "lucide-react";
 import api from "@/lib/api/client";
 import { useToast } from "@/lib/hooks/use-toast";
+import { useSocket } from "@/lib/hooks/useSocket";
 
 const STATUS_DOT: Record<string, string> = {
   online: "bg-emerald-400",
@@ -18,16 +20,19 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 export default function CompanyStaffPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [inviteDrawerOpen, setInviteDrawerOpen] = useState(false);
   const [activeStaff, setActiveStaff] = useState<any | null>(null);
+  const [editStaff, setEditStaff] = useState<any | null>(null);
   
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { socket } = useSocket();
 
   const fetchStaff = async () => {
       setLoading(true);
@@ -46,9 +51,34 @@ export default function CompanyStaffPage() {
       fetchStaff();
   }, []);
 
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleStatusChange = (data: { userId: string, status: string, lastSeen: string }) => {
+      setStaff(prev => prev.map(s => {
+        if (s.user?.id?.toString() === data.userId) {
+          return {
+            ...s,
+            user: {
+              ...s.user,
+              workingStatus: data.status,
+              lastSeen: data.lastSeen,
+            }
+          };
+        }
+        return s;
+      }));
+    };
+
+    socket.on('user_status_changed', handleStatusChange);
+    return () => {
+      socket.off('user_status_changed', handleStatusChange);
+    };
+  }, [socket]);
+
   const filtered = staff.filter((s) => {
     const name = s.user?.fullName || s.fullName || s.name || "";
-    const status = s.user?.status || s.status || "offline";
+    const status = s.user?.workingStatus || s.user?.status || s.status || "offline";
     const matchSearch = !search || [name, s.role, s.id].some((v) => v?.toString().toLowerCase().includes(search.toLowerCase()));
     const matchStatus = statusFilter === "all" || status === statusFilter;
     return matchSearch && matchStatus;
@@ -66,7 +96,7 @@ export default function CompanyStaffPage() {
       key: "name", header: "Name", sortable: true,
       render: (r) => {
         const name = r.user?.fullName || r.fullName || r.name || "Unknown Staff";
-        const status = r.user?.status || r.status || "offline";
+        const status = r.user?.workingStatus || r.user?.status || r.status || "offline";
         return (
           <div className="flex items-center gap-2.5">
             <div className="relative">
@@ -82,7 +112,7 @@ export default function CompanyStaffPage() {
     },
     { key: "email", header: "Email", sortable: true, render: (r) => <span className="text-muted-foreground text-sm">{r.user?.email || r.email || "N/A"}</span> },
     { key: "role", header: "Role", render: (r) => <span className="text-muted-foreground text-xs">{r.role?.replace(/_/g, " ")}</span> },
-    { key: "status", header: "Status", render: (r) => <StatusBadge status={r.user?.status || r.status || 'offline'} /> },
+    { key: "status", header: "Status", render: (r) => <StatusBadge status={r.user?.workingStatus || r.user?.status || r.status || 'offline'} /> },
     {
       key: "rating", header: "Rating", sortable: true,
       render: (r) => (
@@ -93,70 +123,85 @@ export default function CompanyStaffPage() {
     },
     { key: "jobsCompleted", header: "Jobs", sortable: true, render: (r) => <span className="text-muted-foreground">{r._count?.assignedBookings || r.jobsCompleted || 0}</span> },
     { key: "earningsToday", header: "Earned Today", sortable: true, render: (r) => <span className="font-medium">${r.earningsToday || 0}</span> },
+    {
+      key: "actions",
+      header: "",
+      render: (r) => (
+        <div className="flex justify-end">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditStaff(r);
+              setInviteDrawerOpen(true);
+            }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/80 transition-colors"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+        </div>
+      )
+    }
   ];
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Filter Bar */}
       <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search staff..."
-            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60" />
+          <input 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+            placeholder="Search staff..."
+            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60" 
+          />
         </div>
         <div className="flex items-center gap-1">
           {["all", "online", "on_job", "offline"].map((s) => (
             <button key={s} onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === s ? "bg-violet-500/20 text-violet-400" : "text-muted-foreground hover:bg-muted/60"}`}>
-              {s === "all" ? "All" : s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === s ? "bg-violet-500/10 text-violet-500 border border-violet-500/20" : "text-muted-foreground hover:bg-muted/50 border border-transparent"}`}>
+              {s === "all" ? "All Staff" : s.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
             </button>
           ))}
         </div>
         <div className="flex-1" />
-        <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted/60 transition-colors">
-          <Download className="w-3.5 h-3.5" /> Export
-        </button>
         <button 
-          onClick={() => setInviteDrawerOpen(true)}
-          className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors"
+          onClick={() => {
+            setEditStaff(null);
+            setInviteDrawerOpen(true);
+          }}
+          className="flex items-center gap-2 h-9 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors shadow-sm"
         >
-          <UserPlus className="w-3.5 h-3.5" /> Invite Staff
+          <UserPlus className="w-4 h-4" /> Add Staff
         </button>
-      </div>
-
-      {/* Stats */}
-      <div className="shrink-0 flex items-center gap-6 px-6 py-2.5 border-b border-border bg-background">
-        {[
-          { label: "Total", value: staff.length, color: "text-foreground" },
-          { label: "Online", value: staff.filter((s) => (s.user?.status || s.status) === "online").length, color: "text-emerald-400" },
-          { label: "On Job", value: staff.filter((s) => (s.user?.status || s.status) === "on_job").length, color: "text-violet-400" },
-          { label: "Offline", value: staff.filter((s) => { const st = s.user?.status || s.status; return st === "offline" || !st; }).length, color: "text-slate-400" },
-        ].map((s) => (
-          <div key={s.label} className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">{s.label}</span>
-            <span className={`font-bold ${s.color}`}>{s.value}</span>
-          </div>
-        ))}
+        <span className="text-xs text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 ml-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+          {staff.filter((s) => (s.user?.workingStatus || s.user?.status || s.status) === "online").length} online
+        </span>
       </div>
 
       <div className="flex-1 overflow-hidden">
         {loading ? (
            <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" /></div>
         ) : (
-          <DataGrid columns={columns} data={filtered} onRowClick={(r) => { setActiveStaff(r); setDrawerOpen(true); }}
-            selectedIds={selectedIds} onSelectRow={toggleRow} onSelectAll={toggleAll} emptyMessage="No staff found." />
+          <DataGrid
+            selectedIds={selectedIds}
+            onSelectRow={(id) => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; })}
+            onSelectAll={() => setSelectedIds(p => p.size === filtered.length ? new Set() : new Set(filtered.map((x: any) => x.id)))}
+            columns={columns} 
+            data={filtered} 
+            onRowClick={(r) => { setActiveStaff(r); setDrawerOpen(true); }}
+            emptyMessage="No staff found." 
+          />
         )}
       </div>
-
-      <BulkActionBar selectedCount={selectedIds.size} onClear={() => setSelectedIds(new Set())}
-        actions={[{ icon: Download, label: "Export", onClick: () => {} }]} />
 
       {activeStaff && (
           <StaffDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onSuccess={fetchStaff} staff={{
               id: activeStaff.id,
               name: activeStaff.user?.fullName || "Unknown",
               role: activeStaff.role,
-              status: activeStaff.user?.status || activeStaff.status || "offline",
+              status: activeStaff.user?.workingStatus || activeStaff.user?.status || activeStaff.status || "offline",
+              lastSeen: activeStaff.user?.lastSeen,
               rating: activeStaff.rating || 5.0,
               jobsCompleted: activeStaff._count?.assignedBookings || activeStaff.jobsCompleted || 0,
               todayJobs: activeStaff.todayJobs || 0,
@@ -177,7 +222,47 @@ export default function CompanyStaffPage() {
       <InviteStaffDrawer 
         open={inviteDrawerOpen} 
         onClose={() => setInviteDrawerOpen(false)} 
-        onSuccess={fetchStaff}
+        onSuccess={() => fetchStaff()} 
+        staff={editStaff}
+      />
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        actions={[
+          {
+            icon: Eye,
+            label: "View Detail",
+            onClick: () => {
+              const id = Array.from(selectedIds)[0];
+              if (id) {
+                router.push(`/company/staff/${id}`);
+              }
+  
+            }
+          },
+          {
+            icon: Edit2,
+            label: "Edit",
+            onClick: () => {
+              const id = Array.from(selectedIds)[0];
+
+              const s = filtered.find((x: any) => x.id === id);
+              if (s) {
+                setActiveStaff(s);
+                setDrawerOpen(true);
+              }
+  
+            }
+          },
+          {
+            icon: Trash2,
+            label: "Delete",
+            variant: "danger",
+            onClick: () => {
+              setSelectedIds(new Set());
+            }
+          }
+        ]}
       />
     </div>
   );

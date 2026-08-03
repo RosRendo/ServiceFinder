@@ -20,6 +20,28 @@ export class WalletsController {
 
   // --- Company Endpoints ---
 
+  @Get('my-company')
+  @Roles('company_admin')
+  async getMyCompanyWallet(@Request() req: any) {
+    // Rely on WalletsService to look up company by user id
+    return this.walletsService.getMyCompanyWallet(BigInt(req.user.id));
+  }
+
+  @Post('my-company/payout')
+  @Roles('company_admin')
+  async requestMyCompanyPayout(
+    @Request() req: any,
+    @Body()
+    dto: {
+      amount: number;
+      destinationBank: string;
+      accountName: string;
+      accountNumber: string;
+    },
+  ) {
+    return this.walletsService.requestMyCompanyPayout(BigInt(req.user.id), dto);
+  }
+
   @Get('company/:id')
   @Roles('company_admin')
   getCompanyWallet(@Param('id') id: string, @Request() req: any) {

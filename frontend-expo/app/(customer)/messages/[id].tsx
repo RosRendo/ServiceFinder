@@ -13,15 +13,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+
 import { useAuthStore } from "@/store/authStore";
 import { useChatStore, ChatMessage as ChatMessageType } from "@/store/chatStore";
+import { usePresenceStore } from "@/store/presenceStore";
+import { formatDistanceToNow } from "date-fns";
 import { ChatInput } from "@/components/messages/ChatInput";
 import { useTranslation } from "react-i18next";
-import { Theme } from "@/constants/theme";
-
-const T = Theme.colors;
-
-export default function ChatScreen() {
 import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
@@ -50,6 +48,22 @@ export default function ChatScreen() {
   const isArchived = activeConversation?.archivedAt
     ? new Date(activeConversation.archivedAt) <= new Date()
     : false;
+  
+  const rawUserId = activeConversation?.otherUser?.rawUserId;
+  const presence = usePresenceStore((state) => rawUserId ? state.userStatuses[rawUserId] : null);
+  
+  const isOnline = presence?.status === 'online' || presence?.status === 'on_job';
+  let statusText = isOnline ? t('messages.activeNow') : t('messages.connecting');
+  
+  if (!isOnline && presence?.lastSeen) {
+    try {
+      statusText = `Last seen ${formatDistanceToNow(new Date(presence.lastSeen), { addSuffix: true })}`;
+    } catch (e) {
+      statusText = 'Offline';
+    }
+  } else if (!isOnline && presence?.status === 'offline') {
+    statusText = 'Offline';
+  }
 
   useEffect(() => {
     if (!id || !token) return;
@@ -123,13 +137,13 @@ export default function ChatScreen() {
         <View style={s.headerProfile}>
           <View style={s.headerAvatar}>
             <Text style={s.headerAvatarText}>{initials}</Text>
-            {isConnected && <View style={s.onlineIndicator} />}
+            {isOnline && <View style={s.onlineIndicator} />}
           </View>
           <View style={s.headerTextWrap}>
             <Text style={s.headerName} numberOfLines={1}>
               {otherName ?? t('messages.conversationFallback')}
             </Text>
-            <Text style={s.headerStatus}>{isConnected ? t('messages.activeNow') : t('messages.connecting')}</Text>
+            <Text style={s.headerStatus}>{statusText}</Text>
           </View>
         </View>
 

@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { StatusBadge } from "@/components/grid/StatusBadge";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
 import { BookingDrawer } from "@/components/drawers/BookingDrawer";
-import { Search, Loader2, Calendar, Clock, Download, Plus, SlidersHorizontal } from "lucide-react";
+import { Search, Loader2, Calendar, Clock, Download, Plus, SlidersHorizontal, Eye, Edit } from "lucide-react";
 import api from "@/lib/api/client";
 import { useToast } from "@/lib/hooks/use-toast";
 
 // ─── Columns ──────────────────────────────────────────────────
 export default function BookingsPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [bookings, setBookings] = useState<any[]>([]);
@@ -149,6 +151,10 @@ export default function BookingsPage() {
         selectedCount={selectedIds.size}
         onClear={() => setSelectedIds(new Set())}
         actions={[
+          ...(selectedIds.size === 1 ? [
+            { icon: Eye, label: "View Details", onClick: () => router.push(`/admin/bookings/${Array.from(selectedIds)[0]}`) },
+            { icon: Edit, label: "Manage", onClick: () => openDrawer(Array.from(selectedIds)[0]) }
+          ] : []),
           { icon: Download, label: "Export CSV", onClick: () => {} },
           { icon: SlidersHorizontal, label: "Assign Staff", onClick: () => {} },
         ]}

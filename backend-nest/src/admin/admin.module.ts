@@ -6,11 +6,14 @@ import { AdminGateway } from './admin.gateway';
 import { BookingsModule } from '../bookings/bookings.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
+import { MailModule } from '../mail/mail.module';
+
 @Module({
   imports: [
     PrismaModule,
     NotificationsModule,
     forwardRef(() => BookingsModule),
+    MailModule,
   ],
   controllers: [AdminController],
   providers: [AdminService, AdminGateway],

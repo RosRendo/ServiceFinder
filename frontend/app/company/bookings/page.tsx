@@ -1,9 +1,8 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import {
-  Calendar, Eye, CheckCircle2, XCircle, Clock, UserPlus, Loader2, CheckCircle, Search, Download
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Calendar, Eye, CheckCircle2, XCircle, Clock, UserPlus, Loader2, CheckCircle, Search, Download, Edit, Trash2, Edit2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/lib/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +13,7 @@ import { StatusBadge } from "@/components/grid/StatusBadge";
 import { BookingDrawer } from "@/components/drawers/BookingDrawer";
 
 export default function Bookings() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [bookings, setBookings] = useState<any[]>([]);
@@ -114,61 +114,93 @@ export default function Bookings() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Filter Bar */}
       <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search bookings..."
-            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60" />
+          <input 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+            placeholder="Search bookings..."
+            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60" 
+          />
         </div>
         <div className="flex items-center gap-1">
           {["all", "pending", "confirmed", "in_progress", "completed", "cancelled"].map((s) => (
             <button key={s} onClick={() => setActiveTab(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTab === s ? "bg-violet-500/20 text-violet-400" : "text-muted-foreground hover:bg-muted/60"}`}>
-              {s === "all" ? "All Bookings" : s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTab === s ? "bg-violet-500/10 text-violet-500 border border-violet-500/20" : "text-muted-foreground hover:bg-muted/50 border border-transparent"}`}>
+              {s === "all" ? "All Bookings" : s.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
             </button>
           ))}
         </div>
         <div className="flex-1" />
         <Link href="/company/bookings/calendar">
-            <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted/60 transition-colors">
-              <Calendar className="w-3.5 h-3.5" /> Calendar View
-            </button>
+          <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted/50 transition-colors shadow-sm bg-background">
+            <Calendar className="w-3.5 h-3.5 text-muted-foreground" /> Calendar
+          </button>
         </Link>
-      </div>
 
-      {/* Stats */}
-      <div className="shrink-0 flex items-center gap-6 px-6 py-2.5 border-b border-border bg-background">
-        {[
-          { label: "Total", value: bookings.length, color: "text-foreground" },
-          { label: "Pending", value: bookings.filter((b) => b.status === "pending").length, color: "text-amber-400" },
-          { label: "Confirmed", value: bookings.filter((b) => b.status === "confirmed").length, color: "text-blue-400" },
-          { label: "In Progress", value: bookings.filter((b) => b.status === "in_progress").length, color: "text-indigo-400" },
-        ].map((s) => (
-          <div key={s.label} className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">{s.label}</span>
-            <span className={`font-bold ${s.color}`}>{s.value}</span>
-          </div>
-        ))}
+        <span className="text-xs text-indigo-500 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 ml-1">
+          <Clock className="w-3 h-3" />
+          {bookings.filter(b => b.status === 'pending').length} pending
+        </span>
       </div>
 
       <div className="flex-1 overflow-hidden">
          {loading ? (
            <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" /></div>
          ) : (
-           <DataGrid columns={columns} data={filtered} onRowClick={(r) => openDrawer(r.id)}
-             selectedIds={selectedIds} onSelectRow={toggleRow} onSelectAll={toggleAll} emptyMessage="No bookings found." />
+           <DataGrid
+            selectedIds={selectedIds}
+            onSelectRow={(id) => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; })}
+            onSelectAll={() => setSelectedIds(p => p.size === filtered.length ? new Set() : new Set(filtered.map((x: any) => x.id)))}
+            columns={columns} 
+             data={filtered} 
+             onRowClick={(r) => openDrawer(r.id)}
+             emptyMessage="No bookings found." 
+           />
          )}
       </div>
 
-      <BulkActionBar selectedCount={selectedIds.size} onClear={() => setSelectedIds(new Set())}
-        actions={[
-          { icon: Download, label: "Export Selected", onClick: () => toast({ title: "Exported", description: "Bookings exported to CSV." }) }
-        ]} />
-
       <BookingDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} bookingId={activeBookingId} onBookingUpdated={fetchBookings} />
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        actions={[
+          {
+            icon: Eye,
+            label: "View Detail",
+            onClick: () => {
+              const id = Array.from(selectedIds)[0];
+              if (id) {
+                router.push(`/company/bookings/${id}`);
+              }
+  
+            }
+          },
+          {
+            icon: Edit2,
+            label: "Edit",
+            onClick: () => {
+              const id = Array.from(selectedIds)[0];
 
-
+              const b = filtered.find((x: any) => x.id === id);
+              if (b) {
+                setActiveBookingId(b.id);
+                setDrawerOpen(true);
+              }
+  
+            }
+          },
+          {
+            icon: Trash2,
+            label: "Delete",
+            variant: "danger",
+            onClick: () => {
+              setSelectedIds(new Set());
+            }
+          }
+        ]}
+      />
     </div>
   );
 }

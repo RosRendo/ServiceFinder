@@ -4,12 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  LayoutDashboard, Bell, Inbox,
-  CalendarClock, Map, Users, CalendarDays,
-  UserRound, Building2, Layers, Star,
-  TrendingUp, CreditCard, Receipt, FileText,
-  Bot, BarChart3, Zap, Settings,
-  ChevronLeft, ChevronRight, Sparkles, Mail,
+  LayoutDashboard, Bell, Mail, CalendarClock, Map, Users, CalendarDays,
+  UserRound, Layers, Star, TrendingUp, CreditCard, Receipt, BarChart3, Settings,
+  ShieldCheck, Wrench, ShieldAlert, FileText, Bot, Zap, PieChart, LifeBuoy, Building2, Tag,
+  ChevronLeft, ChevronRight, Sparkles, MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/lib/contexts/AuthContext";
@@ -25,44 +23,53 @@ function buildAdminNav(unreadCount: number, unreadMessagesCount: number): NavGro
       group: "Overview",
       items: [
         { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-        { name: "Notifications", href: "/admin/notifications", icon: Bell, badge: unreadCount > 0 ? unreadCount.toString() : undefined },
-        { name: "Messages", href: "/admin/messages", icon: Mail, badge: unreadMessagesCount > 0 ? unreadMessagesCount.toString() : undefined },
+        { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+        { name: "Financial Reports", href: "/admin/reports", icon: PieChart },
       ],
     },
     {
-      group: "Operations",
+      group: "Management",
       items: [
-        { name: "Booking Queue", href: "/admin/bookings", icon: CalendarClock, badge: "12" },
-        { name: "Dispatch Center", href: "/admin/dispatch", icon: Map },
-        { name: "Staff Management", href: "/admin/staff", icon: Users },
-        { name: "Schedule Center", href: "/admin/schedule", icon: CalendarDays },
-      ],
-    },
-    {
-      group: "Business",
-      items: [
-        { name: "Customers", href: "/admin/customers", icon: UserRound },
         { name: "Companies", href: "/admin/companies", icon: Building2 },
-        { name: "Services", href: "/admin/services", icon: Layers },
-        { name: "Reviews", href: "/admin/reviews", icon: Star },
+        { name: "Verification Queue", href: "/admin/verification", icon: ShieldCheck },
+        { name: "Users", href: "/admin/users", icon: Users },
+        { name: "Staff", href: "/admin/staff", icon: UserRound },
+        { name: "Bookings", href: "/admin/bookings", icon: CalendarClock },
+        { name: "Support Desk", href: "/admin/support", icon: LifeBuoy },
       ],
     },
     {
-      group: "Finance",
+      group: "Catalog",
       items: [
-        { name: "Revenue", href: "/admin/revenue", icon: TrendingUp },
+        { name: "Categories", href: "/admin/categories", icon: Layers },
+        { name: "Service Types", href: "/admin/service-types", icon: Wrench },
+        { name: "Promo Codes", href: "/admin/promotions", icon: Tag },
+      ],
+    },
+    {
+      group: "Platform Ops",
+      items: [
+        { name: "Disputes", href: "/admin/disputes", icon: ShieldAlert },
         { name: "Payouts", href: "/admin/payouts", icon: CreditCard },
         { name: "Transactions", href: "/admin/transactions", icon: Receipt },
-        { name: "Invoices", href: "/admin/invoices", icon: FileText },
+        { name: "Audit Logs", href: "/admin/audit", icon: FileText },
       ],
     },
     {
-      group: "System",
+      group: "Content & Trust",
       items: [
-        { name: "AI Assistant", href: "/admin/ai", icon: Bot },
-        { name: "Reports", href: "/admin/reports", icon: BarChart3 },
-        { name: "Automation", href: "/admin/automation", icon: Zap },
-        { name: "Settings", href: "/admin/settings", icon: Settings },
+        { name: "Reviews", href: "/admin/reviews", icon: Star },
+        { name: "Moderation", href: "/admin/moderation", icon: Bot },
+        { name: "Compliance", href: "/admin/compliance", icon: ShieldCheck },
+      ],
+    },
+    {
+      group: "System & Comms",
+      items: [
+        { name: "Messages", href: "/admin/messages", icon: MessageSquare, badge: unreadMessagesCount > 0 ? unreadMessagesCount.toString() : undefined },
+        { name: "Email Templates", href: "/admin/emails", icon: Mail },
+        { name: "Push Broadcasts", href: "/admin/broadcasts", icon: Bell },
+        { name: "Global Settings", href: "/admin/settings", icon: Settings },
       ],
     },
   ];
@@ -74,6 +81,7 @@ function buildCompanyNav(unreadCount: number, unreadMessagesCount: number): NavG
       group: "Overview",
       items: [
         { name: "Dashboard", href: "/company/dashboard", icon: LayoutDashboard },
+        { name: "Analytics", href: "/company/analytics", icon: BarChart3 },
         { name: "Notifications", href: "/company/notifications", icon: Bell, badge: unreadCount > 0 ? unreadCount.toString() : undefined },
         { name: "Messages", href: "/company/messages", icon: Mail, badge: unreadMessagesCount > 0 ? unreadMessagesCount.toString() : undefined },
       ],
@@ -106,7 +114,6 @@ function buildCompanyNav(unreadCount: number, unreadMessagesCount: number): NavG
     {
       group: "System",
       items: [
-        { name: "Reports", href: "/company/reports", icon: BarChart3 },
         { name: "Settings", href: "/company/settings", icon: Settings },
       ],
     },

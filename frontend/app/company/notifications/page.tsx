@@ -31,7 +31,7 @@ const TYPE_COLORS: Record<string, string> = {
   alert: "text-rose-500 bg-rose-500/10",
   warning: "text-amber-500 bg-amber-500/10",
   success: "text-emerald-500 bg-emerald-500/10",
-  system: "text-violet-500 bg-violet-500/10",
+  system: "text-primary bg-primary/10",
 };
 
 export default function NotificationsPage() {
@@ -106,21 +106,21 @@ export default function NotificationsPage() {
         {/* Header */}
         <div className="flex items-end justify-between shrink-0">
           <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
               Notifications
               {unreadCount > 0 && (
-                <span className="bg-violet-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full font-bold">
                   {unreadCount} new
                 </span>
               )}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">Stay updated on your business activities.</p>
+            <p className="text-sm font-medium text-muted-foreground mt-1">Stay updated on your business activities.</p>
           </div>
           
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
-              className="flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg text-violet-600 hover:bg-violet-500/10 transition-colors"
+              className="flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg text-primary hover:bg-primary/10 transition-colors"
             >
               <Check className="w-4 h-4" />
               Mark all read
@@ -186,11 +186,11 @@ export default function NotificationsPage() {
                         "group relative flex items-start gap-4 p-5 rounded-2xl border transition-all",
                         notification.isRead 
                           ? "bg-background border-border" 
-                          : "bg-muted/20 border-violet-500/20 shadow-sm"
+                          : "bg-muted/20 border-primary/20 shadow-sm"
                       )}
                     >
                       {!notification.isRead && (
-                        <div className="absolute top-1/2 -translate-y-1/2 left-0 w-1 h-12 bg-violet-500 rounded-r-full" />
+                        <div className="absolute top-1/2 -translate-y-1/2 left-0 w-1 h-12 bg-primary rounded-r-full" />
                       )}
 
                       <div className={cn("shrink-0 w-10 h-10 rounded-full flex items-center justify-center", colorClass)}>
@@ -212,7 +212,7 @@ export default function NotificationsPage() {
                         </p>
                         
                         {notification.link && (
-                          <a href={notification.link} className="inline-block mt-3 text-sm font-bold text-violet-600 hover:text-violet-700 transition-colors">
+                          <a href={notification.link} className="inline-block mt-3 text-sm font-bold text-primary hover:text-primary/90 transition-colors">
                             View Details &rarr;
                           </a>
                         )}
@@ -248,3 +248,4 @@ export default function NotificationsPage() {
     </div>
   );
 }
+

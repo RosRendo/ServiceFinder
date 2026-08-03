@@ -345,7 +345,7 @@ export class ConversationsService {
       participants: {
         include: {
           user: {
-            select: { id: true, fullName: true, avatar: true, role: true },
+            select: { id: true, fullName: true, avatar: true, role: true, workingStatus: true, lastSeen: true },
           },
         },
       },
@@ -391,15 +391,20 @@ export class ConversationsService {
             id: c.company.id.toString(),
             fullName: c.company.name,
             avatar: c.company.logoUrl,
+            workingStatus: 'offline',
+            lastSeen: null,
           }
         : otherParticipant
           ? {
               id: `${otherParticipant.user.id.toString()}_${c.company?.id?.toString() || c.bookingId?.toString() || 'direct'}`,
+              rawUserId: otherParticipant.user.id.toString(),
               fullName: c.company
                 ? `${otherParticipant.user.fullName} (${c.company.name})`
                 : otherParticipant.user.fullName,
               avatar: otherParticipant.user.avatar,
               role: otherParticipant.user.role,
+              workingStatus: otherParticipant.user.workingStatus || 'offline',
+              lastSeen: otherParticipant.user.lastSeen || null,
             }
           : null,
       lastMessage: lastMessage

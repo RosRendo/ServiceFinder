@@ -439,12 +439,22 @@ let BookingsService = class BookingsService {
         }
         (0, status_transitions_util_1.validateTransition)(booking.status, 'assigned');
         const updated = await this.prisma.$transaction(async (tx) => {
-            const u = await tx.booking.update({
-                where: { id },
+            const updateResult = await tx.booking.updateMany({
+                where: {
+                    id,
+                    assignedStaffId: null,
+                    status: { in: ['pending', 'confirmed'] },
+                },
                 data: {
                     assignedStaffId: BigInt(staffId),
                     status: 'assigned',
                 },
+            });
+            if (updateResult.count === 0) {
+                throw new common_1.ConflictException('Job already taken or no longer available.');
+            }
+            const u = await tx.booking.findUnique({
+                where: { id },
                 include: {
                     customer: true,
                     company: true,
@@ -452,6 +462,9 @@ let BookingsService = class BookingsService {
                     assignedStaff: { include: { user: true } },
                 },
             });
+            if (!u) {
+                throw new common_1.ConflictException('Failed to retrieve updated booking.');
+            }
             await tx.bookingStatusLog.create({
                 data: {
                     bookingId: id,

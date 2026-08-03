@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, Trash2, Plus, Loader2 } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import api from "@/lib/api/client";
 import { BookingDrawer } from "@/components/drawers/BookingDrawer";
 import { Label } from "@/components/ui/label";
@@ -203,7 +204,7 @@ export default function ScheduleCenter() {
       const leftPercent = Math.max(0, (hoursOffset / TOTAL_HOURS) * 100);
       const widthPercent = (durationHours / TOTAL_HOURS) * 100;
 
-      let colorClass = "bg-blue-500/10 border-blue-500/20 text-blue-500 hover:bg-blue-500/20";
+      let colorClass = "bg-primary/10 border-primary/20 text-primary hover:bg-primary/20";
       if (b.status === "in_progress") colorClass = "bg-emerald-500/10 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20";
       if (b.status === "pending" || !b.assignedStaffId) colorClass = "bg-amber-500/10 border-amber-500/20 text-amber-500 hover:bg-amber-500/20";
 
@@ -237,11 +238,8 @@ export default function ScheduleCenter() {
       {/* Header */}
       <div className="shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 border-b border-border bg-background">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <CalendarDays className="w-6 h-6 text-violet-500" />
-            Schedule & Availability Center
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">Visually plan staff shift calendars and view dispatched bookings.</p>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">Schedule & Availability</h1>
+          <p className="text-sm font-medium text-muted-foreground mt-1">Plan staff shifts and view dispatched bookings.</p>
         </div>
         
         <div className="flex items-center gap-2 bg-muted/30 border border-border rounded-xl p-1 shrink-0">
@@ -268,7 +266,7 @@ export default function ScheduleCenter() {
         <div className="flex-1 overflow-hidden flex flex-col bg-background relative">
           {loading && (
             <div className="absolute inset-0 z-50 bg-background/50 backdrop-blur-sm flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           )}
           
@@ -292,7 +290,7 @@ export default function ScheduleCenter() {
               <div className="h-12 border-b border-border bg-muted/30 flex items-center px-4 shrink-0">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resources</span>
               </div>
-              <div className="h-24 border-b border-border bg-amber-500/5 flex items-center px-4 shrink-0">
+              <div className="h-24 border-b border-border bg-muted/30 flex items-center px-4 shrink-0">
                 <div>
                   <span className="font-semibold text-sm text-foreground block">Unassigned Jobs</span>
                   <span className="text-xs text-amber-500 font-medium">{unassignedBookings.length} pending</span>
@@ -300,15 +298,15 @@ export default function ScheduleCenter() {
               </div>
               {staff.map(s => (
                 <div key={s.id} className="h-24 border-b border-border flex items-center px-4 shrink-0 hover:bg-muted/30 transition-colors group">
-                  <div className="h-10 w-10 rounded-full bg-violet-500/10 flex items-center justify-center text-violet-500 font-bold shrink-0 border border-violet-500/20">
+                  <div className="h-10 w-10 rounded-full bg-primary/100/10 flex items-center justify-center text-primary font-bold shrink-0 border border-violet-500/20">
                     {s.user?.fullName?.[0] || "?"}
                   </div>
                   <div className="ml-3 overflow-hidden">
-                    <span className="font-semibold text-sm text-foreground truncate block group-hover:text-violet-500 transition-colors">
+                    <span className="font-semibold text-sm text-foreground truncate block group-hover:text-primary transition-colors">
                       {s.user?.fullName}
                     </span>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className={`h-2 w-2 rounded-full ${s.status === 'active' ? 'bg-emerald-500' : 'bg-slate-500'}`}></span>
+                      <span className={`h-2 w-2 rounded-full ${s.status === 'active' ? 'bg-emerald-500' : 'bg-muted/500'}`}></span>
                       <span className="text-xs text-muted-foreground capitalize">{s.status || 'offline'}</span>
                     </div>
                   </div>
@@ -331,7 +329,7 @@ export default function ScheduleCenter() {
               </div>
 
               <div className="flex-1 relative">
-                <div className="h-24 border-b border-border flex relative bg-amber-500/5">
+                <div className="h-24 border-b border-border flex relative bg-muted/30">
                   {hours.slice(0,-1).map(h => <div key={h} className="flex-1 border-r border-border/40"></div>)}
                   {renderBookingsRow(unassignedBookings)}
                 </div>
@@ -350,7 +348,7 @@ export default function ScheduleCenter() {
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row bg-background relative p-6 gap-6">
           {slotsLoading && (
             <div className="absolute inset-0 z-50 bg-background/50 backdrop-blur-sm flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           )}
 
@@ -407,7 +405,7 @@ export default function ScheduleCenter() {
             {/* Single shift */}
             <div className="border border-border bg-card rounded-xl p-5 space-y-4">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                <Plus className="w-4 h-4 text-violet-500" />
+                <Plus className="w-4 h-4 text-primary" />
                 Add Single Shift
               </h3>
               
@@ -426,7 +424,7 @@ export default function ScheduleCenter() {
                     <Input id="sEnd" type="time" value={singleEnd} onChange={e => setSingleEnd(e.target.value)} />
                   </div>
                 </div>
-                <Button onClick={handleAddSingleSlot} className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold h-9">
+                <Button onClick={handleAddSingleSlot} className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-9">
                   Add Shift
                 </Button>
               </div>
@@ -435,7 +433,7 @@ export default function ScheduleCenter() {
             {/* Recurring shifts generator */}
             <div className="border border-border bg-card rounded-xl p-5 space-y-4">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                <CalendarDays className="w-4 h-4 text-violet-500" />
+                <CalendarDays className="w-4 h-4 text-primary" />
                 Generate Recurring Shifts
               </h3>
 
@@ -461,7 +459,7 @@ export default function ScheduleCenter() {
                         onClick={() => handleDayToggle(idx)}
                         className={cn("h-7 w-7 rounded-md text-xs font-bold border transition-colors", 
                           genDays.includes(idx) 
-                            ? "bg-violet-600 border-violet-600 text-white" 
+                            ? "bg-primary border-violet-600 text-white" 
                             : "border-border text-muted-foreground hover:bg-muted/40"
                         )}
                       >
@@ -482,7 +480,7 @@ export default function ScheduleCenter() {
                   </div>
                 </div>
 
-                <Button onClick={handleGenerateSlots} variant="outline" className="w-full border-violet-100 text-violet-600 hover:bg-violet-50 font-bold h-9">
+                <Button onClick={handleGenerateSlots} variant="outline" className="w-full border-primary/20 text-primary hover:bg-primary/10 font-bold h-9">
                   Generate Shifts
                 </Button>
               </div>
@@ -508,3 +506,4 @@ export default function ScheduleCenter() {
 function cn(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
+

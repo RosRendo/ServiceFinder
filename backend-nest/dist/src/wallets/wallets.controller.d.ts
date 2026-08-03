@@ -2,6 +2,59 @@ import { WalletsService } from './wallets.service';
 export declare class WalletsController {
     private readonly walletsService;
     constructor(walletsService: WalletsService);
+    getMyCompanyWallet(req: any): Promise<{
+        payouts: {
+            id: string;
+            ownerId: string;
+            amount: number;
+            requestedAt: Date;
+            status: string;
+            createdAt: Date;
+            updatedAt: Date;
+            accountName: string;
+            accountNumber: string;
+            ownerType: string;
+            destinationBank: string;
+            adminNotes: string | null;
+        }[];
+        balance: number;
+        pendingBalance: number;
+        availableBalance: number;
+        outstandingFees: number;
+        totalPaidOut: number;
+        transactions: {
+            id: string;
+            ownerId: string;
+            bookingId: string | undefined;
+            amount: number;
+            createdAt: Date;
+            description: string;
+            category: string;
+            type: string;
+            ownerType: string;
+        }[];
+    }>;
+    requestMyCompanyPayout(req: any, dto: {
+        amount: number;
+        destinationBank: string;
+        accountName: string;
+        accountNumber: string;
+    }): Promise<{
+        success: boolean;
+        request: {
+            id: string;
+            ownerId: string;
+            amount: number;
+            status: string;
+            createdAt: Date;
+            updatedAt: Date;
+            accountName: string;
+            accountNumber: string;
+            ownerType: string;
+            destinationBank: string;
+            adminNotes: string | null;
+        };
+    }>;
     getCompanyWallet(id: string, req: any): Promise<{
         balance: number;
         pendingBalance: number;
@@ -34,9 +87,9 @@ export declare class WalletsController {
             createdAt: Date;
             updatedAt: Date;
             ownerType: string;
+            adminNotes: string | null;
             bankName: string;
             proofOfTransferUrl: string;
-            adminNotes: string | null;
         };
     }>;
     requestPayout(id: string, req: any, dto: {
@@ -56,8 +109,8 @@ export declare class WalletsController {
             accountName: string;
             accountNumber: string;
             ownerType: string;
-            adminNotes: string | null;
             destinationBank: string;
+            adminNotes: string | null;
         };
     }>;
     clearStaffDebt(id: string, staffId: string, req: any, dto: {
@@ -96,8 +149,8 @@ export declare class WalletsController {
             accountName: string;
             accountNumber: string;
             ownerType: string;
-            adminNotes: string | null;
             destinationBank: string;
+            adminNotes: string | null;
         };
     }>;
     getAdminPendingRequests(): Promise<{
@@ -109,9 +162,9 @@ export declare class WalletsController {
             createdAt: Date;
             updatedAt: Date;
             ownerType: string;
+            adminNotes: string | null;
             bankName: string;
             proofOfTransferUrl: string;
-            adminNotes: string | null;
         }[];
         payouts: {
             id: string;
@@ -123,8 +176,8 @@ export declare class WalletsController {
             accountName: string;
             accountNumber: string;
             ownerType: string;
-            adminNotes: string | null;
             destinationBank: string;
+            adminNotes: string | null;
         }[];
     }>;
     approveDeposit(id: string, dto: {

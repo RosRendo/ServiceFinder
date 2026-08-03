@@ -48,12 +48,15 @@ const prisma_service_1 = require("../prisma/prisma.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const bcrypt = __importStar(require("bcryptjs"));
 const common_2 = require("@nestjs/common");
+const mail_service_1 = require("../mail/mail.service");
 let AdminService = class AdminService {
     prisma;
     notificationsService;
-    constructor(prisma, notificationsService) {
+    mailService;
+    constructor(prisma, notificationsService, mailService) {
         this.prisma = prisma;
         this.notificationsService = notificationsService;
+        this.mailService = mailService;
     }
     async getAnalytics() {
         const [totalUsers, totalCompanies, pendingCompanies, totalBookings, completedBookings, cancelledBookings, revenueResult, activeDisputes, openTickets,] = await Promise.all([
@@ -806,11 +809,128 @@ let AdminService = class AdminService {
             servicesCount: result.createdServices.length,
         };
     }
+    async getEmailTemplates() {
+        const templates = await this.prisma.emailTemplate.findMany({
+            orderBy: { createdAt: 'desc' },
+        });
+        return {
+            success: true,
+            data: templates,
+        };
+    }
+    async createEmailTemplate(dto) {
+        const template = await this.prisma.emailTemplate.create({
+            data: {
+                templateId: dto.templateId,
+                name: dto.name,
+                description: dto.description,
+                subject: dto.subject,
+                body: dto.body,
+                variables: dto.variables || [],
+                status: dto.status || 'active',
+            },
+        });
+        return {
+            success: true,
+            data: template,
+            message: 'Template created successfully',
+        };
+    }
+    async updateEmailTemplate(id, dto) {
+        const template = await this.prisma.emailTemplate.update({
+            where: { id },
+            data: {
+                name: dto.name,
+                description: dto.description,
+                subject: dto.subject,
+                body: dto.body,
+                variables: dto.variables,
+                status: dto.status,
+            },
+        });
+        return {
+            success: true,
+            data: template,
+            message: 'Template updated successfully',
+        };
+    }
+    async seedEmailTemplates() {
+        const defaultTemplates = [
+            {
+                templateId: "welcome",
+                name: "Welcome Email",
+                description: "Sent when a user signs up",
+                subject: "Welcome to ServiceFinder, {{user_name}}!",
+                body: "Hi {{user_name}},\n\nWelcome to ServiceFinder! We're thrilled to have you on board.\n\nBest,\nThe ServiceFinder Team",
+                variables: ["user_name", "company_name", "login_url"],
+                status: "active"
+            },
+            {
+                templateId: "password_reset",
+                name: "Password Reset",
+                description: "Sent when a user requests a password reset",
+                subject: "Reset Your Password - ServiceFinder",
+                body: "Hi {{user_name}},\n\nWe received a request to reset your password. Click the link below to choose a new one:\n\n{{reset_url}}\n\nIf you did not request this, please ignore this email.\n\nBest,\nThe ServiceFinder Team",
+                variables: ["user_name", "reset_url", "expiry_time"],
+                status: "active"
+            }
+        ];
+        for (const t of defaultTemplates) {
+            await this.prisma.emailTemplate.upsert({
+                where: { templateId: t.templateId },
+                update: {},
+                create: t,
+            });
+        }
+        return {
+            success: true,
+            message: 'Templates seeded successfully',
+        };
+    }
+    async testEmailTemplate(dto) {
+        let subject = dto.subject || 'Test Email';
+        let body = dto.body || 'This is a test email.';
+        const dummyVariables = {
+            user_name: 'John Doe',
+            company_name: 'Test Company',
+            reset_url: 'https://example.com/reset',
+            expiry_time: '15 minutes',
+            login_url: 'https://example.com/login',
+            date: '2023-10-25',
+            time: '14:00'
+        };
+        if (dto.variables && Array.isArray(dto.variables)) {
+            dto.variables.forEach((v) => {
+                const value = dummyVariables[v] || `[${v}]`;
+                const regex = new RegExp(`{{${v}}}`, 'g');
+                subject = subject.replace(regex, value);
+                body = body.replace(regex, value);
+            });
+        }
+        const testToEmail = dto.testEmail || 'admin@servicefinder.test';
+        const text = body.replace(/<[^>]+>/g, '');
+        try {
+            await this.mailService.sendMail(testToEmail, subject, text, body);
+            return {
+                success: true,
+                message: 'Test email logic triggered and email sent',
+                preview: { subject, body }
+            };
+        }
+        catch (e) {
+            return {
+                success: false,
+                message: 'Failed to send test email: ' + e.message,
+                preview: { subject, body }
+            };
+        }
+    }
 };
 exports.AdminService = AdminService;
 exports.AdminService = AdminService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        notifications_service_1.NotificationsService])
+        notifications_service_1.NotificationsService,
+        mail_service_1.MailService])
 ], AdminService);
 //# sourceMappingURL=admin.service.js.map

@@ -94,6 +94,21 @@ let AdminController = class AdminController {
     getInvoices(query) {
         return this.adminService.getInvoices(query);
     }
+    getEmailTemplates() {
+        return this.adminService.getEmailTemplates();
+    }
+    createEmailTemplate(dto) {
+        return this.adminService.createEmailTemplate(dto);
+    }
+    updateEmailTemplate(id, dto) {
+        return this.adminService.updateEmailTemplate(+id, dto);
+    }
+    seedEmailTemplates() {
+        return this.adminService.seedEmailTemplates();
+    }
+    testEmailTemplate(dto) {
+        return this.adminService.testEmailTemplate(dto);
+    }
 };
 exports.AdminController = AdminController;
 __decorate([
@@ -311,6 +326,50 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getInvoices", null);
+__decorate([
+    (0, common_1.Get)('emails'),
+    (0, swagger_1.ApiOperation)({ summary: 'List all email templates' }),
+    openapi.ApiResponse({ status: 200 }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getEmailTemplates", null);
+__decorate([
+    (0, common_1.Post)('emails'),
+    (0, swagger_1.ApiOperation)({ summary: 'Create an email template' }),
+    openapi.ApiResponse({ status: 201 }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "createEmailTemplate", null);
+__decorate([
+    (0, common_1.Patch)('emails/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update an email template' }),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "updateEmailTemplate", null);
+__decorate([
+    (0, common_1.Post)('emails/seed'),
+    (0, swagger_1.ApiOperation)({ summary: 'Seed default email templates' }),
+    openapi.ApiResponse({ status: 201 }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "seedEmailTemplates", null);
+__decorate([
+    (0, common_1.Post)('emails/test'),
+    (0, swagger_1.ApiOperation)({ summary: 'Test an email template' }),
+    openapi.ApiResponse({ status: 201 }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "testEmailTemplate", null);
 exports.AdminController = AdminController = __decorate([
     (0, swagger_1.ApiTags)('Admin'),
     (0, common_1.Controller)('admin'),

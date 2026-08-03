@@ -128,6 +128,14 @@ export default function Settings() {
         { label: t('adminSettings.serviceCategories'), subtitle: t('adminSettings.categoriesDesc'), icon: "list-box-outline", action: () => router.push("/(admin)/categories" as any) },
       ],
     },
+    {
+      title: "Marketing & Communication",
+      icon: "bullhorn-outline",
+      items: [
+        { label: "Push Broadcasts", subtitle: "Send platform-wide alerts", icon: "radio-tower", action: () => router.push("/(admin)/broadcasts" as any) },
+        { label: "Promo Codes", subtitle: "Manage global discounts", icon: "ticket-percent-outline", action: () => router.push("/(admin)/promotions" as any) },
+      ],
+    },
   ];
 
   return (

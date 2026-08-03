@@ -63,8 +63,8 @@ export default function SupportPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Help & Support</h1>
-          <p className="text-sm text-gray-500 mt-1">Submit tickets and get help from the ServiceFinder admin team</p>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Help & Support</h1>
+          <p className="text-sm text-muted-foreground mt-1">Submit tickets and get help from the ServiceFinder admin team</p>
         </div>
         
         <Dialog open={newTicketOpen} onOpenChange={setNewTicketOpen}>
@@ -74,17 +74,17 @@ export default function SupportPage() {
               New Ticket
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-xl border border-slate-200 shadow-xl bg-white sm:max-w-md">
+          <DialogContent className="rounded-xl border border-border shadow-xl bg-background sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900">Create Support Ticket</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-foreground">Create Support Ticket</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Category</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Category</label>
                 <select 
                   value={formData.category} 
                   onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 h-11"
+                  className="w-full px-3 py-2.5 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/30 h-11"
                 >
                   <option>General</option>
                   <option>Billing & Payouts</option>
@@ -94,21 +94,21 @@ export default function SupportPage() {
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Subject</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Subject</label>
                 <Input 
                   placeholder="Brief summary of your issue" 
                   value={formData.subject} 
                   onChange={(e) => setFormData({...formData, subject: e.target.value})} 
-                  className="rounded-md border-slate-200 bg-white h-11" 
+                  className="rounded-md border-border bg-background h-11" 
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Message</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Message</label>
                 <Textarea 
                   placeholder="Describe your issue in detail..." 
                   value={formData.message} 
                   onChange={(e) => setFormData({...formData, message: e.target.value})} 
-                  className="rounded-md border-slate-200 bg-white min-h-[120px] resize-none" 
+                  className="rounded-md border-border bg-background min-h-[120px] resize-none" 
                 />
               </div>
               <Button className="w-full rounded-md h-11 bg-blue-600 hover:bg-blue-700 shadow-sm font-bold text-white mt-2" onClick={handleSubmit}>
@@ -122,7 +122,7 @@ export default function SupportPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Main Ticket List */}
         <div className="md:col-span-2 space-y-4">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-2 flex items-center gap-2">
+          <div className="bg-background rounded-xl border border-border shadow-sm p-2 flex items-center gap-2">
             <Search className="w-4 h-4 text-slate-400 ml-2" />
             <Input 
               placeholder="Search tickets by ID or subject..." 
@@ -132,16 +132,16 @@ export default function SupportPage() {
             />
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="divide-y divide-gray-100">
+          <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
+            <div className="divide-y divide-border/50">
               {filteredTickets.length === 0 ? (
                 <div className="py-12 text-center">
                   <LifeBuoy className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                  <p className="text-gray-500 font-medium">No support tickets found</p>
+                  <p className="text-muted-foreground font-medium">No support tickets found</p>
                 </div>
               ) : (
                 filteredTickets.map((ticket) => (
-                  <div key={ticket.id} className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group flex items-start justify-between">
+                  <div key={ticket.id} className="p-4 hover:bg-muted/50 transition-colors cursor-pointer group flex items-start justify-between">
                     <div className="flex gap-4">
                       <div className={`mt-1 w-10 h-10 rounded-full flex items-center justify-center border shrink-0 ${
                         ticket.status === 'open' ? 'bg-amber-50 border-amber-100 text-amber-600' :
@@ -154,7 +154,7 @@ export default function SupportPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-semibold text-gray-500">{ticket.id}</span>
+                          <span className="text-xs font-semibold text-muted-foreground">{ticket.id}</span>
                           <span className={`text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full border ${
                             ticket.status === 'open' ? 'bg-amber-50 border-amber-200 text-amber-700' :
                             ticket.status === 'in_progress' ? 'bg-blue-50 border-blue-200 text-blue-700' :
@@ -163,15 +163,15 @@ export default function SupportPage() {
                             {ticket.status.replace("_", " ")}
                           </span>
                         </div>
-                        <h3 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                        <h3 className="text-sm font-semibold text-foreground group-hover:text-blue-600 transition-colors">
                           {ticket.subject}
                         </h3>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           Category: {ticket.category} • Updated {ticket.lastUpdate}
                         </p>
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-gray-500 mt-3 transition-colors" />
+                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-muted-foreground mt-3 transition-colors" />
                   </div>
                 ))
               )}
@@ -186,19 +186,19 @@ export default function SupportPage() {
             <h2 className="text-lg font-bold mb-2">Need immediate help?</h2>
             <p className="text-blue-100 text-sm mb-6">Our partner success team is available Monday through Friday, 9AM to 6PM EST.</p>
             <div className="space-y-3">
-              <div className="bg-white/10 rounded-md p-3 text-sm flex items-center justify-between">
+              <div className="bg-background/10 rounded-md p-3 text-sm flex items-center justify-between">
                 <span className="text-blue-200">Email</span>
                 <span className="font-semibold">partners@servicefinder.com</span>
               </div>
-              <div className="bg-white/10 rounded-md p-3 text-sm flex items-center justify-between">
+              <div className="bg-background/10 rounded-md p-3 text-sm flex items-center justify-between">
                 <span className="text-blue-200">Phone</span>
                 <span className="font-semibold">+1 (800) 555-0199</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <h3 className="font-semibold text-gray-900 mb-4">Help Center Guides</h3>
+          <div className="bg-background rounded-xl border border-border p-6 shadow-sm">
+            <h3 className="font-semibold text-foreground mb-4">Help Center Guides</h3>
             <ul className="space-y-3 text-sm">
               <li><a href="#" className="text-blue-600 hover:underline">How to optimize your service areas</a></li>
               <li><a href="#" className="text-blue-600 hover:underline">Understanding payout schedules</a></li>
@@ -211,3 +211,4 @@ export default function SupportPage() {
     </div>
   );
 }
+

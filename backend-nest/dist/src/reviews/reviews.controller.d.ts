@@ -89,6 +89,7 @@ export declare class ReviewsController {
                     completedJobs: number;
                     isInsured: boolean;
                     completionRate: import("@prisma/client/runtime/library").Decimal;
+                    coverageRadiusKm: number;
                 };
                 service: {
                     id: string;
@@ -146,6 +147,8 @@ export declare class ReviewsController {
                     phone: string | null;
                     avatar: string | null;
                     passwordHash: string | null;
+                    workingStatus: string;
+                    lastSeen: Date | null;
                     lastLoginAt: Date | null;
                     pushToken: string | null;
                     mfaEnabled: boolean;
@@ -290,6 +293,7 @@ export declare class ReviewsController {
                     completedJobs: number;
                     isInsured: boolean;
                     completionRate: import("@prisma/client/runtime/library").Decimal;
+                    coverageRadiusKm: number;
                 };
                 service: {
                     id: string;
@@ -347,6 +351,8 @@ export declare class ReviewsController {
                     phone: string | null;
                     avatar: string | null;
                     passwordHash: string | null;
+                    workingStatus: string;
+                    lastSeen: Date | null;
                     lastLoginAt: Date | null;
                     pushToken: string | null;
                     mfaEnabled: boolean;
@@ -413,6 +419,7 @@ export declare class ReviewsController {
                     completedJobs: number;
                     isInsured: boolean;
                     completionRate: import("@prisma/client/runtime/library").Decimal;
+                    coverageRadiusKm: number;
                 };
                 service: {
                     id: string;
@@ -470,6 +477,8 @@ export declare class ReviewsController {
                     phone: string | null;
                     avatar: string | null;
                     passwordHash: string | null;
+                    workingStatus: string;
+                    lastSeen: Date | null;
                     lastLoginAt: Date | null;
                     pushToken: string | null;
                     mfaEnabled: boolean;
@@ -536,6 +545,7 @@ export declare class ReviewsController {
                     completedJobs: number;
                     isInsured: boolean;
                     completionRate: import("@prisma/client/runtime/library").Decimal;
+                    coverageRadiusKm: number;
                 };
                 service: {
                     id: string;
@@ -593,6 +603,8 @@ export declare class ReviewsController {
                     phone: string | null;
                     avatar: string | null;
                     passwordHash: string | null;
+                    workingStatus: string;
+                    lastSeen: Date | null;
                     lastLoginAt: Date | null;
                     pushToken: string | null;
                     mfaEnabled: boolean;

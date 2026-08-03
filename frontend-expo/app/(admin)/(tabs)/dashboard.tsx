@@ -74,7 +74,6 @@ export default function AdminDashboard() {
     { id: 4, label: t('adminDashboard.pending'), value: formatNumber(metrics?.pendingCompanies), icon: "clock-alert-outline", color: T.warning, route: '/(admin)/(tabs)/queue' },
   ];
 
-  const weeklyData = [40, 65, 50, 85, 60, 95, 75];
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
@@ -123,43 +122,6 @@ export default function AdminDashboard() {
               <Text style={s.revenueTitle}>{formatCurrency(metrics?.totalRevenue || 0)}</Text>
               <View style={s.revenueDecor1} />
               <View style={s.revenueDecor2} />
-            </View>
-
-            {/* AI Fraud & Dispute Alerts Widget */}
-            <View style={s.section}>
-              <View style={s.sectionHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <MaterialCommunityIcons name="shield-alert-outline" size={20} color={T.error} />
-                  <Text style={[s.sectionTitle, { color: T.error }]}>Critical Alerts</Text>
-                </View>
-                <Text style={s.sectionSubtitle}>AI Fraud Detection & Escalations</Text>
-              </View>
-
-              <View style={s.alertsContainer}>
-                {/* Simulated Alert 1 */}
-                <TouchableOpacity style={s.alertItem} activeOpacity={0.8} onPress={() => router.push('/(admin)/users/2' as any)}>
-                  <View style={[s.alertIconWrap, { backgroundColor: T.error + "15" }]}>
-                    <MaterialCommunityIcons name="robot-dead-outline" size={20} color={T.error} />
-                  </View>
-                  <View style={s.alertBody}>
-                    <Text style={s.alertTitle}>High Fraud Score Detected (92/100)</Text>
-                    <Text style={s.alertSubtitle}>User 2 created 5 bookings from same IP in 10 mins.</Text>
-                  </View>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color={T.text3} />
-                </TouchableOpacity>
-
-                {/* Simulated Alert 2 */}
-                <TouchableOpacity style={[s.alertItem, { borderColor: T.warning + "30" }]} activeOpacity={0.8} onPress={() => router.push('/(admin)/disputes' as any)}>
-                  <View style={[s.alertIconWrap, { backgroundColor: T.warning + "15" }]}>
-                    <MaterialCommunityIcons name="scale-balance" size={20} color={T.warning} />
-                  </View>
-                  <View style={s.alertBody}>
-                    <Text style={s.alertTitle}>Escalated Dispute {'>'} $500</Text>
-                    <Text style={s.alertSubtitle}>Booking BK-1092 requires Super Admin review.</Text>
-                  </View>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color={T.text3} />
-                </TouchableOpacity>
-              </View>
             </View>
 
             {/* Quick Actions / Critical Queues */}
@@ -221,18 +183,25 @@ export default function AdminDashboard() {
               </View>
               <View style={s.chartCard}>
                 <View style={s.chartBars}>
-                  {(metrics?.weeklyStats || weeklyData.map((v, i) => ({ day: days[i], bookings: v }))).map((item: any, idx: number) => {
-                    const val = item.bookings || item;
-                    const maxVal = metrics?.weeklyStats ? Math.max(...metrics.weeklyStats.map((d: any) => d.bookings)) : Math.max(...weeklyData);
-                    const heightPct = maxVal > 0 ? Math.round((val / maxVal) * 75) : 10;
-                    const isMax = val === maxVal;
-                    return (
-                      <View key={idx} style={s.chartCol}>
-                        <View style={[s.chartBar, { height: `${heightPct}%` as any, backgroundColor: isMax ? T.accent : T.accentLight }]} />
-                        <Text style={[s.chartDay, isMax && { color: T.accent, fontWeight: "800" }]}>{item.day || days[idx]}</Text>
-                      </View>
-                    );
-                  })}
+                  {(() => {
+                    // Extract last 6 months revenue for the chart
+                    const chartData = (metrics?.monthlyData || []).slice(-6);
+                    if (!chartData || chartData.length === 0) {
+                      return <Text style={s.emptyText}>No revenue data</Text>;
+                    }
+                    const maxVal = Math.max(...chartData.map((d: any) => d.revenue || 0), 1);
+                    return chartData.map((item: any, idx: number) => {
+                      const val = item.revenue || 0;
+                      const heightPct = Math.round((val / maxVal) * 80);
+                      const isMax = val === maxVal;
+                      return (
+                        <View key={idx} style={s.chartCol}>
+                          <View style={[s.chartBar, { height: `${heightPct}%` as any, backgroundColor: isMax ? T.accent : T.accentLight }]} />
+                          <Text style={[s.chartDay, isMax && { color: T.accent, fontWeight: "800" }]}>{item.name}</Text>
+                        </View>
+                      );
+                    });
+                  })()}
                 </View>
               </View>
             </View>

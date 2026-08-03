@@ -168,13 +168,20 @@ export default function TodayScreen() {
          await api.patch(`/api/bookings/${job.id}/assign-staff`, { staffId: me.staffProfile.id });
          setActiveBooking(job);
          setSelectedJob(null);
-         setState('NEW_JOB');
+         // Uber model: Picking the job implies immediate acceptance and starting the route.
+         setState('TRAVELING');
       } else {
          Alert.alert("Error", "Could not find your staff profile.");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to pick job", e);
-      Alert.alert("Error", "Could not assign job.");
+      if (e.response && e.response.status === 409) {
+         Alert.alert("Job Taken", "Another staff member already claimed this job.");
+         setSelectedJob(null);
+         loadJobs(); // Refresh the board
+      } else {
+         Alert.alert("Error", "Could not assign job.");
+      }
     }
   };
 

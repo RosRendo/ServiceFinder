@@ -66,6 +66,8 @@ export declare class AuthController {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            workingStatus: string;
+            lastSeen: Date | null;
             lastLoginAt: Date | null;
             pushToken: string | null;
             mfaEnabled: boolean;
@@ -106,6 +108,8 @@ export declare class AuthController {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            workingStatus: string;
+            lastSeen: Date | null;
             lastLoginAt: Date | null;
             pushToken: string | null;
             mfaEnabled: boolean;
@@ -159,6 +163,8 @@ export declare class AuthController {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            workingStatus: string;
+            lastSeen: Date | null;
             lastLoginAt: Date | null;
             pushToken: string | null;
             mfaEnabled: boolean;
@@ -200,6 +206,8 @@ export declare class AuthController {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            workingStatus: string;
+            lastSeen: Date | null;
             lastLoginAt: Date | null;
             pushToken: string | null;
             mfaEnabled: boolean;
@@ -237,6 +245,8 @@ export declare class AuthController {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            workingStatus: string;
+            lastSeen: Date | null;
             lastLoginAt: Date | null;
             pushToken: string | null;
             mfaEnabled: boolean;

@@ -2,25 +2,27 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, CheckCircle, XCircle, Search, Filter, Eye, FileText, Download, Building, FileCheck } from "lucide-react";
+import { Shield, CheckCircle, XCircle, Search, Filter, Eye, FileText, Download, Building, FileCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAdminCompliance, ComplianceDocument } from "@/lib/hooks/useAdminCompliance";
+
 type DocumentStatus = "pending" | "approved" | "rejected";
+
+const STATUS_BADGE: Record<DocumentStatus, string> = {
+  approved: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  pending: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  rejected: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+};
+const STATUS_LABEL: Record<DocumentStatus, string> = {
+  approved: "Approved", pending: "Review Required", rejected: "Rejected",
+};
 
 export default function ComplianceDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<DocumentStatus | "all">("pending");
-  
   const [selectedDoc, setSelectedDoc] = useState<ComplianceDocument | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -33,257 +35,204 @@ export default function ComplianceDashboard() {
       setIsReviewModalOpen(false);
       setSelectedDoc(null);
       setRejectionReason("");
-    } catch (error) {
+    } catch {
       toast.error("Failed to update document status.");
     }
   };
 
-  const getStatusBadge = (status: DocumentStatus) => {
-    switch (status) {
-      case "approved":
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">Approved</span>;
-      case "pending":
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 shadow-sm">Review Required</span>;
-      case "rejected":
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 shadow-sm">Rejected</span>;
-    }
-  };
-
-  const filteredDocs = documents.filter(doc => {
-    const matchesSearch = doc.companyName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          doc.documentType.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredDocs = documents.filter((doc) => {
+    const matchesSearch = doc.companyName.toLowerCase().includes(searchQuery.toLowerCase()) || doc.documentType.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
+  // KPI counts
+  const pending = documents.filter((d) => d.status === "pending").length;
+  const approved = documents.filter((d) => d.status === "approved").length;
+  const rejected = documents.filter((d) => d.status === "rejected").length;
+
   return (
-    <div className="min-h-screen pb-20 lg:pb-0">
-      <div className="max-w-7xl mx-auto space-y-6 flex flex-col h-full lg:h-[calc(100vh-2rem)] py-6">
-        
-        {/* Header */}
-        <div className="pb-6 border-b border-gray-200 mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          
-          <div className="relative z-10">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
-              Compliance & Verification
-            </h1>
-            <p className="text-gray-500 mt-2 text-sm sm:text-base max-w-xl">
-              Review business licenses, insurance, and background checks to maintain trusted service providers.
-            </p>
+    <div className="h-full flex flex-col p-6 font-sans overflow-y-auto custom-scrollbar">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
+        <div>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">Compliance & Verification</h1>
+          <p className="text-sm font-medium text-muted-foreground mt-0.5">Review business licenses, insurance, and background checks.</p>
+        </div>
+        <Button variant="outline" className="rounded-lg h-10 border-border font-bold gap-2 self-start sm:self-auto">
+          <Download className="w-4 h-4" /> Export Report
+        </Button>
+      </div>
+
+      {/* KPI Row */}
+      <div className="grid grid-cols-3 gap-4 mb-6 shrink-0">
+        {[
+          { label: "Pending Review", value: pending, color: "text-amber-600", bg: "bg-amber-500/10 border-amber-500/20" },
+          { label: "Approved", value: approved, color: "text-emerald-600", bg: "bg-emerald-500/10 border-emerald-500/20" },
+          { label: "Rejected", value: rejected, color: "text-rose-600", bg: "bg-rose-500/10 border-rose-500/20" },
+        ].map((kpi) => (
+          <div key={kpi.label} className={`bg-background border rounded-xl p-4 ${kpi.bg}`}>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{kpi.label}</p>
+            <p className={`text-3xl font-bold tracking-tight ${kpi.color}`}>{kpi.value}</p>
           </div>
-          <div className="relative z-10 flex gap-3 mt-4 lg:mt-0">
-            <Button variant="outline" className="gap-2 rounded-2xl h-12 border-white/60 bg-white/60 backdrop-blur-xl font-bold hover:bg-white shadow-sm">
-              <Download className="w-4 h-4" />
-              Export Report
-            </Button>
+        ))}
+      </div>
+
+      {/* Filter Bar + Table */}
+      <div className="bg-background border border-border rounded-xl shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+        <div className="p-4 border-b border-border flex flex-col sm:flex-row items-center gap-3 shrink-0 bg-muted/20">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Search by company or type..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-10 bg-background border-border rounded-lg w-full font-medium" />
+          </div>
+          <div className="relative w-full sm:w-44">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}
+              className="h-10 pl-9 pr-4 rounded-lg border border-border bg-background text-sm font-semibold text-foreground w-full focus:outline-none focus:ring-2 focus:ring-primary appearance-none">
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending Review</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
           </div>
         </div>
 
-        <div className="flex flex-col flex-1 min-h-0 px-4 sm:px-6 lg:px-8">
-          {/* Filter Card */}
-          <div className="bg-white/60 backdrop-blur-xl rounded-3xl border border-white/40 shadow-sm overflow-hidden flex flex-col h-full">
-            <div className="p-5 sm:p-6 border-b border-white/40 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/40 shrink-0">
-              <div className="relative w-full sm:max-w-md">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <Input
-                  placeholder="Search by company or document type..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-11 h-12 bg-white/50 border-white/60 rounded-2xl w-full font-medium shadow-sm focus-visible:ring-indigo-500"
-                />
-              </div>
-              
-              <div className="relative w-full sm:w-auto">
-                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
-                  className="h-12 pl-11 pr-4 rounded-2xl border border-white/60 bg-white/50 text-sm font-bold text-slate-700 w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none shadow-sm"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="pending">Pending Review</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                </select>
-              </div>
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {loading ? (
+            <div className="flex items-center justify-center h-40">
+              <Loader2 className="w-7 h-7 animate-spin text-primary opacity-50" />
             </div>
+          ) : filteredDocs.length > 0 ? (
+            <table className="w-full text-left">
+              <thead className="bg-muted/20 border-b border-border sticky top-0 z-10">
+                <tr>
+                  {["Company", "Document Type", "Uploaded", "Status", ""].map((h) => (
+                    <th key={h} className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                <AnimatePresence>
+                  {filteredDocs.map((doc, idx) => (
+                    <motion.tr key={doc.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      transition={{ delay: idx * 0.03 }} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+                            <Building className="w-4 h-4 text-primary" />
+                          </div>
+                          <span className="font-bold text-foreground text-sm">{doc.companyName}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50 w-fit">
+                          <FileCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-medium text-foreground text-sm">{doc.documentType}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="text-sm font-medium text-muted-foreground">{new Date(doc.uploadedAt).toLocaleDateString()}</span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${STATUS_BADGE[doc.status]}`}>
+                          {STATUS_LABEL[doc.status]}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <Button variant="ghost" size="sm" className="h-9 px-3 rounded-lg text-primary hover:bg-primary/10 font-bold"
+                          onClick={() => { setSelectedDoc(doc); setIsReviewModalOpen(true); }}>
+                          <Eye className="h-4 w-4 mr-1.5" /> Review
+                        </Button>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
+              </tbody>
+            </table>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full min-h-[300px] py-16">
+              <div className="w-14 h-14 bg-muted/30 rounded-2xl flex items-center justify-center mb-4 border border-border">
+                <Shield className="w-7 h-7 text-muted-foreground/40" />
+              </div>
+              <h3 className="text-base font-bold text-foreground">No documents found</h3>
+              <p className="text-muted-foreground text-sm font-medium mt-1">Try adjusting your filters.</p>
+            </div>
+          )}
+        </div>
+      </div>
 
-            <div className="flex-1 overflow-y-auto p-0">
-              {loading ? (
-                <div className="flex justify-center p-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                </div>
-              ) : filteredDocs.length > 0 ? (
-                <div className="overflow-x-auto min-h-full bg-white/20">
-                  <table className="w-full text-left border-collapse">
-                    <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-                      <tr>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Company</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Document Type</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Uploaded</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/40">
-                      <AnimatePresence>
-                        {filteredDocs.map((doc, idx) => (
-                          <motion.tr 
-                            key={doc.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            className="hover:bg-white/40 transition-colors"
-                          >
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
-                                  <Building className="w-5 h-5" />
-                                </div>
-                                <span className="font-bold text-gray-900">{doc.companyName}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-2 bg-white/60 inline-flex px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm">
-                                <FileCheck className="h-4 w-4 text-gray-500" />
-                                <span className="font-medium text-slate-700 text-sm">{doc.documentType}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className="text-sm font-bold text-gray-500 bg-white/60 inline-flex px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm">
-                                {new Date(doc.uploadedAt).toLocaleDateString()}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              {getStatusBadge(doc.status)}
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-10 px-4 rounded-xl hover:bg-white border-transparent hover:border-white/60 font-bold shadow-none hover:shadow-sm transition-all text-indigo-700 hover:text-indigo-800"
-                                onClick={() => {
-                                  setSelectedDoc(doc);
-                                  setIsReviewModalOpen(true);
-                                }}
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                Review
-                              </Button>
-                            </td>
-                          </motion.tr>
-                        ))}
-                      </AnimatePresence>
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <motion.div 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }}
-                  className="p-20 text-center flex flex-col items-center justify-center h-full min-h-[400px]"
-                >
-                  <div className="w-24 h-24 bg-white/80 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-white shadow-sm shadow-slate-200/50 rotate-3">
-                    <Shield className="w-12 h-12 text-slate-300 -rotate-3" />
+      {/* Review Modal */}
+      <Dialog open={isReviewModalOpen} onOpenChange={(open) => !open && setIsReviewModalOpen(false)}>
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden rounded-xl border-border bg-background shadow-2xl">
+          <div className="p-6 border-b border-border">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-foreground">Document Review</DialogTitle>
+              <DialogDescription className="text-muted-foreground font-medium mt-1">
+                Verify compliance documentation for <span className="text-foreground font-bold">{selectedDoc?.companyName}</span>.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          {selectedDoc && (
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: "Document Type", value: selectedDoc.documentType },
+                  { label: "Status", value: STATUS_LABEL[selectedDoc.status], badge: STATUS_BADGE[selectedDoc.status] },
+                  { label: "Uploaded On", value: new Date(selectedDoc.uploadedAt).toLocaleDateString() },
+                ].map((item) => (
+                  <div key={item.label} className="bg-muted/30 rounded-xl border border-border p-4">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">{item.label}</p>
+                    {item.badge
+                      ? <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${item.badge}`}>{item.value}</span>
+                      : <p className="font-bold text-foreground text-sm">{item.value}</p>
+                    }
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 tracking-tight">No documents found</h3>
-                  <p className="text-gray-500 text-lg font-medium mt-2 max-w-md">Try adjusting your filters or search query to find what you're looking for.</p>
-                </motion.div>
+                ))}
+              </div>
+
+              <div className="bg-muted/20 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center p-12 h-56">
+                <div className="w-14 h-14 bg-background rounded-xl shadow-sm border border-border flex items-center justify-center mb-4">
+                  <FileText className="h-7 w-7 text-muted-foreground/50" />
+                </div>
+                <p className="text-muted-foreground font-semibold mb-4">Document Preview Not Available</p>
+                <Button variant="outline" size="sm" className="rounded-lg h-9 border-border font-bold">
+                  <Download className="w-4 h-4 mr-2" /> Download Original File
+                </Button>
+              </div>
+
+              {selectedDoc.status === "pending" && (
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <div>
+                    <h4 className="font-bold text-foreground">Review Action</h4>
+                    <p className="text-sm font-medium text-muted-foreground mt-0.5">Ensure the document meets all regulatory and platform requirements before approving.</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button className="flex-1 h-11 rounded-lg bg-emerald-600 hover:bg-emerald-700 font-bold text-white"
+                      onClick={() => handleAction(selectedDoc.id, "approved")}>
+                      <CheckCircle className="w-4 h-4 mr-2" /> Approve Document
+                    </Button>
+                    <Button variant="outline" className="flex-1 h-11 rounded-lg border-rose-500/30 text-rose-600 hover:bg-rose-500/10 font-bold"
+                      onClick={() => { const reason = prompt("Enter reason for rejection:"); if (reason) handleAction(selectedDoc.id, "rejected", reason); }}>
+                      <XCircle className="w-4 h-4 mr-2" /> Reject Document
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {selectedDoc.notes && (
+                <div className="bg-rose-500/5 text-rose-700 p-4 rounded-xl border border-rose-500/20 text-sm font-medium">
+                  <div className="flex items-center gap-2 font-bold mb-1.5 text-rose-600">
+                    <XCircle className="w-4 h-4" /> Rejection Reason:
+                  </div>
+                  <p className="text-foreground/80 leading-relaxed">{selectedDoc.notes}</p>
+                </div>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Review Modal */}
-        <Dialog open={isReviewModalOpen} onOpenChange={(open) => !open && setIsReviewModalOpen(false)}>
-          <DialogContent className="sm:max-w-2xl p-0 overflow-hidden rounded-3xl border-white/40 bg-white/80 backdrop-blur-xl shadow-2xl">
-            <div className="p-8 border-b border-white/40 bg-white/40">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-bold text-gray-900 tracking-tight">Document Review</DialogTitle>
-                <DialogDescription className="text-gray-500 font-medium mt-2 text-base">
-                  Verify compliance documentation for <span className="text-gray-900 font-bold bg-white/60 px-2 py-0.5 rounded-md border border-gray-200">{selectedDoc?.companyName}</span>.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-            
-            {selectedDoc && (
-              <div className="p-8 space-y-8 bg-white/20">
-                <div className="flex justify-between items-center bg-white/60 backdrop-blur-md p-6 rounded-2xl border border-white/60 shadow-sm">
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-500 font-medium mb-2">Document Type</p>
-                    <p className="font-bold text-gray-900 bg-white inline-flex px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm text-sm">{selectedDoc.documentType}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-500 font-medium mb-2 text-center">Status</p>
-                    <div className="text-center">{getStatusBadge(selectedDoc.status)}</div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-gray-500 font-medium mb-2">Uploaded On</p>
-                    <p className="font-bold text-gray-900 bg-white inline-flex px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm text-sm">{new Date(selectedDoc.uploadedAt).toLocaleDateString()}</p>
-                  </div>
-                </div>
-
-                {/* Placeholder for Document Preview */}
-                <div className="bg-white/40 rounded-3xl border-2 border-white/60 border-dashed flex items-center justify-center flex-col p-12 h-72 hover:bg-white/60 transition-colors shadow-sm">
-                  <div className="w-20 h-20 bg-white rounded-3xl shadow-sm border border-gray-200 flex items-center justify-center mb-6 rotate-3">
-                    <FileText className="h-10 w-10 text-slate-400 -rotate-3" />
-                  </div>
-                  <p className="text-gray-500 font-bold mb-6 text-lg">Document Preview Not Available</p>
-                  <Button variant="outline" size="sm" className="bg-white/80 border-white hover:bg-white font-bold rounded-2xl h-12 px-6 shadow-sm">
-                    <Download className="w-5 h-5 mr-2" />
-                    Download Original File
-                  </Button>
-                </div>
-
-                {selectedDoc.status === "pending" && (
-                  <div className="space-y-5 pt-8 border-t border-white/40">
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-lg">Review Action</h4>
-                      <p className="text-base font-medium text-gray-500 mt-1">
-                        Please ensure the document meets all regulatory and platform requirements before approving.
-                      </p>
-                    </div>
-                    
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <Button 
-                        className="flex-1 h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 font-bold text-white shadow-sm shadow-emerald-500/20 text-base" 
-                        onClick={() => handleAction(selectedDoc.id, "approved")}
-                      >
-                        <CheckCircle className="w-5 h-5 mr-2" />
-                        Approve Document
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 h-14 rounded-2xl border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 font-bold bg-white/60 backdrop-blur-xl shadow-sm text-base"
-                        onClick={() => {
-                          const reason = prompt("Enter reason for rejection:");
-                          if (reason) handleAction(selectedDoc.id, "rejected", reason);
-                        }}
-                      >
-                        <XCircle className="w-5 h-5 mr-2" />
-                        Reject Document
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                
-                {selectedDoc.notes && (
-                  <div className="bg-rose-50/80 text-rose-900 p-6 rounded-2xl border border-rose-200/60 text-sm font-medium shadow-sm shadow-rose-500/5">
-                    <div className="flex items-center gap-2 font-bold mb-2 text-rose-700">
-                      <XCircle className="w-5 h-5" />
-                      Rejection Reason:
-                    </div>
-                    <p className="bg-white/60 p-3 rounded-xl border border-rose-100/50 leading-relaxed text-rose-800">
-                      {selectedDoc.notes}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

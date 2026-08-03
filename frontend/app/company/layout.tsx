@@ -24,7 +24,7 @@ export default function CompanyLayout({ children }: { children: React.ReactNode 
       <AppSidebar role="company" collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((c) => !c)} />
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         <AppTopBar role="company" onCommandPaletteOpen={() => setCmdOpen(true)} />
-        <main className="flex-1 overflow-hidden bg-muted/20">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-muted/20 relative">{children}</main>
       </div>
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} role="company" />
       <AIAssistant />

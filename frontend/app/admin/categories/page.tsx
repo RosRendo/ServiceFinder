@@ -1,28 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, Edit2, Trash2, Search, Loader2, Layers } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-
-function slugify(text: string) {
-  return text.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
-}
+import { DataGrid, Column } from "@/components/grid/DataGrid";
+import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { CategoryDrawer, CategoryFormData } from "@/components/drawers/CategoryDrawer";
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any | null>(null);
   const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   
-  const [formData, setFormData] = useState({ 
+  const [formData, setFormData] = useState<CategoryFormData>({ 
     name: "", 
     slug: "", 
     description: "", 
@@ -54,7 +50,7 @@ export default function CategoriesPage() {
   const openAdd = () => { 
     setEditingCategory(null); 
     setFormData({ name: "", slug: "", description: "", icon: "" }); 
-    setDialogOpen(true); 
+    setDrawerOpen(true); 
   };
 
   const openEdit = (c: any) => { 
@@ -65,7 +61,7 @@ export default function CategoriesPage() {
       description: c.description || "", 
       icon: c.icon || "" 
     }); 
-    setDialogOpen(true); 
+    setDrawerOpen(true); 
   };
 
   const handleSave = async () => {
@@ -74,7 +70,7 @@ export default function CategoriesPage() {
       return; 
     }
     
-    setLoading(true);
+    setSaving(true);
     try {
       if (editingCategory) {
         await api.put(`/categories/${editingCategory.id}`, formData);
@@ -83,12 +79,12 @@ export default function CategoriesPage() {
         await api.post("/categories", formData);
         toast({ title: "Success", description: "Category created successfully" });
       }
-      setDialogOpen(false); 
+      setDrawerOpen(false); 
       fetchCategories();
     } catch (e: any) { 
       toast({ title: "Error", description: e.response?.data?.message || "Failed to save category", variant: "destructive" }); 
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -103,151 +99,125 @@ export default function CategoriesPage() {
     }
   };
 
-  return (
-    <div className="flex flex-col h-full overflow-hidden relative p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Categories</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Manage top-level service categories</p>
-        </div>
-        <Button onClick={openAdd} className="bg-violet-600 hover:bg-violet-700 text-white font-bold">
-          <Plus className="w-4 h-4 mr-2" /> Add Category
-        </Button>
-      </div>
+  const toggleRow = useCallback((id: string) => {
+    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }, []);
+  
+  const toggleAll = useCallback(() => {
+    setSelectedIds((prev) => prev.size === filtered.length ? new Set() : new Set(filtered.map((c) => c.id)));
+  }, [filtered]);
 
-      {/* Filter Bar */}
-      <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-3 shrink-0">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+  const columns: Column<any>[] = [
+    {
+      key: "name", header: "Category", sortable: true,
+      render: (c) => (
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-xl shrink-0 border border-violet-500/20">
+            {c.icon || "📁"}
+          </div>
+          <div>
+            <div className="font-bold text-foreground text-sm">{c.name}</div>
+            <div className="text-[10px] font-mono font-medium text-muted-foreground uppercase tracking-wider mt-0.5">{c.slug}</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      key: "description", header: "Description",
+      render: (c) => (
+        <span className="text-sm font-medium text-muted-foreground max-w-xs truncate block">
+          {c.description || "—"}
+        </span>
+      )
+    },
+    {
+      key: "actions", header: "Actions", align: "right",
+      render: (c) => (
+        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+          <button 
+            onClick={() => openEdit(c)} 
+            className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-violet-600 hover:border-violet-500/30 hover:bg-violet-500/5 transition-colors"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={() => handleDelete(c)} 
+            className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-rose-600 hover:border-rose-500/30 hover:bg-rose-500/5 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      )
+    }
+  ];
+
+  const bulkActions = [
+    { label: "Delete Selected", icon: Trash2, onClick: () => toast({ title: "Info", description: "Bulk delete coming soon" }), variant: "danger" as const },
+  ];
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden relative bg-background font-sans">
+      {/* Flush Top Header */}
+      <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <input 
-            className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-muted/20 text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60" 
-            placeholder="Search categories..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
+            value={search} onChange={(e) => setSearch(e.target.value)} 
+            placeholder="Search categories..."
+            className="w-full pl-9 pr-3 h-9 bg-muted/30 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60 transition-colors" 
           />
         </div>
-        <div className="text-xs text-muted-foreground font-medium ml-auto">{filtered.length} categories</div>
+        <div className="flex-1" />
+        <button 
+          onClick={openAdd} 
+          className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 shadow-sm transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" /> Add Category
+        </button>
       </div>
 
-      {/* Table Content */}
-      <div className="flex-1 bg-card border border-border rounded-xl overflow-hidden relative">
-        {loading ? (
-          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+      {/* Flush Stats Row */}
+      <div className="shrink-0 flex items-center gap-6 px-6 py-2.5 border-b border-border bg-muted/10">
+        {[
+          { label: "Total Categories", value: filtered.length, color: "text-foreground" },
+        ].map((s) => (
+          <div key={s.label} className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">{s.label}</span>
+            <span className={`font-bold ${s.color}`}>{s.value}</span>
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <Layers className="w-10 h-10 text-muted/50 mb-3" />
-            <p className="text-sm font-medium text-muted-foreground mb-3">No categories found</p>
-            <Button onClick={openAdd} variant="outline" size="sm">Add Category</Button>
-          </div>
-        ) : (
-          <div className="overflow-auto h-full">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-                  <th className="px-6 py-3.5 text-left w-20">Icon</th>
-                  <th className="px-6 py-3.5 text-left">Name</th>
-                  <th className="px-6 py-3.5 text-left">Slug</th>
-                  <th className="px-6 py-3.5 text-left">Description</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {filtered.map((cat) => (
-                  <tr key={cat.id} className="hover:bg-muted/10 transition-colors group">
-                    <td className="px-6 py-4 text-xl">{cat.icon || "📁"}</td>
-                    <td className="px-6 py-4 font-semibold text-foreground">{cat.name}</td>
-                    <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{cat.slug}</td>
-                    <td className="px-6 py-4 text-muted-foreground max-w-xs truncate">{cat.description || "—"}</td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="outline" size="sm" onClick={() => openEdit(cat)} className="h-8 text-xs font-semibold text-violet-600 hover:text-violet-700 border-violet-100 hover:border-violet-200">
-                          <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleDelete(cat)} className="h-8 text-xs font-semibold text-rose-600 hover:text-rose-700 border-rose-100 hover:border-rose-200">
-                          <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        ))}
       </div>
 
-      {/* Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{editingCategory ? "Edit Category" : "Add Category"}</DialogTitle>
-            <DialogDescription>
-              {editingCategory ? "Update details for this service category." : "Create a new top-level service category."}
-            </DialogDescription>
-          </DialogHeader>
+      {/* Full-height DataGrid */}
+      <div className="flex-1 overflow-hidden relative">
+        <DataGrid
+          columns={columns}
+          data={filtered}
+          loading={loading}
+          selectedIds={selectedIds}
+          onToggleRow={toggleRow}
+          onToggleAll={toggleAll}
+          onRowClick={(cat) => openEdit(cat)}
+          emptyIcon={Layers}
+          emptyMessage="No categories found matching your search."
+        />
+      </div>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name <span className="text-rose-500">*</span></Label>
-              <Input 
-                id="name" 
-                value={formData.name} 
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setFormData((p) => ({ ...p, name: v, slug: editingCategory ? p.slug : slugify(v) }));
-                }}
-                placeholder="e.g. Cleaning Services" 
-              />
-            </div>
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        actions={bulkActions}
+      />
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="slug">Slug <span className="text-rose-500">*</span></Label>
-                <Input 
-                  id="slug" 
-                  value={formData.slug} 
-                  onChange={(e) => setFormData((p) => ({ ...p, slug: slugify(e.target.value) }))} 
-                  placeholder="cleaning-services" 
-                  className="font-mono text-xs" 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="icon">Icon (Emoji)</Label>
-                <Input 
-                  id="icon" 
-                  value={formData.icon} 
-                  onChange={(e) => setFormData((p) => ({ ...p, icon: e.target.value }))} 
-                  placeholder="🧹" 
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea 
-                id="description" 
-                value={formData.description} 
-                onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} 
-                placeholder="Describe this category..." 
-                rows={3} 
-                className="resize-none"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
-            <Button onClick={handleSave} disabled={loading} className="font-bold">
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {editingCategory ? "Save Changes" : "Create Category"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CategoryDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        category={editingCategory}
+        formData={formData}
+        setFormData={setFormData}
+        onSave={handleSave}
+        loading={saving}
+      />
     </div>
   );
 }
-

@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Search, Loader2, Tag, Percent, Calendar, ToggleLeft, ToggleRight } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { DataGrid, Column } from "@/components/grid/DataGrid";
+import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { PromoDrawer, PromoFormData } from "@/components/drawers/PromoDrawer";
 import { cn } from "@/lib/utils";
 
 interface PromoCode {
@@ -24,11 +23,13 @@ interface PromoCode {
 export default function PromotionsPage() {
   const [promos, setPromos] = useState<PromoCode[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PromoFormData>({
     code: "",
     discountPercent: "",
     maxUses: "",
@@ -59,7 +60,7 @@ export default function PromotionsPage() {
 
   const openAdd = () => {
     setFormData({ code: "", discountPercent: "", maxUses: "", expiresAt: "", isActive: true });
-    setDialogOpen(true);
+    setDrawerOpen(true);
   };
 
   const handleSave = async () => {
@@ -68,7 +69,7 @@ export default function PromotionsPage() {
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
     try {
       const payload = {
         code: formData.code.toUpperCase().trim(),
@@ -79,12 +80,12 @@ export default function PromotionsPage() {
       };
       await api.post("/promo-codes", payload);
       toast({ title: "Success", description: "Promo code created successfully" });
-      setDialogOpen(false);
+      setDrawerOpen(false);
       fetchPromos();
     } catch (e: any) {
       toast({ title: "Error", description: e.response?.data?.message || "Failed to create promo code", variant: "destructive" });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -109,186 +110,159 @@ export default function PromotionsPage() {
     }
   };
 
-  return (
-    <div className="flex flex-col h-full overflow-hidden relative p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Promo Codes</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Generate platform-wide discount coupons to drive customer acquisition</p>
-        </div>
-        <Button onClick={openAdd} className="bg-violet-600 hover:bg-violet-700 text-white font-bold">
-          <Plus className="w-4 h-4 mr-2" /> Add Promo Code
-        </Button>
-      </div>
+  const toggleRow = useCallback((id: string) => {
+    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }, []);
+  
+  const toggleAll = useCallback(() => {
+    setSelectedIds((prev) => prev.size === filtered.length ? new Set() : new Set(filtered.map((p) => p.id)));
+  }, [filtered]);
 
-      {/* Filter Bar */}
-      <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-3 shrink-0">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-muted/20 text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60"
-            placeholder="Search promo codes..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+  const columns: Column<PromoCode>[] = [
+    {
+      key: "code", header: "Promo Code", sortable: true,
+      render: (p) => (
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-600 shrink-0 border border-violet-500/20">
+            <Tag className="w-5 h-5" />
+          </div>
+          <span className="font-mono text-sm font-bold bg-muted/50 text-foreground border border-border px-2.5 py-1 rounded-lg">
+            {p.code}
+          </span>
+        </div>
+      )
+    },
+    {
+      key: "discount", header: "Discount", sortable: true,
+      render: (p) => (
+        <span className="flex items-center gap-1 font-bold text-foreground">
+          <Percent className="w-3.5 h-3.5 text-violet-500" />
+          {p.discountPercent}% Off
+        </span>
+      )
+    },
+    {
+      key: "redemptions", header: "Redemptions", sortable: true,
+      render: (p) => (
+        <div className="flex flex-col">
+          <span className="font-bold text-foreground">{p.usedCount}</span>
+          {p.maxUses ? <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">of {p.maxUses} uses</span> : <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">Unlimited</span>}
+        </div>
+      )
+    },
+    {
+      key: "expiration", header: "Expiration Date", sortable: true,
+      render: (p) => {
+        const isExpired = p.expiresAt && new Date() > new Date(p.expiresAt);
+        if (!p.expiresAt) return <span className="text-sm font-medium text-muted-foreground">—</span>;
+        return (
+          <span className={cn("flex items-center gap-1.5 text-xs font-bold", isExpired ? "text-rose-500" : "text-muted-foreground")}>
+            <Calendar className="w-3.5 h-3.5" />
+            {new Date(p.expiresAt).toLocaleDateString()} {isExpired && "(Expired)"}
+          </span>
+        );
+      }
+    },
+    {
+      key: "status", header: "Status",
+      render: (p) => (
+        <button type="button" onClick={(e) => { e.stopPropagation(); handleToggle(p); }} className="hover:opacity-80 transition-opacity">
+          {p.isActive ? (
+            <span className="inline-flex items-center gap-1.5 text-emerald-600">
+              <ToggleRight className="w-6 h-6" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Active</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <ToggleLeft className="w-6 h-6" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Inactive</span>
+            </span>
+          )}
+        </button>
+      )
+    },
+    {
+      key: "actions", header: "Actions", align: "right",
+      render: (p) => (
+        <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+          <button 
+            onClick={() => handleDelete(p)} 
+            className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-rose-600 hover:border-rose-500/30 hover:bg-rose-500/5 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      )
+    }
+  ];
+
+  const bulkActions = [
+    { label: "Delete Selected", icon: Trash2, onClick: () => toast({ title: "Info", description: "Bulk delete coming soon" }), variant: "danger" as const },
+  ];
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden relative bg-background font-sans">
+      {/* Flush Top Header */}
+      <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <input 
+            className="w-full pl-9 pr-3 h-9 bg-muted/30 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60 transition-colors" 
+            placeholder="Search promo codes..." 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
           />
         </div>
-        <div className="text-xs text-muted-foreground font-medium ml-auto">{filtered.length} coupons</div>
+        <div className="flex-1" />
+        <button 
+          onClick={openAdd} 
+          className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 shadow-sm transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" /> Add Promo Code
+        </button>
       </div>
 
-      {/* Table Content */}
-      <div className="flex-1 bg-card border border-border rounded-xl overflow-hidden relative">
-        {loading ? (
-          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+      {/* Flush Stats Row */}
+      <div className="shrink-0 flex items-center gap-6 px-6 py-2.5 border-b border-border bg-muted/10">
+        {[
+          { label: "Total Coupons", value: filtered.length, color: "text-foreground" },
+        ].map((s) => (
+          <div key={s.label} className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">{s.label}</span>
+            <span className={`font-bold ${s.color}`}>{s.value}</span>
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <Tag className="w-10 h-10 text-muted/50 mb-3" />
-            <p className="text-sm font-medium text-muted-foreground mb-3">No active promotions</p>
-            <Button onClick={openAdd} variant="outline" size="sm">Create Promo Code</Button>
-          </div>
-        ) : (
-          <div className="overflow-auto h-full">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-                  <th className="px-6 py-3.5 text-left">Promo Code</th>
-                  <th className="px-6 py-3.5 text-left">Discount</th>
-                  <th className="px-6 py-3.5 text-left">Redemptions</th>
-                  <th className="px-6 py-3.5 text-left">Expiration Date</th>
-                  <th className="px-6 py-3.5 text-left">Status</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {filtered.map((p) => {
-                  const isExpired = p.expiresAt && new Date() > new Date(p.expiresAt);
-                  return (
-                    <tr key={p.id} className="hover:bg-muted/10 transition-colors group">
-                      <td className="px-6 py-4">
-                        <span className="font-mono text-sm font-bold bg-violet-500/10 text-violet-600 border border-violet-500/20 px-2.5 py-1 rounded-lg">
-                          {p.code}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="flex items-center gap-1 font-semibold text-foreground">
-                          <Percent className="w-4 h-4 opacity-70 text-violet-600" />
-                          {p.discountPercent}% Off
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-muted-foreground">
-                        <span className="font-medium text-foreground">{p.usedCount}</span>
-                        {p.maxUses ? <span className="text-xs"> / {p.maxUses} uses</span> : <span className="text-xs"> uses (unlimited)</span>}
-                      </td>
-                      <td className="px-6 py-4">
-                        {p.expiresAt ? (
-                          <span className={cn("flex items-center gap-1 text-xs font-semibold", isExpired ? "text-rose-500" : "text-muted-foreground")}>
-                            <Calendar className="w-3.5 h-3.5" />
-                            {new Date(p.expiresAt).toLocaleDateString()} {isExpired && "(Expired)"}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <button type="button" onClick={() => handleToggle(p)} className="hover:opacity-85 transition-opacity">
-                          {p.isActive ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-600">
-                              <ToggleRight className="w-6 h-6 text-emerald-500" />
-                              <span className="text-xs font-bold uppercase">Active</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-muted-foreground">
-                              <ToggleLeft className="w-6 h-6 text-muted-foreground/50" />
-                              <span className="text-xs font-bold uppercase">Inactive</span>
-                            </span>
-                          )}
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="outline" size="sm" onClick={() => handleDelete(p)} className="h-8 text-xs font-semibold text-rose-600 hover:text-rose-700 border-rose-100 hover:border-rose-200">
-                            <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        ))}
       </div>
 
-      {/* Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add Promo Code</DialogTitle>
-            <DialogDescription>
-              Create a new promotion code to distribute to platform customers.
-            </DialogDescription>
-          </DialogHeader>
+      {/* Full-height DataGrid */}
+      <div className="flex-1 overflow-hidden relative">
+        <DataGrid
+          columns={columns}
+          data={filtered}
+          loading={loading}
+          selectedIds={selectedIds}
+          onToggleRow={toggleRow}
+          onToggleAll={toggleAll}
+          emptyIcon={Tag}
+          emptyMessage="No active promotions matching this search."
+        />
+      </div>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="code">Promo Code <span className="text-rose-500">*</span></Label>
-              <Input
-                id="code"
-                value={formData.code}
-                onChange={(e) => setFormData((p) => ({ ...p, code: e.target.value.toUpperCase() }))}
-                placeholder="e.g. SAVE20"
-                className="font-mono"
-              />
-            </div>
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        actions={bulkActions}
+      />
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="discount">Discount (%) <span className="text-rose-500">*</span></Label>
-                <Input
-                  id="discount"
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={formData.discountPercent}
-                  onChange={(e) => setFormData((p) => ({ ...p, discountPercent: e.target.value }))}
-                  placeholder="20"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="maxUses">Max Uses (optional)</Label>
-                <Input
-                  id="maxUses"
-                  type="number"
-                  value={formData.maxUses}
-                  onChange={(e) => setFormData((p) => ({ ...p, maxUses: e.target.value }))}
-                  placeholder="100"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="expiry">Expiration Date (optional)</Label>
-              <Input
-                id="expiry"
-                type="date"
-                value={formData.expiresAt}
-                onChange={(e) => setFormData((p) => ({ ...p, expiresAt: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
-            <Button onClick={handleSave} disabled={loading} className="font-bold">
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Create Promo Code
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Drawer */}
+      <PromoDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        formData={formData}
+        setFormData={setFormData}
+        onSave={handleSave}
+        loading={saving}
+      />
     </div>
   );
 }

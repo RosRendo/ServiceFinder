@@ -1,17 +1,26 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Users, Search, Mail, Phone, MoreHorizontal, ShieldAlert, ArrowUpRight, Loader2 } from "lucide-react";
+import { Users, Search, Mail, Phone, MoreHorizontal, ShieldAlert, ArrowUpRight, Loader2, Edit2, Eye, Trash2 } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/api/client";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
+import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { useSocket } from "@/lib/hooks/useSocket";
+import { CustomerDrawer } from "@/components/drawers/CustomerDrawer";
 
 export default function CustomersCRM() {
+  const router = useRouter();
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeCustomer, setActiveCustomer] = useState<any | null>(null);
   const { toast } = useToast();
+  const { socket } = useSocket();
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -35,6 +44,28 @@ export default function CustomersCRM() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleStatusChange = (data: { userId: string, status: string, lastSeen: string }) => {
+      setCustomers(prev => prev.map(c => {
+        if (c.id?.toString() === data.userId) {
+          return {
+            ...c,
+            workingStatus: data.status,
+            lastSeen: data.lastSeen,
+          };
+        }
+        return c;
+      }));
+    };
+
+    socket.on('user_status_changed', handleStatusChange);
+    return () => {
+      socket.off('user_status_changed', handleStatusChange);
+    };
+  }, [socket]);
+
   const columns: Column<any>[] = [
     {
       key: "name",
@@ -51,12 +82,12 @@ export default function CustomersCRM() {
           <div>
             <p className="font-medium text-foreground">{c.fullName}</p>
             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-              {c.status === "active" ? (
+              {(c.workingStatus || c.status) === "online" ? (
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
               ) : (
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block"></span>
               )}
-              <span className="capitalize">{c.status || "active"}</span>
+              <span className="capitalize">{c.workingStatus === "online" ? "Online" : c.status || "active"}</span>
             </p>
           </div>
         </div>
@@ -123,64 +154,113 @@ export default function CustomersCRM() {
         </span>
       ),
     },
-    {
-      key: "actions",
-      header: "",
-      render: (c: any) => (
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-          <MoreHorizontal className="w-4 h-4" />
-        </Button>
-      ),
-      width: "w-10",
-    }
   ];
 
   return (
-    <div className="space-y-6 flex flex-col h-full overflow-hidden">
-      <div className="shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="w-6 h-6 text-violet-500" />
-            Customer CRM
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">Manage all customers who have booked with your company.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="border-border bg-background hover:bg-muted/50 text-foreground">
-            <ArrowUpRight className="w-4 h-4 mr-2 opacity-70" />
-            Export CSV
-          </Button>
-        </div>
-      </div>
-
-      <div className="bg-background border border-border rounded-xl shadow-sm overflow-hidden flex flex-col flex-1">
-        <div className="border-b border-border p-4 flex gap-4 bg-muted/30 shrink-0">
-          <div className="relative max-w-sm w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search customers by name, email, or phone..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-background border-border"
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-hidden relative">
-          {loading && (
-            <div className="absolute inset-0 z-50 bg-background/50 backdrop-blur-sm flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
-            </div>
-          )}
-          <DataGrid
-            columns={columns}
-            data={customers}
-            onRowClick={(c) => {
-              toast({ title: "Profile", description: `Viewing profile for ${c.fullName}` });
-            }}
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <input 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+            placeholder="Search customers..."
+            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60" 
           />
         </div>
+        <div className="flex items-center gap-1">
+          {/* Customers doesn't have an explicit tab filter yet, but we'll add All/Active for visual alignment */}
+          {["all"].map((s) => (
+            <button key={s}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-violet-500/10 text-violet-500 border border-violet-500/20">
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+        <div className="flex-1" />
+        <span className="text-xs text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5">
+          <Users className="w-3 h-3" />
+          {customers.length} total
+        </span>
       </div>
+      
+      <div className="flex-1 overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
+          </div>
+        ) : (
+          <DataGrid
+            selectedIds={selectedIds}
+            onToggleRow={(id) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; })}
+            onToggleAll={() => setSelectedIds(prev => prev.size === customers.length ? new Set() : new Set(customers.map(c => c.id)))}
+            columns={columns}
+            data={customers}
+            onRowClick={(row) => {
+              setActiveCustomer({
+                ...row,
+                totalBookings: row.stats?.totalBookings || 0,
+                activeDisputes: row.stats?.activeDisputes || 0,
+                ltv: row.stats?.ltv || 0,
+                recentBookings: row.stats?.recentBookings || []
+              });
+              setDrawerOpen(true);
+            }}
+            emptyMessage="No customers found."
+          />
+        )}
+      </div>
+
+      <CustomerDrawer 
+        open={drawerOpen} 
+        onClose={() => setDrawerOpen(false)} 
+        customer={activeCustomer} 
+      />
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        actions={[
+          {
+            icon: Eye,
+            label: "View Detail",
+            onClick: () => {
+              const id = Array.from(selectedIds)[0];
+              if (id) {
+                router.push(`/company/customers/${id}`);
+              }
+  
+            }
+          },
+          {
+            icon: Edit2,
+            label: "Edit",
+            onClick: () => {
+              const id = Array.from(selectedIds)[0];
+
+              const c = customers.find((x: any) => x.id === id);
+              if (c) {
+                setActiveCustomer({
+                  ...c,
+                  totalBookings: c.stats?.totalBookings || 0,
+                  activeDisputes: c.stats?.activeDisputes || 0,
+                  ltv: c.stats?.ltv || 0,
+                  recentBookings: c.stats?.recentBookings || []
+                });
+                setDrawerOpen(true);
+              }
+  
+            }
+          },
+          {
+            icon: Trash2,
+            label: "Delete",
+            variant: "danger",
+            onClick: () => {
+              setSelectedIds(new Set());
+            }
+          }
+        ]}
+      />
     </div>
   );
 }

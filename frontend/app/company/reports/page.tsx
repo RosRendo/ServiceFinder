@@ -37,10 +37,8 @@ export default function CompanyReportsPage() {
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-border">
         <div>
-          <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-violet-500" /> Reports & Analytics
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">Export custom data and view aggregated performance metrics.</p>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Reports & Analytics</h1>
+          <p className="text-sm font-medium text-muted-foreground mt-1">Export custom data and view aggregated performance metrics.</p>
         </div>
         <div className="flex items-center gap-3">
           <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted/60 transition-colors">
@@ -83,7 +81,7 @@ export default function CompanyReportsPage() {
               
               <div className="bg-background border border-border rounded-xl p-5 shadow-sm">
                 <h2 className="text-sm font-semibold text-foreground mb-6 flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-violet-500" /> Booking Status Distribution
+                  <Activity className="w-4 h-4 text-primary" /> Booking Status Distribution
                 </h2>
                 <div className="h-64 flex items-center justify-center">
                   {metrics?.statusDistribution?.some((d: any) => d.value > 0) ? (
@@ -130,7 +128,7 @@ export default function CompanyReportsPage() {
                 {reports.map((report) => (
                   <div key={report.id} className="flex items-center justify-between p-4 bg-muted/20 border border-border rounded-xl hover:bg-muted/40 transition-colors">
                     <div className="flex items-center gap-4">
-                      <div className="p-2.5 bg-background border border-border rounded-lg text-violet-600">
+                      <div className="p-2.5 bg-background border border-border rounded-lg text-primary">
                         <report.icon className="w-5 h-5" />
                       </div>
                       <div>
@@ -141,9 +139,9 @@ export default function CompanyReportsPage() {
                     <button 
                       onClick={() => handleExport(report.id)}
                       disabled={isExporting === report.id}
-                      className="shrink-0 flex items-center justify-center w-10 h-10 rounded-lg border border-border bg-background hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200 transition-colors disabled:opacity-50"
+                      className="shrink-0 flex items-center justify-center w-10 h-10 rounded-lg border border-border bg-background hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-colors disabled:opacity-50"
                     >
-                      {isExporting === report.id ? <Loader2 className="w-4 h-4 animate-spin text-violet-600" /> : <Download className="w-4 h-4" />}
+                      {isExporting === report.id ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Download className="w-4 h-4" />}
                     </button>
                   </div>
                 ))}
@@ -156,3 +154,4 @@ export default function CompanyReportsPage() {
     </div>
   );
 }
+

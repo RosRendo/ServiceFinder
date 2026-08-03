@@ -8,6 +8,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/chatStore";
+import { usePresenceStore } from "@/store/presenceStore";
+import { formatDistanceToNow } from "date-fns";
 import { ChatMessage } from "@/components/messages/ChatMessage";
 import { ChatInput } from "@/components/messages/ChatInput";
 
@@ -28,6 +30,22 @@ export default function ChatScreen() {
   const isArchived = activeConversation?.archivedAt
     ? new Date(activeConversation.archivedAt) <= new Date()
     : false;
+
+  const rawUserId = activeConversation?.otherUser?.rawUserId;
+  const presence = usePresenceStore((state) => rawUserId ? state.userStatuses[rawUserId] : null);
+  
+  const isOnline = presence?.status === 'online' || presence?.status === 'on_job';
+  let statusText = isOnline ? 'Online' : 'Connecting...';
+  
+  if (!isOnline && presence?.lastSeen) {
+    try {
+      statusText = `Last seen ${formatDistanceToNow(new Date(presence.lastSeen), { addSuffix: true })}`;
+    } catch (e) {
+      statusText = 'Offline';
+    }
+  } else if (!isOnline && presence?.status === 'offline') {
+    statusText = 'Offline';
+  }
 
   useEffect(() => {
     if (!id || !token) return;
@@ -68,8 +86,8 @@ export default function ChatScreen() {
         <View className="flex-1">
           <Text className="font-bold text-primary-500" numberOfLines={1}>{otherName ?? "Conversation"}</Text>
           <View className="flex-row items-center gap-1">
-            <View className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-green-500" : "bg-gray-400"}`} />
-            <Text className="text-xs text-gray-400">{isConnected ? "Online" : "Connecting..."}</Text>
+            <View className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-green-500" : "bg-gray-400"}`} />
+            <Text className="text-xs text-gray-400">{statusText}</Text>
           </View>
         </View>
       </View>

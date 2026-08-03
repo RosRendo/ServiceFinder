@@ -116,27 +116,27 @@ function CompanyMessagesPageContent() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
                 <div>
-                    <h1 className="text-xl font-semibold text-gray-900">Messages</h1>
-                    <p className="text-sm text-gray-500 mt-0.5">Communicate with your clients and staff.</p>
+                    <h1 className="text-xl font-bold tracking-tight text-foreground">Messages</h1>
+                    <p className="text-sm font-medium text-muted-foreground mt-1">Communicate with your clients and staff.</p>
                 </div>
             </div>
 
-            <div className="flex-1 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden flex min-h-[500px]">
+            <div className="flex-1 bg-background border border-border rounded-lg shadow-sm overflow-hidden flex min-h-[500px]">
                 {/* Conversations List */}
-                <div className={`w-full md:w-80 lg:w-96 border-r border-gray-200 flex flex-col bg-gray-50 ${showMobileChat ? "hidden md:flex" : "flex"}`}>
-                    <div className="p-4 border-b border-gray-200 bg-white">
+                <div className={`w-full md:w-80 lg:w-96 border-r border-border flex flex-col bg-muted/30 ${showMobileChat ? "hidden md:flex" : "flex"}`}>
+                    <div className="p-4 border-b border-border bg-background">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <input 
                                 type="text" 
                                 placeholder="Search messages..." 
-                                className="w-full h-9 bg-gray-50 border border-gray-200 rounded-md pl-9 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 placeholder:text-gray-400 transition-colors"
+                                className="w-full h-9 bg-muted/30 border border-border rounded-md pl-9 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground transition-colors"
                             />
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto">
                         {conversations.length > 0 ? (
-                            <div className="divide-y divide-gray-100">
+                            <div className="divide-y divide-border">
                                 {conversations.map((conv) => (
                                     <ConversationItem
                                         key={conv.id}
@@ -152,31 +152,31 @@ function CompanyMessagesPageContent() {
                             </div>
                         ) : (
                             <div className="text-center py-12 px-4 flex flex-col items-center">
-                                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 border border-gray-200">
-                                    <MessageCircle className="h-5 w-5 text-gray-400" />
+                                <div className="w-12 h-12 bg-background rounded-full flex items-center justify-center mb-3 border border-border">
+                                    <MessageCircle className="h-5 w-5 text-muted-foreground" />
                                 </div>
-                                <p className="font-medium text-gray-900 text-sm">No conversations</p>
-                                <p className="text-xs text-gray-500 mt-1">You haven't started any chats yet.</p>
+                                <p className="font-medium text-foreground text-sm">No conversations</p>
+                                <p className="text-xs text-muted-foreground mt-1">You haven't started any chats yet.</p>
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* Chat Area */}
-                <div className={`flex-1 flex flex-col bg-white ${showMobileChat ? "flex" : "hidden md:flex"}`}>
+                <div className={`flex-1 flex flex-col bg-background ${showMobileChat ? "flex" : "hidden md:flex"}`}>
                     {displayUser ? (
                         <>
                             {/* Chat Header */}
-                            <div className="flex items-center gap-4 p-4 border-b border-gray-200 bg-white shrink-0">
-                                <button onClick={() => setShowMobileChat(false)} className="md:hidden w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors">
+                            <div className="flex items-center gap-4 p-4 border-b border-border bg-background shrink-0">
+                                <button onClick={() => setShowMobileChat(false)} className="md:hidden w-8 h-8 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
                                     <ArrowLeft className="h-5 w-5" />
                                 </button>
 
                                 <div className="relative">
                                     {displayUser.avatar ? (
-                                        <img src={displayUser.avatar} alt={displayUser.name} className="h-10 w-10 rounded-full object-cover border border-gray-200" />
+                                        <img src={displayUser.avatar} alt={displayUser.name} className="h-10 w-10 rounded-full object-cover border border-border" />
                                     ) : (
-                                        <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-700 font-semibold border border-blue-100 text-sm">
+                                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold border border-primary/20 text-sm">
                                             {displayUser.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                                         </div>
                                     )}
@@ -184,20 +184,20 @@ function CompanyMessagesPageContent() {
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <h2 className="font-semibold text-gray-900 truncate text-sm">{displayUser.name}</h2>
-                                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{displayUser.role?.replace('_', ' ') || 'User'}</p>
+                                    <h2 className="font-semibold text-foreground truncate text-sm">{displayUser.name}</h2>
+                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{displayUser.role?.replace('_', ' ') || 'User'}</p>
                                 </div>
 
                                 <div className="flex items-center gap-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600"><Phone className="h-4 w-4" /></Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600"><Video className="h-4 w-4" /></Button>
-                                    <div className="w-px h-5 bg-gray-200 mx-1"></div>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600"><MoreVertical className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"><Phone className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"><Video className="h-4 w-4" /></Button>
+                                    <div className="w-px h-5 bg-muted mx-1"></div>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"><MoreVertical className="h-4 w-4" /></Button>
                                 </div>
                             </div>
 
                             {/* Messages Body */}
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white">
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background">
                                 {messages.map((msg, index) => (
                                     <ChatBubble
                                         key={msg.id || `msg-${index}`}
@@ -207,9 +207,9 @@ function CompanyMessagesPageContent() {
                                 ))}
                                 <div ref={messagesEndRef} />
                                 {messages.length === 0 && (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-500 text-sm gap-2">
-                                        <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100 mb-2">
-                                            <MessageCircle className="w-5 h-5 text-gray-300" />
+                                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm gap-2">
+                                        <div className="w-12 h-12 bg-muted/30 rounded-full flex items-center justify-center border border-border/50 mb-2">
+                                            <MessageCircle className="w-5 h-5 text-muted-foreground" />
                                         </div>
                                         <p>Send a message to start the conversation</p>
                                     </div>
@@ -217,16 +217,16 @@ function CompanyMessagesPageContent() {
                             </div>
 
                             {/* Chat Input */}
-                            <div className="p-4 bg-white border-t border-gray-200 shrink-0">
+                            <div className="p-4 bg-background border-t border-border shrink-0">
                                 {isArchived ? (
-                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center text-sm text-amber-800 font-medium shadow-sm flex items-center justify-center gap-2">
+                                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 text-center text-sm text-amber-500 font-medium shadow-sm flex items-center justify-center gap-2">
                                         🔒 This job chat is archived because the service booking has been completed.
                                     </div>
                                 ) : (
-                                    <div className="flex items-end gap-2 bg-gray-50 rounded-lg border border-gray-200 p-2 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
+                                    <div className="flex items-end gap-2 bg-muted/30 rounded-lg border border-border p-2 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
                                         <div className="flex items-center gap-1 pb-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-md"><Paperclip className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-md hidden sm:flex"><ImageIcon className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"><Paperclip className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md hidden sm:flex"><ImageIcon className="h-4 w-4" /></Button>
                                         </div>
                                         <textarea
                                             value={newMessage}
@@ -238,15 +238,15 @@ function CompanyMessagesPageContent() {
                                                 }
                                             }}
                                             placeholder="Type a message..."
-                                            className="flex-1 max-h-32 min-h-[40px] resize-none bg-transparent p-2 text-sm focus:outline-none text-gray-700 placeholder:text-gray-400"
+                                            className="flex-1 max-h-32 min-h-[40px] resize-none bg-transparent p-2 text-sm focus:outline-none text-foreground placeholder:text-muted-foreground"
                                             rows={1}
                                         />
                                         <div className="flex items-center gap-2 pb-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-md hidden sm:flex"><Smile className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md hidden sm:flex"><Smile className="h-4 w-4" /></Button>
                                             <Button 
                                                 onClick={handleSend} 
                                                 disabled={!newMessage.trim()}
-                                                className="h-8 w-8 p-0 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:hover:bg-blue-600 shadow-sm transition-all"
+                                                className="h-8 w-8 p-0 rounded-md bg-primary hover:bg-primary/90 text-white disabled:opacity-50 disabled:hover:bg-primary shadow-sm transition-all"
                                             >
                                                 <Send className="h-4 w-4" />
                                             </Button>
@@ -256,11 +256,11 @@ function CompanyMessagesPageContent() {
                             </div>
                         </>
                     ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 text-gray-500">
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center border border-gray-200 mb-4 shadow-sm">
-                                <MessageCircle className="h-6 w-6 text-gray-300" />
+                        <div className="flex-1 flex flex-col items-center justify-center bg-muted/30 text-muted-foreground">
+                            <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center border border-border mb-4 shadow-sm">
+                                <MessageCircle className="h-6 w-6 text-muted-foreground" />
                             </div>
-                            <h3 className="text-base font-medium text-gray-900">Your Messages</h3>
+                            <h3 className="text-base font-medium text-foreground">Your Messages</h3>
                             <p className="text-sm mt-1">Select a conversation to start chatting</p>
                         </div>
                     )}
@@ -281,3 +281,4 @@ export default function CompanyMessagesPage() {
         </Suspense>
     );
 }
+

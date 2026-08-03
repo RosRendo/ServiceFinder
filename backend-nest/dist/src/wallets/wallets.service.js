@@ -100,6 +100,37 @@ let WalletsService = class WalletsService {
             transactions,
         };
     }
+    async getMyCompanyWallet(userId) {
+        const company = await this.prisma.company.findFirst({
+            where: { ownerId: userId },
+        });
+        if (!company)
+            throw new common_1.NotFoundException('Company not found');
+        const payouts = await this.prisma.payoutRequest.findMany({
+            where: { ownerType: 'company', ownerId: company.id },
+            orderBy: { createdAt: 'desc' },
+            take: 50
+        });
+        const walletData = await this.getCompanyWallet(company.id, userId);
+        return {
+            ...walletData,
+            payouts: payouts.map(p => ({
+                ...p,
+                id: p.id.toString(),
+                ownerId: p.ownerId.toString(),
+                amount: Number(p.amount),
+                requestedAt: p.createdAt
+            }))
+        };
+    }
+    async requestMyCompanyPayout(userId, dto) {
+        const company = await this.prisma.company.findFirst({
+            where: { ownerId: userId },
+        });
+        if (!company)
+            throw new common_1.NotFoundException('Company not found');
+        return this.requestPayout(company.id, userId, dto);
+    }
     async getCompanyWallet(companyId, userId) {
         const company = await this.prisma.company.findUnique({
             where: { id: companyId },

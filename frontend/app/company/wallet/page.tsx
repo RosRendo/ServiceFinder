@@ -107,11 +107,11 @@ export default function CompanyWalletPage() {
 
   return (
     <div className="min-h-screen pb-24">
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+      <header className="sticky top-0 z-50 bg-background border-b border-border shadow-sm">
         <div className="max-w-5xl mx-auto px-4 lg:px-0 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Company Wallet</h1>
-            <p className="text-sm font-medium text-gray-500">Manage earnings and payouts</p>
+            <h1 className="text-xl font-semibold text-foreground tracking-tight">Company Wallet</h1>
+            <p className="text-sm font-medium text-muted-foreground">Manage earnings and payouts</p>
           </div>
           <Dialog open={requestOpen} onOpenChange={setRequestOpen}>
             <DialogTrigger asChild>
@@ -128,7 +128,7 @@ export default function CompanyWalletPage() {
                 <div className="space-y-2">
                   <Label>Amount (Available: ${balance.toFixed(2)})</Label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                    <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input 
                       type="number" 
                       className="pl-9" 
@@ -166,69 +166,69 @@ export default function CompanyWalletPage() {
         
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-background rounded-lg border border-border p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
                 <Wallet className="w-5 h-5 text-emerald-600" />
               </div>
-              <h3 className="font-medium text-gray-500 text-sm">Available Balance</h3>
+              <h3 className="font-medium text-muted-foreground text-sm">Available Balance</h3>
             </div>
-            <p className="text-2xl font-bold text-gray-900">${balance.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-foreground">${balance.toFixed(2)}</p>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-background rounded-lg border border-border p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
                 <Lock className="w-5 h-5 text-indigo-600" />
               </div>
-              <h3 className="font-medium text-gray-500 text-sm">Pending Earnings</h3>
+              <h3 className="font-medium text-muted-foreground text-sm">Pending Earnings</h3>
             </div>
-            <p className="text-2xl font-bold text-gray-900">${pendingEarnings.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-foreground">${pendingEarnings.toFixed(2)}</p>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-background rounded-lg border border-border p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
                 <Clock className="w-5 h-5 text-amber-600" />
               </div>
-              <h3 className="font-medium text-gray-500 text-sm">Pending Payouts</h3>
+              <h3 className="font-medium text-muted-foreground text-sm">Pending Payouts</h3>
             </div>
-            <p className="text-2xl font-bold text-gray-900">${pending.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-foreground">${pending.toFixed(2)}</p>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-background rounded-lg border border-border p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
                 <ArrowDownRight className="w-5 h-5 text-blue-600" />
               </div>
-              <h3 className="font-medium text-gray-500 text-sm">Lifetime Earnings</h3>
+              <h3 className="font-medium text-muted-foreground text-sm">Lifetime Earnings</h3>
             </div>
-            <p className="text-2xl font-bold text-gray-900">${lifetime.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-foreground">${lifetime.toFixed(2)}</p>
           </motion.div>
         </div>
 
         {/* Transaction History */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-200 bg-gray-50/50">
-            <h2 className="font-semibold text-gray-900">Transaction History</h2>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-background rounded-lg border border-border shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-border bg-muted/50/50">
+            <h2 className="font-semibold text-foreground">Transaction History</h2>
           </div>
           
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-border/50">
             {(!wallet?.transactions || wallet.transactions.length === 0) ? (
-              <div className="p-8 text-center text-gray-500">No transactions found.</div>
+              <div className="p-8 text-center text-muted-foreground">No transactions found.</div>
             ) : (
               wallet.transactions.map((tx) => (
-                <div key={tx.id} className="p-4 sm:px-6 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <div key={tx.id} className="p-4 sm:px-6 flex items-center justify-between hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${tx.type === 'credit' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
                       {tx.type === 'credit' ? <ArrowDownRight className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{tx.description || tx.category}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{format(new Date(tx.createdAt), "MMM d, yyyy • h:mm a")}</p>
+                      <p className="font-medium text-foreground">{tx.description || tx.category}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{format(new Date(tx.createdAt), "MMM d, yyyy • h:mm a")}</p>
                     </div>
                   </div>
-                  <div className={`font-semibold ${tx.type === 'credit' ? 'text-emerald-600' : 'text-gray-900'}`}>
+                  <div className={`font-semibold ${tx.type === 'credit' ? 'text-emerald-600' : 'text-foreground'}`}>
                     {tx.type === 'credit' ? '+' : '-'}${tx.amount.toFixed(2)}
                   </div>
                 </div>
@@ -241,3 +241,4 @@ export default function CompanyWalletPage() {
     </div>
   );
 }
+
