@@ -156,7 +156,7 @@ export default function AdminServiceTypesPage() {
       render: (s) => <StatusBadge status={s.status || "active"} />
     },
     {
-      key: "actions", header: "Actions", align: "right",
+      key: "actions", header: "Actions",
       render: (s) => (
         <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
           <button 

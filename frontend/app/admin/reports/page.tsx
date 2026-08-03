@@ -249,7 +249,7 @@ export default function AdminReportsPage() {
                   <div className="flex justify-between items-center py-3 px-2 mt-2 border-t border-border/50">
                     <span className="text-sm font-bold text-foreground">Total Expenses</span>
                     <span className="text-sm font-bold text-rose-500">
-                      -${Math.abs(incomeStatement.expenses.reduce((acc, curr) => acc + curr.amount, 0)).toLocaleString()}
+                      -${Math.abs(incomeStatement.expenses.reduce((acc: any, curr: any) => acc + curr.amount, 0)).toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -288,7 +288,7 @@ export default function AdminReportsPage() {
                   <div className="flex justify-between items-center py-3 px-2 mt-2 border-t border-border/50">
                     <span className="text-sm font-bold text-foreground">Total Cash In</span>
                     <span className="text-sm font-bold text-emerald-600">
-                      +${cashFlow.moneyIn.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()}
+                      +${cashFlow.moneyIn.reduce((acc: any, curr: any) => acc + curr.amount, 0).toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -307,7 +307,7 @@ export default function AdminReportsPage() {
                   <div className="flex justify-between items-center py-3 px-2 mt-2 border-t border-border/50">
                     <span className="text-sm font-bold text-foreground">Total Cash Out</span>
                     <span className="text-sm font-bold text-rose-500">
-                      -${Math.abs(cashFlow.moneyOut.reduce((acc, curr) => acc + curr.amount, 0)).toLocaleString()}
+                      -${Math.abs(cashFlow.moneyOut.reduce((acc: any, curr: any) => acc + curr.amount, 0)).toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -335,7 +335,7 @@ export default function AdminReportsPage() {
                   <div className="text-right">
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Payouts</p>
                     <p className="text-lg font-black text-foreground">
-                      ${companyPayoutsData.reduce((acc, curr) => acc + curr.payout, 0).toLocaleString()}
+                      ${companyPayoutsData.reduce((acc: any, curr: any) => acc + curr.payout, 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -353,7 +353,7 @@ export default function AdminReportsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/50">
-                    {companyPayoutsData.map((co, i) => (
+                    {companyPayoutsData.map((co: any, i: number) => (
                       <tr key={i} className="hover:bg-muted/30 transition-colors">
                         <td className="px-5 py-3 font-bold text-foreground flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center text-xs">

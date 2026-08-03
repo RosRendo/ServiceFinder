@@ -182,7 +182,7 @@ export default function PromotionsPage() {
       )
     },
     {
-      key: "actions", header: "Actions", align: "right",
+      key: "actions", header: "Actions",
       render: (p) => (
         <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
           <button 

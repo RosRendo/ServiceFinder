@@ -279,7 +279,7 @@ export default function AdminDashboard() {
             </Button>
           </div>
           <div className="divide-y divide-border/50">
-              {newCompanies.map((company, i) => (
+              {newCompanies.map((company: any, i: number) => (
               <div key={i} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer group" onClick={() => router.push('/admin/companies')}>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground font-bold text-sm shrink-0 border border-border">

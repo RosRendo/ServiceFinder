@@ -48,7 +48,7 @@ export default function CompanySettingsPage() {
   });
 
   const [hours, setHours] = useState(
-    DAYS.reduce((acc, d) => ({ ...acc, [d]: { open: d !== "Sunday", from: "09:00", to: "18:00" } }), {} as Record<string, { open: boolean; from: string; to: string }>)
+    DAYS.reduce((acc: any, d: any) => ({ ...acc, [d]: { open: d !== "Sunday", from: "09:00", to: "18:00" } }), {} as Record<string, { open: boolean; from: string; to: string }>)
   );
 
   const fetchCompanyDetails = async () => {
