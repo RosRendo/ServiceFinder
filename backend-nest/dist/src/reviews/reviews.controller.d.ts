@@ -90,6 +90,7 @@ export declare class ReviewsController {
                     isInsured: boolean;
                     completionRate: import("@prisma/client/runtime/library").Decimal;
                     coverageRadiusKm: number;
+                    bookingMode: string;
                 };
                 service: {
                     id: string;
@@ -294,6 +295,7 @@ export declare class ReviewsController {
                     isInsured: boolean;
                     completionRate: import("@prisma/client/runtime/library").Decimal;
                     coverageRadiusKm: number;
+                    bookingMode: string;
                 };
                 service: {
                     id: string;
@@ -420,6 +422,7 @@ export declare class ReviewsController {
                     isInsured: boolean;
                     completionRate: import("@prisma/client/runtime/library").Decimal;
                     coverageRadiusKm: number;
+                    bookingMode: string;
                 };
                 service: {
                     id: string;
@@ -546,6 +549,7 @@ export declare class ReviewsController {
                     isInsured: boolean;
                     completionRate: import("@prisma/client/runtime/library").Decimal;
                     coverageRadiusKm: number;
+                    bookingMode: string;
                 };
                 service: {
                     id: string;

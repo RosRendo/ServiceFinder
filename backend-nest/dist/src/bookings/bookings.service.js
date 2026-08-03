@@ -484,6 +484,56 @@ let BookingsService = class BookingsService {
         this.eventEmitter.emit('booking.assigned', new booking_events_1.BookingAssignedEvent(id, staff.id, booking.companyId, booking.customerId));
         return result;
     }
+    async claimBooking(bookingId, userId) {
+        const staff = await this.prisma.companyStaff.findFirst({
+            where: { userId, status: 'active' },
+            include: { company: true },
+        });
+        if (!staff)
+            throw new common_1.ForbiddenException('You are not registered as active staff');
+        if (staff.company.bookingMode !== 'open_pool') {
+            throw new common_1.BadRequestException('This company uses Dispatch Mode. Your manager assigns bookings to you.');
+        }
+        const booking = await this.findOrFail(bookingId, true);
+        if (booking.companyId.toString() !== staff.companyId.toString()) {
+            throw new common_1.ForbiddenException('This booking does not belong to your company');
+        }
+        if (booking.status !== 'pending') {
+            throw new common_1.BadRequestException('Only pending bookings can be claimed');
+        }
+        if (booking.assignedStaffId) {
+            throw new common_1.ConflictException('This booking has already been claimed by another staff member');
+        }
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const u = await tx.booking.update({
+                where: { id: bookingId },
+                data: { assignedStaffId: staff.id, status: 'confirmed' },
+                include: {
+                    customer: true,
+                    company: true,
+                    service: true,
+                    assignedStaff: { include: { user: true } },
+                },
+            });
+            await tx.bookingStatusLog.create({
+                data: {
+                    bookingId,
+                    oldStatus: booking.status,
+                    newStatus: 'confirmed',
+                    changedBy: userId,
+                },
+            });
+            return u;
+        });
+        const result = {
+            success: true,
+            message: 'Booking claimed successfully',
+            booking: this.serializeBooking(updated),
+        };
+        this.bookingsGateway.broadcastBookingUpdate(bookingId.toString(), 'confirmed', result.booking);
+        this.eventEmitter.emit('booking.accepted', new booking_events_1.BookingAcceptedEvent(bookingId, staff.id, booking.companyId, booking.customerId));
+        return result;
+    }
     async acceptAssignment(id, userId) {
         const staff = await this.prisma.companyStaff.findFirst({
             where: { userId },

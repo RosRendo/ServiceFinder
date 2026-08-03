@@ -67,6 +67,11 @@ export declare class BookingsService {
         message: string;
         booking: any;
     }>;
+    claimBooking(bookingId: bigint, userId: bigint): Promise<{
+        success: boolean;
+        message: string;
+        booking: any;
+    }>;
     acceptAssignment(id: bigint, userId: bigint): Promise<{
         success: boolean;
         message: string;

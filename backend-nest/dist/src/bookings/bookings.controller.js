@@ -59,6 +59,10 @@ let BookingsController = class BookingsController {
         const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
         return this.bookingsService.rejectAssignment(BigInt(id), BigInt(user.id));
     }
+    claimBooking(id, req) {
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.claimBooking(BigInt(id), BigInt(user.id));
+    }
     startJob(id, body, req) {
         const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
         return this.bookingsService.startJob(BigInt(id), BigInt(user.id), body?.staffStartLatitude, body?.staffStartLongitude);
@@ -172,6 +176,16 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], BookingsController.prototype, "rejectAssignment", null);
+__decorate([
+    (0, common_1.Patch)(':id/claim'),
+    (0, swagger_1.ApiOperation)({ summary: 'Claim an unassigned booking from the company pool (Open Pool mode, Staff only)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Booking successfully claimed.' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], BookingsController.prototype, "claimBooking", null);
 __decorate([
     (0, common_1.Patch)(':id/start'),
     (0, swagger_1.ApiOperation)({ summary: 'Start a job (Assigned staff only)' }),

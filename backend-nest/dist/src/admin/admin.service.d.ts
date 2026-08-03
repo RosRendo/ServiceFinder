@@ -166,6 +166,7 @@ export declare class AdminService {
             isInsured: boolean;
             completionRate: import("@prisma/client/runtime/library").Decimal;
             coverageRadiusKm: number;
+            bookingMode: string;
         }[];
         pagination: {
             total: number;
@@ -240,6 +241,7 @@ export declare class AdminService {
         isInsured: boolean;
         completionRate: import("@prisma/client/runtime/library").Decimal;
         coverageRadiusKm: number;
+        bookingMode: string;
     }>;
     updateCompany(id: bigint, dto: UpdateCompanyAdminDto): Promise<{
         message: string;
@@ -275,6 +277,7 @@ export declare class AdminService {
             isInsured: boolean;
             completionRate: import("@prisma/client/runtime/library").Decimal;
             coverageRadiusKm: number;
+            bookingMode: string;
         };
     }>;
     setCompanyVerification(id: bigint, status: string, reason?: string): Promise<{
@@ -422,6 +425,7 @@ export declare class AdminService {
                 isInsured: boolean;
                 completionRate: import("@prisma/client/runtime/library").Decimal;
                 coverageRadiusKm: number;
+                bookingMode: string;
             } | null;
             staff: {
                 id: string;
@@ -525,6 +529,7 @@ export declare class AdminService {
                     isInsured: boolean;
                     completionRate: import("@prisma/client/runtime/library").Decimal;
                     coverageRadiusKm: number;
+                    bookingMode: string;
                 } | null;
                 bookingDate: Date;
                 startTime: Date;

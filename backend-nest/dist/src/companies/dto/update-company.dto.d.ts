@@ -14,4 +14,5 @@ export declare class UpdateCompanyDto {
     verificationStatus?: 'pending' | 'verified' | 'rejected';
     verificationDocumentUrl?: string;
     coverageRadiusKm?: number;
+    bookingMode?: string;
 }

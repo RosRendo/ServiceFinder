@@ -262,6 +262,7 @@ export declare class CompaniesService {
         isInsured: boolean;
         completionRate: import("@prisma/client/runtime/library").Decimal;
         coverageRadiusKm: number;
+        bookingMode: string;
         ownerId: bigint;
     }>;
     createCompany(userId: bigint, dto: CreateCompanyDto): Promise<{
@@ -303,6 +304,7 @@ export declare class CompaniesService {
             isInsured: boolean;
             completionRate: import("@prisma/client/runtime/library").Decimal;
             coverageRadiusKm: number;
+            bookingMode: string;
             ownerId: bigint;
         };
     }>;
@@ -345,6 +347,7 @@ export declare class CompaniesService {
             isInsured: boolean;
             completionRate: import("@prisma/client/runtime/library").Decimal;
             coverageRadiusKm: number;
+            bookingMode: string;
             ownerId: bigint;
         };
     }>;
@@ -412,6 +415,7 @@ export declare class CompaniesService {
         isInsured: boolean;
         completionRate: import("@prisma/client/runtime/library").Decimal;
         coverageRadiusKm: number;
+        bookingMode: string;
         ownerId: bigint;
     }>;
     getMyCompanyMetrics(userId: bigint): Promise<{

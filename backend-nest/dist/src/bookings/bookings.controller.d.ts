@@ -72,6 +72,11 @@ export declare class BookingsController {
         message: string;
         booking: any;
     }>;
+    claimBooking(id: string, req: any): Promise<{
+        success: boolean;
+        message: string;
+        booking: any;
+    }>;
     startJob(id: string, body: any, req: any): Promise<{
         success: boolean;
         message: string;

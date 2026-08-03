@@ -28,8 +28,9 @@ class UpdateCompanyDto {
     verificationStatus;
     verificationDocumentUrl;
     coverageRadiusKm;
+    bookingMode;
     static _OPENAPI_METADATA_FACTORY() {
-        return { name: { required: false, type: () => String }, description: { required: false, type: () => String }, registrationNumber: { required: false, type: () => String }, address: { required: false, type: () => String }, city: { required: false, type: () => String }, latitude: { required: false, type: () => String }, longitude: { required: false, type: () => String }, phone: { required: false, type: () => String }, email: { required: false, type: () => String, format: "email" }, logoUrl: { required: false, type: () => String }, coverImageUrl: { required: false, type: () => String }, establishedYear: { required: false, type: () => String }, verificationStatus: { required: false, enum: ["pending", "verified", "rejected"] }, verificationDocumentUrl: { required: false, type: () => String }, coverageRadiusKm: { required: false, type: () => Number } };
+        return { name: { required: false, type: () => String }, description: { required: false, type: () => String }, registrationNumber: { required: false, type: () => String }, address: { required: false, type: () => String }, city: { required: false, type: () => String }, latitude: { required: false, type: () => String }, longitude: { required: false, type: () => String }, phone: { required: false, type: () => String }, email: { required: false, type: () => String, format: "email" }, logoUrl: { required: false, type: () => String }, coverImageUrl: { required: false, type: () => String }, establishedYear: { required: false, type: () => String }, verificationStatus: { required: false, enum: ["pending", "verified", "rejected"] }, verificationDocumentUrl: { required: false, type: () => String }, coverageRadiusKm: { required: false, type: () => Number }, bookingMode: { required: false, type: () => String, enum: ['dispatch', 'open_pool'] } };
     }
 }
 exports.UpdateCompanyDto = UpdateCompanyDto;
@@ -107,4 +108,10 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], UpdateCompanyDto.prototype, "coverageRadiusKm", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsIn)(['dispatch', 'open_pool']),
+    __metadata("design:type", String)
+], UpdateCompanyDto.prototype, "bookingMode", void 0);
 //# sourceMappingURL=update-company.dto.js.map
