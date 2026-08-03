@@ -129,11 +129,6 @@ export default function LandingPage() {
   const [activeShowcaseTab, setActiveShowcaseTab] = useState(0);
   const showcaseAutoPlayRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    startShowcaseAutoPlay();
-    return () => stopShowcaseAutoPlay();
-  }, []);
-
   const startShowcaseAutoPlay = () => {
     stopShowcaseAutoPlay();
     showcaseAutoPlayRef.current = setInterval(() => {
@@ -146,6 +141,11 @@ export default function LandingPage() {
       clearInterval(showcaseAutoPlayRef.current);
     }
   };
+
+  useEffect(() => {
+    startShowcaseAutoPlay();
+    return () => stopShowcaseAutoPlay();
+  }, []);
 
   const handleShowcaseTabClick = (index: number) => {
     stopShowcaseAutoPlay();

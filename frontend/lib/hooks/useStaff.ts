@@ -54,7 +54,7 @@ export function useStaffAvailability(options: UseStaffAvailabilityOptions = {}) 
     if (autoFetch) {
       fetchAvailability();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [autoFetch]);
 
   const fetchAvailability = async () => {
@@ -226,7 +226,7 @@ export function useStaffBookings(options: UseStaffBookingsOptions = {}) {
     if (autoFetch) {
       fetchBookings();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [status, page, limit, autoFetch]);
 
   const fetchBookings = async () => {
@@ -310,7 +310,7 @@ export function useStaffServiceRequests(
     if (autoFetch) {
       fetchPendingServices();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [autoFetch]);
 
   const fetchPendingServices = async () => {
