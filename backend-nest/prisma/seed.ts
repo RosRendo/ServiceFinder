@@ -1,9 +1,40 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-async function main() {
+async function runProductionSeed() {
+  console.log('🌱 Starting PRODUCTION safe seed...');
+  const pw = await bcrypt.hash('password123', 10);
+
+  // 1. Check/Create Super Admin
+  const existingAdmin = await prisma.user.findUnique({ where: { email: 'admin@servicefinder.com' } });
+  if (!existingAdmin) {
+    console.log('  -> Creating initial Super Admin account...');
+    await prisma.user.create({
+      data: { fullName: 'Super Admin', email: 'admin@servicefinder.com', passwordHash: pw, role: 'admin', phone: '+1000000000', status: 'active' }
+    });
+  } else {
+    console.log('  -> Super Admin already exists. Skipping.');
+  }
+
+  // 2. Check/Create Default Categories
+  console.log('  -> Ensuring default categories exist...');
+  const categoriesData = ['Cleaning', 'Plumbing', 'Electrical', 'Landscaping', 'HVAC'];
+  for (let i = 0; i < categoriesData.length; i++) {
+    const slug = categoriesData[i].toLowerCase();
+    const existing = await prisma.category.findUnique({ where: { slug } });
+    if (!existing) {
+      await prisma.category.create({
+        data: { name: categoriesData[i], slug, displayOrder: i, status: 'active' }
+      });
+    }
+  }
+
+  console.log('✅ PRODUCTION SEED COMPLETED SAFELY.');
+}
+
+async function runMassiveSeed() {
   console.log('🌱 Starting massive full-app database seed...');
   console.log('🧹 Clearing existing data... (This may take a few seconds)');
   
@@ -28,21 +59,21 @@ async function main() {
     data: { fullName: 'Super Admin', email: 'admin@servicefinder.com', passwordHash: pw, role: 'admin', phone: '+1000000000', status: 'active' }
   });
 
-  const owners = [];
+  const owners: any[] = [];
   for (let i = 1; i <= 3; i++) {
     owners.push(await prisma.user.create({
       data: { fullName: `Company Owner ${i}`, email: `owner${i}@demo.com`, passwordHash: pw, role: 'company_admin', phone: `+111111111${i}`, status: 'active' }
     }));
   }
 
-  const staff = [];
+  const staff: any[] = [];
   for (let i = 1; i <= 15; i++) {
     staff.push(await prisma.user.create({
       data: { fullName: `Staff Member ${i}`, email: `staff${i}@demo.com`, passwordHash: pw, role: 'staff', phone: `+22222222${i.toString().padStart(2, '0')}`, status: 'active', workingStatus: i % 3 === 0 ? 'offline' : 'active' }
     }));
   }
 
-  const customers = [];
+  const customers: any[] = [];
   for (let i = 1; i <= 30; i++) {
     customers.push(await prisma.user.create({
       data: { fullName: `Customer ${i}`, email: `customer${i}@demo.com`, passwordHash: pw, role: 'customer', phone: `+33333333${i.toString().padStart(2, '0')}`, status: 'active' }
@@ -51,7 +82,7 @@ async function main() {
 
   // 2. CREATE COMPANIES
   console.log('🏢 Creating Companies & Staff Links...');
-  const companies = [];
+  const companies: any[] = [];
   companies.push(await prisma.company.create({
     data: { name: 'Cleaning Solutions LLC', ownerId: owners[0].id, phone: '555-0101', email: 'hello@cleaningsolutions.com', address: '123 Sparkle Ave', city: 'New York', verificationStatus: 'verified', bookingMode: 'dispatch' as any }
   }));
@@ -63,16 +94,17 @@ async function main() {
   }));
 
   // Link Staff to Companies
+  const companyStaffLinks: any[] = [];
   for (let i = 0; i < staff.length; i++) {
-    await prisma.companyStaff.create({
+    companyStaffLinks.push(await prisma.companyStaff.create({
       data: { companyId: companies[i % 3].id, userId: staff[i].id, role: 'worker' as any, status: 'active' }
-    });
+    }));
   }
 
   // 3. CREATE CATEGORIES & SERVICES
   console.log('📦 Creating Categories & Services...');
   const categoriesData = ['Cleaning', 'Plumbing', 'Electrical', 'Landscaping', 'HVAC'];
-  const categories = [];
+  const categories: any[] = [];
   for (let i = 0; i < categoriesData.length; i++) {
     categories.push(await prisma.category.create({
       data: { name: categoriesData[i], slug: categoriesData[i].toLowerCase(), displayOrder: i, status: 'active' }
@@ -83,7 +115,7 @@ async function main() {
   const sType2 = await prisma.serviceType.create({ data: { categoryId: categories[0].id, name: 'Standard Cleaning', slug: 'standard-cleaning', status: 'active' } });
   const sType3 = await prisma.serviceType.create({ data: { categoryId: categories[1].id, name: 'Pipe Leak Repair', slug: 'pipe-leak', status: 'active' } });
 
-  const companyServices = [];
+  const companyServices: any[] = [];
   companyServices.push(await prisma.service.create({ data: { companyId: companies[0].id, serviceTypeId: sType1.id, name: 'Premium Deep Clean', description: 'Top to bottom clean', basePrice: 150, durationMin: 180, isActive: true } }));
   companyServices.push(await prisma.service.create({ data: { companyId: companies[0].id, serviceTypeId: sType2.id, name: 'Weekly Standard Clean', description: 'Maintenance clean', basePrice: 80, durationMin: 120, isActive: true } }));
   companyServices.push(await prisma.service.create({ data: { companyId: companies[1].id, serviceTypeId: sType3.id, name: 'Emergency Leak Repair', description: '24/7 pipe repair', basePrice: 200, durationMin: 60, isActive: true } }));
@@ -110,7 +142,7 @@ async function main() {
       status = 'pending';
       bookingDate = new Date(now.getTime() + Math.random() * 5 * 24 * 60 * 60 * 1000); // Future 5 days
     } else if (i < 10) {
-      status = 'accepted';
+      status = 'confirmed';
       bookingDate = new Date(now.getTime() + Math.random() * 2 * 24 * 60 * 60 * 1000);
     } else if (i < 15) {
       status = 'in_progress';
@@ -122,13 +154,15 @@ async function main() {
 
     const price = Number(srv.basePrice) || 100;
     const fee = price * 0.10;
+    
+    const cStaff = companyStaffLinks.find(cs => cs.userId === stf.id);
 
     const b = await prisma.booking.create({
       data: {
         customerId: cust.id,
         companyId: comp.id,
         serviceId: srv.id,
-        assignedStaffId: (status === 'pending' || status === 'cancelled') ? null : stf.id,
+        assignedStaffId: (status === 'pending' || status === 'cancelled' || !cStaff) ? null : cStaff.id,
         status: status as any,
         bookingDate: bookingDate,
         startTime: new Date(bookingDate.setHours(10, 0, 0, 0)),
@@ -213,6 +247,19 @@ async function main() {
   }
 
   console.log('✅ MASSIVE SEED COMPLETED SUCCESSFULLY! Your app is fully populated.');
+}
+
+async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    await runProductionSeed();
+  } else {
+    // Optionally we can look for an env var to force safe seed in dev, but usually default to massive
+    if (process.env.SAFE_SEED === 'true') {
+      await runProductionSeed();
+    } else {
+      await runMassiveSeed();
+    }
+  }
 }
 
 main()

@@ -9,9 +9,9 @@ export declare class PromoCodesService {
         createdAt: Date;
         isActive: boolean;
         code: string;
-        expiresAt: Date | null;
         maxUses: number | null;
         usedCount: number;
+        expiresAt: Date | null;
     }[]>;
     createPromoCode(dto: CreatePromoCodeDto): Promise<{
         id: string;
@@ -19,9 +19,9 @@ export declare class PromoCodesService {
         createdAt: Date;
         isActive: boolean;
         code: string;
-        expiresAt: Date | null;
         maxUses: number | null;
         usedCount: number;
+        expiresAt: Date | null;
     }>;
     validatePromoCode(code: string): Promise<{
         valid: boolean;
@@ -35,9 +35,9 @@ export declare class PromoCodesService {
         createdAt: Date;
         isActive: boolean;
         code: string;
-        expiresAt: Date | null;
         maxUses: number | null;
         usedCount: number;
+        expiresAt: Date | null;
     }>;
     deletePromoCode(id: number): Promise<{
         message: string;

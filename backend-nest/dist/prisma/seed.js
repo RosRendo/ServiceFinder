@@ -37,184 +37,179 @@ const client_1 = require("@prisma/client");
 const bcrypt = __importStar(require("bcryptjs"));
 const prisma = new client_1.PrismaClient();
 async function main() {
-    console.log('🌱 Starting full database seed...');
-    console.log('🧹 Clearing existing data...');
-    const tableNames = await prisma.$queryRaw `SELECT tablename FROM pg_tables WHERE schemaname='public'`;
-    for (const { tablename } of tableNames) {
+    console.log('🌱 Starting massive full-app database seed...');
+    console.log('🧹 Clearing existing data... (This may take a few seconds)');
+    const tables = await prisma.$queryRaw `
+    SELECT tablename FROM pg_tables WHERE schemaname='public';
+  `;
+    for (const { tablename } of tables) {
         if (tablename !== '_prisma_migrations') {
             try {
                 await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${tablename}" CASCADE;`);
             }
             catch (error) {
+                console.log(`Failed to truncate ${tablename}`);
             }
         }
     }
     const pw = await bcrypt.hash('password123', 10);
-    console.log('📦 Creating Categories & Service Types...');
-    const cat = await prisma.category.create({
-        data: { name: 'Cleaning', slug: 'cleaning', displayOrder: 1, status: 'active' }
-    });
-    const stype = await prisma.serviceType.create({
-        data: { categoryId: cat.id, name: 'Deep Cleaning', slug: 'deep-cleaning', status: 'active' }
-    });
-    console.log('👥 Creating Users...');
+    console.log('👥 Creating Users (Admin, Staff, Customers)...');
     const admin = await prisma.user.create({
         data: { fullName: 'Super Admin', email: 'admin@servicefinder.com', passwordHash: pw, role: 'admin', phone: '+1000000000', status: 'active' }
     });
-    const owner = await prisma.user.create({
-        data: { fullName: 'Sarah Jennings', email: 'owner1@cleaningsolutions.com', passwordHash: pw, role: 'company_admin', phone: '+1111111111', status: 'active' }
-    });
-    const staff = await prisma.user.create({
-        data: { fullName: 'Jenny Clean', email: 'staff1@demo.com', passwordHash: pw, role: 'staff', phone: '+3333333331', status: 'active' }
-    });
-    const customer = await prisma.user.create({
-        data: { fullName: 'Alice Wonderland', email: 'customer1@demo.com', passwordHash: pw, role: 'customer', phone: '+4444444441', status: 'active' }
-    });
-    console.log('🏢 Creating Companies & Services...');
-    const comp = await prisma.company.create({
-        data: {
-            ownerId: owner.id,
-            name: 'Pristine Cleaning Solutions',
-            description: 'The best deep cleaning services.',
-            phone: '+1111111111',
-            email: 'hello@cleaningsolutions.com',
-            verificationStatus: 'verified',
-            bookingMode: 'open_pool',
-            walletBalance: 2450.00,
-            city: 'New York',
-            address: '123 Clean St, NY',
+    const owners = [];
+    for (let i = 1; i <= 3; i++) {
+        owners.push(await prisma.user.create({
+            data: { fullName: `Company Owner ${i}`, email: `owner${i}@demo.com`, passwordHash: pw, role: 'company_admin', phone: `+111111111${i}`, status: 'active' }
+        }));
+    }
+    const staff = [];
+    for (let i = 1; i <= 15; i++) {
+        staff.push(await prisma.user.create({
+            data: { fullName: `Staff Member ${i}`, email: `staff${i}@demo.com`, passwordHash: pw, role: 'staff', phone: `+22222222${i.toString().padStart(2, '0')}`, status: 'active', workingStatus: i % 3 === 0 ? 'offline' : 'active' }
+        }));
+    }
+    const customers = [];
+    for (let i = 1; i <= 30; i++) {
+        customers.push(await prisma.user.create({
+            data: { fullName: `Customer ${i}`, email: `customer${i}@demo.com`, passwordHash: pw, role: 'customer', phone: `+33333333${i.toString().padStart(2, '0')}`, status: 'active' }
+        }));
+    }
+    console.log('🏢 Creating Companies & Staff Links...');
+    const companies = [];
+    companies.push(await prisma.company.create({
+        data: { name: 'Cleaning Solutions LLC', ownerId: owners[0].id, phone: '555-0101', email: 'hello@cleaningsolutions.com', address: '123 Sparkle Ave', city: 'New York', verificationStatus: 'verified', bookingMode: 'dispatch' }
+    }));
+    companies.push(await prisma.company.create({
+        data: { name: 'Elite Plumbers', ownerId: owners[1].id, phone: '555-0102', email: 'hello@eliteplumbers.com', address: '456 Pipe St', city: 'Los Angeles', verificationStatus: 'verified', bookingMode: 'open_pool' }
+    }));
+    companies.push(await prisma.company.create({
+        data: { name: 'Quick Fix Electricians', ownerId: owners[2].id, phone: '555-0103', email: 'hello@quickfix.com', address: '789 Wire Blvd', city: 'Chicago', verificationStatus: 'pending', bookingMode: 'dispatch' }
+    }));
+    for (let i = 0; i < staff.length; i++) {
+        await prisma.companyStaff.create({
+            data: { companyId: companies[i % 3].id, userId: staff[i].id, role: 'worker', status: 'active' }
+        });
+    }
+    console.log('📦 Creating Categories & Services...');
+    const categoriesData = ['Cleaning', 'Plumbing', 'Electrical', 'Landscaping', 'HVAC'];
+    const categories = [];
+    for (let i = 0; i < categoriesData.length; i++) {
+        categories.push(await prisma.category.create({
+            data: { name: categoriesData[i], slug: categoriesData[i].toLowerCase(), displayOrder: i, status: 'active' }
+        }));
+    }
+    const sType1 = await prisma.serviceType.create({ data: { categoryId: categories[0].id, name: 'Deep Cleaning', slug: 'deep-cleaning', status: 'active' } });
+    const sType2 = await prisma.serviceType.create({ data: { categoryId: categories[0].id, name: 'Standard Cleaning', slug: 'standard-cleaning', status: 'active' } });
+    const sType3 = await prisma.serviceType.create({ data: { categoryId: categories[1].id, name: 'Pipe Leak Repair', slug: 'pipe-leak', status: 'active' } });
+    const companyServices = [];
+    companyServices.push(await prisma.service.create({ data: { companyId: companies[0].id, serviceTypeId: sType1.id, name: 'Premium Deep Clean', description: 'Top to bottom clean', basePrice: 150, durationMin: 180, isActive: true } }));
+    companyServices.push(await prisma.service.create({ data: { companyId: companies[0].id, serviceTypeId: sType2.id, name: 'Weekly Standard Clean', description: 'Maintenance clean', basePrice: 80, durationMin: 120, isActive: true } }));
+    companyServices.push(await prisma.service.create({ data: { companyId: companies[1].id, serviceTypeId: sType3.id, name: 'Emergency Leak Repair', description: '24/7 pipe repair', basePrice: 200, durationMin: 60, isActive: true } }));
+    console.log('🎟️ Creating Promo Codes...');
+    await prisma.promoCode.create({ data: { code: 'SUMMER20', discountPercent: 20, maxUses: 100, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), isActive: true } });
+    await prisma.promoCode.create({ data: { code: 'WELCOME50', discountPercent: 50, maxUses: 50, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), isActive: true } });
+    console.log('📅 Generating 60+ Bookings, Payments, and Reviews...');
+    const now = new Date();
+    for (let i = 0; i < 60; i++) {
+        const cust = customers[i % customers.length];
+        const comp = companies[i % 2];
+        const srv = comp.id === companies[0].id ? companyServices[i % 2] : companyServices[2];
+        const stf = staff[i % 5];
+        let status = 'completed';
+        let bookingDate = new Date(now.getTime() - Math.random() * 60 * 24 * 60 * 60 * 1000);
+        if (i < 5) {
+            status = 'pending';
+            bookingDate = new Date(now.getTime() + Math.random() * 5 * 24 * 60 * 60 * 1000);
         }
-    });
-    await prisma.companyStaff.create({
-        data: { companyId: comp.id, userId: staff.id, role: 'worker', status: 'active' }
-    });
-    const srv = await prisma.service.create({
-        data: {
-            companyId: comp.id,
-            serviceTypeId: stype.id,
-            name: 'Full House Deep Clean',
-            basePrice: 150.00,
-            durationMin: 180,
-            isActive: true,
+        else if (i < 10) {
+            status = 'confirmed';
+            bookingDate = new Date(now.getTime() + Math.random() * 2 * 24 * 60 * 60 * 1000);
         }
-    });
-    console.log('📅 Creating Bookings & Finance Records...');
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    await prisma.booking.create({
-        data: {
-            customerId: customer.id,
-            companyId: comp.id,
-            serviceId: srv.id,
-            status: 'pending',
-            bookingDate: tomorrow,
-            startTime: new Date('1970-01-01T10:00:00Z'),
-            endTime: new Date('1970-01-01T13:00:00Z'),
-            totalPrice: 150.00,
-            platformFee: 15.00,
-            companyEarnings: 135.00,
-            serviceAddress: '789 Apple St, New York',
+        else if (i < 15) {
+            status = 'in_progress';
+            bookingDate = new Date();
         }
-    });
-    const b3 = await prisma.booking.create({
-        data: {
-            customerId: customer.id,
-            companyId: comp.id,
-            serviceId: srv.id,
-            status: 'completed',
-            bookingDate: yesterday,
-            startTime: new Date('1970-01-01T09:00:00Z'),
-            endTime: new Date('1970-01-01T12:00:00Z'),
-            totalPrice: 150.00,
-            platformFee: 15.00,
-            companyEarnings: 135.00,
-            serviceAddress: '789 Apple St, New York',
+        else if (i < 20) {
+            status = 'cancelled';
+            bookingDate = new Date(now.getTime() - Math.random() * 10 * 24 * 60 * 60 * 1000);
         }
-    });
-    await prisma.payment.create({
-        data: {
-            bookingId: b3.id,
-            userId: customer.id,
-            amount: 150.00,
-            currency: 'USD',
-            status: 'paid',
-            method: 'card',
-            transactionRef: 'pi_demo_123',
+        const price = Number(srv.basePrice) || 100;
+        const fee = price * 0.10;
+        const b = await prisma.booking.create({
+            data: {
+                customerId: cust.id,
+                companyId: comp.id,
+                serviceId: srv.id,
+                assignedStaffId: (status === 'pending' || status === 'cancelled') ? null : stf.id,
+                status: status,
+                bookingDate: bookingDate,
+                startTime: new Date(bookingDate.setHours(10, 0, 0, 0)),
+                endTime: new Date(bookingDate.setHours(12, 0, 0, 0)),
+                totalPrice: price,
+                platformFee: fee,
+                companyEarnings: price - fee,
+                serviceAddress: `${100 + i} Random Street, City`,
+                staffNotes: i % 4 === 0 ? 'Please call upon arrival.' : null,
+            }
+        });
+        await prisma.bookingStatusLog.create({
+            data: { bookingId: b.id, oldStatus: 'pending', newStatus: status, changedBy: admin.id }
+        });
+        if (status === 'completed' || status === 'in_progress') {
+            await prisma.payment.create({
+                data: { bookingId: b.id, userId: cust.id, amount: price, status: status === 'completed' ? 'paid' : 'pending', method: 'card', transactionRef: `pi_test_${b.id}` }
+            });
+            await prisma.invoice.create({
+                data: { bookingId: b.id, invoiceNumber: `INV-${b.id}-${now.getFullYear()}`, totalAmount: price, issuedAt: b.createdAt }
+            });
+            if (status === 'completed' && i % 2 === 0) {
+                const rating = Math.floor(Math.random() * 3) + 3;
+                await prisma.review.create({
+                    data: { bookingId: b.id, customerId: cust.id, companyRating: rating, companyComment: `Great service, very professional! (Rating: ${rating})` }
+                });
+            }
         }
-    });
-    await prisma.invoice.create({
-        data: {
-            bookingId: b3.id,
-            invoiceNumber: 'INV-001',
-            totalAmount: 150.00,
-        }
-    });
-    await prisma.review.create({
-        data: {
-            bookingId: b3.id,
-            customerId: customer.id,
-            companyRating: 5,
-            companyComment: 'Amazing service!',
-        }
-    });
-    console.log('🛡️ Creating Moderation & Support Data...');
-    await prisma.dispute.create({
-        data: {
-            bookingId: b3.id,
-            customerId: customer.id,
-            companyId: comp.id,
-            description: 'Staff broke a vase.',
-            status: 'open',
-            type: 'damage',
-        }
-    });
-    await prisma.moderationLog.create({
-        data: {
-            adminId: admin.id,
-            entityType: 'review',
-            entityId: BigInt(9999),
-            action: 'delete',
-            reason: 'Profanity',
-        }
+    }
+    console.log('⚖️ Creating Disputes & Moderation Logs...');
+    const firstCompleted = await prisma.booking.findFirst({ where: { status: 'completed' } });
+    if (firstCompleted) {
+        await prisma.dispute.create({
+            data: { bookingId: firstCompleted.id, customerId: customers[0].id, companyId: companies[0].id, type: 'incomplete', description: 'Service was incomplete', status: 'open' }
+        });
+    }
+    for (let i = 0; i < 10; i++) {
+        await prisma.moderationLog.create({
+            data: { adminId: admin.id, entityType: 'review', entityId: BigInt(i + 1), action: 'flagged', reason: 'Inappropriate language detected' }
+        });
+        await prisma.supportTicket.create({
+            data: { userId: customers[i].id, subject: `Help with booking ${i}`, description: 'I need to reschedule.', status: i % 2 === 0 ? 'open' : 'closed', priority: 'medium' }
+        });
+    }
+    await prisma.complianceReport.create({
+        data: { companyId: companies[0].id, type: 'kyb_verification', status: 'approved', notes: 'All business documents verified.' }
     });
     await prisma.complianceReport.create({
-        data: {
-            companyId: comp.id,
-            type: 'KYC',
-            status: 'pending',
-            notes: 'Needs manual review',
-        }
+        data: { companyId: companies[2].id, type: 'kyb_verification', status: 'pending', notes: 'Awaiting business license.' }
     });
-    await prisma.supportTicket.create({
-        data: {
-            userId: customer.id,
-            subject: 'App crashing',
-            description: 'Freezes on checkout',
-            status: 'open',
-            priority: 'high',
-        }
-    });
-    await prisma.payoutRequest.create({
-        data: {
-            ownerType: 'company',
-            ownerId: comp.id,
-            amount: 500.00,
-            status: 'pending',
-            destinationBank: 'Bank of America',
-            accountName: 'Cleaning Co',
-            accountNumber: '123456789',
-        }
-    });
-    await prisma.auditLog.create({
-        data: {
-            userId: admin.id,
-            action: 'UPDATE_SETTINGS',
-            entityType: 'SystemSettings',
-        }
-    });
-    console.log('✅ Seed completed successfully! Your app is fully populated.');
+    console.log('💰 Creating Wallet Transactions & Payouts...');
+    for (let i = 0; i < 5; i++) {
+        await prisma.payoutRequest.create({
+            data: { ownerType: 'company', ownerId: companies[0].id, amount: 500 + (i * 100), status: i === 0 ? 'pending' : 'paid', destinationBank: 'Bank of America', accountName: 'John Doe', accountNumber: '123456789' }
+        });
+    }
+    for (let i = 0; i < 20; i++) {
+        await prisma.transaction.create({
+            data: { ownerType: 'company', ownerId: companies[0].id, type: 'earning', amount: 135.00, category: `earning`, description: 'Booking Earning' }
+        });
+    }
+    console.log('📝 Creating Admin Audit Logs...');
+    for (let i = 0; i < 15; i++) {
+        await prisma.auditLog.create({
+            data: { userId: admin.id, action: 'UPDATE_SETTINGS', entityType: 'SystemSetting', entityId: BigInt(1) }
+        });
+    }
+    console.log('✅ MASSIVE SEED COMPLETED SUCCESSFULLY! Your app is fully populated.');
 }
 main()
     .catch((e) => {
