@@ -21,8 +21,8 @@ export declare class AuditLogsService {
                 avatar: string | null;
             } | null;
             createdAt: Date;
-            action: string | null;
             entityType: string | null;
+            action: string | null;
             ipAddress: string | null;
         }[];
         meta: {

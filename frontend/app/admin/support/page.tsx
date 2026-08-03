@@ -198,8 +198,8 @@ export default function AdminSupportPage() {
       {selectedTicket && (
         <SupportDrawer
           open={drawerOpen}
-          onOpenChange={setDrawerOpen}
-          ticketId={selectedTicket.id}
+          onClose={() => setDrawerOpen(false)}
+          ticket={selectedTicket as any}
         />
       )}
     </div>

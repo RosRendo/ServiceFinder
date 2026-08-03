@@ -6,9 +6,9 @@ export declare class AuditService {
         id: bigint;
         createdAt: Date;
         userId: bigint | null;
-        action: string | null;
         entityType: string | null;
         entityId: bigint | null;
+        action: string | null;
         ipAddress: string | null;
     }>;
 }

@@ -263,7 +263,7 @@ export function useMutation() {
     async (
       endpoint: string,
       body?: any,
-      method: "POST" | "PUT" | "DELETE" = "POST"
+      method: "POST" | "PUT" | "DELETE" | "PATCH" = "POST"
     ) => {
       setLoading(true);
       setError(null);

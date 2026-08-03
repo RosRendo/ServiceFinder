@@ -412,7 +412,7 @@ export default function AdminReportsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/50">
-                    {transactionLedger.map((tx, i) => (
+                    {transactionLedger.map((tx: any, i: number) => (
                       <tr key={i} className="hover:bg-muted/30 transition-colors">
                         <td className="px-5 py-3 font-medium text-muted-foreground">{tx.date}</td>
                         <td className="px-5 py-3 font-bold text-violet-600">{tx.id}</td>
@@ -463,7 +463,7 @@ export default function AdminReportsPage() {
                             <Cell key={`cell-${index}`} fill={entry.fill} />
                           ))}
                         </Pie>
-                        <RechartsTooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: 12 }} formatter={(val: number) => `${val}%`} />
+                        <RechartsTooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: 12 }} formatter={(val: any) => `${val}%`} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>

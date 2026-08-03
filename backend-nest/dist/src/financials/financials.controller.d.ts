@@ -14,10 +14,10 @@ export declare class FinancialsController {
             status: string;
             createdAt: Date;
             updatedAt: Date;
-            accountName: string;
-            accountNumber: string;
             ownerType: string;
             destinationBank: string;
+            accountName: string;
+            accountNumber: string;
             adminNotes: string | null;
         }[];
         transactions: {
@@ -39,10 +39,10 @@ export declare class FinancialsController {
         status: string;
         createdAt: Date;
         updatedAt: Date;
-        accountName: string;
-        accountNumber: string;
         ownerType: string;
         destinationBank: string;
+        accountName: string;
+        accountNumber: string;
         adminNotes: string | null;
     }>;
     getAllPayoutRequests(): Promise<{
@@ -52,10 +52,10 @@ export declare class FinancialsController {
         status: string;
         createdAt: Date;
         updatedAt: Date;
-        accountName: string;
-        accountNumber: string;
         ownerType: string;
         destinationBank: string;
+        accountName: string;
+        accountNumber: string;
         adminNotes: string | null;
     }[]>;
     processPayoutRequest(id: string, dto: ProcessPayoutDto): Promise<{
@@ -65,10 +65,10 @@ export declare class FinancialsController {
         status: string;
         createdAt: Date;
         updatedAt: Date;
-        accountName: string;
-        accountNumber: string;
         ownerType: string;
         destinationBank: string;
+        accountName: string;
+        accountNumber: string;
         adminNotes: string | null;
     }>;
 }

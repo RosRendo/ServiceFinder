@@ -227,7 +227,7 @@ export default function CompanySettingsPage() {
                       <div key={day} className="flex items-center justify-between py-2 border-b border-border/50">
                         <div className="flex items-center gap-3">
                           <button
-                            onClick={() => setHours((h) => ({ ...h, [day]: { ...h[day], open: !h[day].open } }))}
+                            onClick={() => setHours((h: any) => ({ ...h, [day]: { ...h[day], open: !h[day].open } }))}
                             className={cn("w-10 h-6 rounded-full transition-colors relative shrink-0",
                               hours[day].open ? "bg-primary" : "bg-muted-foreground/30")}>
                             <span className={cn("absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-background transition-transform shadow-sm",

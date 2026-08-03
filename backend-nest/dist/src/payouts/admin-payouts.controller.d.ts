@@ -13,8 +13,8 @@ export declare class AdminPayoutsController {
                     type: string;
                     accountName: string;
                     accountNumber: string;
-                    routingNumber: string | null;
                     qrCodeUrl: string | null;
+                    routingNumber: string | null;
                     isDefault: boolean;
                     isVerified: boolean;
                 }[];
@@ -37,8 +37,8 @@ export declare class AdminPayoutsController {
                     type: string;
                     accountName: string;
                     accountNumber: string;
-                    routingNumber: string | null;
                     qrCodeUrl: string | null;
+                    routingNumber: string | null;
                     isDefault: boolean;
                     isVerified: boolean;
                 }[];
