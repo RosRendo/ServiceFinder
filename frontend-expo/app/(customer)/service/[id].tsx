@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { api } from '@/store/authStore';
+import { api, useAuthStore } from '@/store/authStore';
 import { Theme } from '@/constants/theme';
 import ScaleButton from '@/components/ScaleButton';
 import BookingBottomSheet from '@/components/BookingBottomSheet';
@@ -75,7 +75,25 @@ export default function ServiceDetailScreen() {
     loadData();
   }, [id]);
 
+  const requireLogin = () => {
+    Alert.alert(
+      "Login Required",
+      "Please log in or create an account to use this feature.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Log In", 
+          onPress: () => {
+            useAuthStore.getState().setGuestMode(false);
+            router.replace("/login");
+          } 
+        }
+      ]
+    );
+  };
+
   const handleSaveToggle = async () => {
+    if (useAuthStore.getState().isGuest) return requireLogin();
     if (isSaving || !id) return;
     setIsSaving(true);
     try {
@@ -361,7 +379,10 @@ export default function ServiceDetailScreen() {
 
       {/* FLOATING ACTION BAR */}
       <View style={s.fabContainer}>
-        <ScaleButton onPress={() => setSheetVisible(true)}>
+        <ScaleButton onPress={() => {
+          if (useAuthStore.getState().isGuest) return requireLogin();
+          setSheetVisible(true);
+        }}>
           <View style={s.fabBtn}>
             <Text style={s.fabBtnText}>BOOK NOW</Text>
           </View>

@@ -38,7 +38,7 @@ export class AdminService {
       this.prisma.booking.count({ where: { status: { in: ['cancelled'] } } }),
       this.prisma.booking.aggregate({
         where: { status: 'completed' },
-        _sum: { totalPrice: true, companyEarnings: true },
+        _sum: { totalPrice: true, companyEarnings: true, platformFee: true },
       }),
       this.prisma.dispute.count({ where: { status: 'open' } }),
       this.prisma.supportTicket.count({ where: { status: 'open' } }),
@@ -48,7 +48,7 @@ export class AdminService {
     const totalCompanyEarnings = Number(
       revenueResult._sum.companyEarnings || 0,
     );
-    const platformRevenue = totalRevenue - totalCompanyEarnings;
+    const platformRevenue = Number(revenueResult._sum.platformFee || 0);
 
     const revenueSplit = [
       { name: 'Platform Commission', value: platformRevenue, fill: '#8b5cf6' },
@@ -213,6 +213,7 @@ export class AdminService {
 
     return {
       totalRevenue,
+      platformRevenue,
       revenueGrowth,
       totalBookings,
       bookingsGrowth,
@@ -347,20 +348,37 @@ export class AdminService {
         take,
         include: {
           owner: { select: { id: true, fullName: true, email: true } },
+          _count: { select: { staff: true } },
+          ratingSummary: true,
         },
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.company.count({ where }),
     ]);
 
+    const companiesWithStats = await Promise.all(
+      companies.map(async (c) => {
+        const stats = await this.prisma.booking.aggregate({
+          where: { companyId: c.id, status: 'completed' },
+          _sum: { companyEarnings: true },
+          _count: { id: true },
+        });
+        return {
+          ...c,
+          id: c.id.toString(),
+          ownerId: c.ownerId.toString(),
+          owner: { ...c.owner, id: c.owner.id.toString() },
+          totalRevenue: Number(stats._sum.companyEarnings || 0),
+          totalBookings: stats._count.id,
+          rating: Number(c.ratingSummary?.averageRating || 5.0),
+          staffCount: c._count.staff,
+        };
+      })
+    );
+
     return {
       success: true,
-      data: companies.map((c) => ({
-        ...c,
-        id: c.id.toString(),
-        ownerId: c.ownerId.toString(),
-        owner: { ...c.owner, id: c.owner.id.toString() },
-      })),
+      data: companiesWithStats,
       pagination: { total, page, limit, pages: Math.ceil(total / limit) },
     };
   }
@@ -663,14 +681,30 @@ export class AdminService {
       this.prisma.transaction.count({ where }),
     ]);
 
+    const bookingIds = transactions
+      .map((t) => t.bookingId)
+      .filter((id) => id !== null) as bigint[];
+    const bookings = await this.prisma.booking.findMany({
+      where: { id: { in: bookingIds } },
+      include: {
+        customer: { select: { fullName: true } },
+        company: { select: { name: true } },
+      },
+    });
+    const bookingMap = new Map(bookings.map((b) => [b.id.toString(), b]));
+
     return {
-      data: transactions.map((t) => ({
-        ...t,
-        id: t.id.toString(),
-        ownerId: t.ownerId.toString(),
-        bookingId: t.bookingId?.toString(),
-        amount: Number(t.amount),
-      })),
+      data: transactions.map((t) => {
+        const booking = t.bookingId ? bookingMap.get(t.bookingId.toString()) : null;
+        return {
+          ...t,
+          id: t.id.toString(),
+          ownerId: t.ownerId.toString(),
+          bookingId: t.bookingId?.toString(),
+          amount: Number(t.amount),
+          booking,
+        };
+      }),
       meta: { total, page: Number(page), limit: take },
     };
   }

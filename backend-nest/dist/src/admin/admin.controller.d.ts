@@ -7,6 +7,7 @@ export declare class AdminController {
     constructor(adminService: AdminService);
     getAnalytics(): Promise<{
         totalRevenue: number;
+        platformRevenue: number;
         revenueGrowth: number;
         totalBookings: number;
         bookingsGrowth: number;
@@ -58,12 +59,12 @@ export declare class AdminController {
         data: {
             id: string;
             status: import(".prisma/client").$Enums.UserStatus;
-            createdAt: Date;
-            role: import(".prisma/client").$Enums.UserRole;
             fullName: string;
             email: string | null;
             phone: string | null;
+            role: import(".prisma/client").$Enums.UserRole;
             lastLoginAt: Date | null;
+            createdAt: Date;
         }[];
         meta: {
             total: number;
@@ -75,18 +76,16 @@ export declare class AdminController {
         user: {
             id: string;
             ownedCompanies: {
+                verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
                 id: bigint;
                 name: string;
-                verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
             }[];
             status: import(".prisma/client").$Enums.UserStatus;
-            createdAt: Date;
-            updatedAt: Date;
-            role: import(".prisma/client").$Enums.UserRole;
             fullName: string;
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            role: import(".prisma/client").$Enums.UserRole;
             workingStatus: string;
             lastSeen: Date | null;
             lastLoginAt: Date | null;
@@ -95,6 +94,8 @@ export declare class AdminController {
             mfaSecret: string | null;
             emailNotificationsEnabled: boolean;
             pushNotificationsEnabled: boolean;
+            createdAt: Date;
+            updatedAt: Date;
         };
     }>;
     updateUser(id: string, dto: UpdateUserAdminDto): Promise<{
@@ -102,13 +103,11 @@ export declare class AdminController {
         user: {
             id: string;
             status: import(".prisma/client").$Enums.UserStatus;
-            createdAt: Date;
-            updatedAt: Date;
-            role: import(".prisma/client").$Enums.UserRole;
             fullName: string;
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            role: import(".prisma/client").$Enums.UserRole;
             workingStatus: string;
             lastSeen: Date | null;
             lastLoginAt: Date | null;
@@ -117,6 +116,8 @@ export declare class AdminController {
             mfaSecret: string | null;
             emailNotificationsEnabled: boolean;
             pushNotificationsEnabled: boolean;
+            createdAt: Date;
+            updatedAt: Date;
         };
     }>;
     suspendUser(id: string, body: {
@@ -139,19 +140,31 @@ export declare class AdminController {
                 fullName: string;
                 email: string | null;
             };
+            totalRevenue: number;
+            totalBookings: number;
+            rating: number;
+            staffCount: number;
+            _count: {
+                staff: number;
+            };
+            ratingSummary: {
+                companyId: bigint;
+                averageRating: import("@prisma/client/runtime/library").Decimal | null;
+                totalReviews: number;
+                lastUpdated: Date;
+            } | null;
+            verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+            description: string | null;
             latitude: import("@prisma/client/runtime/library").Decimal | null;
             longitude: import("@prisma/client/runtime/library").Decimal | null;
-            createdAt: Date;
-            updatedAt: Date;
-            walletBalance: import("@prisma/client/runtime/library").Decimal;
-            name: string;
-            description: string | null;
             email: string | null;
             phone: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+            name: string;
             registrationNumber: string | null;
             address: string | null;
             city: string | null;
-            verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
             logoUrl: string | null;
             coverImageUrl: string | null;
             verificationDocumentUrl: string | null;
@@ -161,6 +174,7 @@ export declare class AdminController {
             subscriptionStatus: string;
             trialEndsAt: Date | null;
             nextBillingDate: Date | null;
+            walletBalance: import("@prisma/client/runtime/library").Decimal;
             pendingBalance: import("@prisma/client/runtime/library").Decimal;
             availableBalance: import("@prisma/client/runtime/library").Decimal;
             platformFeePercent: import("@prisma/client/runtime/library").Decimal | null;
@@ -182,19 +196,18 @@ export declare class AdminController {
         company: {
             id: string;
             ownerId: string;
+            verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+            description: string | null;
             latitude: import("@prisma/client/runtime/library").Decimal | null;
             longitude: import("@prisma/client/runtime/library").Decimal | null;
-            createdAt: Date;
-            updatedAt: Date;
-            walletBalance: import("@prisma/client/runtime/library").Decimal;
-            name: string;
-            description: string | null;
             email: string | null;
             phone: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+            name: string;
             registrationNumber: string | null;
             address: string | null;
             city: string | null;
-            verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
             logoUrl: string | null;
             coverImageUrl: string | null;
             verificationDocumentUrl: string | null;
@@ -204,6 +217,7 @@ export declare class AdminController {
             subscriptionStatus: string;
             trialEndsAt: Date | null;
             nextBillingDate: Date | null;
+            walletBalance: import("@prisma/client/runtime/library").Decimal;
             pendingBalance: import("@prisma/client/runtime/library").Decimal;
             availableBalance: import("@prisma/client/runtime/library").Decimal;
             platformFeePercent: import("@prisma/client/runtime/library").Decimal | null;
@@ -228,22 +242,22 @@ export declare class AdminController {
             userId: string;
             companyId: string;
             status: import(".prisma/client").$Enums.StaffStatus;
-            createdAt: Date;
             role: import(".prisma/client").$Enums.StaffRole;
-            creditLimit: import("@prisma/client/runtime/library").Decimal;
+            createdAt: Date;
             walletBalance: import("@prisma/client/runtime/library").Decimal;
+            creditLimit: import("@prisma/client/runtime/library").Decimal;
             splitPercent: import("@prisma/client/runtime/library").Decimal | null;
         }[];
         services: {
             id: string;
             companyId: string;
-            checklist: import("@prisma/client/runtime/library").JsonValue | null;
+            description: string | null;
             createdAt: Date;
             updatedAt: Date;
             name: string;
+            checklist: import("@prisma/client/runtime/library").JsonValue | null;
             serviceTypeId: bigint;
             image: string | null;
-            description: string | null;
             basePrice: import("@prisma/client/runtime/library").Decimal;
             discountPrice: import("@prisma/client/runtime/library").Decimal | null;
             features: import("@prisma/client/runtime/library").JsonValue | null;
@@ -251,19 +265,18 @@ export declare class AdminController {
             durationMax: number | null;
             isActive: boolean;
         }[];
+        verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+        description: string | null;
         latitude: import("@prisma/client/runtime/library").Decimal | null;
         longitude: import("@prisma/client/runtime/library").Decimal | null;
-        createdAt: Date;
-        updatedAt: Date;
-        walletBalance: import("@prisma/client/runtime/library").Decimal;
-        name: string;
-        description: string | null;
         email: string | null;
         phone: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        name: string;
         registrationNumber: string | null;
         address: string | null;
         city: string | null;
-        verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         logoUrl: string | null;
         coverImageUrl: string | null;
         verificationDocumentUrl: string | null;
@@ -273,6 +286,7 @@ export declare class AdminController {
         subscriptionStatus: string;
         trialEndsAt: Date | null;
         nextBillingDate: Date | null;
+        walletBalance: import("@prisma/client/runtime/library").Decimal;
         pendingBalance: import("@prisma/client/runtime/library").Decimal;
         availableBalance: import("@prisma/client/runtime/library").Decimal;
         platformFeePercent: import("@prisma/client/runtime/library").Decimal | null;
@@ -324,11 +338,11 @@ export declare class AdminController {
                 id: string;
                 totalPrice: import("@prisma/client/runtime/library").Decimal;
             };
-            id: number;
             status: string;
+            description: string;
+            id: number;
             createdAt: Date;
             updatedAt: Date;
-            description: string;
             type: string;
             photos: string | null;
             companyResponse: string | null;
@@ -351,11 +365,11 @@ export declare class AdminController {
         bookingId: string;
         customerId: string;
         companyId: string;
-        id: number;
         status: string;
+        description: string;
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        description: string;
         type: string;
         photos: string | null;
         companyResponse: string | null;
@@ -378,8 +392,45 @@ export declare class AdminController {
             ownerId: string;
             bookingId: string | undefined;
             amount: number;
-            createdAt: Date;
+            booking: ({
+                company: {
+                    name: string;
+                };
+                customer: {
+                    fullName: string;
+                };
+            } & {
+                status: import(".prisma/client").$Enums.BookingStatus;
+                totalPrice: import("@prisma/client/runtime/library").Decimal;
+                companyEarnings: import("@prisma/client/runtime/library").Decimal;
+                platformFee: import("@prisma/client/runtime/library").Decimal;
+                id: bigint;
+                customerId: bigint;
+                companyId: bigint;
+                serviceId: bigint;
+                assignedStaffId: bigint | null;
+                latitude: import("@prisma/client/runtime/library").Decimal | null;
+                longitude: import("@prisma/client/runtime/library").Decimal | null;
+                staffStartLatitude: import("@prisma/client/runtime/library").Decimal | null;
+                staffStartLongitude: import("@prisma/client/runtime/library").Decimal | null;
+                progressPercent: number;
+                staffEarnings: import("@prisma/client/runtime/library").Decimal;
+                promoCodeId: bigint | null;
+                createdAt: Date;
+                updatedAt: Date;
+                bookingDate: Date;
+                startTime: Date;
+                endTime: Date;
+                actualStartTime: Date | null;
+                actualEndTime: Date | null;
+                serviceAddress: string;
+                checklist: import("@prisma/client/runtime/library").JsonValue | null;
+                proofOfWorkPhoto: string | null;
+                staffNotes: string | null;
+                customerNotes: string | null;
+            }) | null | undefined;
             description: string;
+            createdAt: Date;
             category: string;
             type: string;
             ownerType: string;
@@ -399,34 +450,33 @@ export declare class AdminController {
             company: {
                 id: string;
                 ownerId: string;
-                paymentMethods: {
-                    id: number;
-                    createdAt: Date;
-                    companyId: bigint;
-                    type: string;
-                    accountName: string;
-                    accountNumber: string;
-                    qrCodeUrl: string | null;
-                    routingNumber: string | null;
-                    isDefault: boolean;
-                    isVerified: boolean;
-                }[];
                 owner: {
                     email: string | null;
                 };
+                paymentMethods: {
+                    id: number;
+                    companyId: bigint;
+                    createdAt: Date;
+                    type: string;
+                    accountName: string;
+                    accountNumber: string;
+                    routingNumber: string | null;
+                    qrCodeUrl: string | null;
+                    isDefault: boolean;
+                    isVerified: boolean;
+                }[];
+                verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+                description: string | null;
                 latitude: import("@prisma/client/runtime/library").Decimal | null;
                 longitude: import("@prisma/client/runtime/library").Decimal | null;
-                createdAt: Date;
-                updatedAt: Date;
-                walletBalance: import("@prisma/client/runtime/library").Decimal;
-                name: string;
-                description: string | null;
                 email: string | null;
                 phone: string | null;
+                createdAt: Date;
+                updatedAt: Date;
+                name: string;
                 registrationNumber: string | null;
                 address: string | null;
                 city: string | null;
-                verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
                 logoUrl: string | null;
                 coverImageUrl: string | null;
                 verificationDocumentUrl: string | null;
@@ -436,6 +486,7 @@ export declare class AdminController {
                 subscriptionStatus: string;
                 trialEndsAt: Date | null;
                 nextBillingDate: Date | null;
+                walletBalance: import("@prisma/client/runtime/library").Decimal;
                 pendingBalance: import("@prisma/client/runtime/library").Decimal;
                 availableBalance: import("@prisma/client/runtime/library").Decimal;
                 platformFeePercent: import("@prisma/client/runtime/library").Decimal | null;
@@ -456,24 +507,24 @@ export declare class AdminController {
                 paymentMethods: {
                     id: number;
                     createdAt: Date;
-                    staffId: bigint;
                     type: string;
+                    staffId: bigint;
                     accountName: string;
                     accountNumber: string;
-                    qrCodeUrl: string | null;
                     routingNumber: string | null;
+                    qrCodeUrl: string | null;
                     isDefault: boolean;
                     isVerified: boolean;
                 }[];
                 status: import(".prisma/client").$Enums.StaffStatus;
-                createdAt: Date;
                 role: import(".prisma/client").$Enums.StaffRole;
-                creditLimit: import("@prisma/client/runtime/library").Decimal;
+                createdAt: Date;
                 walletBalance: import("@prisma/client/runtime/library").Decimal;
+                creditLimit: import("@prisma/client/runtime/library").Decimal;
                 splitPercent: import("@prisma/client/runtime/library").Decimal | null;
             } | null;
-            id: number;
             status: string;
+            id: number;
             method: string;
             payoutType: string;
             transactionId: string | null;
@@ -490,8 +541,8 @@ export declare class AdminController {
         message: string;
         payout: {
             companyId: string | undefined;
-            id: number;
             status: string;
+            id: number;
             method: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             staffId: bigint | null;
@@ -505,8 +556,8 @@ export declare class AdminController {
         message: string;
         payout: {
             companyId: string | undefined;
-            id: number;
             status: string;
+            id: number;
             method: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             staffId: bigint | null;
@@ -528,14 +579,12 @@ export declare class AdminController {
                 customer: {
                     id: string;
                     status: import(".prisma/client").$Enums.UserStatus;
-                    createdAt: Date;
-                    updatedAt: Date;
-                    role: import(".prisma/client").$Enums.UserRole;
                     fullName: string;
                     email: string | null;
                     phone: string | null;
                     avatar: string | null;
                     passwordHash: string | null;
+                    role: import(".prisma/client").$Enums.UserRole;
                     workingStatus: string;
                     lastSeen: Date | null;
                     lastLoginAt: Date | null;
@@ -544,23 +593,24 @@ export declare class AdminController {
                     mfaSecret: string | null;
                     emailNotificationsEnabled: boolean;
                     pushNotificationsEnabled: boolean;
+                    createdAt: Date;
+                    updatedAt: Date;
                 } | null;
                 company: {
                     id: string;
                     ownerId: string;
+                    verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+                    description: string | null;
                     latitude: import("@prisma/client/runtime/library").Decimal | null;
                     longitude: import("@prisma/client/runtime/library").Decimal | null;
-                    createdAt: Date;
-                    updatedAt: Date;
-                    walletBalance: import("@prisma/client/runtime/library").Decimal;
-                    name: string;
-                    description: string | null;
                     email: string | null;
                     phone: string | null;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    name: string;
                     registrationNumber: string | null;
                     address: string | null;
                     city: string | null;
-                    verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
                     logoUrl: string | null;
                     coverImageUrl: string | null;
                     verificationDocumentUrl: string | null;
@@ -570,6 +620,7 @@ export declare class AdminController {
                     subscriptionStatus: string;
                     trialEndsAt: Date | null;
                     nextBillingDate: Date | null;
+                    walletBalance: import("@prisma/client/runtime/library").Decimal;
                     pendingBalance: import("@prisma/client/runtime/library").Decimal;
                     availableBalance: import("@prisma/client/runtime/library").Decimal;
                     platformFeePercent: import("@prisma/client/runtime/library").Decimal | null;
@@ -579,31 +630,31 @@ export declare class AdminController {
                     coverageRadiusKm: number;
                     bookingMode: string;
                 } | null;
+                status: import(".prisma/client").$Enums.BookingStatus;
+                totalPrice: import("@prisma/client/runtime/library").Decimal;
+                companyEarnings: import("@prisma/client/runtime/library").Decimal;
+                platformFee: import("@prisma/client/runtime/library").Decimal;
+                serviceId: bigint;
+                assignedStaffId: bigint | null;
+                latitude: import("@prisma/client/runtime/library").Decimal | null;
+                longitude: import("@prisma/client/runtime/library").Decimal | null;
+                staffStartLatitude: import("@prisma/client/runtime/library").Decimal | null;
+                staffStartLongitude: import("@prisma/client/runtime/library").Decimal | null;
+                progressPercent: number;
+                staffEarnings: import("@prisma/client/runtime/library").Decimal;
+                promoCodeId: bigint | null;
+                createdAt: Date;
+                updatedAt: Date;
                 bookingDate: Date;
                 startTime: Date;
                 endTime: Date;
                 actualStartTime: Date | null;
                 actualEndTime: Date | null;
                 serviceAddress: string;
-                latitude: import("@prisma/client/runtime/library").Decimal | null;
-                longitude: import("@prisma/client/runtime/library").Decimal | null;
-                staffStartLatitude: import("@prisma/client/runtime/library").Decimal | null;
-                staffStartLongitude: import("@prisma/client/runtime/library").Decimal | null;
-                status: import(".prisma/client").$Enums.BookingStatus;
-                progressPercent: number;
                 checklist: import("@prisma/client/runtime/library").JsonValue | null;
                 proofOfWorkPhoto: string | null;
                 staffNotes: string | null;
-                totalPrice: import("@prisma/client/runtime/library").Decimal;
-                platformFee: import("@prisma/client/runtime/library").Decimal;
-                companyEarnings: import("@prisma/client/runtime/library").Decimal;
-                staffEarnings: import("@prisma/client/runtime/library").Decimal;
-                createdAt: Date;
-                updatedAt: Date;
                 customerNotes: string | null;
-                serviceId: bigint;
-                assignedStaffId: bigint | null;
-                promoCodeId: bigint | null;
             };
             invoiceNumber: string;
             issuedAt: Date;

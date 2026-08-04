@@ -77,6 +77,21 @@ let UsersService = class UsersService {
                     lastLoginAt: true,
                     createdAt: true,
                     updatedAt: true,
+                    staffMemberships: {
+                        include: {
+                            company: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                },
+                            },
+                        },
+                    },
+                    _count: {
+                        select: {
+                            bookingsAsCustomer: true,
+                        },
+                    },
                 },
                 orderBy: { createdAt: 'desc' },
             }),

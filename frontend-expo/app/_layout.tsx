@@ -51,7 +51,7 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayout() {
   const colorScheme = useColorScheme();
-  const { user, isLoading, checkAuth } = useAuthStore();
+  const { user, isGuest, isLoading, checkAuth } = useAuthStore();
   const [appReady, setAppReady] = useState(false);
 
   const [fontsLoaded] = useFonts({
@@ -83,11 +83,11 @@ function RootLayout() {
 
   const router = useRouter();
   useEffect(() => {
-    if (appReady && !isLoading && !user) {
-      // Force navigation to the welcome screen when user logs out
+    if (appReady && !isLoading && !user && !isGuest) {
+      // Force navigation to the welcome screen when user logs out and is not guest
       router.replace("/");
     }
-  }, [user, appReady, isLoading]);
+  }, [user, isGuest, appReady, isLoading]);
 
   if (!appReady || isLoading || !fontsLoaded) {
     return null;
@@ -97,13 +97,13 @@ function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Stack screenOptions={{ headerShown: false }}>
-        {!user ? (
+        {!user && !isGuest ? (
           <Stack.Screen name="(public)" options={{ gestureEnabled: false }} />
-        ) : user.role?.toLowerCase() === 'admin' ? (
+        ) : user?.role?.toLowerCase() === 'admin' ? (
           <Stack.Screen name="(admin)" options={{ gestureEnabled: false }} />
-        ) : user.role?.toLowerCase() === 'company' ? (
+        ) : user?.role?.toLowerCase() === 'company' ? (
           <Stack.Screen name="(company)" options={{ gestureEnabled: false }} />
-        ) : user.role?.toLowerCase() === 'staff' ? (
+        ) : user?.role?.toLowerCase() === 'staff' ? (
           <Stack.Screen name="(staff)" options={{ gestureEnabled: false }} />
         ) : (
           <Stack.Screen name="(customer)" options={{ gestureEnabled: false }} />

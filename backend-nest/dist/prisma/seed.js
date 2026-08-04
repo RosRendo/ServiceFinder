@@ -36,7 +36,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const bcrypt = __importStar(require("bcryptjs"));
 const prisma = new client_1.PrismaClient();
-async function main() {
+async function runProductionSeed() {
+    console.log('🌱 Starting PRODUCTION safe seed...');
+    const pw = await bcrypt.hash('password123', 10);
+    const existingAdmin = await prisma.user.findUnique({ where: { email: 'admin@servicefinder.com' } });
+    if (!existingAdmin) {
+        console.log('  -> Creating initial Super Admin account...');
+        await prisma.user.create({
+            data: { fullName: 'Super Admin', email: 'admin@servicefinder.com', passwordHash: pw, role: 'admin', phone: '+1000000000', status: 'active' }
+        });
+    }
+    else {
+        console.log('  -> Super Admin already exists. Skipping.');
+    }
+    console.log('  -> Ensuring default categories exist...');
+    const categoriesData = ['Cleaning', 'Plumbing', 'Electrical', 'Landscaping', 'HVAC'];
+    for (let i = 0; i < categoriesData.length; i++) {
+        const slug = categoriesData[i].toLowerCase();
+        const existing = await prisma.category.findUnique({ where: { slug } });
+        if (!existing) {
+            await prisma.category.create({
+                data: { name: categoriesData[i], slug, displayOrder: i, status: 'active' }
+            });
+        }
+    }
+    console.log('✅ PRODUCTION SEED COMPLETED SAFELY.');
+}
+async function runMassiveSeed() {
     console.log('🌱 Starting massive full-app database seed...');
     console.log('🧹 Clearing existing data... (This may take a few seconds)');
     const tables = await prisma.$queryRaw `
@@ -86,10 +112,11 @@ async function main() {
     companies.push(await prisma.company.create({
         data: { name: 'Quick Fix Electricians', ownerId: owners[2].id, phone: '555-0103', email: 'hello@quickfix.com', address: '789 Wire Blvd', city: 'Chicago', verificationStatus: 'pending', bookingMode: 'dispatch' }
     }));
+    const companyStaffLinks = [];
     for (let i = 0; i < staff.length; i++) {
-        await prisma.companyStaff.create({
+        companyStaffLinks.push(await prisma.companyStaff.create({
             data: { companyId: companies[i % 3].id, userId: staff[i].id, role: 'worker', status: 'active' }
-        });
+        }));
     }
     console.log('📦 Creating Categories & Services...');
     const categoriesData = ['Cleaning', 'Plumbing', 'Electrical', 'Landscaping', 'HVAC'];
@@ -136,12 +163,13 @@ async function main() {
         }
         const price = Number(srv.basePrice) || 100;
         const fee = price * 0.10;
+        const cStaff = companyStaffLinks.find(cs => cs.userId === stf.id);
         const b = await prisma.booking.create({
             data: {
                 customerId: cust.id,
                 companyId: comp.id,
                 serviceId: srv.id,
-                assignedStaffId: (status === 'pending' || status === 'cancelled') ? null : stf.id,
+                assignedStaffId: (status === 'pending' || status === 'cancelled' || !cStaff) ? null : cStaff.id,
                 status: status,
                 bookingDate: bookingDate,
                 startTime: new Date(bookingDate.setHours(10, 0, 0, 0)),
@@ -210,6 +238,19 @@ async function main() {
         });
     }
     console.log('✅ MASSIVE SEED COMPLETED SUCCESSFULLY! Your app is fully populated.');
+}
+async function main() {
+    if (process.env.NODE_ENV === 'production') {
+        await runProductionSeed();
+    }
+    else {
+        if (process.env.SAFE_SEED === 'true') {
+            await runProductionSeed();
+        }
+        else {
+            await runMassiveSeed();
+        }
+    }
 }
 main()
     .catch((e) => {

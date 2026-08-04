@@ -150,6 +150,8 @@ interface AuthStore {
   user: User | null;
   isLoading: boolean;
   token: string | null;
+  isGuest: boolean;
+  setGuestMode: (value: boolean) => void;
   setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
   checkAuth: () => Promise<void>;
@@ -170,6 +172,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   isLoading: true, // Initially loading while we check token
   token: null,
+  isGuest: false,
+  setGuestMode: (value) => set({ isGuest: value }),
   setUser: (user) => set({ user }),
   setLoading: (loading) => set({ isLoading: loading }),
 
@@ -198,12 +202,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
         }
       }
       
-      set({ user: userData, isLoading: false });
+      set({ user: userData, isLoading: false, isGuest: false });
     } catch (error: any) {
       if (error?.response?.status === 401) {
         await SecureStore.deleteItemAsync('authToken');
         delete api.defaults.headers.common['Authorization'];
-        set({ user: null, isLoading: false });
+        set({ user: null, isLoading: false, isGuest: false });
       } else {
         set({ isLoading: false });
       }
@@ -240,7 +244,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         }
       }
       
-      set({ user });
+      set({ user, isGuest: false });
     } catch (error) {
       throw error;
     }
@@ -257,7 +261,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
       if (accessToken) api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
       
-      set({ user });
+      set({ user, isGuest: false });
     } catch (error) {
       throw error;
     }
@@ -288,7 +292,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         }
       }
       
-      set({ user });
+      set({ user, isGuest: false });
     } catch (error) {
       throw error;
     }
@@ -304,7 +308,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (accessToken) await SecureStore.setItemAsync('authToken', accessToken);
       if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
       if (accessToken) api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-      set({ user });
+      set({ user, isGuest: false });
     } catch (error) {
       throw error;
     }
@@ -320,7 +324,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (accessToken) await SecureStore.setItemAsync('authToken', accessToken);
       if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
       if (accessToken) api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-      set({ user });
+      set({ user, isGuest: false });
     } catch (error) {
       throw error;
     }
@@ -336,7 +340,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (accessToken) await SecureStore.setItemAsync('authToken', accessToken);
       if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
       if (accessToken) api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-      set({ user });
+      set({ user, isGuest: false });
     } catch (error) {
       throw error;
     }
@@ -350,7 +354,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
     await SecureStore.deleteItemAsync('authToken');
     delete api.defaults.headers.common['Authorization'];
-    set({ user: null });
+    set({ user: null, isGuest: false });
   },
 
   deleteAccount: async () => {
@@ -363,6 +367,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
     await SecureStore.deleteItemAsync('authToken');
     await SecureStore.deleteItemAsync('refreshToken');
     delete api.defaults.headers.common['Authorization'];
-    set({ user: null });
+    set({ user: null, isGuest: false });
   },
 }));

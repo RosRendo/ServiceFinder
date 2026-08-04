@@ -6,9 +6,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
-import { api } from "@/store/authStore";
+import { api, useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
+import { GuestCTA } from "@/components/common/GuestCTA";
 
 const T = Theme.colors;
 
@@ -59,6 +60,7 @@ function AnimatedChatEmpty({ title, sub }: { title: string; sub: string }) {
 
 export default function MessagesScreen() {
   const router = useRouter();
+  const { isGuest } = useAuthStore();
   const { t } = useTranslation();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +77,17 @@ export default function MessagesScreen() {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(useCallback(() => { 
+    if (!isGuest) {
+      load(); 
+    } else {
+      setLoading(false);
+    }
+  }, [load, isGuest]));
+
+  if (isGuest) {
+    return <GuestCTA title="Log in to chat" subtitle="Message your service providers to ask questions or discuss your bookings." icon="message-text-outline" />;
+  }
 
   const filtered = conversations.filter(c =>
     (c.otherUser?.fullName || "").toLowerCase().includes(search.toLowerCase())

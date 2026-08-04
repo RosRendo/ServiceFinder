@@ -8,6 +8,7 @@ import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Theme } from "@/constants/theme";
+import { useAuthStore } from "@/store/authStore";
 
 const { width } = Dimensions.get("window");
 
@@ -114,7 +115,13 @@ export default function WelcomeScreen() {
 
         {/* Bottom Actions */}
         <View style={s.actionsWrapper}>
-          <PressBtn onPress={() => router.push("/login")} style={s.btnPrimary}>
+          <PressBtn 
+            onPress={() => {
+              useAuthStore.getState().setGuestMode(true);
+              router.replace("/(customer)/(tabs)/home");
+            }} 
+            style={s.btnPrimary}
+          >
             <Text style={s.btnPrimaryText}>{t('welcome.getStarted', 'Get Started')}</Text>
             <MaterialCommunityIcons name="arrow-right" size={24} color={T.surface} style={{ marginLeft: 8 }} />
           </PressBtn>
@@ -140,6 +147,9 @@ const s = StyleSheet.create({
   actionsWrapper: { gap: 14, paddingHorizontal: 24, paddingBottom: 32 },
   btnPrimary: { flexDirection: "row", width: "100%", backgroundColor: T.accent, borderRadius: 14, paddingVertical: 18, alignItems: "center", justifyContent: "center" },
   btnPrimaryText: { fontSize: 17, fontWeight: "600", color: T.surface, letterSpacing: 0.2 },
+  
+  btnSecondary: { flexDirection: "row", width: "100%", backgroundColor: T.surface, borderRadius: 14, paddingVertical: 18, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: T.border },
+  btnSecondaryText: { fontSize: 17, fontWeight: "600", color: T.text2, letterSpacing: 0.2 },
   
   btnGoogle: { flexDirection: "row", width: "100%", backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, borderRadius: 14, paddingVertical: 18, alignItems: "center", justifyContent: "center", ...CARD_SHADOW },
   btnGoogleText: { fontSize: 17, fontWeight: "600", color: T.text1, letterSpacing: 0.2 },

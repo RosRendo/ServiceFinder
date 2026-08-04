@@ -11,9 +11,10 @@ import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { api } from "@/store/authStore";
+import { api, useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
+import { GuestCTA } from "@/components/common/GuestCTA";
 
 // ─── Design Tokens ───────────────────────────────────────────
 const T = Theme.colors;
@@ -282,6 +283,7 @@ function AnimatedEmptyIcon({ activeTab }: { activeTab: string }) {
 // ─── Main Screen ─────────────────────────────────────────────
 export default function ActivityScreen() {
   const router = useRouter();
+  const { isGuest } = useAuthStore();
   const [activeTab, setActiveTab] = useState<"upcoming" | "past" | "cancelled">("upcoming");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -305,7 +307,13 @@ export default function ActivityScreen() {
     }
   }, [activeTab]);
 
-  useEffect(() => { loadBookings(); }, [loadBookings]);
+  useEffect(() => { 
+    if (!isGuest) {
+      loadBookings(); 
+    } else {
+      setIsLoading(false);
+    }
+  }, [loadBookings, isGuest]);
 
   const handleCancel = (id: string) => {
     Alert.alert("Cancel Booking", "Are you sure you want to cancel this booking?", [
@@ -329,6 +337,10 @@ export default function ActivityScreen() {
     { key: "past" as const,     label: "Completed" },
     { key: "cancelled" as const,label: "Cancelled" },
   ];
+
+  if (isGuest) {
+    return <GuestCTA title="Log in to view activity" subtitle="Keep track of your upcoming and past bookings by logging into your account." icon="calendar-outline" />;
+  }
 
   return (
     <SafeAreaView style={s.root} edges={["top"]}>

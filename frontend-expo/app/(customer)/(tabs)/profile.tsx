@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import { useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
+import { GuestCTA } from "@/components/common/GuestCTA";
 
 // ─── Design Tokens ──────────────────────────────────────────
 const T = Theme.colors;
@@ -86,7 +87,7 @@ function MenuGroup({ title, items }: { title: string; items: MenuItem[] }) {
 export default function ProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { user, logout } = useAuthStore();
+  const { user, logout, isGuest } = useAuthStore();
 
   const avatarUrl = user?.avatar || (user
     ? `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(user.fullName || user.name || t('profile.guestUser'))}&backgroundColor=000000&textColor=ffffff`
@@ -155,6 +156,10 @@ export default function ProfileScreen() {
       danger: true,
     },
   ];
+
+  if (isGuest) {
+    return <GuestCTA title="Log in to view profile" subtitle="Manage your account settings, addresses, and preferences by logging in." icon="account-outline" />;
+  }
 
   return (
     <SafeAreaView style={s.root} edges={["top"]}>

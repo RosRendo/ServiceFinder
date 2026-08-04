@@ -44,8 +44,10 @@ export default function AdminReportsPage() {
     pending: pendingEscrow,
   };
 
+  const toArray = (val: any) => Array.isArray(val) ? val : Array.isArray(val?.data) ? val.data : Array.isArray(val?.transactions) ? val.transactions : Array.isArray(val?.payouts) ? val.payouts : [];
+
   // Company payouts from /api/admin/payouts
-  const companyPayoutsData = (payoutsData?.payouts || payoutsData || []).slice(0, 5).map((p: any) => ({
+  const companyPayoutsData = toArray(payoutsData).slice(0, 5).map((p: any) => ({
     company: p.company?.name || p.recipientName || 'Unknown',
     jobs:    p.jobsCompleted || 0,
     gross:   Number(p.grossAmount || p.amount || 0),
@@ -54,25 +56,25 @@ export default function AdminReportsPage() {
   }));
 
   // Transaction ledger from /api/admin/transactions
-  const transactionLedger = (txData?.transactions || txData || []).slice(0, 5).map((t: any) => ({
+  const transactionLedger = toArray(txData).slice(0, 5).map((t: any) => ({
     date:     t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '',
     id:       t.bookingId ? `BK-${t.bookingId}` : t.id,
     customer: t.booking?.customer?.fullName || t.customerName || 'Unknown',
     company:  t.booking?.company?.name      || t.companyName  || 'Unknown',
     amount:   Number(t.amount || 0),
-    fee:      Number(t.platformFee || t.fee || 0),
+    fee:      Number(t.platformFee || t.fee || t.booking?.platformFee || 0),
     status:   t.status?.charAt(0).toUpperCase() + t.status?.slice(1) || 'Unknown',
   }));
 
   // P&L derived from real analytics
+  const gatewayFee = Math.round(totalRevenue * 0.029);
+
   const incomeStatement = {
     revenue: platformRevenue,
     expenses: [
-      { name: "Payment Gateway Fees (~2.9%)",  amount: -Math.round(totalRevenue * 0.029) },
-      { name: "Cloud Infrastructure (est.)",   amount: -15000 },
-      { name: "Operations & Support (est.)",   amount: -30000 },
+      { name: "Payment Gateway Fees (2.9%)",  amount: -gatewayFee },
     ],
-    netProfit: platformRevenue - Math.round(totalRevenue * 0.029) - 15000 - 30000,
+    netProfit: platformRevenue - gatewayFee,
   };
 
   // Cash flow derived from real analytics
@@ -80,25 +82,22 @@ export default function AdminReportsPage() {
     moneyIn:  [{ name: "Customer Payments (Processed)", amount: totalRevenue }],
     moneyOut: [
       { name: "Payouts to Companies",     amount: -totalPayouts },
-      { name: "Operating Expenses (est.)",amount: -(Math.round(totalRevenue * 0.029) + 45000) },
+      { name: "Payment Gateway Fees",     amount: -gatewayFee },
     ],
-    endingBalance: platformRevenue - (Math.round(totalRevenue * 0.029) + 45000),
+    endingBalance: platformRevenue - gatewayFee,
   };
 
   const refundData = {
     total: analytics?.cancelledBookings ? analytics.cancelledBookings * avgBookingValue : 0,
     reasons: [
-      { name: "Company No-Show",       value: 45, fill: "#f59e0b" },
-      { name: "Quality Complaint",     value: 30, fill: "#ef4444" },
-      { name: "Customer Cancellation", value: 15, fill: "#6366f1" },
-      { name: "Fraud/Chargeback",      value: 10, fill: "#10b981" },
+      { name: "General Cancellations", value: 100, fill: "#ef4444" },
     ]
   };
 
   const taxSummary = {
     grossSales:      totalRevenue,
     platformRevenue: platformRevenue,
-    taxCollected:    Math.round(totalRevenue * 0.1),
+    taxCollected:    Math.round(totalRevenue * 0.1), // Derived 10% standard rate
     taxRemitted:     Math.round(totalRevenue * 0.068),
     taxDue:          Math.round(totalRevenue * 0.032),
   };

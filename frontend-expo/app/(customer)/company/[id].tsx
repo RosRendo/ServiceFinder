@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { api } from "@/store/authStore";
+import { api, useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
 import ScaleButton from "@/components/ScaleButton";
@@ -63,9 +63,25 @@ export default function CompanyDetailScreen() {
     }
   }, [id]);
 
-  useEffect(() => { loadCompany(); }, [loadCompany]);
+  const requireLogin = () => {
+    Alert.alert(
+      "Login Required",
+      "Please log in or create an account to use this feature.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Log In", 
+          onPress: () => {
+            useAuthStore.getState().setGuestMode(false);
+            router.replace("/login");
+          } 
+        }
+      ]
+    );
+  };
 
   const handleSaveToggle = async () => {
+    if (useAuthStore.getState().isGuest) return requireLogin();
     if (isSaving || !id) return;
     setIsSaving(true);
     try {
@@ -380,6 +396,7 @@ export default function CompanyDetailScreen() {
         </View>
         <ScaleButton
           onPress={() => {
+            if (useAuthStore.getState().isGuest) return requireLogin();
             if (services.length === 0) return;
             const first = services[0];
             router.push(`/(customer)/service/${first.id}` as any);

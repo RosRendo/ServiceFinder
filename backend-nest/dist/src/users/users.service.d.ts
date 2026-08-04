@@ -18,10 +18,29 @@ export declare class UsersService {
             createdAt: Date;
             updatedAt: Date;
             role: import(".prisma/client").$Enums.UserRole;
+            _count: {
+                bookingsAsCustomer: number;
+            };
             fullName: string;
             email: string | null;
             phone: string | null;
             lastLoginAt: Date | null;
+            staffMemberships: ({
+                company: {
+                    id: bigint;
+                    name: string;
+                };
+            } & {
+                id: bigint;
+                status: import(".prisma/client").$Enums.StaffStatus;
+                createdAt: Date;
+                companyId: bigint;
+                userId: bigint;
+                role: import(".prisma/client").$Enums.StaffRole;
+                creditLimit: import("@prisma/client/runtime/library").Decimal;
+                walletBalance: import("@prisma/client/runtime/library").Decimal;
+                splitPercent: import("@prisma/client/runtime/library").Decimal | null;
+            })[];
         }[];
         pagination: {
             total: number;

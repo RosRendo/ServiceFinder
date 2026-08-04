@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Building2, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
+import { ImageUpload } from "@/components/ui/ImageUpload";
+import LocationSelector from "@/components/map/LocationSelector";
 
 export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; onClose: () => void; onSuccess?: () => void }) {
   const { toast } = useToast();
@@ -157,24 +159,50 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
               <Label>City</Label>
               <Input value={formData.companyCity} onChange={e => setFormData({...formData, companyCity: e.target.value})} placeholder="New York" />
               
-              <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Latitude (optional)</Label>
-                    <Input type="number" step="any" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} placeholder="40.7128" />
+              <div className="pt-4 mt-4 border-t border-border/50">
+                <Label className="mb-2 block">Map Location</Label>
+                
+                <div className="mt-2">
+                  {activeTab === "location" && (
+                    <LocationSelector 
+                      lat={formData.latitude ? Number(formData.latitude) : 11.5564} 
+                      lng={formData.longitude ? Number(formData.longitude) : 104.9282} 
+                      onChange={(lat, lng) => setFormData({...formData, latitude: lat.toString(), longitude: lng.toString()})} 
+                    />
+                  )}
+                </div>
+
+                {formData.latitude && formData.longitude && (
+                  <div className="mt-3 p-3 bg-muted rounded-md border border-border flex items-center justify-between text-xs font-mono">
+                    <span className="text-muted-foreground truncate mr-3">Selected Location</span>
+                    <span className="text-primary whitespace-nowrap shrink-0">{Number(formData.latitude).toFixed(5)}, {Number(formData.longitude).toFixed(5)}</span>
                   </div>
-                  <div>
-                    <Label>Longitude (optional)</Label>
-                    <Input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} placeholder="-74.0060" />
-                  </div>
+                )}
               </div>
             </TabsContent>
 
-            <TabsContent value="media" className="space-y-4 m-0">
-              <Label>Logo URL</Label>
-              <Input value={formData.logoUrl} onChange={e => setFormData({...formData, logoUrl: e.target.value})} placeholder="https://example.com/logo.png" />
+            <TabsContent value="media" className="space-y-6 m-0">
+              <div>
+                <Label className="block mb-2 text-sm font-bold">Company Logo</Label>
+                <p className="text-xs text-muted-foreground mb-3">Upload a square logo for the company profile.</p>
+                <div className="w-48">
+                  <ImageUpload 
+                    value={formData.logoUrl} 
+                    onChange={url => setFormData({...formData, logoUrl: url})} 
+                    label="Upload Logo" 
+                  />
+                </div>
+              </div>
               
-              <Label>Cover Image URL</Label>
-              <Input value={formData.coverImageUrl} onChange={e => setFormData({...formData, coverImageUrl: e.target.value})} placeholder="https://example.com/cover.png" />
+              <div className="border-t border-border/50 pt-4">
+                <Label className="block mb-2 text-sm font-bold">Cover Image</Label>
+                <p className="text-xs text-muted-foreground mb-3">Upload a wide cover image for the company banner.</p>
+                <ImageUpload 
+                  value={formData.coverImageUrl} 
+                  onChange={url => setFormData({...formData, coverImageUrl: url})} 
+                  label="Upload Cover Image" 
+                />
+              </div>
             </TabsContent>
 
             <TabsContent value="services" className="space-y-4 m-0">
