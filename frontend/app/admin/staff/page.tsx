@@ -140,12 +140,6 @@ export default function StaffPage() {
         <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted/60 transition-colors">
           <Download className="w-3.5 h-3.5" /> Export
         </button>
-        <button 
-          onClick={() => toast({ title: "Invite Sent", description: "Invitation link has been copied to your clipboard!" })}
-          className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors"
-        >
-          <UserPlus className="w-3.5 h-3.5" /> Invite Staff
-        </button>
       </div>
 
       {/* Stats */}
@@ -217,14 +211,8 @@ export default function StaffPage() {
           role: activeStaff.staffMemberships?.[0]?.role || activeStaff.role || "Staff",
           status: activeStaff.workingStatus || activeStaff.status || "offline",
           lastSeen: activeStaff.lastSeen,
-          rating: 5.0,
           jobsCompleted: activeStaff._count?.bookingsAsCustomer || 0,
-          todayJobs: 0,
-          earningsToday: 0,
           pendingPayout: 0,
-          tips: 0,
-          attendance: 100,
-          onTimeRate: 100,
           phone: activeStaff.phone || "No phone",
           activeJob: undefined,
           compliance: [],

@@ -91,12 +91,15 @@ export function DataGrid<T extends { id: string }>({
           <thead className="sticky top-0 z-10 bg-background border-b border-border">
             <tr>
               {onToggleRow && (
-                <th className="w-10 px-4 py-3">
-                  <label className="flex items-center justify-center cursor-pointer">
+                <th 
+                  className="w-10 px-4 py-3 cursor-pointer"
+                  onClick={onToggleAll}
+                >
+                  <div className="flex items-center justify-center pointer-events-none">
                     <input
                       type="checkbox"
                       checked={allSelected}
-                      onChange={onToggleAll}
+                      readOnly
                       className="sr-only peer"
                     />
                     <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-input bg-background shadow-xs transition-colors peer-checked:border-violet-500 peer-checked:bg-violet-500 peer-focus-visible:ring-2 peer-focus-visible:ring-violet-400/50 hover:border-violet-400">
@@ -106,7 +109,7 @@ export function DataGrid<T extends { id: string }>({
                         </svg>
                       )}
                     </span>
-                  </label>
+                  </div>
                 </th>
               )}
               {columns.map((col) => (
@@ -157,14 +160,14 @@ export function DataGrid<T extends { id: string }>({
                   >
                     {onToggleRow && (
                       <td
-                        className="w-10 px-4 py-3"
+                        className="w-10 px-4 py-3 cursor-pointer"
                         onClick={(e) => { e.stopPropagation(); onToggleRow(row.id); }}
                       >
-                        <label className="flex items-center justify-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-center pointer-events-none">
                           <input
                             type="checkbox"
                             checked={selected}
-                            onChange={() => onToggleRow(row.id)}
+                            readOnly
                             className="sr-only peer"
                           />
                           <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-input bg-background shadow-xs transition-colors peer-checked:border-violet-500 peer-checked:bg-violet-500 peer-focus-visible:ring-2 peer-focus-visible:ring-violet-400/50 group-hover:border-violet-300">
@@ -174,7 +177,7 @@ export function DataGrid<T extends { id: string }>({
                               </svg>
                             )}
                           </span>
-                        </label>
+                        </div>
                       </td>
                     )}
                     {columns.map((col) => (

@@ -20,14 +20,8 @@ export interface StaffRow {
   role: string;
   status: "online" | "offline" | "on_job" | "active" | "inactive";
   lastSeen?: string | Date;
-  rating: number;
   jobsCompleted: number;
-  todayJobs: number;
-  earningsToday: number;
   pendingPayout: number;
-  tips: number;
-  attendance: number;
-  onTimeRate: number;
   phone: string;
   currentLocation: string;
   activeJob?: string;
@@ -154,14 +148,6 @@ export function StaffDrawer({ open, onClose, staff, onSuccess }: StaffDrawerProp
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Pending Payout</span>
               <span className="text-lg font-black text-emerald-500">${staff.pendingPayout}</span>
             </div>
-             <div className="bg-muted/10 border border-border rounded-xl p-3 flex flex-col items-center justify-center text-center">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Attendance</span>
-              <span className="text-lg font-black text-foreground">{staff.attendance}%</span>
-            </div>
-             <div className="bg-muted/10 border border-border rounded-xl p-3 flex flex-col items-center justify-center text-center">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">On-Time Rate</span>
-              <span className="text-lg font-black text-foreground">{staff.onTimeRate}%</span>
-            </div>
           </div>
         </div>
 
@@ -238,11 +224,15 @@ export function StaffDrawer({ open, onClose, staff, onSuccess }: StaffDrawerProp
               <button
                 key={label}
                 onClick={() => {
+                  const basePath = user?.role === 'admin' ? '/admin' : '/company';
                   if (id === "message") {
-                    const basePath = user?.role === 'admin' ? '/admin' : '/company';
                     window.location.href = `${basePath}/messages?new=${staff.id}`;
                   } else if (id === "wallet" || id === "docs") {
-                    router.push(`/company/staff/${staff.id}`);
+                    if (user?.role === 'admin') {
+                      router.push(`/admin/users/${staff.id}`);
+                    } else {
+                      router.push(`/company/staff/${staff.id}`);
+                    }
                     onClose();
                   }
                 }}

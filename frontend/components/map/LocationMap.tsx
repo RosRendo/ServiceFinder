@@ -66,7 +66,7 @@ export default function LocationMap({ lat, lng, onChange, readOnly = false }: Lo
         <MapContainer 
           center={position} 
           zoom={13} 
-          scrollWheelZoom={!readOnly} 
+          scrollWheelZoom={false} 
           style={{ height: '100%', width: '100%' }}
         >
         <TileLayer

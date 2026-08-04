@@ -35,6 +35,14 @@ import { Public } from '../auth/decorators/public.decorator';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Post()
+  @Roles('admin')
+  @ApiOperation({ summary: 'Create a new user (Admin only)' })
+  @ApiResponse({ status: 201, description: 'User created successfully.' })
+  createUser(@Body() body: any) {
+    return this.usersService.createUser(body);
+  }
+
   @Get()
   @Roles('admin')
   @ApiOperation({ summary: 'Get all users (Admin only)' })

@@ -45,6 +45,7 @@ export default function CompanySettingsPage() {
     bankAccountName: "",
     bankName: "ABA Bank",
     bankAccountNumber: "",
+    verificationDocumentUrl: "",
   });
 
   const [hours, setHours] = useState(
@@ -76,6 +77,7 @@ export default function CompanySettingsPage() {
           bankAccountName: company.bankAccountName || "",
           bankName: company.bankName || "ABA Bank",
           bankAccountNumber: company.bankAccountNumber || "",
+          verificationDocumentUrl: company.verificationDocumentUrl || "",
         });
       }
     } catch {
@@ -211,6 +213,18 @@ export default function CompanySettingsPage() {
                           className="w-full h-9 px-3 bg-muted/20 border border-border rounded-lg text-sm text-foreground outline-none focus:border-primary" 
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-1.5 pt-2 border-t border-border/60 mt-4">
+                      <Label htmlFor="verificationDoc">Verification Document URL (PDF / Image link)</Label>
+                      <input 
+                        id="verificationDoc" 
+                        value={form.verificationDocumentUrl} 
+                        onChange={e => handleUpdateField("verificationDocumentUrl", e.target.value)}
+                        placeholder="https://example.com/my-license.pdf"
+                        className="w-full h-9 px-3 bg-muted/20 border border-border rounded-lg text-sm text-foreground outline-none focus:border-primary" 
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-1">Upload a link to your Business Registration or Identity Document to get Verified.</p>
                     </div>
                   </div>
                 </div>

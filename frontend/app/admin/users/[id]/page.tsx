@@ -1,49 +1,130 @@
-"use client"
+"use client";
+
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, Activity, Loader2, AlertCircle, CheckCircle, Shield, XCircle, MessageSquare } from "lucide-react";
+import {
+  ArrowLeft, Mail, Phone, Calendar, Loader2, AlertCircle, CheckCircle, Shield,
+  XCircle, MessageSquare, Building2, Briefcase, Star, Clock, Lock, MonitorSmartphone,
+  Activity, CheckCircle2, AlertTriangle, List, Edit, Key, LogOut, DollarSign, TrendingUp,
+  Users, BarChart3, Wallet
+} from "lucide-react";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, ResponsiveContainer
+} from "recharts";
+import { differenceInDays, format } from "date-fns";
+
+// ─── Types ──────────────────────────────────────────────────────────────
+interface CompanyOwned {
+  id: string;
+  name: string;
+  logoUrl?: string;
+  verificationStatus: string;
+  walletBalance: string;
+  pendingBalance: string;
+  availableBalance: string;
+  completedJobs: number;
+  platformFeePercent?: string;
+  ratingSummary?: { averageRating?: string; totalReviews: number };
+  _count: { staff: number; services: number; bookings: number };
+  bookings: Array<{ totalPrice: string; platformFee: string; companyEarnings: string; createdAt: string; bookingDate: string }>;
+}
+
+interface StaffMembership {
+  id: string;
+  splitPercent?: string;
+  walletBalance: string;
+  company: { id: string; name: string; logoUrl?: string; ratingSummary?: { averageRating?: string } };
+  assignedBookings: Array<{
+    id: string; bookingDate: string; status: string; staffEarnings: string;
+    totalPrice: string; service: { name: string }; company: { name: string }; customer: { fullName: string };
+  }>;
+  reviews: Array<{
+    id: string; staffRating?: number; staffComment?: string; createdAt: string;
+    customer: { fullName: string }; booking: { service: { name: string } };
+  }>;
+}
+
+interface BookingAsCustomer {
+  id: string; bookingDate: string; status: string; totalPrice: string;
+  platformFee: string; companyEarnings: string; createdAt: string;
+  service: { id: string; name: string; serviceType: { id: string; name: string; category: { id: string; name: string; icon?: string } } };
+  company: { id: string; name: string; logoUrl?: string };
+  assignedStaff?: { id: string; user: { fullName: string } };
+}
 
 interface UserData {
   id: string;
   fullName: string;
   email: string;
   phone?: string;
-  address?: string;
   role: string;
   status: string;
   createdAt: string;
-  avatar?: string;
-  _count?: { bookings: number };
+  lastLoginAt?: string;
+  _count?: { bookingsAsCustomer: number; reviews: number; notifications: number; messages: number; cancellationsMade: number };
+  bookingsAsCustomer?: BookingAsCustomer[];
+  cancellationsMade?: Array<{ id: string; cancelledAt: string }>;
+  ownedCompanies?: CompanyOwned[];
+  staffMemberships?: StaffMembership[];
+  auditLogs?: Array<{ id: string; action: string; createdAt: string; user: { fullName: string } }>;
 }
 
-interface ActivityData {
-  id: string;
-  action: string;
-  date: string;
-  status?: string;
+// ─── Helpers ────────────────────────────────────────────────────────────
+function num(v?: string | number | null) { return parseFloat(String(v || 0)); }
+function fmt(v: number) { return v.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }); }
+
+function buildRevenueChart(ownedCompanies: CompanyOwned[]) {
+  const monthMap: Record<string, { revenue: number; bookings: number }> = {};
+  for (const co of ownedCompanies) {
+    for (const bk of co.bookings) {
+      const key = format(new Date(bk.createdAt), "MMM yy");
+      if (!monthMap[key]) monthMap[key] = { revenue: 0, bookings: 0 };
+      monthMap[key].revenue += num(bk.companyEarnings);
+      monthMap[key].bookings += 1;
+    }
+  }
+  return Object.entries(monthMap).map(([name, v]) => ({ name, ...v })).slice(-6);
 }
 
-const FALLBACK_USER: UserData & { activities: ActivityData[] } = {
-  id: "1", fullName: "Sarah Johnson", email: "sarah@example.com",
-  phone: "+1 234 567 8901", address: "123 Main St, New York, NY 10001",
-  role: "customer", status: "active", createdAt: "2025-12-15",
-  activities: [
-    { id: "1", action: "Booked Deep Cleaning", date: "Dec 28, 2025", status: "Completed" },
-    { id: "2", action: "Updated profile", date: "Dec 25, 2025" },
-    { id: "3", action: "Booked Regular Cleaning", date: "Dec 20, 2025", status: "Completed" },
-    { id: "4", action: "Left a review (5 stars)", date: "Dec 18, 2025" },
-  ]
+function buildCategoryData(bookings: BookingAsCustomer[]) {
+  const map: Record<string, { name: string; icon?: string; count: number; spent: number; last?: string }> = {};
+  for (const bk of bookings) {
+    const cat = bk.service?.serviceType?.category;
+    if (!cat) continue;
+    if (!map[cat.id]) map[cat.id] = { name: cat.name, icon: cat.icon, count: 0, spent: 0 };
+    map[cat.id].count++;
+    map[cat.id].spent += num(bk.totalPrice);
+    map[cat.id].last = bk.bookingDate;
+  }
+  return Object.values(map).sort((a, b) => b.count - a.count).slice(0, 5);
+}
+
+const staggerContainer: any = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } }
+};
+const fadeUp: any = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 280, damping: 22 } }
 };
 
+const BOOKING_STATUS_COLOR: Record<string, string> = {
+  completed: "bg-emerald-500/10 text-emerald-600",
+  pending: "bg-amber-500/10 text-amber-600",
+  cancelled: "bg-rose-500/10 text-rose-600",
+  in_progress: "bg-blue-500/10 text-blue-600",
+};
+
+// ─── Component ──────────────────────────────────────────────────────────
 export default function UserDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
-  const [activities, setActivities] = useState<ActivityData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,23 +133,14 @@ export default function UserDetailPage() {
       if (!id) return;
       setLoading(true); setError(null);
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}`);
-        if (!response.ok) throw new Error("User not found");
-        const data = await response.json();
-        const bookingsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bookings/user/${id}?limit=5`);
-        const bookingsData = bookingsRes.ok ? await bookingsRes.json() : { data: [] };
-        const activitiesData = (bookingsData.data || []).map((booking: any) => ({
-          id: booking.id,
-          action: `Booked ${booking.service?.name || "a service"}`,
-          date: new Date(booking.bookingDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-          status: booking.status
-        }));
+        const token = localStorage.getItem("token");
+        const headers: any = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}`, { headers });
+        if (!res.ok) throw new Error("User not found");
+        const data = await res.json();
         setUser(data.data?.user || data.data || data);
-        setActivities(activitiesData);
       } catch (err) {
         setError("Failed to load user details");
-        setUser(FALLBACK_USER as any);
-        setActivities(FALLBACK_USER.activities);
       } finally {
         setLoading(false);
       }
@@ -80,148 +152,544 @@ export default function UserDetailPage() {
     if (!user) return;
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}/status`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: newStatus }),
       });
-      if (response.ok) setUser({ ...user, status: newStatus });
+      if (res.ok) setUser({ ...user, status: newStatus });
     } catch (err) { console.error(err); }
   };
 
-  const displayUser = user || FALLBACK_USER;
-
   if (loading) return (
     <div className="h-full flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
+      <Loader2 className="w-8 h-8 animate-spin text-primary opacity-40" />
     </div>
   );
-
-  if (error && !user) return (
+  if (error) return (
     <div className="h-full flex items-center justify-center px-4">
       <div className="bg-rose-500/10 border border-rose-500/20 p-8 flex flex-col items-center gap-4 max-w-md w-full rounded-xl text-center">
         <AlertCircle className="w-12 h-12 text-rose-500" />
         <p className="text-rose-500 font-bold text-lg">{error}</p>
-        <Button variant="outline" className="rounded-lg" onClick={() => router.push("/admin/users")}>Back to Users</Button>
+        <Button variant="outline" onClick={() => router.push("/admin/users")}>← Back to Users</Button>
       </div>
     </div>
   );
 
+  const u = user!;
+  const isOwner = u.role === "COMPANY_OWNER" || u.role === "owner";
+  const isStaff = u.role === "STAFF" || u.role === "staff";
+  const isCustomer = !isOwner && !isStaff;
+
+  // ── Pre-compute metrics ──────────────────────────────────────────────
+  const accountAgeDays = differenceInDays(new Date(), new Date(u.createdAt));
+
+  // Customer
+  const customerBookings = u.bookingsAsCustomer || [];
+  const lifetimeValue = customerBookings.filter(b => b.status === "completed").reduce((s, b) => s + num(b.totalPrice), 0);
+  const completedCount = customerBookings.filter(b => b.status === "completed").length;
+  const cancelledCount = u._count?.cancellationsMade || customerBookings.filter(b => b.status === "cancelled").length;
+  const avgBookingValue = completedCount ? lifetimeValue / completedCount : 0;
+  const categoryData = buildCategoryData(customerBookings);
+
+  // Owner
+  const ownedCos = u.ownedCompanies || [];
+  const allOwnerBookings = ownedCos.flatMap(c => c.bookings);
+  const ownerGross = allOwnerBookings.reduce((s, b) => s + num(b.totalPrice), 0);
+  const ownerFees = allOwnerBookings.reduce((s, b) => s + num(b.platformFee), 0);
+  const ownerNet = ownerGross - ownerFees;
+  const ownerPending = ownedCos.reduce((s, c) => s + num(c.pendingBalance), 0);
+  const totalStaff = ownedCos.reduce((s, c) => s + c._count.staff, 0);
+  const totalServices = ownedCos.reduce((s, c) => s + c._count.services, 0);
+  const revenueChartData = buildRevenueChart(ownedCos);
+
+  // Staff
+  const membership = u.staffMemberships?.[0];
+  const staffJobs = membership?.assignedBookings || [];
+  const staffCompleted = staffJobs.filter(b => b.status === "completed").length;
+  const commissionEarned = staffJobs.filter(b => b.status === "completed").reduce((s, b) => s + num(b.staffEarnings), 0);
+  const pendingCommission = staffJobs.filter(b => b.status !== "completed" && b.status !== "cancelled").reduce((s, b) => s + num(b.staffEarnings), 0);
+  const staffReviews = membership?.reviews || [];
+  const avgStaffRating = staffReviews.length
+    ? staffReviews.reduce((s, r) => s + (r.staffRating || 0), 0) / staffReviews.length
+    : 0;
+
   return (
-    <div className="h-full flex flex-col p-6 font-sans overflow-y-auto custom-scrollbar">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
+    <motion.div variants={staggerContainer} initial="hidden" animate="show"
+      className="h-full flex flex-col p-4 sm:p-6 font-sans overflow-y-auto">
+
+      {/* ── Breadcrumb + Actions ─────────────────────────────────── */}
+      <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" onClick={() => router.push("/admin/users")} className="rounded-lg h-9 w-9 border-border shrink-0">
+          <Button variant="outline" size="icon" onClick={() => router.push("/admin/users")}
+            className="rounded-lg h-9 w-9 shrink-0">
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">User Profile</h1>
-            <p className="text-sm font-medium text-muted-foreground">Manage account & activity</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">
+              Admin / Users / {u.fullName}
+            </p>
+            <h1 className="text-xl font-black text-foreground tracking-tight">User Dashboard</h1>
           </div>
         </div>
-        <div className="flex items-center gap-3 pl-12 sm:pl-0">
-          <Button variant="outline" size="sm" className="rounded-lg border-border" onClick={() => router.push(`/admin/messages?new=${displayUser.id}`)}>
-            <MessageSquare className="w-4 h-4 mr-2" /> Message
+        <div className="flex items-center gap-2 pl-12 sm:pl-0">
+          <Button variant="outline" size="sm" className="font-bold"
+            onClick={() => router.push(`/admin/messages?new=${u.id}`)}>
+            <MessageSquare className="w-4 h-4 mr-2 text-violet-500" /> Message
           </Button>
           <Button variant="outline" size="sm"
-            className={`rounded-lg ${displayUser.status === "active" ? "border-rose-500/30 text-rose-600 hover:bg-rose-500/10" : "border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"}`}
-            onClick={() => handleStatusChange(displayUser.status === "active" ? "suspended" : "active")}
-          >
-            {displayUser.status === "active"
-              ? <><XCircle className="w-4 h-4 mr-2" /> Suspend</>
-              : <><CheckCircle className="w-4 h-4 mr-2" /> Activate</>
-            }
+            className={u.status === "active"
+              ? "font-bold border-rose-500/30 text-rose-600 hover:bg-rose-500/10"
+              : "font-bold border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"}
+            onClick={() => handleStatusChange(u.status === "active" ? "suspended" : "active")}>
+            {u.status === "active"
+              ? <><XCircle className="w-4 h-4 mr-2" />Suspend</>
+              : <><CheckCircle className="w-4 h-4 mr-2" />Activate</>}
           </Button>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="grid gap-6 lg:grid-cols-12">
-        {/* Left: Profile Card */}
-        <div className="lg:col-span-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-background border border-border rounded-xl overflow-hidden shadow-sm">
-            <div className="h-24 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent" />
-            <div className="relative pt-0 pb-6 px-6 flex flex-col items-center text-center mt-[-3rem]">
-              <Avatar className="h-24 w-24 rounded-2xl shadow-lg border-4 border-background shrink-0 mb-4">
-                <AvatarFallback className="rounded-2xl bg-primary/10 text-primary text-3xl font-black">
-                  {displayUser.fullName?.split(" ").map((n) => n[0]).join("") || "U"}
-                </AvatarFallback>
-              </Avatar>
-              <h3 className="text-lg font-bold tracking-tight text-foreground mb-1">{displayUser.fullName}</h3>
-              <div className="flex items-center gap-1.5 text-primary bg-primary/10 px-2.5 py-1 rounded-lg mb-4">
-                <Shield className="w-3.5 h-3.5" />
-                <span className="text-xs font-bold uppercase tracking-wider">{displayUser.role.replace("_", " ")}</span>
+      {/* ── Profile Header ───────────────────────────────────────── */}
+      <motion.div variants={fadeUp} className="bg-background border border-border rounded-xl p-5 shadow-sm mb-5 flex flex-col md:flex-row items-start md:items-center gap-5">
+        <div className="relative shrink-0">
+          <Avatar className="h-20 w-20 rounded-2xl shadow-md border border-border/50">
+            <AvatarFallback className="rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 text-violet-700 text-2xl font-black">
+              {u.fullName?.split(" ").map(n => n[0]).join("") || "U"}
+            </AvatarFallback>
+          </Avatar>
+          <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-background rounded-full border border-border flex items-center justify-center shadow-sm">
+            {u.status === "active"
+              ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              : <AlertTriangle className="w-4 h-4 text-rose-500" />}
+          </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2.5 mb-2">
+            <h2 className="text-xl font-black text-foreground">{u.fullName}</h2>
+            <StatusBadge status={(u.status === "active" ? "active" : "suspended") as any} />
+            <span className="flex items-center gap-1 bg-violet-500/10 text-violet-600 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-violet-500/20">
+              <Shield className="w-3 h-3" />{u.role.replace("_", " ")}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm font-medium text-muted-foreground">
+            <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />{u.email}</span>
+            {u.phone && <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{u.phone}</span>}
+            <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />Joined {format(new Date(u.createdAt), "MMM d, yyyy")}</span>
+            {u.lastLoginAt && <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />Last seen {format(new Date(u.lastLoginAt), "MMM d, yyyy")}</span>}
+          </div>
+        </div>
+        <div className="flex flex-wrap md:flex-col gap-2 shrink-0">
+          <Button variant="outline" size="sm" className="font-bold justify-start"><Edit className="w-3.5 h-3.5 mr-2 text-muted-foreground" />Edit</Button>
+          <Button variant="outline" size="sm" className="font-bold justify-start"><Key className="w-3.5 h-3.5 mr-2 text-muted-foreground" />Reset Password</Button>
+        </div>
+      </motion.div>
+
+      {/* ── Quick Stats (real data) ───────────────────────────────── */}
+      <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        {[
+          { label: "Account Age", value: `${accountAgeDays}d`, icon: Clock },
+          { label: "Messages", value: u._count?.messages ?? 0, icon: MessageSquare },
+          { label: "Notifications", value: u._count?.notifications ?? 0, icon: Activity },
+          { label: "Bookings", value: u._count?.bookingsAsCustomer ?? 0, icon: BarChart3 },
+          { label: "Reviews Written", value: u._count?.reviews ?? 0, icon: Star },
+          { label: "Cancellations", value: u._count?.cancellationsMade ?? 0, icon: AlertTriangle, color: (u._count?.cancellationsMade ?? 0) > 0 ? "text-rose-500" : "text-emerald-500" },
+        ].map((stat, i) => (
+          <div key={i} className="bg-background border border-border rounded-xl p-3.5 shadow-sm hover:bg-muted/10 transition-colors">
+            <stat.icon className={`w-3.5 h-3.5 mb-2 ${stat.color || "text-muted-foreground"}`} />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
+            <p className="text-xl font-black text-foreground mt-0.5">{stat.value}</p>
+          </div>
+        ))}
+      </motion.div>
+
+      {/* ── Role Section Header ──────────────────────────────────── */}
+      <motion.div variants={fadeUp} className="mb-3">
+        <div className="flex items-center gap-2">
+          {isOwner ? <Building2 className="w-4 h-4 text-violet-500" />
+            : isStaff ? <Briefcase className="w-4 h-4 text-blue-500" />
+            : <Star className="w-4 h-4 text-amber-500" />}
+          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            {isOwner ? "Business Management" : isStaff ? "Staff Performance" : "Customer Overview"}
+          </span>
+        </div>
+      </motion.div>
+
+      {/* ════════════════════════════════════════════════════════════
+          CUSTOMER DASHBOARD
+      ════════════════════════════════════════════════════════════ */}
+      {isCustomer && (
+        <>
+          <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            {[
+              { label: "Lifetime Value", value: fmt(lifetimeValue), accent: "bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/20" },
+              { label: "Completed Bookings", value: completedCount.toString() },
+              { label: "Avg. Booking Value", value: fmt(avgBookingValue) },
+              { label: "Cancellations", value: cancelledCount.toString(), red: cancelledCount > 0 },
+            ].map((c, i) => (
+              <div key={i} className={`rounded-xl p-4 shadow-sm ${c.accent || "bg-background border border-border"}`}>
+                <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${c.accent ? "opacity-80" : "text-muted-foreground"}`}>{c.label}</p>
+                <p className={`text-2xl font-black ${c.accent ? "" : c.red ? "text-rose-500" : "text-foreground"}`}>{c.value}</p>
               </div>
-              <StatusBadge status={(displayUser.status === "active" ? "active" : "suspended") as any} />
+            ))}
+          </motion.div>
+
+          <motion.div variants={fadeUp} className="grid lg:grid-cols-12 gap-5 mb-5">
+            {/* Booking History */}
+            <div className="lg:col-span-8 bg-background border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border bg-muted/20 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Booking History</span>
+                <span className="text-[10px] font-bold uppercase text-muted-foreground">{customerBookings.length} records</span>
+              </div>
+              {customerBookings.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">No bookings found</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/10 text-[10px] uppercase font-bold tracking-widest text-muted-foreground border-b border-border/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left">Service</th>
+                        <th className="px-4 py-3 text-left hidden md:table-cell">Company</th>
+                        <th className="px-4 py-3 text-left hidden lg:table-cell">Staff</th>
+                        <th className="px-4 py-3 text-left">Date</th>
+                        <th className="px-4 py-3 text-center">Status</th>
+                        <th className="px-4 py-3 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/50">
+                      {customerBookings.map(bk => (
+                        <tr key={bk.id} className="hover:bg-muted/10 transition-colors">
+                          <td className="px-4 py-3 font-bold text-foreground">{bk.service?.name || "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{bk.company?.name || "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{bk.assignedStaff?.user?.fullName || "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{format(new Date(bk.bookingDate), "MMM d, yyyy")}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${BOOKING_STATUS_COLOR[bk.status] || "bg-muted text-muted-foreground"}`}>
+                              {bk.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right font-black text-foreground">{fmt(num(bk.totalPrice))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
-            <div className="p-6 pt-0 space-y-2">
-              <div className="h-px w-full bg-border mb-4" />
-              {[
-                { icon: Mail, value: displayUser.email },
-                { icon: Phone, value: displayUser.phone },
-                { icon: MapPin, value: displayUser.address },
-                { icon: Calendar, value: `Joined ${new Date(displayUser.createdAt).toLocaleDateString()}` },
-              ].filter(i => i.value).map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 bg-muted/30 rounded-lg p-3 border border-border/50">
-                  <div className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center shrink-0">
-                    <item.icon className="h-4 w-4 text-muted-foreground" />
+            {/* Favorite Categories */}
+            <div className="lg:col-span-4 bg-background border border-border rounded-xl shadow-sm">
+              <div className="px-5 py-3.5 border-b border-border bg-muted/20">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Favorite Categories</span>
+              </div>
+              <div className="p-4 space-y-2.5">
+                {categoryData.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No data yet</p>
+                ) : categoryData.map((cat, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/10">
+                    <div>
+                      <p className="font-bold text-sm text-foreground">{cat.name}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground">{cat.count} booking{cat.count !== 1 ? "s" : ""} · {fmt(cat.spent)}</p>
+                    </div>
+                    <span className="text-xs font-black text-violet-600">#{i + 1}</span>
                   </div>
-                  <span className="font-medium text-foreground text-sm truncate">{item.value}</span>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════
+          COMPANY OWNER DASHBOARD
+      ════════════════════════════════════════════════════════════ */}
+      {isOwner && (
+        <>
+          <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            {[
+              { label: "Gross Revenue", value: fmt(ownerGross), accent: "bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/20" },
+              { label: "Platform Fees", value: fmt(ownerFees), red: true },
+              { label: "Net Earnings", value: fmt(ownerNet) },
+              { label: "Pending Payout", value: fmt(ownerPending), amber: true },
+            ].map((c, i) => (
+              <div key={i} className={`rounded-xl p-4 shadow-sm ${c.accent || "bg-background border border-border"}`}>
+                <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${c.accent ? "opacity-80" : "text-muted-foreground"}`}>{c.label}</p>
+                <p className={`text-2xl font-black ${c.accent ? "" : c.red ? "text-rose-500" : c.amber ? "text-amber-500" : "text-foreground"}`}>{c.value}</p>
+              </div>
+            ))}
+          </motion.div>
+
+          <motion.div variants={fadeUp} className="grid lg:grid-cols-12 gap-5 mb-5">
+            {/* Revenue Chart */}
+            <div className="lg:col-span-8 bg-background border border-border rounded-xl shadow-sm p-5">
+              <div className="flex items-center justify-between mb-5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Revenue Overview (Completed Jobs)</p>
+                <div className="flex gap-3 text-xs">
+                  <span className="flex items-center gap-1.5 text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-violet-500 inline-block"></span>Revenue</span>
+                </div>
+              </div>
+              {revenueChartData.length === 0 ? (
+                <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">No completed bookings yet</div>
+              ) : (
+                <div className="h-[220px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={revenueChartData}>
+                      <defs>
+                        <linearGradient id="gRev" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} dy={8} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} dx={-6} tickFormatter={v => `$${v / 1000}k`} />
+                      <RechartsTooltip formatter={(v: any) => fmt(v)} contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", background: "hsl(var(--background))" }} />
+                      <Area type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={2.5} fillOpacity={1} fill="url(#gRev)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            {/* Owner Summary Stats */}
+            <div className="lg:col-span-4 grid grid-cols-2 gap-3 content-start">
+              {[
+                { label: "Companies", value: ownedCos.length, icon: Building2 },
+                { label: "Total Staff", value: totalStaff, icon: Users },
+                { label: "Active Services", value: totalServices, icon: Briefcase },
+                { label: "Completed Jobs", value: ownedCos.reduce((s, c) => s + c.completedJobs, 0), icon: CheckCircle2 },
+              ].map((s, i) => (
+                <div key={i} className="bg-background border border-border rounded-xl p-4 shadow-sm">
+                  <s.icon className="w-4 h-4 text-muted-foreground mb-2" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{s.label}</p>
+                  <p className="text-2xl font-black text-foreground mt-0.5">{s.value}</p>
                 </div>
               ))}
             </div>
           </motion.div>
-        </div>
 
-        {/* Right: Stats & Activity */}
-        <div className="lg:col-span-8 space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
-              className="bg-background border border-border rounded-xl p-6 shadow-sm"
-            >
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5 mb-2">
-                <Calendar className="w-3.5 h-3.5 text-primary" /> Total Bookings
-              </p>
-              <p className="text-4xl font-bold text-foreground tracking-tight leading-none">{displayUser._count?.bookings || 0}</p>
-            </motion.div>
-          </div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="bg-background border border-border rounded-xl p-6 shadow-sm"
-          >
-            <div className="mb-5">
-              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <Activity className="w-5 h-5 text-primary" /> Recent Activity
-              </h3>
-              <p className="text-xs font-medium text-muted-foreground mt-1">Latest actions performed by this user</p>
-            </div>
-            <div className="space-y-3">
-              {activities.length > 0 ? activities.map((activity) => (
-                <div key={activity.id} className="bg-muted/30 rounded-lg p-4 border border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <p className="font-bold text-foreground text-sm">{activity.action}</p>
-                    <p className="text-xs font-medium text-muted-foreground mt-0.5">{activity.date}</p>
+          {/* Companies List */}
+          <motion.div variants={fadeUp} className="mb-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Owned Companies</p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {ownedCos.length === 0 ? (
+                <p className="col-span-full text-sm text-muted-foreground text-center py-6 border border-dashed border-border rounded-xl">No companies registered</p>
+              ) : ownedCos.map((co, i) => {
+                const coRevenue = co.bookings.reduce((s, b) => s + num(b.companyEarnings), 0);
+                return (
+                  <div key={i} className="bg-background border border-border rounded-xl p-5 shadow-sm hover:bg-muted/10 transition-colors">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-black text-foreground truncate">{co.name}</p>
+                        <span className={`text-[10px] font-bold uppercase tracking-widest ${co.verificationStatus === "verified" ? "text-emerald-500" : co.verificationStatus === "pending" ? "text-amber-500" : "text-rose-500"}`}>
+                          {co.verificationStatus}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+                      <div className="bg-muted/20 rounded-lg p-2"><p className="text-[10px] text-muted-foreground">Staff</p><p className="font-black">{co._count.staff}</p></div>
+                      <div className="bg-muted/20 rounded-lg p-2"><p className="text-[10px] text-muted-foreground">Services</p><p className="font-black">{co._count.services}</p></div>
+                      <div className="bg-muted/20 rounded-lg p-2"><p className="text-[10px] text-muted-foreground">Jobs</p><p className="font-black">{co.completedJobs}</p></div>
+                    </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[10px] text-muted-foreground font-bold uppercase">Revenue</span>
+                      <span className="text-sm font-black text-emerald-600">{fmt(coRevenue)}</span>
+                    </div>
+                    {co.ratingSummary?.averageRating && (
+                      <div className="flex items-center gap-1 text-amber-500 text-xs font-bold mb-3">
+                        <Star className="w-3.5 h-3.5 fill-current" />
+                        {parseFloat(co.ratingSummary.averageRating).toFixed(1)}
+                        <span className="text-muted-foreground ml-1">({co.ratingSummary.totalReviews} reviews)</span>
+                      </div>
+                    )}
+                    <Button variant="outline" size="sm" className="w-full text-xs font-bold h-8"
+                      onClick={() => router.push(`/admin/companies/${co.id}`)}>
+                      Manage Company →
+                    </Button>
                   </div>
-                  {activity.status && (
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider self-start sm:self-auto ${
-                      activity.status === "Completed" ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" :
-                      activity.status === "Pending" ? "bg-amber-500/10 text-amber-600 border border-amber-500/20" :
-                      "bg-muted text-muted-foreground border border-border"
-                    }`}>
-                      {activity.status}
-                    </span>
-                  )}
+                );
+              })}
+            </div>
+          </motion.div>
+        </>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════
+          STAFF DASHBOARD
+      ════════════════════════════════════════════════════════════ */}
+      {isStaff && (
+        <>
+          <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            {[
+              { label: "Commission Earned", value: fmt(commissionEarned), accent: "bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/20" },
+              { label: "Jobs Completed", value: staffCompleted.toString() },
+              { label: "Avg Rating", value: avgStaffRating ? avgStaffRating.toFixed(1) + " ★" : "—" },
+              { label: "Pending Commission", value: fmt(pendingCommission), amber: true },
+            ].map((c, i) => (
+              <div key={i} className={`rounded-xl p-4 shadow-sm ${c.accent || "bg-background border border-border"}`}>
+                <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${c.accent ? "opacity-80" : "text-muted-foreground"}`}>{c.label}</p>
+                <p className={`text-2xl font-black ${c.accent ? "" : (c as any).amber ? "text-amber-500" : "text-foreground"}`}>{c.value}</p>
+              </div>
+            ))}
+          </motion.div>
+
+          <motion.div variants={fadeUp} className="grid lg:grid-cols-12 gap-5 mb-5">
+            {/* Employer Card */}
+            <div className="lg:col-span-4 bg-background border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border bg-muted/20">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Employment Info</span>
+              </div>
+              <div className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                    <Building2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-black text-foreground">{membership?.company?.name || "No Employer"}</p>
+                    {membership?.company?.ratingSummary?.averageRating && (
+                      <p className="text-xs font-bold text-amber-500 flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-current" />
+                        {parseFloat(membership.company.ratingSummary.averageRating).toFixed(1)} avg rating
+                      </p>
+                    )}
+                  </div>
                 </div>
-              )) : (
-                <div className="flex items-center justify-center py-10 text-center bg-muted/20 rounded-lg border border-dashed border-border">
-                  <p className="text-muted-foreground font-medium text-sm">No recent activity found</p>
+                <div className="grid grid-cols-2 gap-2 text-center mb-4">
+                  <div className="bg-muted/20 rounded-lg p-3">
+                    <p className="text-[10px] font-bold text-muted-foreground">Split %</p>
+                    <p className="font-black text-foreground">{membership?.splitPercent ? `${membership.splitPercent}%` : "—"}</p>
+                  </div>
+                  <div className="bg-muted/20 rounded-lg p-3">
+                    <p className="text-[10px] font-bold text-muted-foreground">Wallet Balance</p>
+                    <p className="font-black text-emerald-600">{fmt(num(membership?.walletBalance))}</p>
+                  </div>
+                </div>
+                {membership?.company?.id && (
+                  <Button variant="outline" className="w-full text-xs font-bold"
+                    onClick={() => router.push(`/admin/companies/${membership.company.id}`)}>
+                    View Employer
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Recent Jobs */}
+            <div className="lg:col-span-8 bg-background border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border bg-muted/20">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Recent Assigned Jobs</span>
+              </div>
+              {staffJobs.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">No jobs assigned yet</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/10 text-[10px] uppercase font-bold tracking-widest text-muted-foreground border-b border-border/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left">Service</th>
+                        <th className="px-4 py-3 text-left hidden md:table-cell">Customer</th>
+                        <th className="px-4 py-3 text-left">Date</th>
+                        <th className="px-4 py-3 text-center">Status</th>
+                        <th className="px-4 py-3 text-right">Earnings</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/50">
+                      {staffJobs.map(job => (
+                        <tr key={job.id} className="hover:bg-muted/10 transition-colors">
+                          <td className="px-4 py-3 font-bold text-foreground">{job.service?.name || "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{job.customer?.fullName || "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{format(new Date(job.bookingDate), "MMM d, yyyy")}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${BOOKING_STATUS_COLOR[job.status] || "bg-muted text-muted-foreground"}`}>
+                              {job.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right font-black text-emerald-600">{fmt(num(job.staffEarnings))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
           </motion.div>
+
+          {/* Staff Reviews */}
+          {staffReviews.length > 0 && (
+            <motion.div variants={fadeUp} className="mb-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Customer Reviews</p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {staffReviews.map(rev => (
+                  <div key={rev.id} className="bg-background border border-border rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-bold text-sm text-foreground">{rev.customer?.fullName}</p>
+                      <div className="flex items-center gap-0.5 text-amber-500">
+                        {[1, 2, 3, 4, 5].map(n => (
+                          <Star key={n} className={`w-3.5 h-3.5 ${n <= (rev.staffRating || 0) ? "fill-current" : "opacity-30"}`} />
+                        ))}
+                      </div>
+                    </div>
+                    {rev.staffComment && <p className="text-sm text-muted-foreground italic">"{rev.staffComment}"</p>}
+                    <p className="text-[10px] text-muted-foreground mt-2">{rev.booking?.service?.name} · {format(new Date(rev.createdAt), "MMM d, yyyy")}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </>
+      )}
+
+      {/* ── Activity Timeline + Security ─────────────────────────── */}
+      <motion.div variants={fadeUp} className="grid lg:grid-cols-2 gap-5 mt-2">
+        <div className="bg-background border border-border rounded-xl shadow-sm">
+          <div className="px-5 py-3.5 border-b border-border bg-muted/20 flex items-center gap-2">
+            <List className="w-4 h-4 text-muted-foreground" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Audit Log</span>
+          </div>
+          <div className="p-5 space-y-3 max-h-72 overflow-y-auto">
+            {(u.auditLogs || []).length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No audit logs found</p>
+            ) : (u.auditLogs || []).map(log => (
+              <div key={log.id} className="flex justify-between items-start pb-3 border-b border-border/50 last:border-0 last:pb-0">
+                <div>
+                  <p className="font-bold text-foreground text-sm">{log.action}</p>
+                  <p className="text-[10px] font-bold text-muted-foreground mt-0.5">{format(new Date(log.createdAt), "MMM d, yyyy · h:mm a")}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    </div>
+
+        <div className="bg-background border border-border rounded-xl shadow-sm">
+          <div className="px-5 py-3.5 border-b border-border bg-muted/20 flex items-center gap-2">
+            <Lock className="w-4 h-4 text-muted-foreground" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Security & Audit</span>
+          </div>
+          <div className="p-5 space-y-3">
+            <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/5">
+              <div className="flex items-center gap-3"><MonitorSmartphone className="w-4 h-4 text-muted-foreground" /><span className="text-sm font-bold">Last Login</span></div>
+              <span className="text-xs font-medium text-muted-foreground">
+                {u.lastLoginAt ? format(new Date(u.lastLoginAt), "MMM d, yyyy · h:mm a") : "Never"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/5">
+              <div className="flex items-center gap-3"><Calendar className="w-4 h-4 text-muted-foreground" /><span className="text-sm font-bold">Account Created</span></div>
+              <span className="text-xs font-medium text-muted-foreground">{format(new Date(u.createdAt), "MMM d, yyyy")}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/5">
+              <div className="flex items-center gap-3"><Activity className="w-4 h-4 text-muted-foreground" /><span className="text-sm font-bold">Total Audit Events</span></div>
+              <span className="text-xs font-black text-foreground">{u.auditLogs?.length ?? 0}</span>
+            </div>
+            <div className="pt-1">
+              <Button variant="outline" className="w-full text-xs font-bold border-border hover:bg-muted/50">
+                <LogOut className="w-4 h-4 mr-2 opacity-50" /> Force Logout All Devices
+              </Button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+    </motion.div>
   );
 }

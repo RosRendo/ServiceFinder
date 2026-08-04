@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { VerifyCompanyModal } from "../admin/VerifyCompanyModal";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import api from "@/lib/api/client";
 
 export interface CompanyRow {
   id: string;
@@ -24,6 +25,7 @@ export interface CompanyRow {
   services: { name: string; price: string }[];
   documents: { label: string; verified: boolean }[];
   verificationDocumentUrl?: string;
+  ownerId?: string;
 }
 
 interface CompanyDrawerProps {
@@ -71,7 +73,7 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
                   "text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-widest",
                   statusConfig.bg, statusConfig.border, statusConfig.text
                 )}>
-                  {company.status.replace(/_/g, " ")}
+                  {company.status?.replace(/_/g, " ") || 'Unknown'}
                 </span>
               </div>
               <p className={cn("text-xs font-bold mt-0.5 flex items-center gap-1.5", company.verified ? "text-emerald-500" : "text-amber-500")}>
@@ -88,11 +90,11 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
             </p>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground text-sm">Total Revenue (Gross)</span>
-              <span className="font-bold text-foreground text-sm">${company.totalRevenue.toLocaleString()}</span>
+              <span className="font-bold text-foreground text-sm">${(company.totalRevenue || 0).toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground text-sm">Total Bookings</span>
-              <span className="font-medium text-foreground text-sm">{company.totalBookings}</span>
+              <span className="font-medium text-foreground text-sm">{company.totalBookings || 0}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground text-sm">Average Rating</span>
@@ -120,13 +122,13 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
           </div>
 
           {/* Services Offered */}
-          {company.services.length > 0 && (
+          {(company.services || []).length > 0 && (
             <div className="space-y-3 bg-muted/10 border border-border rounded-xl p-4">
               <p className="text-xs font-semibold text-foreground border-b border-border/50 pb-2 mb-3 flex items-center gap-2">
                 <Layers className="w-3.5 h-3.5" /> Services Offered
               </p>
               <div className="space-y-2">
-                {company.services.map((s) => (
+                {(company.services || []).map((s) => (
                   <div key={s.name} className="flex items-center justify-between p-2 bg-background border border-border/50 rounded-lg">
                     <span className="text-sm font-bold text-foreground">{s.name}</span>
                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{s.price}</span>
@@ -142,8 +144,8 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
               <Search className="w-3.5 h-3.5" /> Verification Documents
             </p>
             <div className="space-y-2">
-              {company.documents.length > 0 ? (
-                company.documents.map((d) => (
+              {(company.documents || []).length > 0 ? (
+                (company.documents || []).map((d) => (
                   <div key={d.label} className="flex items-center justify-between p-2 bg-background border border-border/50 rounded-lg">
                     <span className="text-sm font-medium text-foreground">{d.label}</span>
                     {d.verified ? (
@@ -175,11 +177,30 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
                 key={label}
                 variant="outline"
                 disabled={disabled}
-                onClick={() => {
+                onClick={async () => {
                   if (id === "verify") setVerifyModalOpen(true);
                   if (id === "profile") {
                     router.push(`/admin/companies/${company.id}`);
                     onClose();
+                  }
+                  if (id === "message") {
+                    if (company.ownerId) {
+                      router.push(`/admin/messages?new=${company.ownerId}`);
+                      onClose();
+                    } else {
+                      alert("No owner ID associated with this company.");
+                    }
+                  }
+                  if (id === "suspend") {
+                    if (confirm(`Are you sure you want to suspend ${company.name}?`)) {
+                      try {
+                        await api.post(`/admin/companies/${company.id}/suspend`);
+                        onSuccess?.();
+                        onClose();
+                      } catch (err) {
+                        console.error("Failed to suspend company", err);
+                      }
+                    }
                   }
                 }}
                 className={cn("h-10 text-xs font-bold rounded-lg border shadow-sm transition-colors justify-center gap-2", color)}

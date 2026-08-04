@@ -70,6 +70,9 @@ let AdminController = class AdminController {
     expireCompanyTrial(id) {
         return this.adminService.expireCompanyTrial(BigInt(id));
     }
+    suspendCompany(id) {
+        return this.adminService.suspendCompany(BigInt(id));
+    }
     getAllDisputes(query) {
         return this.adminService.getAllDisputes(query);
     }
@@ -249,6 +252,15 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "expireCompanyTrial", null);
+__decorate([
+    (0, common_1.Post)('companies/:id/suspend'),
+    (0, swagger_1.ApiOperation)({ summary: 'Suspend a company' }),
+    openapi.ApiResponse({ status: 201, type: Object }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "suspendCompany", null);
 __decorate([
     (0, common_1.Get)('disputes'),
     (0, swagger_1.ApiOperation)({ summary: 'List all disputes' }),

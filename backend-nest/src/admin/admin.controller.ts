@@ -135,6 +135,12 @@ export class AdminController {
     return this.adminService.expireCompanyTrial(BigInt(id));
   }
 
+  @Post('companies/:id/suspend')
+  @ApiOperation({ summary: 'Suspend a company' })
+  suspendCompany(@Param('id') id: string) {
+    return this.adminService.suspendCompany(BigInt(id));
+  }
+
   // ─── Disputes ────────────────────────────────────────────────────────────────
 
   @Get('disputes')

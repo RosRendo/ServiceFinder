@@ -5,7 +5,8 @@ import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { StatusBadge } from "@/components/grid/StatusBadge";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
 import { UserDrawer, UserRow } from "@/components/drawers/UserDrawer";
-import { Search, Loader2, Users, Download, Plus, Trash2, Ban } from "lucide-react";
+import { CreateUserDrawer } from "@/components/drawers/CreateUserDrawer";
+import { Search, Loader2, Users, Download, Plus, Trash2, Ban, Eye } from "lucide-react";
 
 const ROLE_OPTIONS = [
   { label: "All Roles", value: "all" },
@@ -23,6 +24,7 @@ export default function UsersPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeUser, setActiveUser] = useState<UserRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => { fetchUsers(); }, []);
@@ -92,6 +94,7 @@ export default function UsersPage() {
   ];
 
   const bulkActions = [
+    ...(selectedIds.size === 1 ? [{ label: "View Detail", icon: Eye, onClick: () => router.push(`/admin/users/${Array.from(selectedIds)[0]}`) }] : []),
     { label: "Suspend", icon: Ban, onClick: () => console.log("Suspend", selectedIds) },
     { label: "Delete", icon: Trash2, onClick: () => console.log("Delete", selectedIds), variant: "danger" as const },
   ];
@@ -120,7 +123,10 @@ export default function UsersPage() {
         <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-foreground hover:bg-muted/50 bg-background transition-colors">
           <Download className="w-3.5 h-3.5 opacity-70" /> Export
         </button>
-        <button className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 shadow-sm transition-colors">
+        <button 
+          onClick={() => setCreateDrawerOpen(true)}
+          className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 shadow-sm transition-colors"
+        >
           <Plus className="w-3.5 h-3.5" /> New User
         </button>
       </div>
@@ -169,6 +175,12 @@ export default function UsersPage() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         user={activeUser}
+      />
+
+      <CreateUserDrawer
+        open={createDrawerOpen}
+        onClose={() => setCreateDrawerOpen(false)}
+        onSuccess={fetchUsers}
       />
     </div>
   );

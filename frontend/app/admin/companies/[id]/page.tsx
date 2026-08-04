@@ -77,20 +77,22 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
     const isVerified = company.verificationStatus === "verified" || company.verificationStatus === "active";
     const isSuspended = company.verificationStatus === "suspended";
 
-    // Mocks based on the user's architectural plan
+    const realBookings = company.bookings || [];
+    const totalRevenue = realBookings.reduce((sum: number, b: any) => sum + (b.totalPrice || 0), 0);
+
     const metricsData = {
-        bookings: 12420,
-        revenue: 420000,
-        staff: company._count?.staffMembers || company.staff?.length || 45,
-        rating: 4.8,
-        completionRate: 98
+        bookings: realBookings.length,
+        revenue: totalRevenue,
+        staff: company.staff?.length || 0,
+        rating: company.rating || 5.0,
+        completionRate: company.completionRate ? Number(company.completionRate) : 100
     };
 
     const financeData = {
-        platformFees: 42000,
-        pendingPayouts: 8200,
-        refunds: 1400,
-        commissionPlan: company.platformFeePercent || 10
+        platformFees: totalRevenue * ((company.platformFeePercent || 15) / 100),
+        pendingPayouts: 0,
+        refunds: 0,
+        commissionPlan: company.platformFeePercent || 15
     };
 
     return (
@@ -350,34 +352,32 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                                     </div>
                                     <div className="p-2">
                                         <div className="divide-y divide-border/50">
-                                            {[
-                                                { label: "Business License", status: "Approved", ok: true },
-                                                { label: "Tax Document", status: "Approved", ok: true },
-                                                { label: "Owner Identity", status: "Approved", ok: true },
-                                                { label: "Insurance", status: "Expiring Soon", ok: false, warning: true },
-                                            ].map((doc, i) => (
-                                                <div key={i} className="p-4 flex items-center justify-between hover:bg-muted/10 transition-colors">
+                                            {company.verificationDocumentUrl ? (
+                                                <div className="p-4 flex items-center justify-between hover:bg-muted/10 transition-colors">
                                                     <div className="flex items-center gap-4">
-                                                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center border", 
-                                                            doc.warning ? "bg-amber-500/10 border-amber-500/20 text-amber-600" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-600"
-                                                        )}>
-                                                            {doc.warning ? <AlertTriangle className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center border bg-emerald-500/10 border-emerald-500/20 text-emerald-600">
+                                                            <FileText className="w-5 h-5" />
                                                         </div>
                                                         <div>
-                                                            <p className="text-sm font-bold text-foreground">{doc.label}</p>
-                                                            <p className={cn("text-[10px] font-bold uppercase tracking-widest mt-0.5", 
-                                                                doc.warning ? "text-amber-600" : "text-muted-foreground"
-                                                            )}>
-                                                                {doc.warning ? "⚠ " : "✓ "}{doc.status}
+                                                            <p className="text-sm font-bold text-foreground">KYC Verification Document</p>
+                                                            <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5 text-muted-foreground">
+                                                                ✓ Uploaded
                                                             </p>
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-2">
-                                                        <Button variant="outline" size="sm" className="h-8 text-xs font-bold uppercase tracking-widest">View</Button>
-                                                        {doc.warning && <Button variant="outline" size="sm" className="h-8 text-xs font-bold uppercase tracking-widest text-amber-600 border-amber-500/20 bg-amber-500/5">Request Update</Button>}
+                                                        <Button onClick={() => window.open(company.verificationDocumentUrl, "_blank")} variant="outline" size="sm" className="h-8 text-xs font-bold uppercase tracking-widest">View</Button>
                                                     </div>
                                                 </div>
-                                            ))}
+                                            ) : (
+                                                <div className="p-12 flex flex-col items-center justify-center text-center">
+                                                    <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-4 border border-border">
+                                                        <ShieldAlert className="w-8 h-8 text-muted-foreground" />
+                                                    </div>
+                                                    <h3 className="text-lg font-black text-foreground mb-1">No Documents Uploaded</h3>
+                                                    <p className="text-sm text-muted-foreground max-w-sm">This company has not uploaded any business licenses or identity verification documents yet.</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -419,28 +419,32 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                                                     <td className="px-6 py-4 font-bold text-blue-600">Owner</td>
                                                     <td className="px-6 py-4 text-muted-foreground font-medium">Jul 10, 2025</td>
                                                     <td className="px-6 py-4 text-right">
-                                                        <Button variant="ghost" size="sm" className="text-xs font-bold text-violet-600">Detail →</Button>
+                                                        <Button onClick={() => router.push(`/admin/users/${company.ownerId}`)} variant="ghost" size="sm" className="text-xs font-bold text-violet-600">Detail →</Button>
                                                     </td>
                                                 </tr>
-                                                {/* Manager Row */}
-                                                <tr className="hover:bg-muted/10 transition-colors">
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <Avatar className="h-8 w-8">
-                                                                <AvatarFallback className="bg-violet-600 text-white text-xs">A</AvatarFallback>
-                                                            </Avatar>
-                                                            <div>
-                                                                <p className="font-bold text-foreground">Alice Manager</p>
-                                                                <p className="text-[10px] font-semibold text-muted-foreground">alice@example.com</p>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 font-bold text-violet-600">Manager</td>
-                                                    <td className="px-6 py-4 text-muted-foreground font-medium">Jul 12, 2025</td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <Button variant="ghost" size="sm" className="text-xs font-bold text-violet-600">Detail →</Button>
-                                                    </td>
-                                                </tr>
+                                                {/* Staff Rows */}
+                                                {company.staff && company.staff.length > 0 ? (
+                                                    company.staff.map((staffItem: any, i: number) => (
+                                                        <tr key={i} className="hover:bg-muted/10 transition-colors">
+                                                            <td className="px-6 py-4">
+                                                                <div className="flex items-center gap-3">
+                                                                    <Avatar className="h-8 w-8">
+                                                                        <AvatarFallback className="bg-violet-600 text-white text-xs">{staffItem.user?.fullName?.[0] || "U"}</AvatarFallback>
+                                                                    </Avatar>
+                                                                    <div>
+                                                                        <p className="font-bold text-foreground">{staffItem.user?.fullName || "Unknown Staff"}</p>
+                                                                        <p className="text-[10px] font-semibold text-muted-foreground">{staffItem.user?.email || "No email"}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-4 font-bold text-violet-600 capitalize">{staffItem.role || "Staff"}</td>
+                                                            <td className="px-6 py-4 text-muted-foreground font-medium">{staffItem.createdAt ? format(new Date(staffItem.createdAt), "MMM d, yyyy") : "N/A"}</td>
+                                                            <td className="px-6 py-4 text-right">
+                                                                <Button onClick={() => router.push(`/admin/users/${staffItem.userId}`)} variant="ghost" size="sm" className="text-xs font-bold text-violet-600">Detail →</Button>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : null}
                                                 {/* Staff Summary Row */}
                                                 <tr className="bg-muted/5">
                                                     <td className="px-6 py-4">
@@ -457,7 +461,7 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                                                     <td className="px-6 py-4 text-muted-foreground font-medium">Staff</td>
                                                     <td className="px-6 py-4 text-muted-foreground font-medium">—</td>
                                                     <td className="px-6 py-4 text-right">
-                                                        <Button variant="outline" size="sm" className="text-xs font-bold uppercase tracking-widest h-8">View Roster</Button>
+                                                        <Button onClick={() => toast({ description: "Staff roster is already visible above." })} variant="outline" size="sm" className="text-xs font-bold uppercase tracking-widest h-8">View Roster</Button>
                                                     </td>
                                                 </tr>
                                             </tbody>
@@ -474,121 +478,45 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                                         <p className="text-sm text-muted-foreground mt-1">Services authorized for this company on the marketplace.</p>
                                     </div>
                                     <div className="p-6 grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                        {[
-                                            { label: "Deep Cleaning", price: "$50+", active: true },
-                                            { label: "Office Cleaning", price: "$100+", active: true },
-                                            { label: "Window Cleaning", price: "$30+", active: true },
-                                        ].map((svc, i) => (
-                                            <div key={i} className="border border-border rounded-xl p-5 hover:bg-muted/10 transition-colors cursor-pointer group">
-                                                <div className="flex justify-between items-start mb-4">
-                                                    <div className="w-10 h-10 rounded-lg bg-violet-500/10 text-violet-600 flex items-center justify-center">
-                                                        <Briefcase className="w-5 h-5" />
+                                        {company.services && company.services.length > 0 ? (
+                                            company.services.map((svc: any, i: number) => (
+                                                <div key={i} className="border border-border rounded-xl p-5 hover:bg-muted/10 transition-colors cursor-pointer group">
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div className="w-10 h-10 rounded-lg bg-violet-500/10 text-violet-600 flex items-center justify-center">
+                                                            <Briefcase className="w-5 h-5" />
+                                                        </div>
+                                                        <span className="text-lg font-black text-foreground">${svc.basePrice || "0"}</span>
                                                     </div>
-                                                    <span className="text-lg font-black text-foreground">{svc.price}</span>
+                                                    <p className="text-sm font-bold text-foreground group-hover:text-violet-600 transition-colors">{svc.name}</p>
+                                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-1">{svc.isActive ? "Active" : "Inactive"}</p>
                                                 </div>
-                                                <p className="text-sm font-bold text-foreground group-hover:text-violet-600 transition-colors">{svc.label}</p>
-                                                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-1">Active</p>
-                                            </div>
-                                        ))}
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground col-span-full text-center py-8 border border-border rounded-xl">No services added yet.</p>
+                                        )}
                                     </div>
                                 </div>
                             </TabsContent>
 
                             {/* --- TAB: FINANCE --- */}
                             <TabsContent value="finance" className="m-0 space-y-6">
-                                <div className="grid lg:grid-cols-2 gap-6">
-                                    <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
-                                        <div className="px-5 py-4 bg-muted/30 border-b border-border/50">
-                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Financial Status (Admin View)</span>
-                                        </div>
-                                        <div className="p-6">
-                                            <div className="grid grid-cols-2 gap-4 mb-6">
-                                                <div className="bg-violet-500/5 border border-violet-500/20 rounded-xl p-5">
-                                                    <p className="text-[10px] font-bold text-violet-700 uppercase tracking-widest mb-1">Total Platform Fees</p>
-                                                    <p className="text-2xl font-black text-violet-700">${financeData.platformFees.toLocaleString()}</p>
-                                                </div>
-                                                <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-5">
-                                                    <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-1">Pending Payouts</p>
-                                                    <p className="text-2xl font-black text-amber-700">${financeData.pendingPayouts.toLocaleString()}</p>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg border border-border">
-                                                    <div className="flex items-center gap-3">
-                                                        <DollarSign className="w-4 h-4 text-muted-foreground" />
-                                                        <span className="text-sm font-semibold text-foreground">Refunds Processed</span>
-                                                    </div>
-                                                    <span className="text-sm font-bold text-rose-500">${financeData.refunds.toLocaleString()}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg border border-border">
-                                                    <div className="flex items-center gap-3">
-                                                        <Receipt className="w-4 h-4 text-muted-foreground" />
-                                                        <span className="text-sm font-semibold text-foreground">Commission Plan</span>
-                                                    </div>
-                                                    <span className="text-sm font-bold text-foreground">{financeData.commissionPlan}% Standard</span>
-                                                </div>
-                                            </div>
-                                        </div>
+                                <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden p-12 flex flex-col items-center justify-center text-center">
+                                    <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-4 border border-border">
+                                        <DollarSign className="w-8 h-8 text-muted-foreground" />
                                     </div>
+                                    <h3 className="text-lg font-black text-foreground mb-1">No Financial Data</h3>
+                                    <p className="text-sm text-muted-foreground max-w-sm">This company has not processed any payouts or transactions yet. Once bookings are completed, financial logs will appear here.</p>
                                 </div>
                             </TabsContent>
 
                             {/* --- TAB: LOGS --- */}
                             <TabsContent value="logs" className="m-0 space-y-6">
-                                <div className="grid lg:grid-cols-2 gap-6">
-                                    {/* Audit Log */}
-                                    <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
-                                        <div className="px-5 py-4 bg-muted/30 border-b border-border/50">
-                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Audit History</span>
-                                        </div>
-                                        <div className="p-0 divide-y divide-border/50">
-                                            {[
-                                                { action: "Admin approved company verification", date: "Aug 2", user: "Sarah (Admin)" },
-                                                { action: "Company changed commission plan", date: "Jul 20", user: "Owner" },
-                                                { action: "Company registered", date: "Jul 10", user: "System" },
-                                            ].map((log, i) => (
-                                                <div key={i} className="p-5 flex justify-between items-start hover:bg-muted/10 transition-colors">
-                                                    <div>
-                                                        <p className="text-sm font-semibold text-foreground">{log.action}</p>
-                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">by {log.user}</p>
-                                                    </div>
-                                                    <span className="text-xs text-muted-foreground font-medium">{log.date}</span>
-                                                </div>
-                                            ))}
-                                        </div>
+                                <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden p-12 flex flex-col items-center justify-center text-center">
+                                    <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-4 border border-border">
+                                        <History className="w-8 h-8 text-muted-foreground" />
                                     </div>
-
-                                    {/* Reviews Summary */}
-                                    <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden h-fit">
-                                        <div className="px-5 py-4 bg-muted/30 border-b border-border/50">
-                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Reviews & Issues</span>
-                                        </div>
-                                        <div className="p-6">
-                                            <div className="flex items-center gap-4 mb-8">
-                                                <div className="w-14 h-14 rounded-full border-4 border-amber-500/20 flex items-center justify-center shrink-0">
-                                                    <span className="text-xl font-black text-foreground">{metricsData.rating}</span>
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-bold text-foreground">Average Rating</p>
-                                                    <div className="flex text-amber-500 mt-1">
-                                                        <Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current opacity-50" />
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Recent Issues</p>
-                                            <div className="space-y-3">
-                                                <div className="flex justify-between items-center p-3 bg-rose-500/5 border border-rose-500/20 rounded-lg">
-                                                    <span className="text-sm font-semibold text-rose-700">Late arrival</span>
-                                                    <span className="text-xs font-bold text-rose-700">3 cases</span>
-                                                </div>
-                                                <div className="flex justify-between items-center p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-                                                    <span className="text-sm font-semibold text-amber-700">Quality complaint</span>
-                                                    <span className="text-xs font-bold text-amber-700">2 cases</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <h3 className="text-lg font-black text-foreground mb-1">Audit Log Empty</h3>
+                                    <p className="text-sm text-muted-foreground max-w-sm">Detailed system audit logs (like profile changes or login history) will be tracked here in the future.</p>
                                 </div>
                             </TabsContent>
 

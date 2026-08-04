@@ -64,6 +64,7 @@ export default function CompaniesPage() {
     services: [],
     documents: c.verificationDocumentUrl ? [{ label: "KYC Documents", verified: c.verificationStatus === "active" || c.verificationStatus === "verified" }] : [],
     verificationDocumentUrl: c.verificationDocumentUrl || undefined,
+    ownerId: c.ownerId?.toString(),
   }));
 
   const columns: Column<CompanyRow>[] = [

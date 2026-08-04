@@ -51,6 +51,24 @@ let UsersService = class UsersService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    async createUser(dto) {
+        const existingUser = await this.prisma.user.findUnique({ where: { email: dto.email } });
+        if (existingUser) {
+            throw new common_1.ConflictException('User with this email already exists');
+        }
+        const passwordHash = await bcrypt.hash(dto.password, 10);
+        const user = await this.prisma.user.create({
+            data: {
+                fullName: dto.fullName,
+                email: dto.email,
+                phone: dto.phone,
+                role: dto.role || 'customer',
+                passwordHash,
+                status: 'active',
+            }
+        });
+        return { data: user };
+    }
     async getAllUsers(query) {
         const role = query.role;
         const status = query.status;
@@ -152,17 +170,78 @@ let UsersService = class UsersService {
                 lastLoginAt: true,
                 createdAt: true,
                 updatedAt: true,
-                ownedCompanies: {
-                    select: {
-                        id: true,
-                        name: true,
-                        verificationStatus: true,
-                    },
-                },
                 _count: {
                     select: {
                         bookingsAsCustomer: true,
                         reviews: true,
+                        notifications: true,
+                        messages: true,
+                        cancellationsMade: true,
+                    },
+                },
+                bookingsAsCustomer: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 20,
+                    select: {
+                        id: true,
+                        bookingDate: true,
+                        status: true,
+                        totalPrice: true,
+                        platformFee: true,
+                        companyEarnings: true,
+                        createdAt: true,
+                        service: {
+                            select: {
+                                id: true,
+                                name: true,
+                                serviceType: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        category: { select: { id: true, name: true, icon: true } },
+                                    },
+                                },
+                            },
+                        },
+                        company: { select: { id: true, name: true, logoUrl: true } },
+                        assignedStaff: {
+                            select: {
+                                id: true,
+                                user: { select: { fullName: true } },
+                            },
+                        },
+                    },
+                },
+                cancellationsMade: {
+                    select: { id: true, cancelledAt: true },
+                },
+                ownedCompanies: {
+                    select: {
+                        id: true,
+                        name: true,
+                        logoUrl: true,
+                        verificationStatus: true,
+                        walletBalance: true,
+                        pendingBalance: true,
+                        availableBalance: true,
+                        completedJobs: true,
+                        platformFeePercent: true,
+                        ratingSummary: {
+                            select: { averageRating: true, totalReviews: true },
+                        },
+                        _count: {
+                            select: { staff: true, services: true, bookings: true },
+                        },
+                        bookings: {
+                            where: { status: 'completed' },
+                            select: {
+                                totalPrice: true,
+                                platformFee: true,
+                                companyEarnings: true,
+                                createdAt: true,
+                                bookingDate: true,
+                            },
+                        },
                     },
                 },
                 staffMemberships: {
@@ -171,6 +250,34 @@ let UsersService = class UsersService {
                             select: {
                                 id: true,
                                 name: true,
+                                logoUrl: true,
+                                ratingSummary: { select: { averageRating: true } },
+                            },
+                        },
+                        assignedBookings: {
+                            orderBy: { createdAt: 'desc' },
+                            take: 10,
+                            select: {
+                                id: true,
+                                bookingDate: true,
+                                status: true,
+                                staffEarnings: true,
+                                totalPrice: true,
+                                service: { select: { name: true } },
+                                company: { select: { name: true } },
+                                customer: { select: { fullName: true } },
+                            },
+                        },
+                        reviews: {
+                            orderBy: { createdAt: 'desc' },
+                            take: 5,
+                            select: {
+                                id: true,
+                                staffRating: true,
+                                staffComment: true,
+                                createdAt: true,
+                                customer: { select: { fullName: true } },
+                                booking: { select: { service: { select: { name: true } } } },
                             },
                         },
                     },
@@ -182,9 +289,9 @@ let UsersService = class UsersService {
                         id: true,
                         action: true,
                         createdAt: true,
-                        user: { select: { fullName: true } }
-                    }
-                }
+                        user: { select: { fullName: true } },
+                    },
+                },
             },
         });
         if (!user) {

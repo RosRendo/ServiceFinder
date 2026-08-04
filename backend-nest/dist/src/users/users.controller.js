@@ -31,6 +31,9 @@ let UsersController = class UsersController {
     constructor(usersService) {
         this.usersService = usersService;
     }
+    createUser(body) {
+        return this.usersService.createUser(body);
+    }
     getAllUsers(query) {
         return this.usersService.getAllUsers(query);
     }
@@ -99,6 +102,16 @@ let UsersController = class UsersController {
     }
 };
 exports.UsersController = UsersController;
+__decorate([
+    (0, common_1.Post)(),
+    (0, roles_decorator_1.Roles)('admin'),
+    (0, swagger_1.ApiOperation)({ summary: 'Create a new user (Admin only)' }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'User created successfully.' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "createUser", null);
 __decorate([
     (0, common_1.Get)(),
     (0, roles_decorator_1.Roles)('admin'),

@@ -202,6 +202,10 @@ export declare class AdminService {
             id: string;
             userId: string;
             companyId: string;
+            user: {
+                fullName: string;
+                email: string | null;
+            } | null;
             status: import(".prisma/client").$Enums.StaffStatus;
             role: import(".prisma/client").$Enums.StaffRole;
             createdAt: Date;
@@ -212,6 +216,7 @@ export declare class AdminService {
         services: {
             id: string;
             companyId: string;
+            basePrice: number;
             description: string | null;
             createdAt: Date;
             updatedAt: Date;
@@ -219,12 +224,16 @@ export declare class AdminService {
             checklist: import("@prisma/client/runtime/library").JsonValue | null;
             serviceTypeId: bigint;
             image: string | null;
-            basePrice: import("@prisma/client/runtime/library").Decimal;
             discountPrice: import("@prisma/client/runtime/library").Decimal | null;
             features: import("@prisma/client/runtime/library").JsonValue | null;
             durationMin: number;
             durationMax: number | null;
             isActive: boolean;
+        }[];
+        bookings: {
+            id: string;
+            totalPrice: number;
+            status: import(".prisma/client").$Enums.BookingStatus;
         }[];
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         description: string | null;
@@ -299,6 +308,10 @@ export declare class AdminService {
         companyId: string;
     }>;
     expireCompanyTrial(id: bigint): Promise<{
+        message: string;
+        companyId: string;
+    }>;
+    suspendCompany(id: bigint): Promise<{
         message: string;
         companyId: string;
     }>;

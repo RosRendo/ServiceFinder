@@ -27,7 +27,7 @@ function Section({ title, children }: { title: React.ReactNode; children: React.
     );
 }
 
-export function BookingDrawer({ open, onClose, bookingId, onBookingUpdated }: { open: boolean; onClose: () => void; bookingId: string | null; onBookingUpdated?: () => void }) {
+export function BookingDrawer({ open, onClose, bookingId, onBookingUpdated, isAdmin }: { open: boolean; onClose: () => void; bookingId: string | null; onBookingUpdated?: () => void; isAdmin?: boolean }) {
     const [booking, setBooking] = useState<any | null>(null);
     const [loading, setLoading] = useState(false);
     const [staff, setStaff] = useState<any[]>([]);
@@ -204,21 +204,24 @@ export function BookingDrawer({ open, onClose, bookingId, onBookingUpdated }: { 
                                 </div>
                                 <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-0.5">{booking.assignedStaff.role}</p>
                             </div>
-                            <Button variant="outline" size="sm" className="rounded-lg h-7 text-xs font-medium border-border hover:bg-muted/50" onClick={() => { setShowAssign(!showAssign); fetchStaff(); }}>
-                                Reassign
-                            </Button>
+                            {!isAdmin && (
+                                <Button variant="outline" size="sm" className="rounded-lg h-7 text-xs font-medium border-border hover:bg-muted/50" onClick={() => { setShowAssign(!showAssign); fetchStaff(); }}>
+                                    Reassign
+                                </Button>
+                            )}
                         </div>
                     ) : (
                         <div className="text-center py-4">
                             <UserPlus className="w-5 h-5 text-muted-foreground mx-auto mb-2 opacity-50" />
                             <p className="text-sm font-bold text-foreground">No staff assigned</p>
-                            <p className="text-xs text-muted-foreground mt-1">Assign a team member to proceed.</p>
+                            {!isAdmin && <p className="text-xs text-muted-foreground mt-1">Assign a team member to proceed.</p>}
+                            {isAdmin && <p className="text-xs text-muted-foreground mt-1">Pending company assignment.</p>}
                         </div>
                     )}
                 </div>
 
                 {/* Inline assign panel */}
-                {showAssign && (
+                {!isAdmin && showAssign && (
                     <div className="p-4 bg-muted/10 border border-border rounded-xl animate-in fade-in slide-in-from-top-2 duration-300">
                         <h4 className="font-bold text-xs text-foreground uppercase tracking-wider mb-3">Select Staff Member</h4>
                         {loadingStaff ? (

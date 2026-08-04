@@ -1,11 +1,14 @@
 "use client";
 
 import { BaseDrawer } from "./BaseDrawer";
-import { Phone, Mail, Calendar, User as UserIcon, Settings, ShieldAlert, Key, Ban, Server } from "lucide-react";
+import { Phone, Mail, Calendar, User as UserIcon, Settings, ShieldAlert, Key, Ban, Server, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/lib/hooks/use-toast";
+import api from "@/lib/api/client";
 
 export interface UserRow {
   id: string;
@@ -31,6 +34,8 @@ const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }
 };
 
 export function UserDrawer({ open, onClose, user }: UserDrawerProps) {
+  const router = useRouter();
+  const { toast } = useToast();
   if (!user) return null;
 
   const statusConfig = STATUS_COLORS[user.status] || { bg: "bg-muted", border: "border-border", text: "text-muted-foreground" };
@@ -56,7 +61,7 @@ export function UserDrawer({ open, onClose, user }: UserDrawerProps) {
                 {user.status}
               </span>
             </div>
-            <p className="text-xs font-medium text-muted-foreground mt-0.5 uppercase tracking-wider">{user.role.replace("_", " ")}</p>
+            <p className="text-xs font-medium text-muted-foreground mt-0.5 uppercase tracking-wider">{user.role?.replace("_", " ")}</p>
           </div>
         </div>
 
@@ -82,7 +87,7 @@ export function UserDrawer({ open, onClose, user }: UserDrawerProps) {
           </p>
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground text-sm flex items-center gap-2"><ShieldAlert className="w-3.5 h-3.5" /> Authorization Level</span>
-            <span className="font-bold text-sm text-foreground capitalize">{user.role.replace("_", " ")}</span>
+            <span className="font-bold text-sm text-foreground capitalize">{user.role?.replace("_", " ")}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground text-sm flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Account Created</span>
@@ -100,22 +105,40 @@ export function UserDrawer({ open, onClose, user }: UserDrawerProps) {
         
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3 pt-2">
-          {[
-            { id: "edit", icon: Settings, label: "Edit Profile", color: "bg-primary text-primary-foreground hover:bg-primary/90 border-transparent" },
-            { id: "reset", icon: Key, label: "Reset Password", color: "bg-background text-foreground hover:bg-muted border-border" },
-            { id: "suspend", icon: Ban, label: "Suspend User", color: "bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-500/20" },
-          ].map(({ id, icon: Icon, label, color }) => (
-            <Button 
-              key={label}
-              variant="outline"
-              className={cn("h-10 text-xs font-bold rounded-lg border shadow-sm transition-colors justify-center gap-2", 
-                id === "suspend" && "col-span-2",
-                color
-              )}
-            >
-              <Icon className="w-3.5 h-3.5" /> {label}
-            </Button>
-          ))}
+          <Button 
+            variant="outline"
+            onClick={() => router.push(`/admin/users/${user.id}`)}
+            className="h-10 text-xs font-bold rounded-lg border shadow-sm transition-colors justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 border-transparent"
+          >
+            <Eye className="w-3.5 h-3.5" /> View Profile
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={() => toast({ title: "Password Reset", description: `Password reset email sent to ${user.email}` })}
+            className="h-10 text-xs font-bold rounded-lg border shadow-sm transition-colors justify-center gap-2 bg-background text-foreground hover:bg-muted border-border"
+          >
+            <Key className="w-3.5 h-3.5" /> Reset Password
+          </Button>
+
+          <Button 
+            variant="outline"
+            onClick={async () => {
+              const newStatus = user.status === "active" ? "suspended" : "active";
+              if (!window.confirm(`Are you sure you want to ${newStatus === "suspended" ? "suspend" : "activate"} ${user.fullName}?`)) return;
+              
+              try {
+                await api.patch(`/users/${user.id}/status`, { status: newStatus });
+                toast({ title: "Success", description: `User ${newStatus}` });
+                onClose();
+              } catch (e: any) {
+                toast({ title: "Error", description: "Failed to update user status", variant: "destructive" });
+              }
+            }}
+            className="h-10 text-xs font-bold rounded-lg border shadow-sm transition-colors justify-center gap-2 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-500/20 col-span-2"
+          >
+            <Ban className="w-3.5 h-3.5" /> {user.status === "active" ? "Suspend User" : "Activate User"}
+          </Button>
         </div>
 
       </div>

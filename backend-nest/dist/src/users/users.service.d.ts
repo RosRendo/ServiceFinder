@@ -6,6 +6,28 @@ import { VerifyContactUpdateDto } from './dto/verify-contact-update.dto';
 export declare class UsersService {
     private prisma;
     constructor(prisma: PrismaService);
+    createUser(dto: any): Promise<{
+        data: {
+            id: bigint;
+            fullName: string;
+            email: string | null;
+            phone: string | null;
+            avatar: string | null;
+            passwordHash: string | null;
+            role: import(".prisma/client").$Enums.UserRole;
+            status: import(".prisma/client").$Enums.UserStatus;
+            workingStatus: string;
+            lastSeen: Date | null;
+            lastLoginAt: Date | null;
+            pushToken: string | null;
+            mfaEnabled: boolean;
+            mfaSecret: string | null;
+            emailNotificationsEnabled: boolean;
+            pushNotificationsEnabled: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+    }>;
     getAllUsers(query: {
         role?: string;
         status?: string;
@@ -14,17 +36,14 @@ export declare class UsersService {
     }): Promise<{
         users: {
             id: bigint;
-            status: import(".prisma/client").$Enums.UserStatus;
-            createdAt: Date;
-            updatedAt: Date;
-            role: import(".prisma/client").$Enums.UserRole;
-            _count: {
-                bookingsAsCustomer: number;
-            };
             fullName: string;
             email: string | null;
             phone: string | null;
+            role: import(".prisma/client").$Enums.UserRole;
+            status: import(".prisma/client").$Enums.UserStatus;
             lastLoginAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
             staffMemberships: ({
                 company: {
                     id: bigint;
@@ -32,15 +51,18 @@ export declare class UsersService {
                 };
             } & {
                 id: bigint;
+                role: import(".prisma/client").$Enums.StaffRole;
                 status: import(".prisma/client").$Enums.StaffStatus;
                 createdAt: Date;
+                walletBalance: import("@prisma/client/runtime/library").Decimal;
                 companyId: bigint;
                 userId: bigint;
-                role: import(".prisma/client").$Enums.StaffRole;
                 creditLimit: import("@prisma/client/runtime/library").Decimal;
-                walletBalance: import("@prisma/client/runtime/library").Decimal;
                 splitPercent: import("@prisma/client/runtime/library").Decimal | null;
             })[];
+            _count: {
+                bookingsAsCustomer: number;
+            };
         }[];
         pagination: {
             total: number;
@@ -65,18 +87,14 @@ export declare class UsersService {
     getUserById(id: bigint): Promise<{
         user: {
             id: bigint;
-            status: import(".prisma/client").$Enums.UserStatus;
-            createdAt: Date;
-            updatedAt: Date;
-            role: import(".prisma/client").$Enums.UserRole;
-            _count: {
-                reviews: number;
-                bookingsAsCustomer: number;
-            };
             fullName: string;
             email: string | null;
             phone: string | null;
+            role: import(".prisma/client").$Enums.UserRole;
+            status: import(".prisma/client").$Enums.UserStatus;
             lastLoginAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
             auditLogs: {
                 id: bigint;
                 createdAt: Date;
@@ -85,40 +103,140 @@ export declare class UsersService {
                 } | null;
                 action: string | null;
             }[];
-            ownedCompanies: {
+            bookingsAsCustomer: {
                 id: bigint;
-                name: string;
-                verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
-            }[];
-            staffMemberships: ({
+                status: import(".prisma/client").$Enums.BookingStatus;
+                createdAt: Date;
                 company: {
                     id: bigint;
                     name: string;
+                    logoUrl: string | null;
                 };
+                bookingDate: Date;
+                totalPrice: import("@prisma/client/runtime/library").Decimal;
+                platformFee: import("@prisma/client/runtime/library").Decimal;
+                companyEarnings: import("@prisma/client/runtime/library").Decimal;
+                assignedStaff: {
+                    id: bigint;
+                    user: {
+                        fullName: string;
+                    };
+                } | null;
+                service: {
+                    id: bigint;
+                    name: string;
+                    serviceType: {
+                        id: bigint;
+                        name: string;
+                        category: {
+                            id: bigint;
+                            name: string;
+                            icon: string | null;
+                        };
+                    };
+                };
+            }[];
+            cancellationsMade: {
+                id: bigint;
+                cancelledAt: Date;
+            }[];
+            ownedCompanies: {
+                id: bigint;
+                name: string;
+                _count: {
+                    staff: number;
+                    bookings: number;
+                    services: number;
+                };
+                verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+                logoUrl: string | null;
+                walletBalance: import("@prisma/client/runtime/library").Decimal;
+                pendingBalance: import("@prisma/client/runtime/library").Decimal;
+                availableBalance: import("@prisma/client/runtime/library").Decimal;
+                platformFeePercent: import("@prisma/client/runtime/library").Decimal | null;
+                completedJobs: number;
+                bookings: {
+                    createdAt: Date;
+                    bookingDate: Date;
+                    totalPrice: import("@prisma/client/runtime/library").Decimal;
+                    platformFee: import("@prisma/client/runtime/library").Decimal;
+                    companyEarnings: import("@prisma/client/runtime/library").Decimal;
+                }[];
+                ratingSummary: {
+                    averageRating: import("@prisma/client/runtime/library").Decimal | null;
+                    totalReviews: number;
+                } | null;
+            }[];
+            staffMemberships: ({
+                reviews: {
+                    id: bigint;
+                    createdAt: Date;
+                    customer: {
+                        fullName: string;
+                    };
+                    booking: {
+                        service: {
+                            name: string;
+                        };
+                    };
+                    staffRating: number | null;
+                    staffComment: string | null;
+                }[];
+                company: {
+                    id: bigint;
+                    name: string;
+                    logoUrl: string | null;
+                    ratingSummary: {
+                        averageRating: import("@prisma/client/runtime/library").Decimal | null;
+                    } | null;
+                };
+                assignedBookings: {
+                    id: bigint;
+                    status: import(".prisma/client").$Enums.BookingStatus;
+                    customer: {
+                        fullName: string;
+                    };
+                    company: {
+                        name: string;
+                    };
+                    bookingDate: Date;
+                    totalPrice: import("@prisma/client/runtime/library").Decimal;
+                    staffEarnings: import("@prisma/client/runtime/library").Decimal;
+                    service: {
+                        name: string;
+                    };
+                }[];
             } & {
                 id: bigint;
+                role: import(".prisma/client").$Enums.StaffRole;
                 status: import(".prisma/client").$Enums.StaffStatus;
                 createdAt: Date;
+                walletBalance: import("@prisma/client/runtime/library").Decimal;
                 companyId: bigint;
                 userId: bigint;
-                role: import(".prisma/client").$Enums.StaffRole;
                 creditLimit: import("@prisma/client/runtime/library").Decimal;
-                walletBalance: import("@prisma/client/runtime/library").Decimal;
                 splitPercent: import("@prisma/client/runtime/library").Decimal | null;
             })[];
+            _count: {
+                bookingsAsCustomer: number;
+                cancellationsMade: number;
+                messages: number;
+                notifications: number;
+                reviews: number;
+            };
         };
     }>;
     updateUser(id: bigint, dto: UpdateUserDto, currentUser: any): Promise<{
         message: string;
         user: {
             id: bigint;
-            status: import(".prisma/client").$Enums.UserStatus;
-            updatedAt: Date;
-            role: import(".prisma/client").$Enums.UserRole;
             fullName: string;
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            role: import(".prisma/client").$Enums.UserRole;
+            status: import(".prisma/client").$Enums.UserStatus;
+            updatedAt: Date;
         };
     }>;
     requestContactUpdate(userId: bigint, dto: RequestContactUpdateDto): Promise<{
@@ -128,13 +246,13 @@ export declare class UsersService {
         message: string;
         user: {
             id: bigint;
-            status: import(".prisma/client").$Enums.UserStatus;
-            updatedAt: Date;
-            role: import(".prisma/client").$Enums.UserRole;
             fullName: string;
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            role: import(".prisma/client").$Enums.UserRole;
+            status: import(".prisma/client").$Enums.UserStatus;
+            updatedAt: Date;
         };
     }>;
     deleteUser(id: bigint, currentUser: any): Promise<{
@@ -144,9 +262,9 @@ export declare class UsersService {
         message: string;
         user: {
             id: bigint;
-            status: import(".prisma/client").$Enums.UserStatus;
             fullName: string;
             email: string | null;
+            status: import(".prisma/client").$Enums.UserStatus;
         };
     }>;
     updateStaffStatus(userId: bigint, status: 'active' | 'inactive'): Promise<{

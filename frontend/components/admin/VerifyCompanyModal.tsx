@@ -58,7 +58,7 @@ export function VerifyCompanyModal({ open, onClose, companyId, companyName, docu
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Review Company KYC</DialogTitle>
           <DialogDescription>

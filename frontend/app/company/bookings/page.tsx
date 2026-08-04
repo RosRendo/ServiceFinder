@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Calendar, Eye, CheckCircle2, XCircle, Clock, UserPlus, Loader2, CheckCircle, Search, Download, Edit, Trash2, Edit2 } from "lucide-react";
+import { Calendar, Eye, CheckCircle2, XCircle, Clock, UserPlus, Loader2, CheckCircle, Search, Download, Edit, Trash2, Edit2, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/lib/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,7 @@ import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
 import { StatusBadge } from "@/components/grid/StatusBadge";
 import { BookingDrawer } from "@/components/drawers/BookingDrawer";
+import { CreateBookingDrawer } from "@/components/drawers/CreateBookingDrawer";
 
 export default function Bookings() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function Bookings() {
 
   
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [activeBookingId, setActiveBookingId] = useState<string | null>(null);
 
   const fetchBookings = async () => {
@@ -138,6 +140,12 @@ export default function Bookings() {
             <Calendar className="w-3.5 h-3.5 text-muted-foreground" /> Calendar
           </button>
         </Link>
+        <button 
+          onClick={() => setCreateDrawerOpen(true)}
+          className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-xs font-medium hover:bg-violet-700 transition-colors shadow-sm"
+        >
+          <Plus className="w-3.5 h-3.5" /> New Booking
+        </button>
 
         <span className="text-xs text-indigo-500 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 ml-1">
           <Clock className="w-3 h-3" />
@@ -162,6 +170,7 @@ export default function Bookings() {
       </div>
 
       <BookingDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} bookingId={activeBookingId} onBookingUpdated={fetchBookings} />
+      <CreateBookingDrawer open={createDrawerOpen} onClose={() => setCreateDrawerOpen(false)} onSuccess={fetchBookings} companyId="my-company" />
       <BulkActionBar
         selectedCount={selectedIds.size}
         onClear={() => setSelectedIds(new Set())}

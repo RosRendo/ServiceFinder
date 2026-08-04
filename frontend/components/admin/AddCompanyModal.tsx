@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Building2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Building2, Plus, Trash2, ImagePlus, X } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import LocationSelector from "@/components/map/LocationSelector";
+import { Switch } from "@/components/ui/switch";
 
 export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; onClose: () => void; onSuccess?: () => void }) {
   const { toast } = useToast();
@@ -20,8 +21,10 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
   
   // State for the temporary service being added
   const [tempService, setTempService] = useState({
-      name: "", typeId: "", basePrice: "", durationMin: "", description: ""
+      name: "", typeId: "", basePrice: "", durationMin: "60", description: "", imageUrl: "", checklist: [] as string[]
   });
+  const [checklistInput, setChecklistInput] = useState("");
+  const [highlightInput, setHighlightInput] = useState("");
   
   useEffect(() => {
       if (open) {
@@ -37,6 +40,11 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
     companyName: "", companyDescription: "", companyPhone: "", companyEmail: "",
     companyAddress: "", companyCity: "", latitude: "", longitude: "",
     logoUrl: "", coverImageUrl: "",
+    description: "",
+    establishedYear: "",
+    isInsured: false,
+    coverageRadiusKm: "50",
+    cardHighlights: [] as string[],
     services: [] as any[]
   });
 
@@ -54,7 +62,8 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
               durationMin: tempService.durationMin ? Number(tempService.durationMin) : undefined,
           }]
       });
-      setTempService({ name: "", typeId: "", basePrice: "", durationMin: "", description: "" });
+      setTempService({ name: "", typeId: "", basePrice: "", durationMin: "60", description: "", imageUrl: "", checklist: [] });
+      setChecklistInput("");
   };
 
   const handleRemoveService = (index: number) => {
@@ -71,9 +80,17 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
     
     setLoading(true);
     try {
-      const payload: any = { ...formData };
-      if (payload.latitude) payload.latitude = Number(payload.latitude);
-      if (payload.longitude) payload.longitude = Number(payload.longitude);
+      const payload: any = { 
+          ...formData,
+          email: formData.companyEmail || undefined,
+          description: formData.description || undefined,
+          establishedYear: formData.establishedYear ? Number(formData.establishedYear) : undefined,
+          isInsured: formData.isInsured,
+          coverageRadiusKm: formData.coverageRadiusKm ? Number(formData.coverageRadiusKm) : 50,
+          cardHighlights: formData.cardHighlights,
+          latitude: formData.latitude ? Number(formData.latitude) : undefined,
+          longitude: formData.longitude ? Number(formData.longitude) : undefined
+      };
 
       await api.post("/admin/companies", payload);
       toast({ title: "Success", description: "Company created successfully" });
@@ -83,6 +100,11 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
           companyName: "", companyDescription: "", companyPhone: "", companyEmail: "",
           companyAddress: "", companyCity: "", latitude: "", longitude: "",
           logoUrl: "", coverImageUrl: "",
+          description: "",
+          establishedYear: "",
+          isInsured: false,
+          coverageRadiusKm: "50",
+          cardHighlights: [],
           services: []
       });
       setActiveTab("basic");
@@ -121,9 +143,69 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
                 <Label>Company Name <span className="text-rose-500">*</span></Label>
                 <Input value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} placeholder="Acme Cleaning" />
                 
-                <Label>About / Description</Label>
-                <Textarea value={formData.companyDescription} onChange={e => setFormData({...formData, companyDescription: e.target.value})} placeholder="We are the best cleaning company..." />
+                <div className="mt-4">
+                  <Label>Company Description / About Us</Label>
+                  <Textarea 
+                    className="mt-1 resize-none h-20 text-sm" 
+                    placeholder="Tell customers about your company, values, and why they should choose you..." 
+                    value={formData.description} 
+                    onChange={e => setFormData({...formData, description: e.target.value})} 
+                  />
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-border/50">
+                  <Label className="block mb-1">Company Highlights (Max 2)</Label>
+                  <p className="text-xs text-muted-foreground mb-2">These appear as feature tags on the mobile app Explore feed (e.g. "24/7 Available", "Eco-Friendly")</p>
+                  
+                  <div className="flex gap-2 mb-2">
+                      <Input 
+                          value={highlightInput} 
+                          onChange={e => setHighlightInput(e.target.value)} 
+                          onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (highlightInput.trim() && formData.cardHighlights.length < 2) {
+                                      setFormData({...formData, cardHighlights: [...formData.cardHighlights, highlightInput.trim()]});
+                                      setHighlightInput("");
+                                  }
+                              }
+                          }}
+                          disabled={formData.cardHighlights.length >= 2}
+                          placeholder="e.g. Eco-Friendly (Press Enter)" 
+                          className="h-8 text-sm flex-1" 
+                      />
+                      <Button type="button" variant="secondary" size="sm" className="h-8" disabled={formData.cardHighlights.length >= 2} onClick={() => {
+                          if (highlightInput.trim() && formData.cardHighlights.length < 2) {
+                              setFormData({...formData, cardHighlights: [...formData.cardHighlights, highlightInput.trim()]});
+                              setHighlightInput("");
+                          }
+                      }}>Add</Button>
+                  </div>
+                  {formData.cardHighlights.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                          {formData.cardHighlights.map((tag, idx) => (
+                              <div key={idx} className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-xs font-medium border border-primary/20">
+                                  <span>{tag}</span>
+                                  <button type="button" onClick={() => setFormData({...formData, cardHighlights: formData.cardHighlights.filter((_, i) => i !== idx)})} className="hover:text-rose-500 ml-1">
+                                      <X className="w-3 h-3" />
+                                  </button>
+                              </div>
+                          ))}
+                      </div>
+                  )}
+                </div>
                 
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Established Year</Label>
+                    <Input type="number" value={formData.establishedYear} onChange={e => setFormData({...formData, establishedYear: e.target.value})} placeholder="2020" />
+                  </div>
+                  <div className="flex items-center space-x-2 pt-6">
+                    <Switch id="isInsured" checked={formData.isInsured} onCheckedChange={(c) => setFormData({...formData, isInsured: c})} />
+                    <Label htmlFor="isInsured">Company is Insured</Label>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Company Phone</Label>
@@ -160,7 +242,38 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
               <Input value={formData.companyCity} onChange={e => setFormData({...formData, companyCity: e.target.value})} placeholder="New York" />
               
               <div className="pt-4 mt-4 border-t border-border/50">
-                <Label className="mb-2 block">Map Location</Label>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-end mb-3 gap-2">
+                  <Label className="block whitespace-nowrap mb-1 sm:mb-0">Map Location</Label>
+                  <div className="w-full sm:w-2/3 md:w-1/2">
+                    <Input 
+                      className="h-8 text-sm placeholder:text-xs"
+                      placeholder="Quick Pin: Paste a Google Maps Link (https://maps.app.goo.gl/...)" 
+                      onChange={async (e) => {
+                        const url = e.target.value;
+                        if (url.startsWith('http') && (url.includes('map') || url.includes('goo.gl'))) {
+                          toast({ title: "Parsing link...", description: "Extracting coordinates..." });
+                          try {
+                            const res = await fetch(`/api/parse-gmap?url=${encodeURIComponent(url)}`);
+                            const data = await res.json();
+                            if (data.lat && data.lng) {
+                              setFormData({
+                                  ...formData, 
+                                  latitude: data.lat.toString(), 
+                                  longitude: data.lng.toString()
+                              });
+                              toast({ title: "Coordinates Extracted!", description: `Map moved to ${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}` });
+                            } else {
+                              toast({ title: "Extraction Failed", description: "Could not find coordinates in that link.", variant: "destructive" });
+                            }
+                          } catch(err) {
+                             toast({ title: "Error", description: "Failed to parse link.", variant: "destructive" });
+                          }
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
                 
                 <div className="mt-2">
                   {activeTab === "location" && (
@@ -170,6 +283,12 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
                       onChange={(lat, lng) => setFormData({...formData, latitude: lat.toString(), longitude: lng.toString()})} 
                     />
                   )}
+                </div>
+
+                <div className="mt-4">
+                  <Label>Coverage Radius (km)</Label>
+                  <p className="text-xs text-muted-foreground mb-1">How far from the base location are you willing to travel for jobs?</p>
+                  <Input type="number" value={formData.coverageRadiusKm} onChange={e => setFormData({...formData, coverageRadiusKm: e.target.value})} placeholder="50" className="w-1/3" />
                 </div>
 
                 {formData.latitude && formData.longitude && (
@@ -211,9 +330,20 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
                 {formData.services.length > 0 && (
                     <div className="space-y-2 mb-4">
                         {formData.services.map((svc, i) => (
-                            <div key={i} className="flex flex-col gap-1 p-3 bg-muted/30 border border-border rounded-lg relative pr-10">
-                                <span className="text-sm font-bold text-foreground">{svc.name}</span>
-                                <span className="text-xs text-muted-foreground">{serviceTypes.find(t => t.id === svc.typeId)?.name || 'Category'} • ${svc.basePrice || '0'} • {svc.durationMin || '0'} mins</span>
+                            <div key={i} className="flex items-center gap-3 p-3 bg-muted/30 border border-border rounded-lg relative pr-10">
+                                {svc.imageUrl ? (
+                                    <div className="w-12 h-12 rounded-md overflow-hidden bg-muted shrink-0 border border-border">
+                                        <img src={svc.imageUrl} alt={svc.name} className="w-full h-full object-cover" />
+                                    </div>
+                                ) : (
+                                    <div className="w-12 h-12 rounded-md bg-muted shrink-0 border border-border flex items-center justify-center text-muted-foreground">
+                                        <ImagePlus className="w-4 h-4 opacity-50" />
+                                    </div>
+                                )}
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-sm font-bold text-foreground">{svc.name}</span>
+                                    <span className="text-xs text-muted-foreground">{serviceTypes.find(t => t.id === svc.typeId)?.name || 'Category'} • ${svc.basePrice || '0'} • {svc.durationMin || '0'} mins</span>
+                                </div>
                                 <button type="button" onClick={() => handleRemoveService(i)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 rounded-md transition-colors">
                                     <Trash2 className="w-4 h-4" />
                                 </button>
@@ -254,13 +384,73 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
                         </div>
                     </div>
 
-                    <div>
-                        <Label className="text-xs">Description</Label>
-                        <Textarea value={tempService.description} onChange={e => setTempService({...tempService, description: e.target.value})} placeholder="Details..." className="h-16 text-sm resize-none" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <Label className="text-xs mb-2 block">Service Image (Optional)</Label>
+                            <div className="aspect-video sm:aspect-square w-full">
+                               <ImageUpload 
+                                 value={tempService.imageUrl} 
+                                 onChange={url => setTempService({...tempService, imageUrl: url})} 
+                                 label="Photo" 
+                               />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <Label className="text-xs mb-2 block">Description</Label>
+                            <Textarea 
+                                value={tempService.description} 
+                                onChange={e => setTempService({...tempService, description: e.target.value})} 
+                                placeholder="Service details..." 
+                                className="flex-1 min-h-[100px] text-sm resize-none" 
+                            />
+                        </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-border/50">
+                        <Label className="text-xs mb-2 block">What's Included? (Checklist)</Label>
+                        <div className="flex gap-2 mb-2">
+                            <Input 
+                                value={checklistInput} 
+                                onChange={e => setChecklistInput(e.target.value)} 
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        if (checklistInput.trim()) {
+                                            setTempService({...tempService, checklist: [...tempService.checklist, checklistInput.trim()]});
+                                            setChecklistInput("");
+                                        }
+                                    }
+                                }}
+                                placeholder="e.g. Dashboard wipe down (Press Enter)" 
+                                className="h-8 text-sm flex-1" 
+                            />
+                            <Button type="button" variant="secondary" size="sm" className="h-8" onClick={() => {
+                                if (checklistInput.trim()) {
+                                    setTempService({...tempService, checklist: [...tempService.checklist, checklistInput.trim()]});
+                                    setChecklistInput("");
+                                }
+                            }}>Add</Button>
+                        </div>
+                        {tempService.checklist.length > 0 && (
+                            <div className="flex flex-col gap-1 mt-2">
+                                {tempService.checklist.map((item, idx) => (
+                                    <div key={idx} className="flex items-center justify-between bg-muted/30 px-3 py-1.5 rounded-md border border-border/50">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                            <span className="text-xs">{item}</span>
+                                        </div>
+                                        <button type="button" onClick={() => setTempService({...tempService, checklist: tempService.checklist.filter((_, i) => i !== idx)})} className="text-muted-foreground hover:text-rose-500">
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <Button type="button" onClick={handleAddService} variant="outline" size="sm" className="w-full mt-2 h-8 text-xs font-bold">
-                        <Plus className="w-3 h-3 mr-1" /> Add to List
+                        <Plus className="w-4 h-4 mr-2" /> Add Service to List
                     </Button>
                 </div>
             </TabsContent>

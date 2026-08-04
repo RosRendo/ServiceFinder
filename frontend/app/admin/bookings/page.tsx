@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { StatusBadge } from "@/components/grid/StatusBadge";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
-import { BookingDrawer } from "@/components/drawers/BookingDrawer";
+import { CreateBookingDrawer } from "@/components/drawers/CreateBookingDrawer";
 import { Search, Loader2, Calendar, Clock, Download, Plus, SlidersHorizontal, Eye, Edit } from "lucide-react";
 import api from "@/lib/api/client";
 import { useToast } from "@/lib/hooks/use-toast";
@@ -19,9 +19,7 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
-  
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeBookingId, setActiveBookingId] = useState<string | null>(null);
+  const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -56,8 +54,7 @@ export default function BookingsPage() {
   }, [filtered]);
 
   const openDrawer = (id: string) => {
-      setActiveBookingId(id);
-      setDrawerOpen(true);
+      router.push(`/admin/bookings/${id}`);
   };
 
   const columns: Column<any>[] = [
@@ -107,7 +104,10 @@ export default function BookingsPage() {
         <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted/60 transition-colors">
           <Download className="w-3.5 h-3.5" /> Export
         </button>
-        <button className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors">
+        <button 
+          onClick={() => setCreateDrawerOpen(true)}
+          className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors"
+        >
           <Plus className="w-3.5 h-3.5" /> New Booking
         </button>
       </div>
@@ -160,12 +160,10 @@ export default function BookingsPage() {
         ]}
       />
 
-      {/* Booking Drawer */}
-      <BookingDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        bookingId={activeBookingId || ""}
-        onBookingUpdated={fetchBookings}
+      <CreateBookingDrawer
+        open={createDrawerOpen}
+        onClose={() => setCreateDrawerOpen(false)}
+        onSuccess={fetchBookings}
       />
     </div>
   );

@@ -367,8 +367,13 @@ let AdminService = class AdminService {
                 owner: {
                     select: { id: true, fullName: true, email: true, phone: true },
                 },
-                staff: true,
+                staff: {
+                    include: { user: { select: { fullName: true, email: true } } },
+                },
                 services: true,
+                bookings: {
+                    select: { id: true, totalPrice: true, status: true, createdAt: true },
+                }
             },
         });
         if (!company) {
@@ -387,12 +392,21 @@ let AdminService = class AdminService {
                 id: s.id.toString(),
                 userId: s.userId.toString(),
                 companyId: s.companyId?.toString(),
+                user: s.user ? {
+                    ...s.user,
+                } : null,
             })),
             services: company.services.map((s) => ({
                 ...s,
                 id: s.id.toString(),
                 companyId: s.companyId.toString(),
+                basePrice: s.basePrice ? Number(s.basePrice) : 0,
             })),
+            bookings: company.bookings.map((b) => ({
+                id: b.id.toString(),
+                totalPrice: b.totalPrice ? Number(b.totalPrice) : 0,
+                status: b.status,
+            }))
         };
     }
     async updateCompany(id, dto) {
@@ -508,6 +522,18 @@ let AdminService = class AdminService {
         });
         return {
             message: 'Company trial expired',
+            companyId: company.id.toString(),
+        };
+    }
+    async suspendCompany(id) {
+        const company = await this.prisma.company.update({
+            where: { id },
+            data: {
+                subscriptionStatus: 'suspended',
+            },
+        });
+        return {
+            message: 'Company has been suspended',
             companyId: company.id.toString(),
         };
     }
