@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Loader2, Save, Image as ImageIcon } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import { Loader2, Save, Image as ImageIcon, UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseDrawer } from "../drawers/BaseDrawer";
 import api from "@/lib/api/client";
@@ -24,6 +24,9 @@ export function EditServiceModal({ open, onClose, service, onSuccess }: EditServ
     const [discountPrice, setDiscountPrice] = useState("");
     const [image, setImage] = useState("");
     const [isActive, setIsActive] = useState(true);
+    
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (open) {
@@ -78,6 +81,27 @@ export function EditServiceModal({ open, onClose, service, onSuccess }: EditServ
         }
     };
 
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadingImage(true);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await api.post("/upload", formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+            setImage(res.data.url);
+            toast({ title: "Image Uploaded", description: "Your image was successfully uploaded to Cloudinary." });
+        } catch (err: any) {
+            toast({ title: "Upload Failed", description: err.response?.data?.message || "Failed to upload image", variant: "destructive" });
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
     return (
         <BaseDrawer 
             open={open} 
@@ -99,16 +123,35 @@ export function EditServiceModal({ open, onClose, service, onSuccess }: EditServ
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Image URL</label>
-                        <div className="relative">
-                            <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Image URL or Upload</label>
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                                <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <input 
+                                    type="url"
+                                    value={image}
+                                    onChange={(e) => setImage(e.target.value)}
+                                    placeholder="https://example.com/image.jpg"
+                                    className="w-full h-11 pl-10 pr-3 bg-muted/50 border border-border rounded-xl text-sm focus:border-primary outline-none transition-colors" 
+                                />
+                            </div>
                             <input 
-                                type="url"
-                                value={image}
-                                onChange={(e) => setImage(e.target.value)}
-                                placeholder="https://example.com/image.jpg"
-                                className="w-full h-11 pl-10 pr-3 bg-muted/50 border border-border rounded-xl text-sm focus:border-primary outline-none transition-colors" 
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden" 
+                                ref={fileInputRef} 
+                                onChange={handleImageUpload} 
                             />
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                className="h-11 shrink-0" 
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploadingImage}
+                            >
+                                {uploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4 mr-2" />}
+                                {uploadingImage ? "" : "Upload"}
+                            </Button>
                         </div>
                     </div>
 

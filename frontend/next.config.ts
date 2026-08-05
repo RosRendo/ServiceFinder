@@ -56,7 +56,7 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://maps.googleapis.com https://us.i.posthog.com https://eu.i.posthog.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
               "font-src 'self' https://fonts.gstatic.com",
               `img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://via.placeholder.com https://i.pravatar.cc https://lh3.googleusercontent.com https://*.cartocdn.com https://cdnjs.cloudflare.com https://unpkg.com ${SITE_URL}`,
               `connect-src 'self' ws: wss: ${API_URL} https://accounts.google.com https://us.i.posthog.com https://eu.i.posthog.com`,

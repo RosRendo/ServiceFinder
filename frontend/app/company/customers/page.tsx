@@ -197,14 +197,7 @@ export default function CustomersCRM() {
             columns={columns}
             data={customers}
             onRowClick={(row) => {
-              setActiveCustomer({
-                ...row,
-                totalBookings: row.stats?.totalBookings || 0,
-                activeDisputes: row.stats?.activeDisputes || 0,
-                ltv: row.stats?.ltv || 0,
-                recentBookings: row.stats?.recentBookings || []
-              });
-              setDrawerOpen(true);
+              router.push(`/company/customers/${row.id}`);
             }}
             emptyMessage="No customers found."
           />

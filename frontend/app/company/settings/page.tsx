@@ -324,6 +324,10 @@ export default function CompanySettingsPage() {
                       lat={parseFloat(form.latitude) || 11.5564}
                       lng={parseFloat(form.longitude) || 104.9282}
                       radiusKm={form.coverageRadiusKm}
+                      onChange={(lat, lng) => {
+                        handleUpdateField("latitude", lat.toFixed(6));
+                        handleUpdateField("longitude", lng.toFixed(6));
+                      }}
                     />
                     <div className="absolute bottom-3 left-3 bg-background border border-border rounded-lg p-2 shadow-sm text-[10px] font-medium text-muted-foreground z-[1000]">
                       Lat: {form.latitude} <br />

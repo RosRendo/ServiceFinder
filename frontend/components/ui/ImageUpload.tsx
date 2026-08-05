@@ -55,29 +55,20 @@ export function ImageUpload({ value, onChange, className, label = "Upload Image"
 
     setIsUploading(true);
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append("file", file);
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/companies/upload-image`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
+      // Use the global API client which handles base URL and credentials
+      const api = (await import("@/lib/api/client")).default;
+      const res = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to upload image");
-      }
-
       toast.success("Image uploaded successfully");
-      onChange(data.url); // Set the Cloudinary URL
+      onChange(res.data.url); // Set the Cloudinary URL
     } catch (error: any) {
       console.error("Upload error:", error);
-      toast.error(error.message || "Failed to upload image");
+      toast.error(error.response?.data?.message || error.message || "Failed to upload image");
     } finally {
       setIsUploading(false);
       // Reset input so the same file could be selected again if needed

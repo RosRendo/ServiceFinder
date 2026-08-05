@@ -6,12 +6,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Building2, Plus, Trash2, ImagePlus, X } from "lucide-react";
+import { Loader2, Building2, Plus, Trash2, ImagePlus, X, MapPin } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
-import LocationSelector from "@/components/map/LocationSelector";
 import { Switch } from "@/components/ui/switch";
+import dynamic from "next/dynamic";
+
+const CoverageMap = dynamic(() => import("@/components/map/CoverageMap"), { 
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+      <Loader2 className="w-6 h-6 animate-spin mb-2 text-primary" />
+      <span className="text-xs font-medium">Loading interactive map...</span>
+    </div>
+  )
+});
 
 export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; onClose: () => void; onSuccess?: () => void }) {
   const { toast } = useToast();
@@ -277,11 +287,14 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
                 
                 <div className="mt-2">
                   {activeTab === "location" && (
-                    <LocationSelector 
-                      lat={formData.latitude ? Number(formData.latitude) : 11.5564} 
-                      lng={formData.longitude ? Number(formData.longitude) : 104.9282} 
-                      onChange={(lat, lng) => setFormData({...formData, latitude: lat.toString(), longitude: lng.toString()})} 
-                    />
+                    <div className="h-[300px] w-full border border-border bg-muted/10 rounded-2xl flex items-center justify-center relative overflow-hidden z-0">
+                      <CoverageMap 
+                        lat={formData.latitude ? Number(formData.latitude) : 11.5564} 
+                        lng={formData.longitude ? Number(formData.longitude) : 104.9282}
+                        radiusKm={formData.coverageRadiusKm ? Number(formData.coverageRadiusKm) : 50}
+                        onChange={(lat, lng) => setFormData({...formData, latitude: lat.toString(), longitude: lng.toString()})} 
+                      />
+                    </div>
                   )}
                 </div>
 
