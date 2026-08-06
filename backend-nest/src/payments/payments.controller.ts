@@ -10,6 +10,8 @@ import {
   Req,
   UseGuards,
   Request,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -151,5 +153,33 @@ export class PaymentsController {
   @ApiResponse({ status: 200, description: 'Cash payment confirmed.' })
   confirmCashReceived(@Body() dto: ConfirmCashDto, @Request() req) {
     return this.paymentsService.confirmCashReceived(dto, req.user);
+  }
+
+  // ─── Wing Bank KHQR ─────────────────────────────────────────────────────────
+
+  @UseGuards(JwtAuthGuard)
+  @Post('wing/checkout')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create Wing Bank KHQR Checkout' })
+  @ApiResponse({ status: 201, description: 'Wing checkout generated successfully.' })
+  createWingCheckout(@Body() dto: CheckoutSessionDto, @Request() req) {
+    return this.paymentsService.createWingCheckout(dto, req.user);
+  }
+
+  @Post('webhook/wing')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Wing Bank KHQR Webhook Callback' })
+  @ApiResponse({ status: 200, description: 'Webhook processed successfully.' })
+  handleWingWebhook(@Body() body: any) {
+    return this.paymentsService.handleWingWebhook(body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/wing-status')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Check status of Wing KHQR Payment' })
+  @ApiResponse({ status: 200, description: 'Returns current payment status.' })
+  checkWingStatus(@Param('id') id: string) {
+    return this.paymentsService.checkWingStatus(BigInt(id));
   }
 }

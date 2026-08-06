@@ -41,6 +41,7 @@ export default function CheckoutScreen() {
 
   const { processAbaPayment } = usePayments();
   const [abaHtml, setAbaHtml] = useState<string | null>(null);
+  const [wingUrl, setWingUrl] = useState<string | null>(null);
   
   // Booking State
   const [booking, setBooking] = useState<any>(null);
@@ -52,7 +53,7 @@ export default function CheckoutScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   
-  const [selectedMethod, setSelectedMethod] = useState<'aba' | 'khqr'>('aba');
+  const [selectedMethod, setSelectedMethod] = useState<'aba' | 'khqr' | 'wing'>('aba');
   const [khqrString, setKhqrString] = useState<string | null>(null);
   const [khqrAmount, setKhqrAmount] = useState<string>("0.00");
 
@@ -75,16 +76,17 @@ export default function CheckoutScreen() {
     init();
   }, [bookingId, serviceId]);
 
-  // Poll for payment success when KHQR is displayed
+  // Poll for payment success when KHQR or Wing is active
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (khqrString && booking?.id) {
+    let interval: any;
+    if ((khqrString || wingUrl) && booking?.id) {
       interval = setInterval(async () => {
         try {
           const res = await api.get(`/api/bookings/${booking.id}`);
           const b = res.data.data.booking ?? res.data.data;
           if (b.status === "confirmed") {
             setKhqrString(null);
+            setWingUrl(null);
             setShowSuccess(true);
           }
         } catch (err) {
@@ -93,7 +95,7 @@ export default function CheckoutScreen() {
       }, 3000);
     }
     return () => clearInterval(interval);
-  }, [khqrString, booking?.id]);
+  }, [khqrString, wingUrl, booking?.id]);
 
   const handleCreateAndPay = async () => {
     setPayError(null);
@@ -116,7 +118,7 @@ export default function CheckoutScreen() {
           companyId: service?.companyId || companyId || "", 
           bookingDate: bd.toISOString().split("T")[0],
           startTime: time || "10:00", 
-          serviceAddress: user?.city || "Local Address",
+          serviceAddress: (user as any)?.city || "Local Address",
         });
         activeBookingId = res.data.data.id;
       } catch (err) {
@@ -138,6 +140,25 @@ export default function CheckoutScreen() {
         }
       } catch (err: any) {
         setPayError(err?.response?.data?.message || "Failed to generate KHQR.");
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
+    if (selectedMethod === 'wing') {
+      try {
+        const res = await api.post('/api/payments/wing/checkout', { bookingId: activeBookingId });
+        if (res.data.success && res.data.webPaymentUrl) {
+          setWingUrl(res.data.webPaymentUrl);
+          if (!bookingId) {
+            setBooking({ id: activeBookingId });
+          }
+        } else {
+          setPayError(res.data.message || "Failed to initialize Wing payment.");
+        }
+      } catch (err: any) {
+        setPayError(err?.response?.data?.message || "Failed to initiate Wing payment.");
       } finally {
         setIsProcessing(false);
       }
@@ -170,7 +191,7 @@ export default function CheckoutScreen() {
       setAbaHtml(html);
       setIsProcessing(false);
     } else {
-      setPayError(result?.message || "Payment initiation failed");
+      setPayError((result as any)?.message || "Payment initiation failed");
       setIsProcessing(false);
     }
   };
@@ -181,6 +202,16 @@ export default function CheckoutScreen() {
       setShowSuccess(true);
     } else if (navState.url.includes("fail") || navState.url.includes("cancel")) {
       setAbaHtml(null);
+      setPayError("Payment was cancelled or failed.");
+    }
+  };
+
+  const onWingNavStateChange = (navState: any) => {
+    if (navState.url.includes("wing-success") || navState.url.includes("success")) {
+      setWingUrl(null);
+      setShowSuccess(true);
+    } else if (navState.url.includes("wing-cancel") || navState.url.includes("cancel") || navState.url.includes("fail")) {
+      setWingUrl(null);
       setPayError("Payment was cancelled or failed.");
     }
   };
@@ -199,7 +230,7 @@ export default function CheckoutScreen() {
   const displayPrice = booking?.totalPrice || price || displayService?.basePrice || "0.00";
   const displayDate = booking?.bookingDate ? new Date(booking.bookingDate).toLocaleDateString() : (date || "Today");
   const displayTime = booking?.startTime || (time || "ASAP");
-  const displayAddress = booking?.serviceAddress || user?.city || "Local Address";
+  const displayAddress = booking?.serviceAddress || (user as any)?.city || "Local Address";
   
   // Tax & Fees Math
   const subtotal = Number(displayPrice);
@@ -322,6 +353,17 @@ export default function CheckoutScreen() {
             <Text style={[s.methodLabel, selectedMethod === 'khqr' && s.methodLabelActive]}>KHQR (Scan to Pay)</Text>
             {selectedMethod === 'khqr' && <MaterialIcons name="check-circle" size={24} color={T.accent} />}
           </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[s.methodCard, selectedMethod === 'wing' && s.methodCardActive, { marginTop: 12 }]} 
+            onPress={() => setSelectedMethod('wing')}
+          >
+            <View style={s.methodIconBox}>
+              <MaterialIcons name="account-balance-wallet" size={24} color={selectedMethod === 'wing' ? '#FFF' : T.text2} />
+            </View>
+            <Text style={[s.methodLabel, selectedMethod === 'wing' && s.methodLabelActive]}>Wing KHQR</Text>
+            {selectedMethod === 'wing' && <MaterialIcons name="check-circle" size={24} color={T.accent} />}
+          </TouchableOpacity>
         </FadeIn>
 
         {payError && <Text style={s.errorText}>{payError}</Text>}
@@ -364,6 +406,26 @@ export default function CheckoutScreen() {
         </SafeAreaView>
       </Modal>
 
+      {/* WING WEBVIEW */}
+      <Modal visible={!!wingUrl} transparent={false} animationType="slide">
+        <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
+          <View style={s.header}>
+            <TouchableOpacity onPress={() => setWingUrl(null)} style={s.backBtn}>
+              <MaterialIcons name="close" size={24} color={T.text1} />
+            </TouchableOpacity>
+            <Text style={s.headerTitle}>Wing Bank KHQR</Text>
+            <View style={{ width: 44 }} />
+          </View>
+          {wingUrl && (
+            <WebView
+              source={{ uri: wingUrl }}
+              onNavigationStateChange={onWingNavStateChange}
+              style={{ flex: 1 }}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
+
       {/* KHQR MODAL */}
       <Modal visible={!!khqrString} transparent={true} animationType="fade">
         <View style={s.khqrOverlay}>
@@ -384,7 +446,7 @@ export default function CheckoutScreen() {
 
       <SuccessOverlay 
         visible={showSuccess} 
-        onAnimationComplete={() => {
+        onFinish={() => {
           setShowSuccess(false);
           router.replace("/(customer)/(tabs)/home" as any);
         }} 

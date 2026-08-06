@@ -50,6 +50,7 @@ const aba_hash_util_1 = require("./utils/aba-hash.util");
 const bakong_khqr_1 = require("bakong-khqr");
 const crypto = __importStar(require("crypto"));
 const prisma_service_1 = require("../prisma/prisma.service");
+const wing_crypto_util_1 = require("./utils/wing-crypto.util");
 let PaymentsService = PaymentsService_1 = class PaymentsService {
     prisma;
     config;
@@ -307,6 +308,248 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             amount,
             billNumber: qrInfo.billNumber,
         };
+    }
+    wingToken = null;
+    wingTokenExpiry = 0;
+    async getWingAccessToken() {
+        const now = Math.floor(Date.now() / 1000);
+        if (this.wingToken && this.wingTokenExpiry > now + 300) {
+            return this.wingToken;
+        }
+        const clientId = this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
+        const clientSecret = this.config.get('WING_CLIENT_SECRET') || 'h02F_zaRmn6PhFjIolbFcb16BgWGMrcfX93frd13Id8a';
+        const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-gateway.wingbank.com';
+        const url = `${baseUrl}/idp/v1/token`;
+        const body = new URLSearchParams();
+        body.append('grant_type', 'client_credentials');
+        body.append('client_id', clientId);
+        body.append('client_secret', clientSecret);
+        body.append('scope', 'partner:standard');
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: body.toString(),
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Wing Token auth failed: ${response.status} ${errText}`);
+            }
+            const data = await response.json();
+            this.wingToken = data.access_token;
+            this.wingTokenExpiry = now + (data.expires_in || 3600);
+            return this.wingToken;
+        }
+        catch (err) {
+            this.logger.error('Failed to get Wing Access Token', err);
+            throw new common_1.InternalServerErrorException('Failed to authenticate with Wing Bank');
+        }
+    }
+    async createWingCheckout(dto, user) {
+        const bookingId = BigInt(dto.bookingId);
+        const booking = await this.prisma.booking.findUnique({
+            where: { id: bookingId },
+            include: { customer: true },
+        });
+        if (!booking)
+            throw new common_1.NotFoundException('Booking not found');
+        if (booking.customerId !== BigInt(user.id))
+            throw new common_1.ForbiddenException('Access denied');
+        if (booking.status !== 'pending')
+            throw new common_1.BadRequestException('This booking has already been processed');
+        const clientId = this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
+        const cipherKeyStr = this.config.get('WING_CIPHER_KEY') || 'pEHt/rl63W4YZUqPRs92DPHHpHWfnkiMLvJdwhxQBb4=';
+        const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-gateway.wingbank.com';
+        const frontendUrl = this.config.get('FRONTEND_URL') || 'http://localhost:3000';
+        const key = (0, wing_crypto_util_1.deriveWingKey)(clientId, cipherKeyStr);
+        const iv = (0, wing_crypto_util_1.deriveWingIV)(clientId);
+        const amount = Number(booking.totalPrice).toFixed(2);
+        const currency = 'USD';
+        const orderRef = `WK${bookingId}T${Math.floor(Date.now() / 1000)}`;
+        const returnUrl = `${frontendUrl}/payment/wing-success?booking_id=${bookingId}`;
+        const cancelUrl = `${frontendUrl}/payment/wing-cancel?booking_id=${bookingId}`;
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const merchantName = this.config.get('APP_NAME') || 'Service Finder';
+        const payloadHash = (0, wing_crypto_util_1.generatePayloadHash)(clientId, amount, currency, orderRef, returnUrl, cancelUrl, timestamp, key, iv);
+        const payloadObj = {
+            amount,
+            currency,
+            order_reference_no: orderRef,
+            return_url: returnUrl,
+            cancel_url: cancelUrl,
+            merchant_name: merchantName,
+            timestamp,
+            additional_data: JSON.stringify({ bookingId: bookingId.toString() }),
+        };
+        const encryptedPayload = (0, wing_crypto_util_1.encryptAES256GCM)(JSON.stringify(payloadObj), key, iv);
+        const accessToken = await this.getWingAccessToken();
+        const generateUrl = `${baseUrl}/generate/khqr`;
+        try {
+            const response = await fetch(generateUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                    'X-Payload-Hash': payloadHash,
+                },
+                body: JSON.stringify({
+                    payload: encryptedPayload,
+                }),
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                this.logger.error(`Wing KHQR generation failed: ${response.status} ${errText}`);
+                throw new Error(`Wing KHQR failed: ${response.status} ${errText}`);
+            }
+            const resData = await response.json();
+            if (resData.code !== 'SUCCESS' || !resData.data?.web_payment_url) {
+                throw new Error(resData.message || 'Failed to initialize Wing payment link');
+            }
+            const existingPayment = await this.prisma.payment.findUnique({
+                where: { bookingId },
+            });
+            if (existingPayment) {
+                await this.prisma.payment.update({
+                    where: { id: existingPayment.id },
+                    data: {
+                        method: 'bank',
+                        amount: booking.totalPrice,
+                        transactionRef: orderRef,
+                        status: 'pending',
+                    },
+                });
+            }
+            else {
+                await this.prisma.payment.create({
+                    data: {
+                        bookingId,
+                        userId: booking.customerId,
+                        method: 'bank',
+                        amount: booking.totalPrice,
+                        transactionRef: orderRef,
+                        status: 'pending',
+                    },
+                });
+            }
+            return {
+                success: true,
+                message: 'Wing KHQR Payment initialized successfully',
+                webPaymentUrl: resData.data.web_payment_url,
+                orderReferenceNo: orderRef,
+            };
+        }
+        catch (err) {
+            this.logger.error('Failed to create Wing checkout session', err);
+            throw new common_1.BadRequestException(err.message || 'Failed to initialize Wing checkout session');
+        }
+    }
+    async handleWingWebhook(payload) {
+        this.logger.log(`Received Wing Webhook: ${JSON.stringify(payload)}`);
+        const orderRef = payload.order_reference_no;
+        const amount = payload.amount;
+        const transactionId = payload.transaction_id;
+        if (!orderRef) {
+            throw new common_1.BadRequestException('Missing order_reference_no');
+        }
+        const payment = await this.prisma.payment.findFirst({
+            where: { transactionRef: orderRef },
+        });
+        if (!payment) {
+            throw new common_1.NotFoundException(`No payment found for order reference: ${orderRef}`);
+        }
+        if (payment.status === 'paid') {
+            return { code: '200', message: 'Push callback is successfully received.' };
+        }
+        const expectedAmount = Number(payment.amount);
+        const receivedAmount = Number(amount);
+        if (receivedAmount < expectedAmount) {
+            this.logger.warn(`Wing payment amount mismatch. Expected >= ${expectedAmount}, received: ${receivedAmount}`);
+            throw new common_1.BadRequestException('Invalid transaction amount');
+        }
+        await this.prisma.$transaction(async (tx) => {
+            await tx.payment.update({
+                where: { id: payment.id },
+                data: {
+                    status: 'paid',
+                    paidAt: new Date(),
+                    transactionRef: `${orderRef}-${transactionId}`,
+                },
+            });
+            const booking = await tx.booking.update({
+                where: { id: payment.bookingId },
+                data: { status: 'confirmed' },
+            });
+            await this.notify(tx, payment.userId, 'Payment Completed Successfully', `Your payment of $${receivedAmount} for booking #${booking.id} was processed via Wing KHQR.`);
+            const totalAmount = Number(payment.amount);
+            const companyShare = totalAmount * 0.9;
+            await tx.transaction.create({
+                data: {
+                    ownerType: 'company',
+                    ownerId: booking.companyId,
+                    amount: companyShare,
+                    type: 'credit',
+                    category: 'booking_revenue',
+                    description: `Revenue from booking #${booking.id} via Wing Bank KHQR (after 10% commission)`,
+                    bookingId: booking.id,
+                },
+            });
+        });
+        return { code: '200', message: 'Push callback is successfully received.' };
+    }
+    async checkWingStatus(bookingId) {
+        const payment = await this.prisma.payment.findUnique({
+            where: { bookingId },
+        });
+        if (!payment)
+            throw new common_1.NotFoundException('Payment not found');
+        if (payment.status === 'paid') {
+            return { success: true, status: 'paid' };
+        }
+        const orderRef = payment.transactionRef;
+        if (!orderRef || orderRef.startsWith('KHQR') || orderRef.startsWith('AB')) {
+            throw new common_1.BadRequestException('Not a Wing transaction');
+        }
+        const clientId = this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
+        const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-gateway.wingbank.com';
+        const accessToken = await this.getWingAccessToken();
+        const url = `${baseUrl}/inquiry/khqr/success`;
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                    order_reference_no: orderRef,
+                }),
+            });
+            if (!response.ok) {
+                if (response.status === 404) {
+                    return { success: false, status: 'pending', message: 'Payment pending or not found' };
+                }
+                throw new Error(`Inquiry failed with status: ${response.status}`);
+            }
+            const resData = await response.json();
+            if (resData.data && resData.data.amount) {
+                const amount = resData.data.amount;
+                const transactionId = resData.data.transaction_id;
+                await this.handleWingWebhook({
+                    order_reference_no: orderRef,
+                    amount,
+                    transaction_id: transactionId,
+                });
+                return { success: true, status: 'paid', message: 'Payment successfully verified' };
+            }
+            return { success: false, status: 'pending' };
+        }
+        catch (err) {
+            this.logger.error('Failed to query Wing payment status', err);
+            return { success: false, status: 'pending', error: err.message };
+        }
     }
     async handleKhqrWebhook(body, headers) {
         this.logger.log(`Received KHQR Webhook: ${JSON.stringify(body)}`);

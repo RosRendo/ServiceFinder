@@ -51,6 +51,35 @@ export declare class PaymentsService {
         amount: string;
         billNumber: any;
     }>;
+    private wingToken;
+    private wingTokenExpiry;
+    getWingAccessToken(): Promise<string>;
+    createWingCheckout(dto: CheckoutSessionDto, user: any): Promise<{
+        success: boolean;
+        message: string;
+        webPaymentUrl: any;
+        orderReferenceNo: string;
+    }>;
+    handleWingWebhook(payload: any): Promise<{
+        code: string;
+        message: string;
+    }>;
+    checkWingStatus(bookingId: bigint): Promise<{
+        success: boolean;
+        status: string;
+        message?: undefined;
+        error?: undefined;
+    } | {
+        success: boolean;
+        status: string;
+        message: string;
+        error?: undefined;
+    } | {
+        success: boolean;
+        status: string;
+        error: any;
+        message?: undefined;
+    }>;
     handleKhqrWebhook(body: any, headers: any): Promise<{
         status: string;
         message: string;

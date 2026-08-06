@@ -85,4 +85,30 @@ export declare class PaymentsController {
             status: any;
         };
     }>;
+    createWingCheckout(dto: CheckoutSessionDto, req: any): Promise<{
+        success: boolean;
+        message: string;
+        webPaymentUrl: any;
+        orderReferenceNo: string;
+    }>;
+    handleWingWebhook(body: any): Promise<{
+        code: string;
+        message: string;
+    }>;
+    checkWingStatus(id: string): Promise<{
+        success: boolean;
+        status: string;
+        message?: undefined;
+        error?: undefined;
+    } | {
+        success: boolean;
+        status: string;
+        message: string;
+        error?: undefined;
+    } | {
+        success: boolean;
+        status: string;
+        error: any;
+        message?: undefined;
+    }>;
 }
