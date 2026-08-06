@@ -73,7 +73,7 @@ export default function SavedScreen() {
   const nav = (e: SavedEntry) =>
     e.itemType === "company"
       ? router.push(`/(customer)/company/${e.itemId}` as any)
-      : router.push(`/(customer)/company/service-modal/${e.itemId}` as any);
+      : router.push(`/(customer)/service/${e.itemId}` as any);
 
   return (
     <SafeAreaView style={s.root} edges={["top"]}>

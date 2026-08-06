@@ -201,7 +201,8 @@ export default function Login() {
         if (step === "otp") setStep("phone");
         else if (step === "mfa") setStep("email");
         else if (step === "email") { setStep("phone"); setError(""); }
-        else router.back();
+        else if (router.canGoBack()) router.back();
+        else router.replace("/");
       }}>
         <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
       </TouchableOpacity>

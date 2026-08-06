@@ -7,9 +7,11 @@ import {
     ArrowLeft, Trash2, RotateCcw, Mail, Phone, Briefcase, 
     Calendar, CheckCircle2, ShieldCheck, Activity, Star, 
     Clock, Wallet, MessageSquare, ChevronRight, MoreVertical,
-    TrendingUp, AlertTriangle, FileText, Download, UserCheck
+    TrendingUp, AlertTriangle, FileText, Download, UserCheck, Plus, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/lib/hooks/use-toast";
 import { useCompanies } from "@/lib/hooks/useCompanies";
@@ -18,6 +20,7 @@ import { StaffWalletCard } from "@/components/staff/StaffWalletCard";
 import { StaffScheduleManager } from "@/components/staff/StaffScheduleManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import api from "@/lib/api/client";
 
 interface StaffDetail {
     id: string;
@@ -36,6 +39,8 @@ interface StaffDetail {
     returnRate?: number;
     attendance?: any;
     user?: { fullName?: string; email?: string; phone?: string | null; avatar?: string | null };
+    documents?: Array<{ id: string; name: string; documentUrl: string; status: string; expiryDate: string | null }>;
+    notes?: Array<{ id: string; note: string; createdAt: string; authorName: string; authorAvatar?: string | null }>;
 }
 
 export default function StaffDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -53,6 +58,84 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
 
     const [staff, setStaff] = useState<StaffDetail | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    // Document Upload Inline Form
+    const [docName, setDocName] = useState("");
+    const [docUrl, setDocUrl] = useState("");
+    const [docExpiry, setDocExpiry] = useState("");
+    const [isAddingDoc, setIsAddingDoc] = useState(false);
+    const [showDocForm, setShowDocForm] = useState(false);
+
+    // Private Notes Form
+    const [newNote, setNewNote] = useState("");
+    const [addingNote, setAddingNote] = useState(false);
+
+    const handleAddNote = async () => {
+        if (!newNote.trim()) return;
+        setAddingNote(true);
+        try {
+            const res = await api.post(`/companies/staff/${resolvedParams.id}/notes`, { note: newNote });
+            const created = res.data.data || res.data;
+            if (staff) {
+                setStaff({
+                    ...staff,
+                    notes: [created, ...(staff.notes || [])],
+                });
+            }
+            setNewNote("");
+            toast({ title: "Note Added", description: "Private note saved successfully." });
+        } catch (err: any) {
+            toast({ title: "Error", description: "Failed to add note.", variant: "destructive" });
+        } finally {
+            setAddingNote(false);
+        }
+    };
+
+    const handleDeleteNote = async (noteId: string) => {
+        try {
+            await api.delete(`/companies/staff/notes/${noteId}`);
+            if (staff) {
+                setStaff({
+                    ...staff,
+                    notes: (staff.notes || []).filter((n) => n.id !== noteId),
+                });
+            }
+            toast({ title: "Note Deleted", description: "Note removed successfully." });
+        } catch (err: any) {
+            toast({ title: "Error", description: "Failed to delete note.", variant: "destructive" });
+        }
+    };
+
+    const handleAddDoc = async () => {
+        if (!docName.trim() || !docUrl.trim()) {
+            toast({ title: "Missing fields", description: "Name and document URL are required.", variant: "destructive" });
+            return;
+        }
+        setIsAddingDoc(true);
+        try {
+            const res = await api.post(`/companies/staff/${resolvedParams.id}/documents`, {
+                name: docName,
+                documentUrl: docUrl,
+                expiryDate: docExpiry || undefined,
+            });
+            const created = res.data.data || res.data;
+            if (staff) {
+                setStaff({
+                    ...staff,
+                    documents: [...(staff.documents || []), created],
+                });
+            }
+            setDocName("");
+            setDocUrl("");
+            setDocExpiry("");
+            setShowDocForm(false);
+            toast({ title: "Document Added", description: "Compliance document uploaded successfully." });
+        } catch (err) {
+            toast({ title: "Error", description: "Failed to add document.", variant: "destructive" });
+        } finally {
+            setIsAddingDoc(false);
+        }
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -135,16 +218,16 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
 
   // Metrics Data (Wired from Backend)
     const metricsData = {
-        rating: staff.averageRating || 4.92,
-        jobs: staff.completedJobs || 1384,
-        revenue: staff.generatedRevenue || 42918,
-        completionRate: staff.completionRate || 98.9,
-        acceptanceRate: staff.acceptanceRate || 99.2,
-        cancellationRate: staff.cancellationRate || 0.8,
+        rating: staff.averageRating !== null && staff.averageRating !== undefined ? staff.averageRating : 5.0,
+        jobs: staff.completedJobs || 0,
+        revenue: staff.generatedRevenue || 0,
+        completionRate: staff.completionRate !== undefined ? staff.completionRate : 100,
+        acceptanceRate: staff.acceptanceRate !== undefined ? staff.acceptanceRate : 100,
+        cancellationRate: staff.cancellationRate !== undefined ? staff.cancellationRate : 0,
         onTimeArrival: staff.onTimeArrival || 96.5,
         avgDuration: "2h 15m",
         returnRate: staff.returnRate || 42,
-        attendance: staff.attendance || { present: 184, late: 3, absent: 0, hours: "1,240h", overtime: "45h" }
+        attendance: staff.attendance || { present: 0, late: 0, absent: 0, hours: "0h", overtime: "0h" }
     };
 
     return (
@@ -405,27 +488,86 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
 
                         {/* Compliance Documents */}
                         <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
-                            <div className="px-5 py-3.5 bg-muted/30 border-b border-border/50">
+                            <div className="px-5 py-3.5 bg-muted/30 border-b border-border/50 flex justify-between items-center">
                                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Compliance</span>
+                                <Button 
+                                    onClick={() => setShowDocForm(!showDocForm)} 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-6 px-2 rounded-md font-bold text-[10px] text-primary hover:bg-primary/10 transition-colors"
+                                >
+                                    <Plus className="w-3.5 h-3.5 mr-1" /> Add Doc
+                                </Button>
                             </div>
+                            
                             <div className="p-2">
-                                <div className="divide-y divide-border/50">
-                                    {[
-                                        { name: "ID Card / Passport", status: "Verified", date: "Jan 2029" },
-                                        { name: "Driver's License", status: "Expiring Soon", date: "In 8 days", alert: true },
-                                        { name: "Training Certificate", status: "Verified", date: "Feb 2025" },
-                                    ].map((doc, i) => (
-                                        <div key={i} className={cn("p-3 flex items-center justify-between", doc.alert && "bg-rose-500/5")}>
-                                            <div className="flex items-center gap-3">
-                                                <FileText className={cn("w-4 h-4", doc.alert ? "text-rose-500" : "text-muted-foreground")} />
-                                                <div>
-                                                    <p className="text-xs font-semibold text-foreground">{doc.name}</p>
-                                                    <p className={cn("text-[9px] font-bold uppercase tracking-widest mt-0.5", doc.alert ? "text-rose-600" : "text-muted-foreground")}>{doc.date}</p>
-                                                </div>
-                                            </div>
-                                            <CheckCircle2 className={cn("w-4 h-4", doc.alert ? "text-rose-500/30" : "text-emerald-500")} />
+                                {showDocForm && (
+                                    <div className="p-3 bg-muted/20 border border-border/50 rounded-lg space-y-3 mb-3">
+                                        <Input 
+                                            placeholder="Document Name (e.g. ID Card)" 
+                                            value={docName} 
+                                            onChange={(e) => setDocName(e.target.value)} 
+                                            className="h-8 text-xs bg-background" 
+                                        />
+                                        <Input 
+                                            placeholder="Document URL (paste reference)" 
+                                            value={docUrl} 
+                                            onChange={(e) => setDocUrl(e.target.value)} 
+                                            className="h-8 text-xs bg-background" 
+                                        />
+                                        <Input 
+                                            type="date"
+                                            value={docExpiry} 
+                                            onChange={(e) => setDocExpiry(e.target.value)} 
+                                            className="h-8 text-xs bg-background" 
+                                        />
+                                        <div className="flex gap-2 justify-end">
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                onClick={() => setShowDocForm(false)} 
+                                                className="h-7 text-[10px] font-bold"
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button 
+                                                size="sm" 
+                                                onClick={handleAddDoc} 
+                                                disabled={isAddingDoc} 
+                                                className="h-7 text-[10px] font-bold bg-primary text-primary-foreground hover:bg-primary/90"
+                                            >
+                                                {isAddingDoc ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null} Save
+                                            </Button>
                                         </div>
-                                    ))}
+                                    </div>
+                                )}
+
+                                <div className="divide-y divide-border/50">
+                                    {(staff.documents || []).length === 0 ? (
+                                        <div className="p-4 text-center text-xs text-muted-foreground font-semibold">
+                                            No compliance documents uploaded.
+                                        </div>
+                                    ) : (
+                                        (staff.documents || []).map((doc) => {
+                                            const isExpired = doc.expiryDate && new Date(doc.expiryDate) < new Date();
+                                            return (
+                                                <div key={doc.id} className={cn("p-3 flex items-center justify-between", isExpired && "bg-rose-500/5")}>
+                                                    <div className="flex items-center gap-3">
+                                                        <FileText className={cn("w-4 h-4", isExpired ? "text-rose-500" : "text-muted-foreground")} />
+                                                        <div>
+                                                            <a href={doc.documentUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-foreground hover:underline">
+                                                                {doc.name}
+                                                            </a>
+                                                            <p className={cn("text-[9px] font-bold uppercase tracking-widest mt-0.5", isExpired ? "text-rose-600" : "text-muted-foreground")}>
+                                                                {doc.expiryDate ? `Expires ${new Date(doc.expiryDate).toLocaleDateString()}` : "No Expiry"}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <CheckCircle2 className={cn("w-4 h-4", isExpired ? "text-rose-500/30" : "text-emerald-500")} />
+                                                </div>
+                                            );
+                                        })
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -435,9 +577,52 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                              <div className="px-5 py-3.5 bg-amber-500/10 border-b border-amber-500/20">
                                 <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Internal Notes (Private)</span>
                             </div>
-                            <div className="p-5 text-sm font-medium text-amber-700/80 space-y-2">
-                                <p>• Strong performer. Preferred by VIP customers in the downtown area.</p>
-                                <p>• Interested in promotion, wants to transition into dispatching eventually.</p>
+                            <div className="p-5 space-y-4">
+                                <div className="space-y-3">
+                                    <Textarea 
+                                        placeholder="Add private staff log note..." 
+                                        value={newNote} 
+                                        onChange={(e) => setNewNote(e.target.value)} 
+                                        className="text-xs bg-background/50 border-amber-500/20 focus:border-amber-500/50 outline-none" 
+                                    />
+                                    <Button 
+                                        onClick={handleAddNote} 
+                                        disabled={addingNote} 
+                                        className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold h-8 text-[10px] rounded-lg shadow-sm"
+                                    >
+                                        {addingNote ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null} Add Note
+                                    </Button>
+                                </div>
+
+                                <div className="space-y-3 pt-2 divide-y divide-amber-500/10">
+                                    {(staff.notes || []).length === 0 ? (
+                                        <div className="text-center text-xs text-amber-750 font-semibold py-2">
+                                            No private logs recorded.
+                                        </div>
+                                    ) : (
+                                        (staff.notes || []).map((note) => (
+                                            <div key={note.id} className="pt-3 first:pt-0 group">
+                                                <div className="flex justify-between items-start gap-2">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-[9px] font-bold text-amber-800">{note.authorName}</span>
+                                                        <span className="text-[8px] font-bold text-muted-foreground">{new Date(note.createdAt).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <Button 
+                                                        onClick={() => handleDeleteNote(note.id)} 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        className="w-5 h-5 opacity-0 group-hover:opacity-100 hover:bg-amber-500/10 text-destructive rounded-md"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                </div>
+                                                <p className="text-xs text-amber-900 font-medium leading-relaxed">
+                                                    {note.note}
+                                                </p>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
                             </div>
                         </div>
 

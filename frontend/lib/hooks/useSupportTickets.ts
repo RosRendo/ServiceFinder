@@ -13,15 +13,15 @@ export interface SupportTicket {
 }
 
 export function useSupportTickets() {
-  const { data, loading, error, refetch } = useAPI<{ tickets: SupportTicket[] }>('/support/tickets');
+  const { data, loading, error, refetch } = useAPI<{ tickets: SupportTicket[] }>('/api/support/tickets');
   const { mutate, loading: actionLoading } = useMutation();
 
   const updateTicketStatus = async (ticketId: string, status: SupportTicket['status']) => {
-    return mutate(`/support/tickets/${ticketId}`, { status }, 'PATCH');
+    return mutate(`/api/support/tickets/${ticketId}`, { status }, 'PATCH');
   };
 
   const addTicketReply = async (ticketId: string, message: string) => {
-    return mutate(`/support/tickets/${ticketId}/reply`, { message }, 'POST');
+    return mutate(`/api/support/tickets/${ticketId}/reply`, { message }, 'POST');
   };
 
   return {

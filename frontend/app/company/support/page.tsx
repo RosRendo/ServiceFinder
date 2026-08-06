@@ -1,61 +1,78 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Plus, LifeBuoy, MessageSquare, Clock, CheckCircle2, ChevronRight, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Search, Plus, LifeBuoy, MessageSquare, Clock, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import api from "@/lib/api/client";
 
 type TicketStatus = "open" | "in_progress" | "resolved";
 
 interface Ticket {
   id: string;
   subject: string;
-  category: string;
+  description: string;
   status: TicketStatus;
-  date: string;
-  lastUpdate: string;
+  priority: string;
+  createdAt: string;
 }
 
-const INITIAL_TICKETS: Ticket[] = [
-  { id: "TCK-1029", subject: "Cannot update payout bank details", category: "Billing", status: "open", date: "2026-06-29", lastUpdate: "1 hour ago" },
-  { id: "TCK-1024", subject: "Dispute regarding Booking #4928", category: "Disputes", status: "in_progress", date: "2026-06-28", lastUpdate: "Yesterday" },
-  { id: "TCK-0982", subject: "Requesting higher service radius limit", category: "Account", status: "resolved", date: "2026-06-15", lastUpdate: "2 weeks ago" },
-];
-
 export default function SupportPage() {
-  const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [newTicketOpen, setNewTicketOpen] = useState(false);
-  const [formData, setFormData] = useState({ subject: "", category: "General", message: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({ subject: "", priority: "Medium", message: "" });
+
+  const fetchTickets = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/support/tickets");
+      const ticketData = res.data.data || res.data || [];
+      setTickets(Array.isArray(ticketData) ? ticketData : []);
+    } catch (err) {
+      toast.error("Failed to load support tickets");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
 
   const filteredTickets = tickets.filter(t => 
-    t.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    t.id.toLowerCase().includes(searchQuery.toLowerCase())
+    t.subject?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    t.id?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.subject || !formData.message) {
       toast.error("Please fill in all required fields");
       return;
     }
     
-    const newTicket: Ticket = {
-      id: `TCK-${Math.floor(1000 + Math.random() * 9000)}`,
-      subject: formData.subject,
-      category: formData.category,
-      status: "open",
-      date: new Date().toISOString().split("T")[0],
-      lastUpdate: "Just now"
-    };
-
-    setTickets([newTicket, ...tickets]);
-    setNewTicketOpen(false);
-    setFormData({ subject: "", category: "General", message: "" });
-    toast.success("Support ticket submitted successfully");
+    setIsSubmitting(true);
+    try {
+      const res = await api.post("/support/tickets", {
+        subject: formData.subject,
+        message: formData.message,
+        priority: formData.priority.toLowerCase(),
+      });
+      const created = res.data.data || res.data;
+      setTickets([created, ...tickets]);
+      setNewTicketOpen(false);
+      setFormData({ subject: "", priority: "Medium", message: "" });
+      toast.success("Support ticket submitted successfully");
+    } catch (err) {
+      toast.error("Failed to submit support ticket");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -80,21 +97,19 @@ export default function SupportPage() {
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Category</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Priority</label>
                 <select 
-                  value={formData.category} 
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="w-full px-3 py-2.5 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/30 h-11"
+                  value={formData.priority} 
+                  onChange={(e) => setFormData({...formData, priority: e.target.value})}
+                  className="w-full px-3 py-2.5 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/30 h-11 text-foreground"
                 >
-                  <option>General</option>
-                  <option>Billing & Payouts</option>
-                  <option>Technical Issue</option>
-                  <option>Dispute Escalation</option>
-                  <option>Account Management</option>
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Subject</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subject</label>
                 <Input 
                   placeholder="Brief summary of your issue" 
                   value={formData.subject} 
@@ -103,7 +118,7 @@ export default function SupportPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Message</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Message</label>
                 <Textarea 
                   placeholder="Describe your issue in detail..." 
                   value={formData.message} 
@@ -111,7 +126,12 @@ export default function SupportPage() {
                   className="rounded-md border-border bg-background min-h-[120px] resize-none" 
                 />
               </div>
-              <Button className="w-full rounded-md h-11 bg-blue-600 hover:bg-blue-700 shadow-sm font-bold text-white mt-2" onClick={handleSubmit}>
+              <Button 
+                disabled={isSubmitting}
+                className="w-full rounded-md h-11 bg-blue-600 hover:bg-blue-700 shadow-sm font-bold text-white mt-2 flex items-center justify-center gap-2" 
+                onClick={handleSubmit}
+              >
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Submit Ticket
               </Button>
             </div>
@@ -134,7 +154,12 @@ export default function SupportPage() {
 
           <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
             <div className="divide-y divide-border/50">
-              {filteredTickets.length === 0 ? (
+              {loading ? (
+                <div className="py-12 text-center flex flex-col items-center justify-center gap-2">
+                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                  <p className="text-muted-foreground text-xs font-semibold">Loading support tickets...</p>
+                </div>
+              ) : filteredTickets.length === 0 ? (
                 <div className="py-12 text-center">
                   <LifeBuoy className="w-12 h-12 text-gray-200 mx-auto mb-3" />
                   <p className="text-muted-foreground font-medium">No support tickets found</p>
@@ -154,7 +179,7 @@ export default function SupportPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-semibold text-muted-foreground">{ticket.id}</span>
+                          <span className="text-xs font-semibold text-muted-foreground">TCK-{ticket.id}</span>
                           <span className={`text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full border ${
                             ticket.status === 'open' ? 'bg-amber-50 border-amber-200 text-amber-700' :
                             ticket.status === 'in_progress' ? 'bg-blue-50 border-blue-200 text-blue-700' :
@@ -162,12 +187,15 @@ export default function SupportPage() {
                           }`}>
                             {ticket.status.replace("_", " ")}
                           </span>
+                          <span className="text-[10px] capitalize font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border">
+                            Priority: {ticket.priority}
+                          </span>
                         </div>
                         <h3 className="text-sm font-semibold text-foreground group-hover:text-blue-600 transition-colors">
                           {ticket.subject}
                         </h3>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Category: {ticket.category} • Updated {ticket.lastUpdate}
+                          Created: {new Date(ticket.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>

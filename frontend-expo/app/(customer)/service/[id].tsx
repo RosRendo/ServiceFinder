@@ -21,6 +21,7 @@ const CARD_SHADOW = Platform.select({
 export default function ServiceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { isGuest } = useAuthStore();
   
   const [service, setService] = useState<any>(null);
   const [crossSells, setCrossSells] = useState<any[]>([]);
@@ -59,12 +60,14 @@ export default function ServiceDetailScreen() {
           setOtherProviders(otherProv);
         }
 
-        try {
-          const checkRes = await api.get(`/api/saved-items/check`, { params: { itemType: 'service', itemIds: id } });
-          const savedStatus = checkRes.data?.savedIds?.[0]?.saved;
-          if (savedStatus) setIsSaved(true);
-        } catch (checkErr: any) {
-          console.warn("Could not check saved status:", checkErr?.message);
+        if (!isGuest) {
+          try {
+            const checkRes = await api.get(`/api/saved-items/check`, { params: { itemType: 'service', itemIds: id } });
+            const savedStatus = checkRes.data?.savedIds?.[0]?.saved;
+            if (savedStatus) setIsSaved(true);
+          } catch (checkErr: any) {
+            console.warn("Could not check saved status:", checkErr?.message);
+          }
         }
       } catch (err) {
         console.error(err);

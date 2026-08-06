@@ -28,6 +28,7 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const [serviceTypes, setServiceTypes] = useState<any[]>([]);
+  const [mapRenderId, setMapRenderId] = useState(0);
   
   // State for the temporary service being added
   const [tempService, setTempService] = useState({
@@ -38,6 +39,7 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
   
   useEffect(() => {
       if (open) {
+          setMapRenderId(prev => prev + 1);
           api.get('/service-types').then(res => {
               const payload = res.data.data || res.data;
               setServiceTypes(Array.isArray(payload) ? payload : payload.data || []);
@@ -287,8 +289,9 @@ export function AddCompanyModal({ open, onClose, onSuccess }: { open: boolean; o
                 
                 <div className="mt-2">
                   {activeTab === "location" && (
-                    <div className="h-[300px] w-full border border-border bg-muted/10 rounded-2xl flex items-center justify-center relative overflow-hidden z-0">
+                    <div className="h-[300px] w-full border border-border bg-muted/10 rounded-2xl relative overflow-hidden z-0">
                       <CoverageMap 
+                        key={`${mapRenderId}-${activeTab}`}
                         lat={formData.latitude ? Number(formData.latitude) : 11.5564} 
                         lng={formData.longitude ? Number(formData.longitude) : 104.9282}
                         radiusKm={formData.coverageRadiusKm ? Number(formData.coverageRadiusKm) : 50}

@@ -197,7 +197,14 @@ export default function CustomersCRM() {
             columns={columns}
             data={customers}
             onRowClick={(row) => {
-              router.push(`/company/customers/${row.id}`);
+              setActiveCustomer({
+                ...row,
+                totalBookings: row.stats?.totalBookings || 0,
+                activeDisputes: row.stats?.activeDisputes || 0,
+                ltv: row.stats?.ltv || 0,
+                recentBookings: row.stats?.recentBookings || []
+              });
+              setDrawerOpen(true);
             }}
             emptyMessage="No customers found."
           />
@@ -218,10 +225,17 @@ export default function CustomersCRM() {
             label: "View Detail",
             onClick: () => {
               const id = Array.from(selectedIds)[0];
-              if (id) {
-                router.push(`/company/customers/${id}`);
+              const c = customers.find((x: any) => x.id === id);
+              if (c) {
+                setActiveCustomer({
+                  ...c,
+                  totalBookings: c.stats?.totalBookings || 0,
+                  activeDisputes: c.stats?.activeDisputes || 0,
+                  ltv: c.stats?.ltv || 0,
+                  recentBookings: c.stats?.recentBookings || []
+                });
+                setDrawerOpen(true);
               }
-  
             }
           },
           {

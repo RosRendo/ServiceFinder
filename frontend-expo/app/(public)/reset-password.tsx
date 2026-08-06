@@ -128,7 +128,7 @@ export default function ResetPassword() {
         >
         <View style={{ flex: 1, justifyContent: "center" }}>
         {/* Back Button */}
-        <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={s.backBtn} onPress={() => { if (router.canGoBack()) router.back(); else router.replace("/"); }}>
           <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
         </TouchableOpacity>
 

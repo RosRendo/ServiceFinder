@@ -36,6 +36,12 @@ export declare class AdminController {
             name: string;
             value: number;
         }[];
+        categorySaturationData: {
+            name: string;
+            value: number;
+            fill: string;
+            status: string;
+        }[];
         weeklyStats: {
             day: string;
             newUsers: number;
@@ -704,4 +710,10 @@ export declare class AdminController {
             body: any;
         };
     }>;
+    getBroadcasts(): Promise<any>;
+    createBroadcast(dto: {
+        title: string;
+        message: string;
+        audience: string;
+    }): Promise<any>;
 }

@@ -28,6 +28,7 @@ export default function CompanyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { isGuest } = useAuthStore();
   
   const TABS = [t('companyProfile.tabs.services', 'Services'), t('companyProfile.tabs.reviews', 'Reviews'), t('companyProfile.tabs.about', 'About')];
 
@@ -47,13 +48,15 @@ export default function CompanyDetailScreen() {
       const data = res?.data?.data || res?.data;
       setCompany(data);
       
-      try {
-        const checkRes = await api.get(`/api/saved-items/check`, { params: { itemType: 'company', itemIds: id } });
-        const savedStatus = checkRes.data?.savedIds?.[0]?.saved;
-        if (savedStatus) setIsSaved(true);
-      } catch (checkErr: any) {
-        // Ignore 401 errors for unauthenticated users
-        console.warn("Could not check saved status:", checkErr?.message);
+      if (!isGuest) {
+        try {
+          const checkRes = await api.get(`/api/saved-items/check`, { params: { itemType: 'company', itemIds: id } });
+          const savedStatus = checkRes.data?.savedIds?.[0]?.saved;
+          if (savedStatus) setIsSaved(true);
+        } catch (checkErr: any) {
+          // Ignore 401 errors for unauthenticated users
+          console.warn("Could not check saved status:", checkErr?.message);
+        }
       }
     } catch (e: any) {
       console.error("[CompanyDetail] failed:", e?.message);
@@ -62,6 +65,10 @@ export default function CompanyDetailScreen() {
       setIsLoading(false);
     }
   }, [id]);
+
+  useEffect(() => {
+    loadCompany();
+  }, [loadCompany]);
 
   const requireLogin = () => {
     Alert.alert(

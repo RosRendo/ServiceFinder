@@ -59,7 +59,7 @@ export default function Register() {
   return (
     <SafeAreaView style={s.root}>
       {/* Back button — outside ScrollView so no touch conflict */}
-      <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
+      <TouchableOpacity style={s.backBtn} onPress={() => { if (router.canGoBack()) router.back(); else router.replace("/"); }}>
         <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
       </TouchableOpacity>
 

@@ -177,6 +177,8 @@ export declare class AuthController {
     refresh(req: express.Request, res: express.Response): Promise<{
         message: string;
         token: string;
+        accessToken: string;
+        refreshToken: string;
     }>;
     googleLogin(googleLoginDto: GoogleLoginDto, res: express.Response): Promise<{
         message: string;

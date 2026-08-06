@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import api from "@/lib/api/client";
 import { 
   Bell, 
   Send, 
@@ -13,7 +14,8 @@ import {
   Megaphone,
   CheckCircle2,
   Clock,
-  Plus
+  Plus,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,8 +62,15 @@ const MOCK_BROADCASTS = [
   }
 ];
 
+const audienceLabels: Record<string, string> = {
+  all: "All Users & Companies",
+  companies: "All Companies",
+  customers: "All Customers",
+};
+
 export default function BroadcastsPage() {
-  const [broadcasts, setBroadcasts] = useState(MOCK_BROADCASTS);
+  const [broadcasts, setBroadcasts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [sending, setSending] = useState(false);
@@ -71,6 +80,22 @@ export default function BroadcastsPage() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
 
+  const fetchBroadcasts = async () => {
+    try {
+      const res = await api.get("/admin/broadcasts");
+      const payload = res.data.data || res.data;
+      setBroadcasts(Array.isArray(payload) ? payload : payload.data || []);
+    } catch (err) {
+      toast.error("Failed to load broadcasts");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBroadcasts();
+  }, []);
+
   const handleSendBroadcast = async () => {
     if (!title || !message) {
       toast.error("Please fill in all fields");
@@ -78,27 +103,20 @@ export default function BroadcastsPage() {
     }
     
     setSending(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const newBroadcast = {
-      id: `br-${Date.now()}`,
-      title,
-      message,
-      audience: audience === "all" ? "All Users & Companies" : audience === "companies" ? "All Companies" : "All Customers",
-      audienceType: audience,
-      sentAt: new Date().toISOString(),
-      sentCount: audience === "companies" ? 485 : 16000,
-      openRate: 0,
-      status: "sent"
-    };
-
-    setBroadcasts([newBroadcast, ...broadcasts]);
-    setSending(false);
-    setIsComposerOpen(false);
-    setTitle("");
-    setMessage("");
-    toast.success("Broadcast sent successfully!");
+    try {
+      const res = await api.post("/admin/broadcasts", { title, message, audience });
+      const created = res.data.data || res.data;
+      
+      setBroadcasts([created, ...broadcasts]);
+      setIsComposerOpen(false);
+      setTitle("");
+      setMessage("");
+      toast.success("Broadcast sent successfully!");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || err.message || "Failed to send broadcast");
+    } finally {
+      setSending(false);
+    }
   };
 
   const filteredBroadcasts = broadcasts.filter(b => 
@@ -151,7 +169,12 @@ export default function BroadcastsPage() {
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
-            {filteredBroadcasts.length === 0 ? (
+            {loading ? (
+              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+                <Loader2 className="w-8 h-8 animate-spin text-primary mb-2 opacity-50" />
+                <p className="text-sm font-medium">Loading broadcasts...</p>
+              </div>
+            ) : filteredBroadcasts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
                 <Megaphone className="w-12 h-12 mb-4 opacity-20" />
                 <p className="text-sm font-medium">No broadcasts found</p>
@@ -174,7 +197,7 @@ export default function BroadcastsPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-bold text-foreground text-sm truncate">{broadcast.title}</h3>
                           <Badge variant="outline" className="text-[10px] uppercase tracking-widest font-bold border-border/50 bg-muted/50 text-muted-foreground">
-                            {broadcast.audience}
+                            {audienceLabels[broadcast.audience] || broadcast.audience}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground font-medium line-clamp-2 leading-relaxed">

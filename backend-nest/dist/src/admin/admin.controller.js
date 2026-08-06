@@ -110,7 +110,18 @@ let AdminController = class AdminController {
         return this.adminService.seedEmailTemplates();
     }
     testEmailTemplate(dto) {
-        return this.adminService.testEmailTemplate(dto);
+        try {
+            return this.adminService.testEmailTemplate(dto);
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+    getBroadcasts() {
+        return this.adminService.getBroadcasts();
+    }
+    createBroadcast(dto) {
+        return this.adminService.createBroadcast(dto);
     }
 };
 exports.AdminController = AdminController;
@@ -382,6 +393,23 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "testEmailTemplate", null);
+__decorate([
+    (0, common_1.Get)('broadcasts'),
+    (0, swagger_1.ApiOperation)({ summary: 'List all push broadcasts' }),
+    openapi.ApiResponse({ status: 200, type: Object }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getBroadcasts", null);
+__decorate([
+    (0, common_1.Post)('broadcasts'),
+    (0, swagger_1.ApiOperation)({ summary: 'Send a new push broadcast' }),
+    openapi.ApiResponse({ status: 201, type: Object }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "createBroadcast", null);
 exports.AdminController = AdminController = __decorate([
     (0, swagger_1.ApiTags)('Admin'),
     (0, common_1.Controller)('admin'),

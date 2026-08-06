@@ -138,7 +138,12 @@ let AuthController = class AuthController {
         const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
         const { accessToken, refreshToken: newRefreshToken } = await this.authService.refreshAccessToken(refreshToken);
         this.setAuthCookies(res, accessToken, newRefreshToken);
-        return { message: 'Token refreshed', token: accessToken };
+        return {
+            message: 'Token refreshed',
+            token: accessToken,
+            accessToken: accessToken,
+            refreshToken: newRefreshToken
+        };
     }
     async googleLogin(googleLoginDto, res) {
         const { message, user, accessToken, refreshToken } = await this.authService.googleLogin(googleLoginDto);

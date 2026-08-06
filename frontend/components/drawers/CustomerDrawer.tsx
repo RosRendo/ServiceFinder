@@ -8,6 +8,8 @@ import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/lib/hooks/use-toast";
+
 
 export interface CustomerRow {
   id: string;
@@ -49,6 +51,7 @@ const STATUS_COLORS: Record<string, string> = {
 export function CustomerDrawer({ open, onClose, customer }: CustomerDrawerProps) {
   const router = useRouter();
   const { user } = useAuthContext();
+  const { toast } = useToast();
   if (!customer) return null;
 
   return (
@@ -148,23 +151,32 @@ export function CustomerDrawer({ open, onClose, customer }: CustomerDrawerProps)
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3 pt-2">
+        <div className="grid grid-cols-3 gap-3 pt-2">
           {[
-            { id: "profile", icon: User, label: "View Profile", color: "bg-primary text-primary-foreground hover:bg-primary/90 border-transparent" },
-            { id: "message", icon: MessageSquare, label: "Message", color: "bg-background text-foreground hover:bg-muted border-border" },
-            { id: "disputes", icon: ShieldAlert, label: "View Disputes", color: "bg-background text-foreground hover:bg-muted border-border" },
-            { id: "block", icon: Ban, label: "Block User", color: "bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-500/20" },
+            { id: "message", icon: MessageSquare, label: "Message", color: "bg-primary text-primary-foreground hover:bg-primary/90 border-transparent" },
+            { id: "disputes", icon: ShieldAlert, label: "Disputes", color: "bg-background text-foreground hover:bg-muted border-border" },
+            { id: "block", icon: Ban, label: "Block", color: "bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-500/20" },
           ].map(({ id, icon: Icon, label, color }) => (
             <Button 
               key={label}
               variant="outline"
               onClick={() => {
-                if (id === "profile") {
-                  router.push(`/company/customers/${customer.id}`);
-                  onClose();
-                } else if (id === "message") {
+                if (id === "message") {
                   const basePath = user?.role === 'admin' ? '/admin' : '/company';
-                  window.location.href = `${basePath}/messages?new=${customer.id}`;
+                  router.push(`${basePath}/messages?new=${customer.id}`);
+                  onClose();
+                } else if (id === "disputes") {
+                  toast({
+                    title: "Simulated",
+                    description: "Navigating to customer disputes dashboard...",
+                  });
+                } else if (id === "block") {
+                  if (confirm(`Are you sure you want to block ${customer.name}?`)) {
+                    toast({
+                      title: "Simulated",
+                      description: `Blocked customer ${customer.name} successfully.`,
+                    });
+                  }
                 }
               }}
               className={cn("h-10 text-xs font-bold rounded-lg border shadow-sm transition-colors justify-center gap-2", color)}

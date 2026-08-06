@@ -66,34 +66,36 @@ export default function CoverageMap({ lat, lng, radiusKm, onChange }: CoverageMa
   return (
     <>
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-      <MapContainer 
-        center={[lat, lng]} 
-        zoom={11} 
-        scrollWheelZoom={true}
-        style={{ height: "100%", width: "100%", zIndex: 1 }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <Circle 
+      <div className="w-full h-full relative z-0">
+        <MapContainer 
           center={[lat, lng]} 
-          radius={radiusKm * 1000} // radius in meters
-          pathOptions={{ 
-            color: "#8b5cf6", // violet-500
-            fillColor: "#8b5cf6",
-            fillOpacity: 0.2,
-            weight: 2
-          }} 
-        />
-        <Marker 
-          draggable={!!onChange}
-          eventHandlers={eventHandlers}
-          position={[lat, lng]}
-          ref={markerRef}
-        />
-        <MapController lat={lat} lng={lng} radiusKm={radiusKm} />
-      </MapContainer>
+          zoom={11} 
+          scrollWheelZoom={true}
+          style={{ height: "100%", width: "100%", zIndex: 1 }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <Circle 
+            center={[lat, lng]} 
+            radius={radiusKm * 1000} // radius in meters
+            pathOptions={{ 
+              color: "#8b5cf6", // violet-500
+              fillColor: "#8b5cf6",
+              fillOpacity: 0.2,
+              weight: 2
+            }} 
+          />
+          <Marker 
+            draggable={!!onChange}
+            eventHandlers={eventHandlers}
+            position={[lat, lng]}
+            ref={markerRef}
+          />
+          <MapController lat={lat} lng={lng} radiusKm={radiusKm} />
+        </MapContainer>
+      </div>
     </>
   );
 }

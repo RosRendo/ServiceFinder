@@ -300,7 +300,7 @@ export default function ActivityScreen() {
       });
       setBookings(filtered);
     } catch (e: any) {
-      console.error("[Activity] load error:", e?.message);
+      console.warn("[Activity] load error:", e?.message || e);
       setBookings([]);
     } finally {
       setIsLoading(false);

@@ -32,9 +32,8 @@ export default function CustomerLayout() {
       {/* ── Saved ────────────────────────────────── */}
       <Stack.Screen name="saved/index" />
 
-      {/* ── Company + Service Modal ───────────────── */}
+      {/* ── Company ───────────────── */}
       <Stack.Screen name="company/[id]" />
-      <Stack.Screen name="company/service-modal/[id]" />
 
       {/* ── Booking Flow ─────────────────────────── */}
       <Stack.Screen name="booking/[id]/tracking" />

@@ -28,7 +28,9 @@ export function GuestCTA({
   const handleLogin = () => {
     // Clear guest mode so they return to public routing cleanly
     useAuthStore.getState().setGuestMode(false);
-    router.replace("/login");
+    setTimeout(() => {
+      router.replace("/login");
+    }, 100);
   };
 
   return (

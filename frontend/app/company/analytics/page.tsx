@@ -61,30 +61,10 @@ export default function CompanyAnalyticsPage() {
   const monthlyTrendData = (data?.monthlyData || []) as Array<{ name: string; value: number }>;
   const serviceRevenueData = (data?.serviceBreakdown || []) as Array<{ name: string; value: number }>;
   const statusDistribution = (data?.statusDistribution || []) as Array<{ name: string; value: number; fill: string }>;
+  const staffLeaderboard = (data?.topStaff || []) as Array<{ name: string; revenue: number; rating: number; jobs: number }>;
+  const ratingTrendData = (data?.ratingTrend || []) as Array<{ name: string; rating: number }>;
+  const qualityRadarData = (data?.qualityRadar || []) as Array<{ subject: string; A: number; B: number; fullMark: number }>;
   const bookingsByDayData = (data?.weeklyData || []) as Array<{ day: string; actualValue: number }>;
-  const staffLeaderboard = (data?.topStaff || [
-    { name: "John Doe", revenue: 4500, rating: 4.9, jobs: 42 },
-    { name: "Jane Smith", revenue: 3800, rating: 4.8, jobs: 35 },
-    { name: "Mike Johnson", revenue: 2900, rating: 4.6, jobs: 28 },
-    { name: "Sarah Williams", revenue: 2100, rating: 4.7, jobs: 20 },
-    { name: "David Brown", revenue: 1500, rating: 4.5, jobs: 15 }
-  ]);
-  const ratingTrendData = (data?.ratingTrend || [
-    { name: "Jan", rating: 4.5 },
-    { name: "Feb", rating: 4.6 },
-    { name: "Mar", rating: 4.5 },
-    { name: "Apr", rating: 4.7 },
-    { name: "May", rating: 4.8 },
-    { name: "Jun", rating: 4.8 }
-  ]);
-  const qualityRadarData = (data?.qualityRadar || [
-    { subject: 'Punctuality', A: 120, B: 110, fullMark: 150 },
-    { subject: 'Communication', A: 98, B: 130, fullMark: 150 },
-    { subject: 'Cleanliness', A: 86, B: 130, fullMark: 150 },
-    { subject: 'Expertise', A: 99, B: 100, fullMark: 150 },
-    { subject: 'Value', A: 85, B: 90, fullMark: 150 },
-    { subject: 'Professionalism', A: 65, B: 85, fullMark: 150 },
-  ]);
 
   return (
     <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-6 font-sans">

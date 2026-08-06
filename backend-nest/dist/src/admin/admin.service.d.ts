@@ -40,6 +40,12 @@ export declare class AdminService {
             name: string;
             value: number;
         }[];
+        categorySaturationData: {
+            name: string;
+            value: number;
+            fill: string;
+            status: string;
+        }[];
         weeklyStats: {
             day: string;
             newUsers: number;
@@ -677,4 +683,10 @@ export declare class AdminService {
             body: any;
         };
     }>;
+    getBroadcasts(): Promise<any>;
+    createBroadcast(dto: {
+        title: string;
+        message: string;
+        audience: string;
+    }): Promise<any>;
 }

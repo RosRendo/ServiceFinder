@@ -163,6 +163,15 @@ let CompaniesController = class CompaniesController {
     removeStaffAvailability(slotId, user) {
         return this.companiesService.removeStaffAvailability(BigInt(user.id), BigInt(slotId));
     }
+    addStaffDocument(staffId, dto, user) {
+        return this.companiesService.addStaffDocument(BigInt(staffId), BigInt(user.id), dto);
+    }
+    addStaffNote(staffId, dto, user) {
+        return this.companiesService.addStaffNote(BigInt(staffId), BigInt(user.id), dto);
+    }
+    deleteStaffNote(noteId, user) {
+        return this.companiesService.deleteStaffNote(BigInt(noteId), BigInt(user.id));
+    }
 };
 exports.CompaniesController = CompaniesController;
 __decorate([
@@ -660,6 +669,47 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], CompaniesController.prototype, "removeStaffAvailability", null);
+__decorate([
+    (0, common_1.Post)('staff/:staffId/documents'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Add compliance document for staff' }),
+    openapi.ApiResponse({ status: 201 }),
+    __param(0, (0, common_1.Param)('staffId')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], CompaniesController.prototype, "addStaffDocument", null);
+__decorate([
+    (0, common_1.Post)('staff/:staffId/notes'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Add private note for staff' }),
+    openapi.ApiResponse({ status: 201 }),
+    __param(0, (0, common_1.Param)('staffId')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], CompaniesController.prototype, "addStaffNote", null);
+__decorate([
+    (0, common_1.Delete)('staff/notes/:noteId'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('company_admin'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete a private staff note' }),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Param)('noteId')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], CompaniesController.prototype, "deleteStaffNote", null);
 exports.CompaniesController = CompaniesController = __decorate([
     (0, swagger_1.ApiTags)('Companies'),
     (0, common_1.Controller)('companies'),

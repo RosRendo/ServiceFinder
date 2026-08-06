@@ -544,4 +544,53 @@ export class CompaniesController {
       BigInt(slotId),
     );
   }
+
+  @Post('staff/:staffId/documents')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Add compliance document for staff' })
+  addStaffDocument(
+    @Param('staffId') staffId: string,
+    @Body() dto: { name: string; documentUrl: string; expiryDate?: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.companiesService.addStaffDocument(
+      BigInt(staffId),
+      BigInt(user.id),
+      dto,
+    );
+  }
+
+  @Post('staff/:staffId/notes')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Add private note for staff' })
+  addStaffNote(
+    @Param('staffId') staffId: string,
+    @Body() dto: { note: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.companiesService.addStaffNote(
+      BigInt(staffId),
+      BigInt(user.id),
+      dto,
+    );
+  }
+
+  @Delete('staff/notes/:noteId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company_admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a private staff note' })
+  deleteStaffNote(
+    @Param('noteId') noteId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.companiesService.deleteStaffNote(
+      BigInt(noteId),
+      BigInt(user.id),
+    );
+  }
 }

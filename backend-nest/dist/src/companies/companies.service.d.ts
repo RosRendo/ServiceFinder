@@ -449,6 +449,22 @@ export declare class CompaniesService {
             fill: string;
         }[];
         monthlyData: any[];
+        topStaff: {
+            name: string;
+            revenue: number;
+            rating: number;
+            jobs: number;
+        }[];
+        ratingTrend: {
+            name: string;
+            rating: number;
+        }[];
+        qualityRadar: {
+            subject: string;
+            A: number;
+            B: number;
+            fullMark: number;
+        }[];
     }>;
     getMyCompanyStaff(userId: bigint): Promise<{
         id: string;
@@ -534,6 +550,8 @@ export declare class CompaniesService {
             customerAvatar: string | null;
             date: string;
         }[];
+        documents: any;
+        notes: any;
     }>;
     addStaffMember(userId: bigint, dto: any): Promise<{
         message: string;
@@ -803,6 +821,29 @@ export declare class CompaniesService {
         isAvailable: boolean;
     }[]>;
     removeStaffAvailability(userId: bigint, slotId: bigint): Promise<{
+        message: string;
+    }>;
+    addStaffDocument(staffId: bigint, userId: bigint, dto: {
+        name: string;
+        documentUrl: string;
+        expiryDate?: string;
+    }): Promise<{
+        id: any;
+        name: any;
+        documentUrl: any;
+        status: any;
+        expiryDate: any;
+    }>;
+    addStaffNote(staffId: bigint, userId: bigint, dto: {
+        note: string;
+    }): Promise<{
+        id: any;
+        note: any;
+        createdAt: any;
+        authorName: any;
+        authorAvatar: any;
+    }>;
+    deleteStaffNote(noteId: bigint, userId: bigint): Promise<{
         message: string;
     }>;
 }

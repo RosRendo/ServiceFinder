@@ -68,11 +68,7 @@ export default function AdminAnalyticsPage() {
   const topCompaniesData = (data?.topCompanies || []) as Array<{ name: string; revenue: string; rating: number; completedJobs: number }>;
   const registrationTrend = (data?.registrationTrend || []) as Array<{ name: string; users: number; companies: number }>;
   const statusBreakdown = (data?.statusBreakdown || []) as Array<{ name: string; value: number; color: string }>;
-  const categorySaturationData = (data?.categorySaturationData || [
-    { name: 'Cleaning', value: 85, fill: '#3b82f6', status: 'High Demand' },
-    { name: 'Plumbing', value: 45, fill: '#10b981', status: 'Balanced' },
-    { name: 'Electrical', value: 65, fill: '#f59e0b', status: 'Growing' }
-  ]) as Array<{ name: string; value: number; fill: string; status: string }>;
+  const categorySaturationData = (data?.categorySaturationData || []) as Array<{ name: string; value: number; fill: string; status: string }>;
 
   return (
     <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-6 font-sans">

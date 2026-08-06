@@ -192,7 +192,12 @@ export class AuthController {
     const { accessToken, refreshToken: newRefreshToken } =
       await this.authService.refreshAccessToken(refreshToken);
     this.setAuthCookies(res, accessToken, newRefreshToken);
-    return { message: 'Token refreshed', token: accessToken };
+    return { 
+      message: 'Token refreshed', 
+      token: accessToken,
+      accessToken: accessToken,
+      refreshToken: newRefreshToken
+    };
   }
 
   @Post('google')

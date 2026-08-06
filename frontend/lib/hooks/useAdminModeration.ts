@@ -12,11 +12,11 @@ export interface ModerationItem {
 }
 
 export function useAdminModeration() {
-  const { data, loading, error, refetch } = useAPI<{ items: ModerationItem[] }>('/admin/moderation');
+  const { data, loading, error, refetch } = useAPI<{ items: ModerationItem[] }>('/api/admin/moderation');
   const { mutate, loading: actionLoading } = useMutation();
 
   const moderateItem = async (itemId: string, action: 'resolve' | 'dismiss', notes?: string) => {
-    return mutate(`/admin/moderation/${itemId}`, { action, notes }, 'PUT');
+    return mutate(`/api/admin/moderation/${itemId}`, { action, notes }, 'PUT');
   };
 
   return {

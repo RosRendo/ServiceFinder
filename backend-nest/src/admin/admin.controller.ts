@@ -234,10 +234,27 @@ export class AdminController {
   seedEmailTemplates() {
     return this.adminService.seedEmailTemplates();
   }
-
   @Post('emails/test')
   @ApiOperation({ summary: 'Test an email template' })
   testEmailTemplate(@Body() dto: any) {
-    return this.adminService.testEmailTemplate(dto);
+    try {
+      return this.adminService.testEmailTemplate(dto);
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  // ─── Broadcasts ─────────────────────────────────────────────────────────────
+
+  @Get('broadcasts')
+  @ApiOperation({ summary: 'List all push broadcasts' })
+  getBroadcasts() {
+    return this.adminService.getBroadcasts();
+  }
+
+  @Post('broadcasts')
+  @ApiOperation({ summary: 'Send a new push broadcast' })
+  createBroadcast(@Body() dto: { title: string; message: string; audience: string }) {
+    return this.adminService.createBroadcast(dto);
   }
 }

@@ -12,11 +12,11 @@ export interface ComplianceDocument {
 }
 
 export function useAdminCompliance() {
-  const { data, loading, error, refetch } = useAPI<{ documents: ComplianceDocument[] }>('/admin/compliance');
+  const { data, loading, error, refetch } = useAPI<{ documents: ComplianceDocument[] }>('/api/admin/compliance');
   const { mutate, loading: actionLoading } = useMutation();
 
   const updateDocumentStatus = async (docId: string, status: 'approved' | 'rejected', notes?: string) => {
-    return mutate(`/admin/compliance/${docId}`, { status, notes }, 'PUT');
+    return mutate(`/api/admin/compliance/${docId}`, { status, notes }, 'PUT');
   };
 
   return {

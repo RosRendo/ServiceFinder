@@ -47,6 +47,7 @@ model User {
   addresses                 UserAddress[]
   supportTickets            SupportTicket[]
   moderationActions         ModerationLog[]
+  writtenStaffNotes         StaffNote[]               @relation("NoteAuthor")
 
   @@index([email])
   @@index([role])
@@ -145,6 +146,8 @@ model CompanyStaff {
   rejectedRequests   ServiceRequest[]     @relation("RejectedBy")
   paymentMethods     StaffPaymentMethod[] @relation("StaffPaymentMethods")
   walletTransactions WalletTransaction[]  @relation("StaffWalletTransactions")
+  documents          StaffDocument[]
+  notes              StaffNote[]
 
   @@unique([companyId, userId])
   @@index([companyId], map: "fk_staff_company")
@@ -910,4 +913,49 @@ model ComplianceReport {
   @@index([companyId])
   @@index([status])
   @@map("compliance_reports")
+}
+
+model Broadcast {
+  id           BigInt   @id @default(autoincrement())
+  title        String   @db.VarChar(200)
+  message      String
+  audience     String   @db.VarChar(50) // 'all', 'companies', 'customers'
+  sentAt       DateTime @default(now()) @map("sent_at")
+  sentCount    Int      @default(0) @map("sent_count")
+  openRate     Int      @default(0) @map("open_rate")
+  status       String   @default("sent") @db.VarChar(20) // 'sent', 'draft'
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("broadcasts")
+}
+
+model StaffDocument {
+  id           BigInt       @id @default(autoincrement())
+  staffId      BigInt       @map("staff_id")
+  name         String       @db.VarChar(150)
+  documentUrl  String       @map("document_url")
+  status       String       @default("pending") @db.VarChar(50)
+  expiryDate   DateTime?    @map("expiry_date")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  staff        CompanyStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+  @@map("staff_documents")
+}
+
+model StaffNote {
+  id        BigInt       @id @default(autoincrement())
+  staffId   BigInt       @map("staff_id")
+  authorId  BigInt       @map("author_id")
+  note      String       @db.Text
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  staff     CompanyStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  author    User         @relation("NoteAuthor", fields: [authorId], references: [id])
+
+  @@index([staffId])
+  @@index([authorId])
+  @@map("staff_notes")
 }

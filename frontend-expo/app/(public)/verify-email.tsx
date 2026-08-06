@@ -92,7 +92,7 @@ export default function VerifyEmailScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.container}>
         
-        <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={s.backBtn} onPress={() => { if (router.canGoBack()) router.back(); else router.replace("/"); }}>
           <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
         </TouchableOpacity>
 

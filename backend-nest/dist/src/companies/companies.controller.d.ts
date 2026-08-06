@@ -195,6 +195,22 @@ export declare class CompaniesController {
             fill: string;
         }[];
         monthlyData: any[];
+        topStaff: {
+            name: string;
+            revenue: number;
+            rating: number;
+            jobs: number;
+        }[];
+        ratingTrend: {
+            name: string;
+            rating: number;
+        }[];
+        qualityRadar: {
+            subject: string;
+            A: number;
+            B: number;
+            fullMark: number;
+        }[];
     }>;
     getMyCompanyStaff(user: any): Promise<{
         id: string;
@@ -530,6 +546,8 @@ export declare class CompaniesController {
             customerAvatar: string | null;
             date: string;
         }[];
+        documents: any;
+        notes: any;
     }>;
     addStaffMember(body: any, user: any): Promise<{
         message: string;
@@ -844,6 +862,29 @@ export declare class CompaniesController {
         isAvailable: boolean;
     }[]>;
     removeStaffAvailability(slotId: string, user: any): Promise<{
+        message: string;
+    }>;
+    addStaffDocument(staffId: string, dto: {
+        name: string;
+        documentUrl: string;
+        expiryDate?: string;
+    }, user: any): Promise<{
+        id: any;
+        name: any;
+        documentUrl: any;
+        status: any;
+        expiryDate: any;
+    }>;
+    addStaffNote(staffId: string, dto: {
+        note: string;
+    }, user: any): Promise<{
+        id: any;
+        note: any;
+        createdAt: any;
+        authorName: any;
+        authorAvatar: any;
+    }>;
+    deleteStaffNote(noteId: string, user: any): Promise<{
         message: string;
     }>;
 }

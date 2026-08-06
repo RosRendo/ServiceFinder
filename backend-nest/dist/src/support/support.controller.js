@@ -20,13 +20,18 @@ const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const roles_guard_1 = require("../auth/guards/roles.guard");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const swagger_1 = require("@nestjs/swagger");
+const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 let SupportController = class SupportController {
     supportService;
     constructor(supportService) {
         this.supportService = supportService;
     }
-    getTickets(status, page, limit) {
-        return this.supportService.getTickets(status, Number(page) || 1, Number(limit) || 20);
+    getTickets(status, page, limit, user) {
+        const filterUserId = user.role !== 'admin' ? BigInt(user.id) : undefined;
+        return this.supportService.getTickets(status, Number(page) || 1, Number(limit) || 20, filterUserId);
+    }
+    createTicket(body, user) {
+        return this.supportService.createTicket(BigInt(user.id), body.subject, body.message, body.priority);
     }
     updateStatus(id, body) {
         return this.supportService.updateTicketStatus(Number(id), body.status);
@@ -41,16 +46,28 @@ __decorate([
     openapi.ApiQuery({ name: "page", required: false }),
     openapi.ApiQuery({ name: "limit", required: false }),
     (0, common_1.Get)('tickets'),
-    (0, roles_decorator_1.Roles)('admin', 'company_admin'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get all support tickets, optionally filtered by status' }),
+    (0, roles_decorator_1.Roles)('admin', 'company_admin', 'customer'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get support tickets' }),
     openapi.ApiResponse({ status: 200 }),
     __param(0, (0, common_1.Query)('status')),
     __param(1, (0, common_1.Query)('page')),
     __param(2, (0, common_1.Query)('limit')),
+    __param(3, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:paramtypes", [String, String, String, Object]),
     __metadata("design:returntype", void 0)
 ], SupportController.prototype, "getTickets", null);
+__decorate([
+    (0, common_1.Post)('tickets'),
+    (0, roles_decorator_1.Roles)('admin', 'company_admin', 'customer'),
+    (0, swagger_1.ApiOperation)({ summary: 'Create a support ticket' }),
+    openapi.ApiResponse({ status: 201 }),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], SupportController.prototype, "createTicket", null);
 __decorate([
     (0, common_1.Patch)('tickets/:id'),
     (0, roles_decorator_1.Roles)('admin', 'company_admin'),

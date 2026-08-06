@@ -1,6 +1,6 @@
 // app/_layout.tsx
 import { useEffect, useState } from 'react';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -82,12 +82,16 @@ function RootLayout() {
   }, []);
 
   const router = useRouter();
+  const segments = useSegments();
   useEffect(() => {
     if (appReady && !isLoading && !user && !isGuest) {
-      // Force navigation to the welcome screen when user logs out and is not guest
-      router.replace("/");
+      // Avoid forcing redirect if the user is explicitly navigating to a public subpage (e.g. login, register)
+      const isPublicSubpage = segments[0] === '(public)' && segments.length > 1;
+      if (!isPublicSubpage) {
+        router.replace("/");
+      }
     }
-  }, [user, isGuest, appReady, isLoading]);
+  }, [user, isGuest, appReady, isLoading, segments]);
 
   if (!appReady || isLoading || !fontsLoaded) {
     return null;
