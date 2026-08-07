@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/lib/contexts/AuthContext";
+import { useGoogleLogin } from "@react-oauth/google";
 
 function RegisterPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { register } = useAuthContext();
+  const { register, googleLogin } = useAuthContext();
   const [error, setError] = useState("");
   const searchParams = useSearchParams();
   const [formData, setFormData] = useState({ fullName: "", email: "", phone: "", password: "" });
@@ -20,6 +21,24 @@ function RegisterPageContent() {
 
   const redirectTo = searchParams.get("redirect");
   const selectedRole = "company_admin"; // Hardcode for B2B
+
+  const handleGoogleAuth = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      setError("");
+      // Google user registering should also map to company_admin in this B2B context
+      const result = await googleLogin(tokenResponse.access_token, selectedRole);
+      if (result.success) {
+        router.push(redirectTo || "/company/dashboard");
+      } else {
+        setError(result.error || (lang === "kh" ? "ការចុះឈ្មោះដោយប្រើ Google បរាជ័យ។" : "Google Registration failed."));
+      }
+      setIsLoading(false);
+    },
+    onError: () => {
+      setError(lang === "kh" ? "ការចុះឈ្មោះដោយប្រើ Google បរាជ័យ។" : "Google Registration failed.");
+    }
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +127,13 @@ function RegisterPageContent() {
             )}
 
             {/* Google SSO - Crisp rounded-md corners */}
-            <Button variant="outline" className="w-full h-12 rounded-md font-bold text-slate-700 border-slate-200 hover:bg-slate-50 flex items-center justify-center gap-2">
+            <Button 
+              variant="outline" 
+              className="w-full h-12 rounded-md font-bold text-slate-700 border-slate-200 hover:bg-slate-50 flex items-center justify-center gap-2"
+              onClick={() => handleGoogleAuth()}
+              type="button"
+              disabled={isLoading}
+            >
               <svg viewBox="0 0 24 24" className="w-5 h-5">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
