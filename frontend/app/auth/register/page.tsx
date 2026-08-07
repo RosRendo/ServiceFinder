@@ -31,7 +31,8 @@ function RegisterPageContent() {
       if (result.success) {
         router.push(redirectTo || "/company/dashboard");
       } else {
-        setError(result.error || (lang === "kh" ? "ការចុះឈ្មោះដោយប្រើ Google បរាជ័យ។" : "Google Registration failed."));
+        const errorMsg = 'error' in result ? result.error : (lang === "kh" ? "ការចុះឈ្មោះដោយប្រើ Google បរាជ័យ។" : "Google Registration failed.");
+        setError(errorMsg);
       }
       setIsLoading(false);
     },

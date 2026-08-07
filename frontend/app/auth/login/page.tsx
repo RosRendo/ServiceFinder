@@ -44,7 +44,8 @@ function LoginPageContent() {
         const dest = redirectTo || roleDashboards[result.user?.role] || "/";
         router.push(dest);
       } else {
-        setError(result.error || (lang === "kh" ? "ការចូលគណនី Google បរាជ័យ។" : "Google Login failed."));
+        const errorMsg = 'error' in result ? result.error : (lang === "kh" ? "ការចូលគណនី Google បរាជ័យ។" : "Google Login failed.");
+        setError(errorMsg);
       }
       setIsLoading(false);
     },
