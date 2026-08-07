@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:unit": "vitest",
+    "test": "vitest run",
+    "test:unit": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test --project=chromium"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",

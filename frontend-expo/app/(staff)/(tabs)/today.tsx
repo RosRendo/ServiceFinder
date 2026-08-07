@@ -162,17 +162,20 @@ export default function TodayScreen() {
 
   const handlePickJob = async (job: any) => {
     try {
-      const userRes = await api.get('/api/auth/me');
-      let me = userRes.data?.data?.user || userRes.data?.user || userRes.data?.data || userRes.data;
-      if (me?.staffProfile?.id) {
-         await api.patch(`/api/bookings/${job.id}/assign-staff`, { staffId: me.staffProfile.id });
-         setActiveBooking(job);
-         setSelectedJob(null);
-         // Uber model: Picking the job implies immediate acceptance and starting the route.
-         setState('TRAVELING');
-      } else {
-         Alert.alert("Error", "Could not find your staff profile.");
+      try {
+        await api.patch(`/api/bookings/${job.id}/claim`);
+      } catch (err: any) {
+        const userRes = await api.get('/api/auth/me');
+        let me = userRes.data?.data?.user || userRes.data?.user || userRes.data?.data || userRes.data;
+        if (me?.staffProfile?.id) {
+          await api.patch(`/api/bookings/${job.id}/assign-staff`, { staffId: me.staffProfile.id });
+        } else {
+          throw err;
+        }
       }
+      setActiveBooking(job);
+      setSelectedJob(null);
+      setState('TRAVELING');
     } catch (e: any) {
       console.error("Failed to pick job", e);
       if (e.response && e.response.status === 409) {
@@ -180,7 +183,7 @@ export default function TodayScreen() {
          setSelectedJob(null);
          loadJobs(); // Refresh the board
       } else {
-         Alert.alert("Error", "Could not assign job.");
+         Alert.alert("Error", e?.response?.data?.message || "Could not claim job.");
       }
     }
   };

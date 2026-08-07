@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/shell/AppSidebar";
 import { AppTopBar } from "@/components/shell/AppTopBar";
 import { CommandPalette } from "@/components/shell/CommandPalette";
 import { AIAssistant } from "@/components/shell/AIAssistant";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -24,32 +25,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [handleKey]);
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden">
-      {/* Sidebar */}
-      <AppSidebar
-        role="admin"
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((c) => !c)}
-      />
-
-      {/* Main Column */}
-      <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-        <AppTopBar
+    <ProtectedRoute allowedRoles={['admin']}>
+      <div className="flex h-screen w-full bg-background overflow-hidden">
+        {/* Sidebar */}
+        <AppSidebar
           role="admin"
-          onCommandPaletteOpen={() => setCmdOpen(true)}
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed((c) => !c)}
         />
-        <main className="flex-1 overflow-hidden bg-muted/20">
-          {children}
-        </main>
-      </div>
 
-      {/* Global Overlays */}
-      <CommandPalette
-        open={cmdOpen}
-        onClose={() => setCmdOpen(false)}
-        role="admin"
-      />
-      <AIAssistant />
-    </div>
+        {/* Main Column */}
+        <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+          <AppTopBar
+            role="admin"
+            onCommandPaletteOpen={() => setCmdOpen(true)}
+          />
+          <main className="flex-1 overflow-hidden bg-muted/20">
+            {children}
+          </main>
+        </div>
+
+        {/* Global Overlays */}
+        <CommandPalette
+          open={cmdOpen}
+          onClose={() => setCmdOpen(false)}
+          role="admin"
+        />
+        <AIAssistant />
+      </div>
+    </ProtectedRoute>
   );
 }

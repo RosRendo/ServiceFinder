@@ -13,8 +13,16 @@ class RedisIoAdapter extends platform_socket_io_1.IoAdapter {
         const connectionString = redisPassword
             ? `redis://:${redisPassword}@${redisHost}:${redisPort}`
             : `redis://${redisHost}:${redisPort}`;
-        const pubClient = (0, redis_1.createClient)({ url: connectionString });
+        const pubClient = (0, redis_1.createClient)({
+            url: connectionString,
+            socket: {
+                connectTimeout: 1000,
+                reconnectStrategy: false,
+            },
+        });
+        pubClient.on('error', () => { });
         const subClient = pubClient.duplicate();
+        subClient.on('error', () => { });
         await Promise.all([pubClient.connect(), subClient.connect()]);
         this.adapterConstructor = (0, redis_adapter_1.createAdapter)(pubClient, subClient);
     }

@@ -1,6 +1,11 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
+// Ensure BigInt can be serialized to JSON safely
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
+
 @Injectable()
 export class PrismaService
   extends PrismaClient

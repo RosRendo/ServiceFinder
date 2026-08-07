@@ -1,3 +1,4 @@
+import { createClient } from 'redis';
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
@@ -63,15 +64,30 @@ import { ComplianceModule } from './compliance/compliance.module';
     }),
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
+      useFactory: async (config: ConfigService) => {
         const redisUrl = config.get<string>('REDIS_URL');
         let storage: any = undefined;
 
         if (redisUrl) {
-          const {
-            ThrottlerStorageRedisService,
-          } = require('nestjs-throttler-storage-redis');
-          storage = new ThrottlerStorageRedisService(redisUrl);
+          const testClient = createClient({
+            url: redisUrl,
+            socket: { connectTimeout: 1000, reconnectStrategy: false },
+          });
+          testClient.on('error', () => {});
+          try {
+            await testClient.connect();
+            await testClient.ping();
+            await testClient.disconnect();
+
+            const {
+              ThrottlerStorageRedisService,
+            } = require('nestjs-throttler-storage-redis');
+            storage = new ThrottlerStorageRedisService(redisUrl);
+          } catch {
+            console.warn(
+              '⚠️ Redis rate limiter unavailable, falling back to in-memory throttler',
+            );
+          }
         }
 
         return {
@@ -96,17 +112,28 @@ import { ComplianceModule } from './compliance/compliance.module';
       useFactory: async () => {
         const redisUrl = process.env.REDIS_URL;
         if (redisUrl) {
+          const testClient = createClient({
+            url: redisUrl,
+            socket: {
+              connectTimeout: 1000,
+              reconnectStrategy: false,
+            },
+          });
+          testClient.on('error', () => {});
           try {
+            await testClient.connect();
+            await testClient.ping();
+            await testClient.disconnect();
             return {
               store: await redisStore({
                 url: redisUrl,
                 ttl: 60 * 60 * 1000,
               }),
             };
-          } catch (error) {
+          } catch (error: any) {
             console.warn(
-              'Redis connection failed, falling back to in-memory cache:',
-              error.message,
+              '⚠️ Redis connection unavailable, falling back to in-memory cache:',
+              error?.message || error,
             );
           }
         }

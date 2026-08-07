@@ -15,8 +15,17 @@ export class RedisIoAdapter extends IoAdapter {
       ? `redis://:${redisPassword}@${redisHost}:${redisPort}`
       : `redis://${redisHost}:${redisPort}`;
 
-    const pubClient = createClient({ url: connectionString });
+    const pubClient = createClient({
+      url: connectionString,
+      socket: {
+        connectTimeout: 1000,
+        reconnectStrategy: false,
+      },
+    });
+    pubClient.on('error', () => {});
+
     const subClient = pubClient.duplicate();
+    subClient.on('error', () => {});
 
     await Promise.all([pubClient.connect(), subClient.connect()]);
 

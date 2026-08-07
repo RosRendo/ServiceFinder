@@ -124,20 +124,25 @@ export function UserDrawer({ open, onClose, user }: UserDrawerProps) {
           <Button 
             variant="outline"
             onClick={async () => {
-              const newStatus = user.status === "active" ? "suspended" : "active";
-              if (!window.confirm(`Are you sure you want to ${newStatus === "suspended" ? "suspend" : "activate"} ${user.fullName}?`)) return;
+              const isSuspending = user.status === "active";
+              const actionName = isSuspending ? "suspend" : "unsuspend";
+              if (!window.confirm(`Are you sure you want to ${actionName} ${user.fullName}?`)) return;
               
               try {
-                await api.patch(`/users/${user.id}/status`, { status: newStatus });
-                toast({ title: "Success", description: `User ${newStatus}` });
+                if (isSuspending) {
+                  await api.post(`/admin/users/${user.id}/suspend`);
+                } else {
+                  await api.post(`/admin/users/${user.id}/unsuspend`);
+                }
+                toast({ title: "Success", description: `User account has been ${isSuspending ? "suspended" : "reactivated"}.` });
                 onClose();
               } catch (e: any) {
-                toast({ title: "Error", description: "Failed to update user status", variant: "destructive" });
+                toast({ title: "Error", description: `Failed to ${actionName} user account`, variant: "destructive" });
               }
             }}
             className="h-10 text-xs font-bold rounded-lg border shadow-sm transition-colors justify-center gap-2 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-500/20 col-span-2"
           >
-            <Ban className="w-3.5 h-3.5" /> {user.status === "active" ? "Suspend User" : "Activate User"}
+            <Ban className="w-3.5 h-3.5" /> {user.status === "active" ? "Suspend User Account" : "Reactivate User Account"}
           </Button>
         </div>
 

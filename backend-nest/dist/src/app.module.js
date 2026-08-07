@@ -40,6 +40,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
+const redis_1 = require("redis");
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const core_1 = require("@nestjs/core");
@@ -111,12 +112,25 @@ exports.AppModule = AppModule = __decorate([
             }),
             throttler_1.ThrottlerModule.forRootAsync({
                 inject: [config_1.ConfigService],
-                useFactory: (config) => {
+                useFactory: async (config) => {
                     const redisUrl = config.get('REDIS_URL');
                     let storage = undefined;
                     if (redisUrl) {
-                        const { ThrottlerStorageRedisService, } = require('nestjs-throttler-storage-redis');
-                        storage = new ThrottlerStorageRedisService(redisUrl);
+                        const testClient = (0, redis_1.createClient)({
+                            url: redisUrl,
+                            socket: { connectTimeout: 1000, reconnectStrategy: false },
+                        });
+                        testClient.on('error', () => { });
+                        try {
+                            await testClient.connect();
+                            await testClient.ping();
+                            await testClient.disconnect();
+                            const { ThrottlerStorageRedisService, } = require('nestjs-throttler-storage-redis');
+                            storage = new ThrottlerStorageRedisService(redisUrl);
+                        }
+                        catch {
+                            console.warn('⚠️ Redis rate limiter unavailable, falling back to in-memory throttler');
+                        }
                     }
                     return {
                         throttlers: [
@@ -140,7 +154,18 @@ exports.AppModule = AppModule = __decorate([
                 useFactory: async () => {
                     const redisUrl = process.env.REDIS_URL;
                     if (redisUrl) {
+                        const testClient = (0, redis_1.createClient)({
+                            url: redisUrl,
+                            socket: {
+                                connectTimeout: 1000,
+                                reconnectStrategy: false,
+                            },
+                        });
+                        testClient.on('error', () => { });
                         try {
+                            await testClient.connect();
+                            await testClient.ping();
+                            await testClient.disconnect();
                             return {
                                 store: await (0, cache_manager_redis_yet_1.redisStore)({
                                     url: redisUrl,
@@ -149,7 +174,7 @@ exports.AppModule = AppModule = __decorate([
                             };
                         }
                         catch (error) {
-                            console.warn('Redis connection failed, falling back to in-memory cache:', error.message);
+                            console.warn('⚠️ Redis connection unavailable, falling back to in-memory cache:', error?.message || error);
                         }
                     }
                     return {

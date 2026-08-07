@@ -10,6 +10,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransformInterceptor = void 0;
 const common_1 = require("@nestjs/common");
 const operators_1 = require("rxjs/operators");
+BigInt.prototype.toJSON = function () {
+    return this.toString();
+};
 let TransformInterceptor = TransformInterceptor_1 = class TransformInterceptor {
     logger = new common_1.Logger(TransformInterceptor_1.name);
     intercept(context, next) {

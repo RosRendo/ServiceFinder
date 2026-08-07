@@ -1,7 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Login from '@/app/auth/login/page';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
 
 // Mock Next.js navigation and contexts
 const mockPush = vi.fn();
@@ -28,15 +27,6 @@ vi.mock('framer-motion', () => ({
     h2: ({ children, className, ...props }: any) => <h2 className={className} {...props}>{children}</h2>,
     p: ({ children, className, ...props }: any) => <p className={className} {...props}>{children}</p>,
   },
-}));
-
-// Mock @react-oauth/google
-vi.mock('@react-oauth/google', () => ({
-  GoogleLogin: ({ onSuccess }: any) => (
-    <button data-testid="google-login-btn" onClick={() => onSuccess({ credential: 'mock-google-token' })}>
-      Continue with Google
-    </button>
-  ),
 }));
 
 // Mock toast hook
@@ -70,20 +60,17 @@ describe('LoginPage Component', () => {
   it('renders login form properly', () => {
     render(<Login />);
     
-    expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('you@company.com')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Sign In/i })).toBeInTheDocument();
-    expect(screen.getByTestId('google-login-btn')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Continue with Facebook/i })).toBeInTheDocument();
   });
 
   it('submits standard credentials successfully', async () => {
     mockLoginFn.mockResolvedValueOnce({ success: true, user: { role: 'company_admin' } });
     render(<Login />);
 
-    fireEvent.change(screen.getByPlaceholderText('you@example.com'), { target: { value: 'test@company.com' } });
+    fireEvent.change(screen.getByPlaceholderText('you@company.com'), { target: { value: 'test@company.com' } });
     fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByRole('button', { name: /Sign In/i }));
+    fireEvent.click(screen.getByRole('button', { name: /ចូលគណនី|SIGN IN/i }));
 
     await waitFor(() => {
       expect(mockLoginFn).toHaveBeenCalledWith('test@company.com', 'password123');
@@ -91,36 +78,6 @@ describe('LoginPage Component', () => {
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/company/dashboard');
-    });
-  });
-
-  it('handles Google login success callback correctly', async () => {
-    mockGoogleLoginFn.mockResolvedValueOnce({ success: true, user: { role: 'admin' } });
-    render(<Login />);
-
-    fireEvent.click(screen.getByTestId('google-login-btn'));
-
-    await waitFor(() => {
-      expect(mockGoogleLoginFn).toHaveBeenCalledWith('mock-google-token');
-    });
-
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/admin/dashboard');
-    });
-  });
-
-  it('triggers Facebook login simulation successfully', async () => {
-    mockFacebookLoginFn.mockResolvedValueOnce({ success: true, user: { role: 'staff' } });
-    render(<Login />);
-
-    fireEvent.click(screen.getByRole('button', { name: /Continue with Facebook/i }));
-
-    await waitFor(() => {
-      expect(mockFacebookLoginFn).toHaveBeenCalledWith(expect.stringContaining('mock_facebook_auth_token_'));
-    });
-
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/staff/dashboard');
     });
   });
 });

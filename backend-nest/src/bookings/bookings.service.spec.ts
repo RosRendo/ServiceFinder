@@ -6,6 +6,9 @@ import { BookingsGateway } from './bookings.gateway';
 import { AdminGateway } from '../admin/admin.gateway';
 import { SettingsService } from '../settings/settings.service';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { PromoCodesService } from '../promo-codes/promo-codes.service';
+import { ConversationsService } from '../conversations/conversations.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   NotFoundException,
   ForbiddenException,
@@ -34,6 +37,9 @@ describe('BookingsService', () => {
     },
     company: {
       findFirst: jest.fn(),
+    },
+    pricingRule: {
+      findMany: jest.fn().mockResolvedValue([]),
     },
   };
 
@@ -77,6 +83,9 @@ describe('BookingsService', () => {
             notifyBookingStatusChange: jest.fn()
           } 
         },
+        { provide: PromoCodesService, useValue: { validatePromoCode: jest.fn() } },
+        { provide: ConversationsService, useValue: { startConversation: jest.fn() } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
       ],
     }).compile();
 

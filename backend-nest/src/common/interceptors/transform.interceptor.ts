@@ -8,6 +8,11 @@ import {
 import { Observable } from 'rxjs';
 import { tap, map } from 'rxjs/operators';
 
+// Ensure BigInt can be serialized to JSON safely
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
+
 export interface Response<T> {
   data?: T;
   success?: boolean;
