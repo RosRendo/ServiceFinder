@@ -5,7 +5,7 @@ services:
     build:
       context: ./backend-nest
       dockerfile: Dockerfile
-    image: rosrendo/servicefinder-backend:${TAG:-latest}
+    image: ghcr.io/ros-rendo/service_finder/backend-nest:${TAG:-latest}
     container_name: service-finder-backend
     ports:
       - "5000:5000"
