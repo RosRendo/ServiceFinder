@@ -1,16 +1,6 @@
 import * as crypto from 'crypto';
 
-export function deriveWingKey(clientId: string, customCipherKey?: string): Buffer {
-  if (customCipherKey) {
-    try {
-      // Decode the custom cipher key if it's base64 encoded
-      if (customCipherKey.includes('/') || customCipherKey.includes('+') || customCipherKey.endsWith('=')) {
-        return Buffer.from(customCipherKey, 'base64');
-      }
-    } catch (e) {
-      // Fallback to text padding
-    }
-  }
+export function deriveWingKey(clientId: string): Buffer {
   // Formula: key = clientID.padEnd(32, '0').slice(0, 32)
   const padded = clientId.padEnd(32, '0').slice(0, 32);
   return Buffer.from(padded, 'utf8');

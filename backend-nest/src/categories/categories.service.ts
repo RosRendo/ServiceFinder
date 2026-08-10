@@ -11,9 +11,9 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 export class CategoriesService {
   constructor(private prisma: PrismaService) {}
 
-  async getAllCategories() {
+  async getAllCategories(includeInactive = false) {
     const categories = await this.prisma.category.findMany({
-      where: { status: 'active' },
+      where: includeInactive ? {} : { status: 'active' },
       include: {
         serviceTypes: {
           where: { status: 'active' },
@@ -30,6 +30,7 @@ export class CategoriesService {
       description: cat.description,
       icon: cat.icon,
       imageUrl: cat.imageUrl,
+      useImageAsBadge: cat.useImageAsBadge,
       status: cat.status,
       displayOrder: cat.displayOrder,
       serviceTypesCount: cat.serviceTypes.length,
@@ -69,6 +70,7 @@ export class CategoriesService {
         description: category.description,
         icon: category.icon,
         imageUrl: category.imageUrl,
+        useImageAsBadge: category.useImageAsBadge,
         status: category.status,
         serviceTypes: formattedServiceTypes,
       },
@@ -87,7 +89,7 @@ export class CategoriesService {
     const category = await this.prisma.category.create({
       data: {
         ...dto,
-        status: 'active',
+        status: (dto.status as any) || 'active',
         displayOrder: dto.displayOrder || 0,
       },
     });

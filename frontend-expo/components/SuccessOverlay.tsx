@@ -14,6 +14,13 @@ const T = {
 };
 
 export default function SuccessOverlay({ visible, onFinish, message = "Success!" }: Props) {
+  React.useEffect(() => {
+    if (visible && onFinish) {
+      const timer = setTimeout(onFinish, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [visible]);
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={s.overlay}>
@@ -23,8 +30,7 @@ export default function SuccessOverlay({ visible, onFinish, message = "Success!"
             autoPlay
             loop={false}
             style={{ width: 180, height: 180 }}
-            onAnimationFinish={onFinish}
-            speed={1.5}
+            speed={0.8}
           />
           <Text style={s.text}>{message}</Text>
         </View>

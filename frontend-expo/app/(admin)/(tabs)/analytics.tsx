@@ -250,7 +250,7 @@ export default function Analytics() {
             </View>
             <View style={s.metricsGrid}>
               {[
-                { label: "Avg Booking Value", value: formatCurrency(data?.avgBookingValue || 0), icon: "tag-outline", color: T.teal },
+                { label: "Avg Booking Value", value: formatCurrency(data?.avgBookingValue || 0), icon: "tag-outline", color: T.success },
                 { label: "Conversion Rate", value: `${data?.conversionRate || 0}%`, icon: "percent-outline", color: T.purple },
                 { label: "Active Bookings", value: formatNumber(data?.activeBookings || 0), icon: "progress-clock", color: T.blue },
                 { label: "Cancelled", value: formatNumber(data?.cancelledBookings || 0), icon: "close-circle-outline", color: T.error },

@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class UpdateCategoryDto {
   @IsString()
@@ -28,4 +28,8 @@ export class UpdateCategoryDto {
   @IsString()
   @IsOptional()
   status?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  useImageAsBadge?: boolean;
 }

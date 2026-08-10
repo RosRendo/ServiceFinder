@@ -9,7 +9,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import api from "@/utils/api";
 import { useSidebarStore } from "@/store/sidebarStore";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
+const FlashList = ShopifyFlashList as any;
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
 
@@ -123,7 +124,7 @@ export default function Queue() {
       ) : (
         <FlashList
           data={companies}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: any) => item.id}
           estimatedItemSize={250}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchQueue(true)} tintColor={T.primary} />}
           contentContainerStyle={s.listContent}
@@ -138,7 +139,7 @@ export default function Queue() {
               <Text style={s.emptySubText}>No {activeTab} applications found.</Text>
             </View>
           }
-          renderItem={({ item: company, index }) => {
+          renderItem={({ item: company, index }: any) => {
             const sStyle = getStatusStyle(company.verificationStatus);
             return (
               <TouchableOpacity

@@ -11,6 +11,9 @@ export interface CategoryFormData {
   slug: string;
   description: string;
   icon: string;
+  imageUrl: string;
+  useImageAsBadge: boolean;
+  status: string;
 }
 
 interface CategoryDrawerProps {
@@ -115,6 +118,60 @@ export function CategoryDrawer({ open, onClose, category, formData, setFormData,
                   />
                 </div>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="imageUrl" className="text-xs font-bold text-slate-700">Category Image URL</Label>
+              <div className="relative">
+                <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input 
+                  id="imageUrl" 
+                  value={formData.imageUrl || ""} 
+                  onChange={(e) => setFormData((p) => ({ ...p, imageUrl: e.target.value }))} 
+                  placeholder="https://images.unsplash.com/photo-..." 
+                  className="pl-10 h-11 bg-slate-50 border-slate-200 focus:border-violet-500 focus:ring-violet-500/20 font-medium rounded-xl"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl mt-4">
+              <div>
+                <Label htmlFor="status" className="text-xs font-bold text-slate-700 block">Active Status</Label>
+                <span className="text-[10px] text-slate-400 font-medium">Toggle whether this category is visible to customers.</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData((p) => ({ ...p, status: p.status === "active" ? "inactive" : "active" }))}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  formData.status === "active" ? "bg-violet-600" : "bg-slate-200"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    formData.status === "active" ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl mt-4">
+              <div>
+                <Label htmlFor="useImageAsBadge" className="text-xs font-bold text-slate-700 block">Render Category as Image</Label>
+                <span className="text-[10px] text-slate-400 font-medium">Show the category cover image instead of the vector icon/emoji throughout the app.</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData((p) => ({ ...p, useImageAsBadge: !p.useImageAsBadge }))}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  formData.useImageAsBadge ? "bg-violet-600" : "bg-slate-200"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    formData.useImageAsBadge ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
             </div>
           </div>
         </Section>

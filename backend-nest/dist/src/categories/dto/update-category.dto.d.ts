@@ -6,4 +6,5 @@ export declare class UpdateCategoryDto {
     imageUrl?: string;
     displayOrder?: number;
     status?: string;
+    useImageAsBadge?: boolean;
 }

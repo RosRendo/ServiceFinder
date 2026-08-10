@@ -80,7 +80,7 @@ export default function CompanyDetailScreen() {
           text: "Log In", 
           onPress: () => {
             useAuthStore.getState().setGuestMode(false);
-            router.replace("/login");
+            router.replace("/(public)/login");
           } 
         }
       ]

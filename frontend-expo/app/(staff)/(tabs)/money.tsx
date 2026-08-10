@@ -1,10 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import api from '../../../utils/api';
 
 export default function MoneyScreen() {
+  const router = useRouter();
   const T = { bg: '#F7F8FC', surface: '#FFFFFF', text1: '#0A192F', text2: '#475569', text3: '#94A3B8', accent: '#0A192F', success: '#00A699', border: '#E8EEF4' };
 
   const [perf, setPerf] = useState<any>(null);
@@ -89,6 +90,15 @@ export default function MoneyScreen() {
           <Text style={[s.statSub, { color: 'rgba(255,255,255,0.9)' }]}>
             {activeTab === 'today' ? todayJobs : weeklyJobs} Jobs Completed
           </Text>
+
+          <TouchableOpacity 
+            style={s.payoutBtn} 
+            onPress={() => router.push('/(staff)/payout')}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons name="wallet-giftcard" size={18} color={T.success} style={{ marginRight: 6 }} />
+            <Text style={s.payoutBtnText}>Withdraw Earnings</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Goals / Progress */}
@@ -169,5 +179,7 @@ const s = StyleSheet.create({
   toggleText: { fontSize: 14, fontWeight: '700', color: '#94A3B8' },
   toggleTextActive: { color: '#0A192F' },
   
-  heroCard: { borderRadius: 24, padding: 24, shadowColor: '#000', shadowOffset: {width:0, height:8}, shadowOpacity: 0.1, shadowRadius: 24, alignItems: 'center' }
+  heroCard: { borderRadius: 24, padding: 24, shadowColor: '#000', shadowOffset: {width:0, height:8}, shadowOpacity: 0.1, shadowRadius: 24, alignItems: 'center' },
+  payoutBtn: { marginTop: 16, backgroundColor: '#ffffff', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
+  payoutBtnText: { fontSize: 14, fontWeight: '800', color: '#00A699', letterSpacing: 0.5 }
 });

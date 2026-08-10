@@ -18,6 +18,7 @@ import { Image } from "expo-image";
 import { ScrollView, Text, View, TextInput, TouchableOpacity, RefreshControl, StyleSheet, Animated, Easing, Pressable, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Location from "expo-location";
 import { useExploreStore, ExploreService, ExploreCompany } from "@/store/exploreStore";
 import FadeIn from "@/components/FadeIn";
 import { useTranslation } from "react-i18next";
@@ -151,10 +152,29 @@ function CategoryChipsSkeleton() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
+const getCategoryIcon = (text: string): any => {
+  if (!text) return 'tools';
+  const t = text.toLowerCase();
+  if (t.includes('clean') || t.includes('maid') || t.includes('spark')) return 'broom';
+  if (t.includes('plumb') || t.includes('pipe') || t.includes('water')) return 'pipe-wrench';
+  if (t.includes('electric') || t.includes('wire') || t.includes('volt') || t.includes('zap')) return 'lightning-bolt';
+  if (t.includes('ac') || t.includes('air') || t.includes('cool') || t.includes('wind')) return 'air-conditioner';
+  if (t.includes('paint') || t.includes('color') || t.includes('brush')) return 'brush';
+  if (t.includes('move') || t.includes('pack') || t.includes('truck')) return 'truck-delivery';
+  if (t.includes('garden') || t.includes('lawn') || t.includes('yard') || t.includes('tree')) return 'leaf';
+  if (t.includes('pest') || t.includes('bug')) return 'bug';
+  if (t.includes('build') || t.includes('construct') || t.includes('repair') || t.includes('wrench')) return 'hammer-wrench';
+  return 'tools'; 
+};
+
 // COMPANY CARD (Featured Companies horizontal scroll)
 // ─────────────────────────────────────────────────────────────
 function CompanyCard({ company, onPress }: { company: ExploreCompany; onPress: () => void }) {
   const { t } = useTranslation();
+  const categories = useExploreStore(state => state.categories);
   const highlights: string[] = (() => {
     if (!company.cardHighlights) return [];
     if (Array.isArray(company.cardHighlights)) return company.cardHighlights;
@@ -170,6 +190,20 @@ function CompanyCard({ company, onPress }: { company: ExploreCompany; onPress: (
           style={s.companyCover}
           contentFit="cover"
         />
+        {/* Prominent Icon Badge on Image */}
+        {(() => {
+          const primaryCat = highlights[0] || company.description || company.name || 'Services';
+          const cat = categories.find(c => c.name.toLowerCase() === primaryCat.toLowerCase() || c.slug.toLowerCase() === primaryCat.toLowerCase());
+          return (
+            <View style={{ position: "absolute", top: 8, left: 8, backgroundColor: T.accent, width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 1, borderColor: "#FFFFFF", shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, elevation: 3 }}>
+              {cat?.useImageAsBadge && cat?.imageUrl ? (
+                <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+              ) : (
+                <MaterialCommunityIcons name={(cat?.icon as any) || getCategoryIcon(cat?.name || primaryCat)} size={18} color="#fff" />
+              )}
+            </View>
+          );
+        })()}
         {/* Rating badge — top right, glassmorphism pill */}
         {company.ratingSummary && (
           <View style={s.ratingBadge}>
@@ -192,10 +226,10 @@ function CompanyCard({ company, onPress }: { company: ExploreCompany; onPress: (
             {company.city}
             {company.description ? ` · ${company.description}` : ""}
           </Text>
-          {/* Highlight tags — progressive disclosure: max 2 */}
-          {highlights.length > 0 && (
+          {/* Secondary Highlight tags */}
+          {highlights.length > 1 && (
             <View style={s.tagsRow}>
-              {highlights.slice(0, 2).map((tag, idx) => (
+              {highlights.slice(1, 3).map((tag, idx) => (
                 <View key={idx} style={s.tag}>
                   <Text style={s.tagText}>{tag.toUpperCase()}</Text>
                 </View>
@@ -213,6 +247,7 @@ function CompanyCard({ company, onPress }: { company: ExploreCompany; onPress: (
 // ─────────────────────────────────────────────────────────────
 function ServiceRow({ service, onPress }: { service: ExploreService; onPress: () => void }) {
   const { t } = useTranslation();
+  const categories = useExploreStore(state => state.categories);
   return (
     <PressCard onPress={onPress}>
       <View style={s.serviceRow}>
@@ -227,9 +262,23 @@ function ServiceRow({ service, onPress }: { service: ExploreService; onPress: ()
           ) : (
             <MaterialIcons name="home-repair-service" size={28} color={T.accentMid} />
           )}
+          {service.serviceType?.category?.name && (() => {
+            const catName = service.serviceType.category.name;
+            const cat = categories.find(c => c.name.toLowerCase() === catName.toLowerCase());
+            return (
+              <View style={{ position: "absolute", bottom: 4, right: 4, backgroundColor: T.accent, width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 0.75, borderColor: "#FFFFFF", shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 3, elevation: 2 }}>
+                {cat?.useImageAsBadge && cat?.imageUrl ? (
+                  <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                ) : (
+                  <MaterialCommunityIcons name={(cat?.icon as any) || getCategoryIcon(cat?.name || catName)} size={13} color="#fff" />
+                )}
+              </View>
+            );
+          })()}
         </View>
         {/* Info */}
         <View style={{ flex: 1 }}>
+
           <Text style={s.serviceName} numberOfLines={2}>{service.name}</Text>
           <Text style={s.serviceProvider} numberOfLines={1}>{t('explore.by')}{service.company.name}</Text>
           <View style={s.serviceMeta}>
@@ -262,6 +311,7 @@ function ServiceRow({ service, onPress }: { service: ExploreService; onPress: ()
 // ─────────────────────────────────────────────────────────────
 function NearbyRow({ company, onPress }: { company: ExploreCompany; onPress: () => void }) {
   const { t } = useTranslation();
+  const categories = useExploreStore(state => state.categories);
   const highlights: string[] = (() => {
     if (!company.cardHighlights) return [];
     if (Array.isArray(company.cardHighlights)) return company.cardHighlights;
@@ -271,11 +321,26 @@ function NearbyRow({ company, onPress }: { company: ExploreCompany; onPress: () 
   return (
     <PressCard onPress={onPress}>
       <View style={s.nearbyRow}>
-        <Image
-          source={{ uri: company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}` }}
-          style={s.nearbyLogo}
-          contentFit="cover"
-        />
+        <View style={s.nearbyLogo}>
+          <Image
+            source={{ uri: company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}` }}
+            style={StyleSheet.absoluteFillObject}
+            contentFit="cover"
+          />
+          {(() => {
+            const primaryCat = highlights[0] || company.description || company.name || 'Services';
+            const cat = categories.find(c => c.name.toLowerCase() === primaryCat.toLowerCase() || c.slug.toLowerCase() === primaryCat.toLowerCase());
+            return (
+              <View style={{ position: "absolute", bottom: 4, right: 4, backgroundColor: T.accent, width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 0.75, borderColor: "#FFFFFF", shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 3, elevation: 2 }}>
+                {cat?.useImageAsBadge && cat?.imageUrl ? (
+                  <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                ) : (
+                  <MaterialCommunityIcons name={(cat?.icon as any) || getCategoryIcon(cat?.name || primaryCat)} size={13} color="#fff" />
+                )}
+              </View>
+            );
+          })()}
+        </View>
         <View style={{ flex: 1 }}>
           <View style={s.nearbyNameRow}>
             <Text style={s.nearbyName} numberOfLines={1}>{company.name}</Text>
@@ -285,23 +350,16 @@ function NearbyRow({ company, onPress }: { company: ExploreCompany; onPress: () 
           </View>
           <Text style={s.nearbyCity}>
             {company.city}
+            {company.distance !== undefined ? ` • ${company.distance < 1 ? Math.round(company.distance * 1000) + 'm' : company.distance.toFixed(1) + 'km'}` : ''}
             {company.verificationStatus === "verified" ? ` · ${t('explore.licensedAndVerified')}` : ""}
           </Text>
-          {highlights.length > 0 && (
-            <View style={[s.tagsRow, { marginTop: 6 }]}>
-              {highlights.slice(0, 2).map((tag, idx) => (
-                <View key={idx} style={s.tag}>
-                  <Text style={s.tagText}>{tag.toUpperCase()}</Text>
-                </View>
-              ))}
-            </View>
-          )}
+
         </View>
         {/* Rating on the right */}
         <View style={s.nearbyRating}>
           <MaterialIcons name="star" size={13} color={T.gold} />
           <Text style={s.nearbyRatingText}>
-            {company.ratingSummary ? Number(company.ratingSummary.averageRating).toFixed(1) : t('explore.newRating')}
+            {company.ratingSummary ? Number(company.ratingSummary.averageRating).toFixed(1) : t('common.new', 'New')}
           </Text>
         </View>
       </View>
@@ -324,8 +382,25 @@ export default function Explore() {
     fetchExploreData, searchServices, setActiveCategory,
   } = useExploreStore();
 
-  useEffect(() => { fetchExploreData(); }, []);
-  const onRefresh = useCallback(() => { fetchExploreData(); }, []);
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+
+  const loadExploreDataWithLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        setLocation(loc);
+        fetchExploreData({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+        return;
+      }
+    } catch (e) {
+      console.log('Location error:', e);
+    }
+    fetchExploreData();
+  };
+
+  useEffect(() => { loadExploreDataWithLocation(); }, []);
+  const onRefresh = useCallback(() => { loadExploreDataWithLocation(); }, []);
 
   // Debounced search — 400ms after last keystroke
   useEffect(() => {
@@ -401,12 +476,12 @@ export default function Explore() {
                   onPress={() => setActiveCategory(activeCategory === cat.slug ? null : cat.slug)}
                   style={[s.chip, activeCategory === cat.slug && s.chipActive]}
                 >
-                  {cat.imageUrl ? (
-                    <Image source={{ uri: cat.imageUrl }} style={{ width: 14, height: 14, borderRadius: 7 }} />
+                  {cat.useImageAsBadge && cat.imageUrl ? (
+                    <Image source={{ uri: cat.imageUrl }} style={{ width: 14, height: 14, borderRadius: 7 }} contentFit="cover" />
                   ) : (
                     <MaterialCommunityIcons
-                      name={mapIcon(cat.icon)}
-                      size={13}
+                      name={(cat.icon as any) || getCategoryIcon(cat.name)}
+                      size={14}
                       color={activeCategory === cat.slug ? "#fff" : T.text2}
                     />
                   )}
@@ -622,8 +697,8 @@ const s = StyleSheet.create({
 
   // Tag chips (inside cards)
   tagsRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
-  tag: { backgroundColor: T.tag, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
-  tagText: { fontSize: 9, fontWeight: "700", color: T.text2, letterSpacing: 0.4 },
+  tag: { backgroundColor: T.accent + "15", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  tagText: { fontSize: 9, fontWeight: "800", color: T.accentMid, letterSpacing: 0.5 },
 
   // Service rows
   serviceRow: {

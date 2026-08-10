@@ -2,13 +2,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Platform,
 } from "react-native";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
+const FlashList = ShopifyFlashList as any;
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
-
 const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
@@ -100,7 +100,7 @@ export default function MyReviewsScreen() {
         ) : (
           <FlashList
             data={reviews}
-            keyExtractor={r => r.id}
+            keyExtractor={(r: any) => r.id}
             renderItem={renderItem}
             contentContainerStyle={s.listContent}
             showsVerticalScrollIndicator={false}

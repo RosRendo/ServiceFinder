@@ -314,9 +314,40 @@ export default function CompanySettingsPage() {
 
               {tab === "coverage" && (
                 <div className="space-y-6">
-                  <div>
-                    <h2 className="text-lg font-bold text-foreground mb-1">Interactive Geofencing Circle</h2>
-                    <p className="text-sm text-muted-foreground">Visual coverage bounds matching search results around your coordinates.</p>
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
+                    <div>
+                      <h2 className="text-lg font-bold text-foreground mb-1">Interactive Geofencing Circle</h2>
+                      <p className="text-sm text-muted-foreground">Visual coverage bounds matching search results around your coordinates.</p>
+                    </div>
+                    <div className="w-full sm:w-80">
+                      <input 
+                        className="w-full h-9 px-3 text-xs placeholder:text-xs bg-muted/20 border border-border rounded-lg text-foreground outline-none focus:border-primary"
+                        placeholder="Quick Pin: Paste a Google Maps Link (https://maps.app.goo.gl/...)" 
+                        onChange={async (e) => {
+                          const url = e.target.value;
+                          if (url.startsWith('http') && (url.includes('map') || url.includes('goo.gl'))) {
+                            toast({ title: "Parsing link...", description: "Extracting coordinates..." });
+                            try {
+                              const res = await fetch(`/api/parse-gmap?url=${encodeURIComponent(url)}`);
+                              const data = await res.json();
+                              if (data.lat && data.lng) {
+                                setForm(prev => ({
+                                    ...prev, 
+                                    latitude: data.lat.toFixed(6), 
+                                    longitude: data.lng.toFixed(6)
+                                }));
+                                toast({ title: "Coordinates Extracted!", description: `Map moved to ${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}` });
+                              } else {
+                                toast({ title: "Extraction Failed", description: "Could not find coordinates in that link.", variant: "destructive" });
+                              }
+                            } catch(err) {
+                               toast({ title: "Error", description: "Failed to parse link.", variant: "destructive" });
+                            }
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
 
                   <div className="h-64 border border-border bg-muted/10 rounded-2xl flex items-center justify-center relative overflow-hidden z-0">

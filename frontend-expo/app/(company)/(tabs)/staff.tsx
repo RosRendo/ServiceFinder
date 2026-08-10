@@ -9,7 +9,8 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { api } from "@/store/authStore";
 import { useSidebarStore } from "@/store/sidebarStore";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
+const FlashList = ShopifyFlashList as any;
 import { Theme } from "@/constants/theme";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 
@@ -210,7 +211,7 @@ export default function Staff() {
         ) : (
           <FlashList
             data={filteredStaff}
-            keyExtractor={(item) => item.id?.toString()}
+            keyExtractor={(item: any) => item.id?.toString()}
             estimatedItemSize={160}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadStaff(true)} tintColor={T.accent} />}
             contentContainerStyle={s.listContent}
@@ -223,7 +224,7 @@ export default function Staff() {
                 <Text style={s.emptySubText}>{searchQuery ? "Try a different name or role" : "Invite your first staff member to get started."}</Text>
               </View>
             }
-            renderItem={({ item: member }) => {
+            renderItem={({ item: member }: any) => {
               const sStyle = getStatusStyle(member.status);
               return (
                 <TouchableOpacity

@@ -13,11 +13,10 @@ let IsStrongPasswordConstraint = class IsStrongPasswordConstraint {
     validate(password) {
         if (!password)
             return false;
-        const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-        return strongPasswordRegex.test(password);
+        return password.length >= 8;
     }
     defaultMessage() {
-        return 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.';
+        return 'Password must be at least 8 characters long.';
     }
 };
 exports.IsStrongPasswordConstraint = IsStrongPasswordConstraint;

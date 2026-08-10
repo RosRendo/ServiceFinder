@@ -77,7 +77,7 @@ const formatTime = (t: string) => {
 
 const getStatusConfig = (status: BookingStatus) => {
   switch (status) {
-    case "pending":    return { color: T.pending,    bg: T.pendingBg,    icon: "clock-outline",        label: "Pending" };
+    case "pending":    return { color: T.warning,    bg: T.warningBg,    icon: "clock-outline",        label: "Pending" };
     case "confirmed":  return { color: T.confirmed,  bg: T.confirmedBg,  icon: "check-circle-outline", label: "Confirmed" };
     case "in_progress":return { color: T.inprogress, bg: T.inprogressBg, icon: "progress-wrench",      label: "In Progress" };
     case "completed":  return { color: T.completed,  bg: T.completedBg,  icon: "check-decagram",       label: "Completed" };

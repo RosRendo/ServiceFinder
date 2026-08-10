@@ -20,8 +20,9 @@ class UpdateCategoryDto {
     imageUrl;
     displayOrder;
     status;
+    useImageAsBadge;
     static _OPENAPI_METADATA_FACTORY() {
-        return { name: { required: false, type: () => String }, slug: { required: false, type: () => String }, description: { required: false, type: () => String }, icon: { required: false, type: () => String }, imageUrl: { required: false, type: () => String }, displayOrder: { required: false, type: () => Number }, status: { required: false, type: () => String } };
+        return { name: { required: false, type: () => String }, slug: { required: false, type: () => String }, description: { required: false, type: () => String }, icon: { required: false, type: () => String }, imageUrl: { required: false, type: () => String }, displayOrder: { required: false, type: () => Number }, status: { required: false, type: () => String }, useImageAsBadge: { required: false, type: () => Boolean } };
     }
 }
 exports.UpdateCategoryDto = UpdateCategoryDto;
@@ -60,4 +61,9 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateCategoryDto.prototype, "status", void 0);
+__decorate([
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], UpdateCategoryDto.prototype, "useImageAsBadge", void 0);
 //# sourceMappingURL=update-category.dto.js.map

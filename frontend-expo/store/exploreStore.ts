@@ -7,6 +7,7 @@ export interface ExploreCategory {
   slug: string;
   icon: string;
   imageUrl?: string;
+  useImageAsBadge?: boolean;
   serviceTypesCount: number;
 }
 
@@ -45,6 +46,7 @@ export interface ExploreCompany {
   coverImageUrl?: string;
   cardHighlights?: string[];
   verificationStatus?: string;
+  distance?: number;
   ratingSummary?: {
     averageRating: number;
     totalReviews: number;

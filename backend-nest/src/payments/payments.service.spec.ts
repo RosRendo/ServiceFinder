@@ -40,7 +40,7 @@ describe('PaymentsService', () => {
 
   const mockConfigService = {
     get: jest.fn((key: string) => {
-      if (key === 'STRIPE_SECRET_KEY') return 'sk_test_mock';
+      if (key === 'WING_CLIENT_ID') return 'mock_wing_id';
       if (key === 'FRONTEND_URL') return 'http://localhost:3000';
       return null;
     }),

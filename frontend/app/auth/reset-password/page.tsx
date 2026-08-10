@@ -51,12 +51,9 @@ function ResetPasswordInner() {
     }
   };
 
-
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    await resetPassword(email, code, password);
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters");
@@ -69,11 +66,14 @@ function ResetPasswordInner() {
     }
 
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await resetPassword(email, code, password);
       setStep("success");
-    }, 1500);
+    } catch (err: any) {
+      setError(err.message || "Failed to reset password");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

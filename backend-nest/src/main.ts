@@ -25,15 +25,27 @@ import * as admin from 'firebase-admin';
 
 async function bootstrap() {
   const serviceAccountPath = path.join(process.cwd(), 'firebase-service-account.json');
-  if (require('fs').existsSync(serviceAccountPath)) {
-    const serviceAccount = require(serviceAccountPath);
-    const { initializeApp, cert } = require('firebase-admin/app');
-    initializeApp({
-      credential: cert(serviceAccount),
-    });
-    Logger.log('✅ Firebase Admin initialized successfully', 'Bootstrap');
+  const firebaseConfigEnv = process.env.FIREBASE_CONFIG_JSON;
+
+  if (firebaseConfigEnv || require('fs').existsSync(serviceAccountPath)) {
+    try {
+      const serviceAccount = firebaseConfigEnv 
+        ? JSON.parse(firebaseConfigEnv) 
+        : require(serviceAccountPath);
+      const { initializeApp, cert } = require('firebase-admin/app');
+      initializeApp({
+        credential: cert(serviceAccount),
+      });
+      Logger.log('✅ Firebase Admin initialized successfully', 'Bootstrap');
+    } catch (e: any) {
+      Logger.error('❌ Failed to initialize Firebase Admin SDK:', e?.message, 'Bootstrap');
+    }
   } else {
-    Logger.warn('⚠️ firebase-service-account.json not found, Firebase Auth will fail!', 'Bootstrap');
+    if (process.env.NODE_ENV === 'production') {
+      Logger.warn('⚠️ Firebase credentials not found (neither FIREBASE_CONFIG_JSON env nor firebase-service-account.json). Firebase Auth will fail if invoked!', 'Bootstrap');
+    } else {
+      Logger.log('ℹ️ Firebase credentials not provided, skipping Firebase SDK initialization.', 'Bootstrap');
+    }
   }
 
   if (process.env.SENTRY_DSN) {
@@ -84,6 +96,8 @@ async function bootstrap() {
     'https://service-finder-gold.vercel.app',
     'http://3.27.148.112',
     'https://3.27.148.112',
+    // Local mock server for Wing Bank development testing
+    'http://192.168.100.171:8080',
   ];
 
   if (process.env.ALLOWED_ORIGINS) {
@@ -106,7 +120,11 @@ async function bootstrap() {
         allowedOrigins.includes(origin) ||
         (isDev && origin?.endsWith('.vercel.app')) ||
         (isDev && origin?.endsWith('.railway.app')) ||
-        (isDev && origin?.match(/\.trycloudflare\.com$/))
+        (isDev && origin?.match(/\.trycloudflare\.com$/)) ||
+        // Allow any local network IP in dev (for mobile device testing)
+        (isDev && origin?.match(/^http:\/\/192\.168\./)) ||
+        (isDev && origin?.match(/^http:\/\/10\./)) ||
+        (isDev && origin?.match(/^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\./)) 
       ) {
         callback(null, true);
       } else {
@@ -114,6 +132,8 @@ async function bootstrap() {
         callback(null, false);
       }
     },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     credentials: true,
   });
 

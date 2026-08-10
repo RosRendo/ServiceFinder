@@ -55,7 +55,7 @@ export default function ServiceDetailScreen() {
         // Fetch other providers for THIS specific service type
         if (serviceData?.serviceType?.slug) {
           const recRes = await api.get(`/api/service-types/${serviceData.serviceType.slug}/providers`);
-          const recData = Array.isArray(recRes.data.data) ? recRes.data.data : (recRes.data?.data?.data || []);
+          const recData = Array.isArray(recRes.data) ? recRes.data : (recRes.data?.data || []);
           const otherProv = recData.filter((r: any) => r.company.id !== serviceData.company.id);
           setOtherProviders(otherProv);
         }
@@ -88,7 +88,7 @@ export default function ServiceDetailScreen() {
           text: "Log In", 
           onPress: () => {
             useAuthStore.getState().setGuestMode(false);
-            router.replace("/login");
+            router.replace("/(public)/login");
           } 
         }
       ]
@@ -335,16 +335,40 @@ export default function ServiceDetailScreen() {
                     <Image source={{ uri: prov.company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${prov.company.name}` }} style={s.otherLogo} />
                     <View style={{ flex: 1 }}>
                       <Text style={s.otherName} numberOfLines={1}>{prov.company.name}</Text>
-                      <View style={s.otherMetaRow}>
-                        <MaterialIcons name="star" size={14} color="#F59E0B" />
-                        <Text style={s.otherMeta}>{prov.facts?.rating || 'New'}</Text>
-                        <Text style={s.otherDot}>•</Text>
-                        <Text style={s.otherMeta}>{prov.facts?.jobsCompleted || 0} jobs</Text>
+                      
+                      {/* Comparison Metrics Grid */}
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                        {/* Rating/Reviews chip */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFBEB', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.5, borderColor: '#FDE68A' }}>
+                          <MaterialIcons name="star" size={12} color="#F59E0B" />
+                          <Text style={{ fontSize: 10, fontWeight: '700', color: '#B45309', marginLeft: 2 }}>
+                            {prov.facts?.rating || 'New'} ({prov.facts?.jobsCompleted || 0})
+                          </Text>
+                        </View>
+                        
+                        {/* Response Time chip */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FDF4', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.5, borderColor: '#BBF7D0' }}>
+                          <MaterialCommunityIcons name="clock-fast" size={12} color="#16A34A" />
+                          <Text style={{ fontSize: 10, fontWeight: '700', color: '#15803D', marginLeft: 2 }}>
+                            {prov.facts?.responseTimeMin || 15}m response
+                          </Text>
+                        </View>
+
+                        {/* Distance chip (Mocked based on ID so it is deterministic and realistic) */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#EFF6FF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.5, borderColor: '#BFDBFE' }}>
+                          <MaterialIcons name="location-on" size={12} color="#3B82F6" />
+                          <Text style={{ fontSize: 10, fontWeight: '700', color: '#1D4ED8', marginLeft: 2 }}>
+                            {(1.0 + (Number(prov.company.id.toString()) % 8) * 0.4).toFixed(1)} km
+                          </Text>
+                        </View>
                       </View>
                     </View>
-                    <View style={{ alignItems: 'flex-end' }}>
+                    <View style={{ alignItems: 'flex-end', justifyContent: 'center', minWidth: 60 }}>
                       <Text style={s.otherPrice}>${prov.price}</Text>
-                      <MaterialIcons name="chevron-right" size={20} color={T.text3} />
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                        <Text style={{ fontSize: 10, color: T.text3, fontWeight: '600' }}>View</Text>
+                        <MaterialIcons name="chevron-right" size={14} color={T.text3} />
+                      </View>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -398,7 +422,6 @@ export default function ServiceDetailScreen() {
         onClose={() => setSheetVisible(false)} 
         serviceId={service.id} 
         price={service.basePrice} 
-        companyId={service.companyId}
       />
     </SafeAreaView>
   );

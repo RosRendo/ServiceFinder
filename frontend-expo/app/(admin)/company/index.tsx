@@ -44,8 +44,8 @@ export default function CompaniesScreen() {
 
   const getStatusColor = (status: string) => {
     if (status === "verified") return { color: T.greenText, bg: T.greenBg };
-    if (status === "rejected") return { color: T.redText, bg: T.redBg };
-    return { color: T.yellowText, bg: T.yellowBg };
+    if (status === "rejected") return { color: T.error, bg: T.errorBg };
+    return { color: T.warning, bg: T.warningBg };
   };
 
   return (

@@ -10,9 +10,9 @@ spec:
         spec:
           containers:
           - name: backup
-            image: mariadb:10.11
+            image: postgres:15-alpine
             env:
-            - name: MYSQL_ROOT_PASSWORD
+            - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
                   name: db-secret
@@ -20,7 +20,7 @@ spec:
             command:
             - /bin/sh
             - -c
-            - "mysqldump -h mysql -u root -p${MYSQL_ROOT_PASSWORD} servicefinder > /backup/servicefinder_$(date +\\%Y\\%m\\%d).sql"
+            - "pg_dump -h postgres-db -U root -d servicefinder > /backup/servicefinder_$(date +\\%Y\\%m\\%d).sql"
             volumeMounts:
             - name: backup-volume
               mountPath: /backup
@@ -28,5 +28,5 @@ spec:
           volumes:
           - name: backup-volume
             hostPath:
-              path: /var/backups/mysql
+              path: /var/backups/postgres
               type: DirectoryOrCreate

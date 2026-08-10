@@ -28,8 +28,9 @@ let CategoriesController = class CategoriesController {
     constructor(categoriesService) {
         this.categoriesService = categoriesService;
     }
-    getAllCategories() {
-        return this.categoriesService.getAllCategories();
+    getAllCategories(all) {
+        const includeInactive = all === 'true';
+        return this.categoriesService.getAllCategories(includeInactive);
     }
     getCategoryBySlug(slug) {
         return this.categoriesService.getCategoryBySlug(slug);
@@ -46,12 +47,14 @@ let CategoriesController = class CategoriesController {
 };
 exports.CategoriesController = CategoriesController;
 __decorate([
+    openapi.ApiQuery({ name: "all", required: false }),
     (0, common_1.Get)(),
     (0, cache_manager_1.CacheTTL)(60000),
     (0, swagger_1.ApiOperation)({ summary: 'Get all categories' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Return all categories.' }),
+    __param(0, (0, common_1.Query)('all')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], CategoriesController.prototype, "getAllCategories", null);
 __decorate([

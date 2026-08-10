@@ -51,7 +51,7 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayout() {
   const colorScheme = useColorScheme();
-  const { user, isGuest, isLoading, checkAuth } = useAuthStore();
+  const { user, isGuest, isLoading, checkAuth, hasSeenOnboarding } = useAuthStore();
   const [appReady, setAppReady] = useState(false);
 
   const [fontsLoaded] = useFonts({
@@ -88,10 +88,14 @@ function RootLayout() {
       // Avoid forcing redirect if the user is explicitly navigating to a public subpage (e.g. login, register)
       const isPublicSubpage = segments[0] === '(public)' && segments.length > 1;
       if (!isPublicSubpage) {
-        router.replace("/");
+        if (hasSeenOnboarding) {
+          router.replace("/(public)/login");
+        } else {
+          router.replace("/");
+        }
       }
     }
-  }, [user, isGuest, appReady, isLoading, segments]);
+  }, [user, isGuest, appReady, isLoading, segments, hasSeenOnboarding]);
 
   if (!appReady || isLoading || !fontsLoaded) {
     return null;
@@ -105,7 +109,7 @@ function RootLayout() {
           <Stack.Screen name="(public)" options={{ gestureEnabled: false }} />
         ) : user?.role?.toLowerCase() === 'admin' ? (
           <Stack.Screen name="(admin)" options={{ gestureEnabled: false }} />
-        ) : user?.role?.toLowerCase() === 'company' ? (
+        ) : (user?.role?.toLowerCase() === 'company' || user?.role?.toLowerCase() === 'company_admin') ? (
           <Stack.Screen name="(company)" options={{ gestureEnabled: false }} />
         ) : user?.role?.toLowerCase() === 'staff' ? (
           <Stack.Screen name="(staff)" options={{ gestureEnabled: false }} />

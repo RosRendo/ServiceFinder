@@ -182,7 +182,23 @@ export class BookingsService {
     if (!service.isActive)
       throw new BadRequestException('Service is not available');
 
-    const start = new Date(`${dto.bookingDate}T${dto.startTime}:00Z`);
+    const cleanDate = dto.bookingDate.includes('T') ? dto.bookingDate.split('T')[0] : dto.bookingDate;
+    
+    let parsedTime = dto.startTime.trim();
+    if (parsedTime.toLowerCase().includes('m')) {
+      const isPM = parsedTime.toLowerCase().includes('pm');
+      const timeParts = parsedTime.replace(/am|pm/i, '').trim().split(':');
+      let h = parseInt(timeParts[0], 10);
+      const m = timeParts[1] || '00';
+      if (isPM && h < 12) h += 12;
+      if (!isPM && h === 12) h = 0;
+      parsedTime = `${h.toString().padStart(2, '0')}:${m}`;
+    } else if (parsedTime.includes(':')) {
+      const parts = parsedTime.split(':');
+      parsedTime = `${parts[0].padStart(2, '0')}:${parts[1]}`;
+    }
+
+    const start = new Date(`${cleanDate}T${parsedTime}:00Z`);
     const end = new Date(start.getTime() + service.durationMin * 60000);
 
     const platformFeePercent = await this.settingsService.getSettingNumber(
@@ -209,8 +225,8 @@ export class BookingsService {
     const basePrice = Number(service.basePrice);
 
     // Apply pricing rules (surcharges)
-    const bookingDay = new Date(dto.bookingDate).getDay();
-    const startHour = parseInt(dto.startTime.split(':')[0], 10);
+    const bookingDay = new Date(cleanDate).getDay();
+    const startHour = parseInt(parsedTime.split(':')[0], 10);
     const pricingRules = await this.prisma.pricingRule.findMany({
       where: { companyId: BigInt(dto.companyId), isActive: true },
     });
@@ -266,7 +282,7 @@ export class BookingsService {
         customerId: BigInt(user.id),
         companyId: BigInt(dto.companyId),
         serviceId: BigInt(dto.serviceId),
-        bookingDate: new Date(dto.bookingDate),
+        bookingDate: new Date(cleanDate),
         startTime: start,
         endTime: end,
         serviceAddress: dto.serviceAddress || '',

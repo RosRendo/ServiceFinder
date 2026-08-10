@@ -151,6 +151,8 @@ interface AuthStore {
   isLoading: boolean;
   token: string | null;
   isGuest: boolean;
+  hasSeenOnboarding: boolean;
+  setHasSeenOnboarding: (val: boolean) => Promise<void>;
   setGuestMode: (value: boolean) => void;
   setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
@@ -173,12 +175,26 @@ export const useAuthStore = create<AuthStore>((set) => ({
   isLoading: true, // Initially loading while we check token
   token: null,
   isGuest: false,
+  hasSeenOnboarding: false,
+  setHasSeenOnboarding: async (val) => {
+    if (val) {
+      await SecureStore.setItemAsync('hasSeenOnboarding', 'true');
+    } else {
+      await SecureStore.deleteItemAsync('hasSeenOnboarding');
+    }
+    set({ hasSeenOnboarding: val });
+  },
   setGuestMode: (value) => set({ isGuest: value }),
   setUser: (user) => set({ user }),
   setLoading: (loading) => set({ isLoading: loading }),
 
   checkAuth: async () => {
     try {
+      const onboardingFlag = await SecureStore.getItemAsync('hasSeenOnboarding');
+      if (onboardingFlag === 'true') {
+        set({ hasSeenOnboarding: true });
+      }
+
       const token = await SecureStore.getItemAsync('authToken');
       if (!token) {
         set({ user: null, isLoading: false });

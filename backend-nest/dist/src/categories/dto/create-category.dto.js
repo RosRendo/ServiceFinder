@@ -19,8 +19,10 @@ class CreateCategoryDto {
     icon;
     imageUrl;
     displayOrder;
+    status;
+    useImageAsBadge;
     static _OPENAPI_METADATA_FACTORY() {
-        return { name: { required: true, type: () => String }, slug: { required: true, type: () => String }, description: { required: false, type: () => String }, icon: { required: false, type: () => String }, imageUrl: { required: false, type: () => String }, displayOrder: { required: false, type: () => Number } };
+        return { name: { required: true, type: () => String }, slug: { required: true, type: () => String }, description: { required: false, type: () => String }, icon: { required: false, type: () => String }, imageUrl: { required: false, type: () => String }, displayOrder: { required: false, type: () => Number }, status: { required: false, type: () => String }, useImageAsBadge: { required: false, type: () => Boolean } };
     }
 }
 exports.CreateCategoryDto = CreateCategoryDto;
@@ -54,4 +56,14 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], CreateCategoryDto.prototype, "displayOrder", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateCategoryDto.prototype, "status", void 0);
+__decorate([
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], CreateCategoryDto.prototype, "useImageAsBadge", void 0);
 //# sourceMappingURL=create-category.dto.js.map

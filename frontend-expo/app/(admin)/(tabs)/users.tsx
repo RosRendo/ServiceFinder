@@ -9,7 +9,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import api from "@/utils/api";
 import { useSidebarStore } from "@/store/sidebarStore";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
+const FlashList = ShopifyFlashList as any;
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
 
@@ -140,7 +141,7 @@ export default function Users() {
         ) : (
           <FlashList
             data={users}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item: any) => item.id.toString()}
             estimatedItemSize={180}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchUsers(true)} tintColor={T.primary} />}
             contentContainerStyle={s.listContent}
@@ -155,7 +156,7 @@ export default function Users() {
                 {searchQuery ? <Text style={s.emptySubText}>Try adjusting your search filters.</Text> : null}
               </View>
             }
-            renderItem={({ item: user }) => {
+            renderItem={({ item: user }: any) => {
               const roleStyle = getRoleColor(user.role);
               const statusStyle = getStatusStyle(user.status);
               

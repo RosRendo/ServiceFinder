@@ -279,16 +279,35 @@ export class PaymentsService {
     const merchantName = this.config.get('KHQR_MERCHANT_NAME') || 'Service Finder';
     
     // Using official bakong-khqr library to generate standard EMVCo QR String
-    const qrInfo = new khqrData();
-    qrInfo.merchantId = merchantId;
-    qrInfo.merchantName = merchantName;
-    qrInfo.acquirerBankId = acquirerId;
-    qrInfo.currency = 'USD'; // or KHR
-    qrInfo.amount = amount;
-    qrInfo.billNumber = `BK-${bookingId.toString()}`;
+    const { BakongKHQR, khqrData, MerchantInfo } = require('bakong-khqr');
+    const optionalData = {
+        currency: khqrData.currency.usd,
+        amount: Number(amount),
+        billNumber: `BK-${bookingId}`,
+        storeLabel: merchantName,
+        terminalLabel: 'WebApp',
+        expirationTimestamp: Date.now() + (30 * 60 * 1000) // Expires in 30 minutes
+    };
+
+    const merchantInfo = new MerchantInfo(
+        `${merchantId}@${acquirerId}`, 
+        merchantName,
+        'Phnom Penh',
+        merchantId,
+        acquirerId,
+        optionalData
+    );
+
+    const khqr = new BakongKHQR();
+    const qrResponse = khqr.generateMerchant(merchantInfo);
     
-    // If the library supports string generation
-    const qrString = BakongKHQR.generateMerchant(qrInfo);
+    // Check if generation succeeded
+    if (qrResponse.status?.code !== 0) {
+       this.logger.error('Failed to generate KHQR:', qrResponse);
+       throw new InternalServerErrorException(qrResponse.status?.message || 'KHQR generation failed');
+    }
+    
+    const qrString = qrResponse;
     
     // Check if a payment record exists
     const existingPayment = await this.prisma.payment.findUnique({
@@ -322,7 +341,7 @@ export class PaymentsService {
       message: 'KHQR generated successfully',
       qrString: qrString?.data?.qr || qrString?.qr || qrString, // Fallback in case of object return
       amount,
-      billNumber: qrInfo.billNumber,
+      billNumber: optionalData.billNumber,
     };
   }
 
@@ -339,7 +358,7 @@ export class PaymentsService {
 
     const clientId = this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
     const clientSecret = this.config.get('WING_CLIENT_SECRET') || 'h02F_zaRmn6PhFjIolbFcb16BgWGMrcfX93frd13Id8a';
-    const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-gateway.wingbank.com';
+    const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-partner-gateway.wingbank.com';
 
     const url = `${baseUrl}/idp/v1/token`;
     
@@ -389,10 +408,10 @@ export class PaymentsService {
 
     const clientId = this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
     const cipherKeyStr = this.config.get('WING_CIPHER_KEY') || 'pEHt/rl63W4YZUqPRs92DPHHpHWfnkiMLvJdwhxQBb4=';
-    const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-gateway.wingbank.com';
+    const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-partner-gateway.wingbank.com';
     const frontendUrl = this.config.get('FRONTEND_URL') || 'http://localhost:3000';
 
-    const key = deriveWingKey(clientId, cipherKeyStr);
+    const key = deriveWingKey(clientId);
     const iv = deriveWingIV(clientId);
 
     const amount = Number(booking.totalPrice).toFixed(2);
@@ -427,10 +446,12 @@ export class PaymentsService {
     };
 
     const encryptedPayload = encryptAES256GCM(JSON.stringify(payloadObj), key, iv);
-    const accessToken = await this.getWingAccessToken();
-
-    const generateUrl = `${baseUrl}/generate/khqr`;
+    let webPaymentUrl = '';
+    
     try {
+      const accessToken = await this.getWingAccessToken();
+      const generateUrl = `${baseUrl}/generate/khqr`;
+      
       const response = await fetch(generateUrl, {
         method: 'POST',
         headers: {
@@ -446,7 +467,6 @@ export class PaymentsService {
 
       if (!response.ok) {
         const errText = await response.text();
-        this.logger.error(`Wing KHQR generation failed: ${response.status} ${errText}`);
         throw new Error(`Wing KHQR failed: ${response.status} ${errText}`);
       }
 
@@ -454,6 +474,17 @@ export class PaymentsService {
       if (resData.code !== 'SUCCESS' || !resData.data?.web_payment_url) {
         throw new Error(resData.message || 'Failed to initialize Wing payment link');
       }
+      
+      webPaymentUrl = resData.data.web_payment_url;
+    } catch (err: any) {
+      this.logger.error(`Failed to initialize Wing payment: ${err.message}`);
+      if (process.env.NODE_ENV !== 'production') {
+        this.logger.warn('⚠️ Development mode: Falling back to mock payment URL');
+        webPaymentUrl = returnUrl;
+      } else {
+        throw new InternalServerErrorException('Payment gateway connection failed. Please try again later.');
+      }
+    }
 
       const existingPayment = await this.prisma.payment.findUnique({
         where: { bookingId },
@@ -485,13 +516,9 @@ export class PaymentsService {
       return {
         success: true,
         message: 'Wing KHQR Payment initialized successfully',
-        webPaymentUrl: resData.data.web_payment_url,
+        webPaymentUrl: webPaymentUrl,
         orderReferenceNo: orderRef,
       };
-    } catch (err: any) {
-      this.logger.error('Failed to create Wing checkout session', err);
-      throw new BadRequestException(err.message || 'Failed to initialize Wing checkout session');
-    }
   }
 
   async handleWingWebhook(payload: any) {
@@ -580,7 +607,7 @@ export class PaymentsService {
     }
 
     const clientId = this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
-    const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-gateway.wingbank.com';
+    const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-partner-gateway.wingbank.com';
     const accessToken = await this.getWingAccessToken();
 
     const url = `${baseUrl}/inquiry/khqr/success`;
@@ -724,7 +751,7 @@ export class PaymentsService {
     return { received: true };
   }
 
-  // ─── Cash / Non-Stripe Payments ────────────────────────────────────────────
+  // ─── Cash / Non-Wing Bank Payments ────────────────────────────────────────────
 
   async completePayment(dto: CompletePaymentDto, user: any) {
     if (dto.method === 'card')

@@ -27,7 +27,7 @@ export default function Categories() {
   const fetchCategories = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const response = await api.get('/api/categories');
+      const response = await api.get('/api/categories?all=true');
       // TransformInterceptor: { success, data: { data: [...] } }
       // response.data.data = { data: [...] }, so we need .data.data.data
       const outer = response.data?.data ?? response.data;

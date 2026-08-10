@@ -41,7 +41,7 @@ const MOCK_BROADCASTS = [
   {
     id: "br-102",
     title: "New Feature: Instant Payouts",
-    message: "Companies can now opt-in for instant payouts via Stripe. Check your billing settings to enable this feature.",
+    message: "Companies can now opt-in for instant payouts via Wing Bank. Check your billing settings to enable this feature.",
     audience: "All Companies",
     audienceType: "companies",
     sentAt: "2026-07-28T09:15:00Z",

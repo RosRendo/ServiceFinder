@@ -4,7 +4,7 @@
 import React, { useState, useRef } from "react";
 import {
   ScrollView, View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, StyleSheet, Keyboard, Platform, Image,
+  ActivityIndicator, StyleSheet, Keyboard, Platform, Image, Alert
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -49,8 +49,13 @@ export default function Register() {
   };
 
   const handleSocialLogin = async (provider: "google" | "facebook") => {
-    if (provider === "google" && isGoogleReady) await promptGoogleAsync();
-    else if (provider === "facebook" && isFacebookReady) await promptFacebookAsync();
+    if (provider === "google") {
+      if (isGoogleReady) await promptGoogleAsync();
+      else Alert.alert("Google Login Unavailable", "Please add your Google Client IDs to the .env file.");
+    } else if (provider === "facebook") {
+      if (isFacebookReady) await promptFacebookAsync();
+      else Alert.alert("Facebook Login Unavailable", "Please add your Facebook App ID to the .env file.");
+    }
   };
 
   const strengthColor = password.length < 8 ? "#F59E0B" : password.length < 10 ? "#3B82F6" : "#10B981";

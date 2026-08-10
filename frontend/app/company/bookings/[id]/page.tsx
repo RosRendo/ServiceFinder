@@ -48,6 +48,8 @@ interface BookingDetail {
     assignedStaff: { id: string; fullName: string; role: string } | null;
     statusLogs?: StatusLog[];
     review?: { companyRating: number; companyComment?: string | null } | null;
+    checklist?: any;
+    progressPercent?: number;
 }
 
 export default function CompanyBookingDetailPage() {
@@ -273,6 +275,53 @@ export default function CompanyBookingDetailPage() {
                                 </tbody>
                             </table>
                         </div>
+                        {/* Service Checklist Progress */}
+                        {booking.checklist && Array.isArray(booking.checklist) && booking.checklist.length > 0 && (
+                            <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
+                                <div className="px-5 py-3.5 bg-muted/30 border-b border-border/50 flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                        <CheckCircle className="w-3.5 h-3.5 text-muted-foreground/60" /> Service Checklist Progress
+                                    </span>
+                                    <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">
+                                        {booking.progressPercent || 0}% Completed
+                                    </span>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    {/* Progress Bar */}
+                                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                                        <div 
+                                            className="bg-indigo-600 h-2 rounded-full transition-all duration-500" 
+                                            style={{ width: `${booking.progressPercent || 0}%` }}
+                                        />
+                                    </div>
+                                    
+                                    {/* Checklist Steps */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                                        {booking.checklist.map((item: any) => (
+                                            <div 
+                                                key={item.id} 
+                                                className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                                                    item.completed 
+                                                        ? 'bg-emerald-50/30 border-emerald-100/80 text-emerald-900' 
+                                                        : 'bg-muted/10 border-border/50 text-muted-foreground'
+                                                }`}
+                                            >
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border ${
+                                                    item.completed 
+                                                        ? 'bg-emerald-500 border-emerald-600 text-white' 
+                                                        : 'border-muted-foreground/30 bg-background text-transparent'
+                                                }`}>
+                                                    {item.completed && <CheckCircle className="w-3 h-3 stroke-[3]" />}
+                                                </div>
+                                                <span className={`text-xs font-semibold ${item.completed ? 'line-through opacity-85' : ''}`}>
+                                                    {item.title}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                             <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">

@@ -33,7 +33,7 @@ const CARD_SHADOW = Platform.select({
 // ─────────────────────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────────────────────
-interface CategoryItem { id: string; name: string; slug: string; icon: string; imageUrl?: string; }
+interface CategoryItem { id: string; name: string; slug: string; icon: string; imageUrl?: string; useImageAsBadge?: boolean; }
 interface ServiceItem {
   id: string; name: string; description?: string; basePrice: number;
   durationMin: number; image?: string;
@@ -51,9 +51,6 @@ interface CompanyItem {
   ratingSummary?: { averageRating: number; totalReviews: number };
 }
 
-// ─────────────────────────────────────────────────────────────
-// HELPER
-// ─────────────────────────────────────────────────────────────
 const extractArray = (data: any): any[] => {
   if (Array.isArray(data)) return data;
   const inner = data?.data;
@@ -67,9 +64,21 @@ const extractArray = (data: any): any[] => {
   return [];
 };
 
-// ─────────────────────────────────────────────────────────────
-// UI COMPONENTS
-// ─────────────────────────────────────────────────────────────
+const getCategoryIcon = (text: string): any => {
+  if (!text) return 'tools';
+  const t = text.toLowerCase();
+  if (t.includes('clean') || t.includes('maid') || t.includes('spark')) return 'broom';
+  if (t.includes('plumb') || t.includes('pipe') || t.includes('water')) return 'pipe-wrench';
+  if (t.includes('electric') || t.includes('wire') || t.includes('volt') || t.includes('zap')) return 'lightning-bolt';
+  if (t.includes('ac') || t.includes('air') || t.includes('cool') || t.includes('wind')) return 'air-conditioner';
+  if (t.includes('paint') || t.includes('color') || t.includes('brush')) return 'brush';
+  if (t.includes('move') || t.includes('pack') || t.includes('truck')) return 'truck-delivery';
+  if (t.includes('garden') || t.includes('lawn') || t.includes('yard') || t.includes('tree')) return 'leaf';
+  if (t.includes('pest') || t.includes('bug')) return 'bug';
+  if (t.includes('build') || t.includes('construct') || t.includes('repair') || t.includes('wrench')) return 'hammer-wrench';
+  return 'tools'; 
+};
+
 function Skeleton({ width, height, radius = 8, style }: { width: number | string; height: number; radius?: number; style?: any; }) {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -353,10 +362,19 @@ export default function CategoryScreen() {
                         onPress={() => router.push(`/(customer)/company/${company.id}` as any)}
                       >
                         <View style={s.companyCard}>
-                          <Image
-                            source={{ uri: company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}` }}
-                            style={s.companyImg}
-                          />
+                          <View style={{ position: 'relative' }}>
+                            <Image
+                              source={{ uri: company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}` }}
+                              style={s.companyImg}
+                            />
+                             <View style={s.catBadgeMini}>
+                               {activeCategory?.useImageAsBadge && activeCategory?.imageUrl ? (
+                                 <Image source={{ uri: activeCategory.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                               ) : (
+                                 <MaterialCommunityIcons name={(activeCategory?.icon as any) || getCategoryIcon(activeCategory?.name || '')} size={13} color="#fff" />
+                               )}
+                             </View>
+                          </View>
                           <View style={s.companyInfo}>
                             <View style={s.companyNameRow}>
                               <Text style={s.companyName} numberOfLines={1}>{company.name}</Text>
@@ -411,11 +429,28 @@ export default function CategoryScreen() {
 
                 <PressCard onPress={() => router.push(`/(customer)/service/${featuredService.id}` as any)}>
                   <View style={s.featuredCard}>
-                    <Image
-                      source={{ uri: featuredService.image || featuredService.serviceType?.imageUrl || featuredService.serviceType?.category?.imageUrl || activeCategory?.imageUrl || featuredService.company?.logoUrl || `https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600` }}
-                      style={s.featuredImg}
-                      contentFit="cover"
-                    />
+                    <View style={{ width: '100%', height: 160, position: 'relative' }}>
+                      <Image
+                        source={{ uri: featuredService.image || featuredService.serviceType?.imageUrl || featuredService.serviceType?.category?.imageUrl || activeCategory?.imageUrl || featuredService.company?.logoUrl || `https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600` }}
+                        style={s.featuredImg}
+                        contentFit="cover"
+                      />
+                       <View style={s.catBadge}>
+                         {activeCategory?.useImageAsBadge && activeCategory?.imageUrl ? (
+                           <Image source={{ uri: activeCategory.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                         ) : (
+                           <MaterialCommunityIcons name={(activeCategory?.icon as any) || getCategoryIcon(activeCategory?.name || '')} size={18} color="#fff" />
+                         )}
+                       </View>
+                      {(featuredService.company as any)?.ratingSummary && (
+                        <View style={s.ratingBadge}>
+                          <MaterialIcons name="star" size={11} color={T.gold} />
+                          <Text style={s.ratingBadgeText}>
+                            {Number((featuredService.company as any).ratingSummary.averageRating).toFixed(1)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                     <View style={s.featuredBody}>
                       <View style={s.featuredTopRow}>
                         <View style={{ flex: 1 }}>
@@ -462,11 +497,20 @@ export default function CategoryScreen() {
                 onPress={() => router.push(`/(customer)/service/${service.id}` as any)}
               >
                 <View style={s.companyCard}>
-                  <Image
-                    source={{ uri: service.image || service.serviceType?.imageUrl || service.serviceType?.category?.imageUrl || activeCategory?.imageUrl || service.company?.logoUrl || `https://api.dicebear.com/9.x/shapes/svg?seed=${service.id}` }}
-                    style={s.companyImg}
-                    contentFit="cover"
-                  />
+                  <View style={{ position: 'relative' }}>
+                    <Image
+                      source={{ uri: service.image || service.serviceType?.imageUrl || service.serviceType?.category?.imageUrl || activeCategory?.imageUrl || service.company?.logoUrl || `https://api.dicebear.com/9.x/shapes/svg?seed=${service.id}` }}
+                      style={s.companyImg}
+                      contentFit="cover"
+                    />
+                    <View style={s.catBadgeMini}>
+                      {activeCategory?.useImageAsBadge && activeCategory?.imageUrl ? (
+                        <Image source={{ uri: activeCategory.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                      ) : (
+                        <MaterialCommunityIcons name={(activeCategory?.icon as any) || getCategoryIcon(activeCategory?.name || '')} size={13} color="#fff" />
+                      )}
+                    </View>
+                  </View>
                   <View style={s.companyInfo}>
                     <Text style={s.companyName} numberOfLines={1}>{service.name}</Text>
                     <Text style={s.companyCity} numberOfLines={1}>{service.company?.name}</Text>
@@ -685,4 +729,57 @@ const s = StyleSheet.create({
   modalBtnSecondaryText: { fontSize: 16, fontWeight: "800", color: T.text1 },
   modalBtnPrimary: { flex: 1.5, height: 56, borderRadius: 16, backgroundColor: T.text1, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
   modalBtnPrimaryText: { fontSize: 16, fontWeight: "800", color: "#fff" },
+  ratingBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.90)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 3,
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+      android: { elevation: 1 }
+    })
+  },
+  ratingBadgeText: { fontSize: 11, fontWeight: "800", color: T.text1 },
+  catBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: T.accent,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 3 },
+      android: { elevation: 3 }
+    })
+  },
+  catBadgeMini: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    backgroundColor: T.accent,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    borderWidth: 0.75,
+    borderColor: "#FFFFFF",
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+      android: { elevation: 2 }
+    })
+  },
 });

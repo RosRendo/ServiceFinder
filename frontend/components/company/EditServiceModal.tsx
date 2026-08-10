@@ -24,6 +24,8 @@ export function EditServiceModal({ open, onClose, service, onSuccess }: EditServ
     const [discountPrice, setDiscountPrice] = useState("");
     const [image, setImage] = useState("");
     const [isActive, setIsActive] = useState(true);
+    const [checklist, setChecklist] = useState<string[]>([]);
+    const [checklistInput, setChecklistInput] = useState("");
     
     const [uploadingImage, setUploadingImage] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,6 +39,10 @@ export function EditServiceModal({ open, onClose, service, onSuccess }: EditServ
                 setDiscountPrice(service.discountPrice?.toString() || "");
                 setImage(service.image || "");
                 setIsActive(service.isActive ?? true);
+                setChecklist(service.checklist && Array.isArray(service.checklist) 
+                    ? service.checklist.map((item: any) => typeof item === 'string' ? item : item.title || "") 
+                    : []
+                );
             } else {
                 setName("");
                 setDescription("");
@@ -44,7 +50,9 @@ export function EditServiceModal({ open, onClose, service, onSuccess }: EditServ
                 setDiscountPrice("");
                 setImage("");
                 setIsActive(true);
+                setChecklist([]);
             }
+            setChecklistInput("");
         }
     }, [open, service]);
 
@@ -62,6 +70,7 @@ export function EditServiceModal({ open, onClose, service, onSuccess }: EditServ
                 discountPrice: discountPrice ? Number(discountPrice) : null,
                 image,
                 isActive,
+                checklist,
             };
 
             if (service?.id) {
@@ -164,6 +173,56 @@ export function EditServiceModal({ open, onClose, service, onSuccess }: EditServ
                             rows={3}
                             className="w-full p-3 bg-muted/50 border border-border rounded-xl text-sm focus:border-primary outline-none transition-colors resize-none" 
                         />
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Service Checklist (Steps)</label>
+                        <div className="flex gap-2">
+                            <input 
+                                value={checklistInput}
+                                onChange={(e) => setChecklistInput(e.target.value)}
+                                placeholder="Add a checklist item (e.g. Inspect air filters)"
+                                className="flex-1 h-11 px-3 bg-muted/50 border border-border rounded-xl text-sm focus:border-primary outline-none transition-colors"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        if (checklistInput.trim()) {
+                                            setChecklist([...checklist, checklistInput.trim()]);
+                                            setChecklistInput("");
+                                        }
+                                    }
+                                }}
+                            />
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                className="h-11 px-4 font-bold text-xs uppercase tracking-wider rounded-xl bg-background"
+                                onClick={() => {
+                                    if (checklistInput.trim()) {
+                                        setChecklist([...checklist, checklistInput.trim()]);
+                                        setChecklistInput("");
+                                    }
+                                }}
+                            >
+                                Add
+                            </Button>
+                        </div>
+                        {checklist.length > 0 && (
+                            <div className="mt-3 space-y-2 max-h-40 overflow-y-auto border border-border rounded-xl p-3 bg-muted/20">
+                                {checklist.map((item, idx) => (
+                                    <div key={idx} className="flex items-center justify-between text-sm bg-background border border-border/60 py-2 px-3 rounded-lg">
+                                        <span className="font-medium text-foreground">{item}</span>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setChecklist(checklist.filter((_, i) => i !== idx))}
+                                            className="text-xs font-bold text-muted-foreground hover:text-rose-500 uppercase tracking-widest transition-colors"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

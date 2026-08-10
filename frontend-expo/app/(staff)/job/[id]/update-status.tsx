@@ -40,7 +40,7 @@ export default function UpdateStatusScreen() {
         Alert.alert(
           "Job Completed! 🎉",
           "Great work! The customer has been notified. Please collect any final signatures.",
-          [{ text: "Done", onPress: () => router.replace("/(staff)/(tabs)/dashboard") }]
+          [{ text: "Done", onPress: () => router.replace("/(staff)/(tabs)/today") }]
         );
       } else {
         Alert.alert("Status Updated", `Status changed to "${STATUS_STEPS.find(s => s.key === currentStatus)?.label}"`);

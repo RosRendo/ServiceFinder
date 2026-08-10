@@ -17,9 +17,9 @@ let CategoriesService = class CategoriesService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async getAllCategories() {
+    async getAllCategories(includeInactive = false) {
         const categories = await this.prisma.category.findMany({
-            where: { status: 'active' },
+            where: includeInactive ? {} : { status: 'active' },
             include: {
                 serviceTypes: {
                     where: { status: 'active' },
@@ -35,6 +35,7 @@ let CategoriesService = class CategoriesService {
             description: cat.description,
             icon: cat.icon,
             imageUrl: cat.imageUrl,
+            useImageAsBadge: cat.useImageAsBadge,
             status: cat.status,
             displayOrder: cat.displayOrder,
             serviceTypesCount: cat.serviceTypes.length,
@@ -69,6 +70,7 @@ let CategoriesService = class CategoriesService {
                 description: category.description,
                 icon: category.icon,
                 imageUrl: category.imageUrl,
+                useImageAsBadge: category.useImageAsBadge,
                 status: category.status,
                 serviceTypes: formattedServiceTypes,
             },
@@ -84,7 +86,7 @@ let CategoriesService = class CategoriesService {
         const category = await this.prisma.category.create({
             data: {
                 ...dto,
-                status: 'active',
+                status: dto.status || 'active',
                 displayOrder: dto.displayOrder || 0,
             },
         });

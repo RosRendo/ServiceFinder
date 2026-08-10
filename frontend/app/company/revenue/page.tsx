@@ -33,11 +33,11 @@ const staffData = [
 ];
 
 const transactions = [
-  { id: 'BK-2841', date: '2023-08-01T10:00:00Z', customer: 'John Doe', staff: 'Alice Smith', gross: 120, fee: 12, net: 108, payment: 'Stripe', status: 'paid' },
+  { id: 'BK-2841', date: '2023-08-01T10:00:00Z', customer: 'John Doe', staff: 'Alice Smith', gross: 120, fee: 12, net: 108, payment: 'Wing KHQR', status: 'paid' },
   { id: 'BK-2842', date: '2023-08-01T11:30:00Z', customer: 'Sarah Connor', staff: 'Bob Johnson', gross: 240, fee: 24, net: 216, payment: 'PayPal', status: 'paid' },
-  { id: 'BK-2843', date: '2023-08-01T14:15:00Z', customer: 'Mike Ross', staff: 'Charlie Davis', gross: 85, fee: 8.5, net: 76.5, payment: 'Stripe', status: 'pending' },
+  { id: 'BK-2843', date: '2023-08-01T14:15:00Z', customer: 'Mike Ross', staff: 'Charlie Davis', gross: 85, fee: 8.5, net: 76.5, payment: 'Wing KHQR', status: 'pending' },
   { id: 'BK-2844', date: '2023-08-01T16:00:00Z', customer: 'Harvey Specter', staff: 'Alice Smith', gross: 450, fee: 45, net: 405, payment: 'Bank Transfer', status: 'paid' },
-  { id: 'BK-2845', date: '2023-08-02T09:00:00Z', customer: 'Rachel Zane', staff: 'Diana Prince', gross: 150, fee: 15, net: 135, payment: 'Stripe', status: 'refunded' },
+  { id: 'BK-2845', date: '2023-08-02T09:00:00Z', customer: 'Rachel Zane', staff: 'Diana Prince', gross: 150, fee: 15, net: 135, payment: 'Wing KHQR', status: 'refunded' },
 ];
 
 export default function CompanyRevenuePage() {

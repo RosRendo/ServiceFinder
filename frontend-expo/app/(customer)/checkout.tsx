@@ -207,10 +207,11 @@ export default function CheckoutScreen() {
   };
 
   const onWingNavStateChange = (navState: any) => {
-    if (navState.url.includes("wing-success") || navState.url.includes("success")) {
+    const baseUrl = navState.url.split('?')[0];
+    if (baseUrl.endsWith("wing-success") || baseUrl.endsWith("success")) {
       setWingUrl(null);
       setShowSuccess(true);
-    } else if (navState.url.includes("wing-cancel") || navState.url.includes("cancel") || navState.url.includes("fail")) {
+    } else if (baseUrl.endsWith("wing-cancel") || baseUrl.endsWith("cancel") || baseUrl.endsWith("fail")) {
       setWingUrl(null);
       setPayError("Payment was cancelled or failed.");
     }

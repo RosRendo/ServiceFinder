@@ -352,7 +352,7 @@ export default function JobExecutionScreen() {
 
   const handleSuccessFinish = () => {
     setShowSuccess(false);
-    router.replace("/(staff)/(tabs)/dashboard");
+    router.replace("/(staff)/(tabs)/today");
   };
 
   const handleChecklistToggle = async (itemId: number) => {

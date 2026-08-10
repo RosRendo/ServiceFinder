@@ -4,7 +4,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 export declare class CategoriesController {
     private readonly categoriesService;
     constructor(categoriesService: CategoriesService);
-    getAllCategories(): Promise<{
+    getAllCategories(all?: string): Promise<{
         data: {
             id: string;
             name: string;
@@ -12,6 +12,7 @@ export declare class CategoriesController {
             description: string | null;
             icon: string | null;
             imageUrl: string | null;
+            useImageAsBadge: boolean;
             status: import(".prisma/client").$Enums.CategoryStatus;
             displayOrder: number;
             serviceTypesCount: number;
@@ -27,6 +28,7 @@ export declare class CategoriesController {
             description: string | null;
             icon: string | null;
             imageUrl: string | null;
+            useImageAsBadge: boolean;
             status: "active";
             serviceTypes: {
                 id: string;
@@ -55,6 +57,7 @@ export declare class CategoriesController {
             slug: string;
             icon: string | null;
             imageUrl: string | null;
+            useImageAsBadge: boolean;
             displayOrder: number;
         };
     }>;
@@ -70,6 +73,7 @@ export declare class CategoriesController {
             slug: string;
             icon: string | null;
             imageUrl: string | null;
+            useImageAsBadge: boolean;
             displayOrder: number;
         };
     }>;

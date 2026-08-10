@@ -8,6 +8,7 @@ import {
   Param,
   UseGuards,
   UseInterceptors,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -33,8 +34,9 @@ export class CategoriesController {
   @CacheTTL(60000) // 60 seconds
   @ApiOperation({ summary: 'Get all categories' })
   @ApiResponse({ status: 200, description: 'Return all categories.' })
-  getAllCategories() {
-    return this.categoriesService.getAllCategories();
+  getAllCategories(@Query('all') all?: string) {
+    const includeInactive = all === 'true';
+    return this.categoriesService.getAllCategories(includeInactive);
   }
 
   @Get(':slug')

@@ -11,8 +11,6 @@ import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
 
-
-
 export default function NewCategory() {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -42,6 +40,7 @@ export default function NewCategory() {
         icon: formData.icon,
         imageUrl: formData.imageUrl,
         displayOrder: parseInt(formData.displayOrder) || 0,
+        status: 'active',
       });
       router.back();
     } catch (error: any) {
@@ -204,4 +203,3 @@ const s = StyleSheet.create({
   submitBtnDisabled: { opacity: 0.7 },
   submitBtnText: { fontSize: 16, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
 });
-

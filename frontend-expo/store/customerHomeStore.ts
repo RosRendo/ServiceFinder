@@ -8,6 +8,7 @@ export interface Category {
   icon: string;
   description: string;
   imageUrl?: string;
+  useImageAsBadge?: boolean;
 }
 
 export interface ServiceType {

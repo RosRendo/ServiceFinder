@@ -197,7 +197,9 @@ export function CompanyDetailView({ companyId, showBreadcrumbs = true, breadcrum
           coverImageUrl: companyData.coverImageUrl,
           about: companyData.description || "No description available.",
           phone: companyData.phone,
-          coordinates: companyData.coordinates,
+          coordinates: (companyData.latitude && companyData.longitude) 
+            ? { latitude: Number(companyData.latitude), longitude: Number(companyData.longitude) } 
+            : undefined,
           responseTime: companyData.responseTime,
           workingHours: companyData.workingHours || [{ day: "Monday - Friday", hours: "9:00 AM - 6:00 PM" }],
           badges: companyData.badges || [],

@@ -29,6 +29,12 @@ vi.mock('framer-motion', () => ({
   },
 }));
 
+vi.mock('@react-oauth/google', () => ({
+  useGoogleLogin: () => vi.fn(),
+  GoogleOAuthProvider: ({ children }: any) => <div>{children}</div>,
+  GoogleLogin: () => <div>Google Login</div>,
+}));
+
 // Mock toast hook
 const mockToast = vi.fn();
 vi.mock('@/lib/hooks/use-toast', () => ({

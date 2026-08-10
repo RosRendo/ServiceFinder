@@ -1,4 +1,4 @@
-export declare function deriveWingKey(clientId: string, customCipherKey?: string): Buffer;
+export declare function deriveWingKey(clientId: string): Buffer;
 export declare function deriveWingIV(clientId: string): Buffer;
 export declare function encryptAES256GCM(plainText: string, key: Buffer, iv: Buffer): string;
 export declare function decryptAES256GCM(base64CipherText: string, key: Buffer, iv: Buffer): string;

@@ -22,13 +22,16 @@ export default function CategoriesPage() {
     name: "", 
     slug: "", 
     description: "", 
-    icon: "" 
+    icon: "",
+    imageUrl: "",
+    useImageAsBadge: false,
+    status: "active"
   });
 
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/categories");
+      const res = await api.get("/categories?all=true");
       const payload = res.data.data || res.data;
       setCategories(Array.isArray(payload) ? payload : payload.data || []);
     } catch {
@@ -49,7 +52,7 @@ export default function CategoriesPage() {
 
   const openAdd = () => { 
     setEditingCategory(null); 
-    setFormData({ name: "", slug: "", description: "", icon: "" }); 
+    setFormData({ name: "", slug: "", description: "", icon: "", imageUrl: "", useImageAsBadge: false, status: "active" }); 
     setDrawerOpen(true); 
   };
 
@@ -59,7 +62,10 @@ export default function CategoriesPage() {
       name: c.name || "", 
       slug: c.slug || "", 
       description: c.description || "", 
-      icon: c.icon || "" 
+      icon: c.icon || "",
+      imageUrl: c.imageUrl || "",
+      useImageAsBadge: !!c.useImageAsBadge,
+      status: c.status || "active"
     }); 
     setDrawerOpen(true); 
   };
@@ -112,8 +118,12 @@ export default function CategoriesPage() {
       key: "name", header: "Category", sortable: true,
       render: (c) => (
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-xl shrink-0 border border-violet-500/20">
-            {c.icon || "📁"}
+          <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-xl shrink-0 border border-violet-500/20 overflow-hidden">
+            {c.imageUrl ? (
+              <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xl">{c.icon || "📁"}</span>
+            )}
           </div>
           <div>
             <div className="font-bold text-foreground text-sm">{c.name}</div>
@@ -127,6 +137,19 @@ export default function CategoriesPage() {
       render: (c) => (
         <span className="text-sm font-medium text-muted-foreground max-w-xs truncate block">
           {c.description || "—"}
+        </span>
+      )
+    },
+    {
+      key: "status", header: "Status", sortable: true,
+      render: (c) => (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+          c.status === "active" 
+            ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" 
+            : "bg-slate-500/10 text-slate-500 border border-slate-500/20"
+        }`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${c.status === "active" ? "bg-emerald-500" : "bg-slate-400"}`} />
+          {c.status === "active" ? "Active" : "Inactive"}
         </span>
       )
     },

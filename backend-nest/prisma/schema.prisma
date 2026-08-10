@@ -162,6 +162,7 @@ model Category {
   description  String?
   icon         String?        @db.VarChar(50)
   imageUrl     String?        @map("image_url")
+  useImageAsBadge Boolean    @default(false) @map("use_image_as_badge")
   status       CategoryStatus @default(active)
   displayOrder Int            @default(0) @map("display_order")
   createdAt    DateTime       @default(now()) @map("created_at")

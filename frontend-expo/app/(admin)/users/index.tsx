@@ -44,8 +44,8 @@ export default function UsersScreen() {
 
   const getStatusColor = (status: string) => {
     if (status === "active") return { color: T.greenText, bg: T.greenBg };
-    if (status === "suspended") return { color: T.redText, bg: T.redBg };
-    return { color: T.yellowText, bg: T.yellowBg };
+    if (status === "suspended") return { color: T.error, bg: T.errorBg };
+    return { color: T.warning, bg: T.warningBg };
   };
 
   return (

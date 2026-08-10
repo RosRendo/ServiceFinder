@@ -12,6 +12,17 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import api from "@/lib/api/client";
 import { motion, AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
+
+const CoverageMap = dynamic(() => import("@/components/map/CoverageMap"), { 
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+      <Loader2 className="w-6 h-6 animate-spin mb-2 text-primary" />
+      <span className="text-xs font-medium">Loading map...</span>
+    </div>
+  )
+});
 
 type ServiceArea = {
   id: string;
@@ -161,6 +172,20 @@ export default function Areas() {
                     <Label htmlFor="radius" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Radius (km)</Label>
                     <Input id="radius" type="number" placeholder="15" value={newAreaForm.radius} onChange={(e) => setNewAreaForm({...newAreaForm, radius: e.target.value})} className="rounded-md border-border bg-background h-11" />
                   </div>
+
+                  {/* Added Coverage Map for better visualization */}
+                  <div className="h-[200px] w-full border border-border bg-muted/10 rounded-xl relative overflow-hidden mt-4">
+                    <CoverageMap 
+                      lat={11.5564} 
+                      lng={104.9282}
+                      radiusKm={newAreaForm.radius ? Number(newAreaForm.radius) : 15}
+                      onChange={(lat, lng) => {
+                        // The user can drag the marker to adjust the center
+                        // In a real app we might reverse geocode this to a city/state
+                      }} 
+                    />
+                  </div>
+
                   <Button className="w-full rounded-md h-12 bg-blue-600 hover:bg-blue-700 shadow-sm font-bold text-white mt-4" onClick={() => {
                     setNewAreaOpen(false); toast.success("Service area added successfully!");
                     setNewAreaForm({ city: "", state: "", zipCodes: "", radius: "" });

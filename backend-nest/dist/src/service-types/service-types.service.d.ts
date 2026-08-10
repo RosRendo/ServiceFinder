@@ -121,6 +121,7 @@ export declare class ServiceTypesService {
                 slug: string;
                 icon: string | null;
                 imageUrl: string | null;
+                useImageAsBadge: boolean;
                 displayOrder: number;
             };
             status: import(".prisma/client").$Enums.CategoryStatus;

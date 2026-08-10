@@ -7,7 +7,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import api from "@/utils/api";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
+const FlashList = ShopifyFlashList as any;
 import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
@@ -105,7 +106,7 @@ export default function DisputesList() {
       ) : (
         <FlashList
           data={disputes}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item: any) => item.id.toString()}
           estimatedItemSize={200}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchDisputes(true)} tintColor={T.primary} />}
           contentContainerStyle={s.listContent}
@@ -120,7 +121,7 @@ export default function DisputesList() {
               <Text style={s.emptySubText}>No {activeTab} disputes found.</Text>
             </View>
           }
-          renderItem={({ item: dispute }) => {
+          renderItem={({ item: dispute }: any) => {
             const sStyle = getStatusStyle(dispute.status);
             return (
               <TouchableOpacity
@@ -169,7 +170,7 @@ export default function DisputesList() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.background },
+  root: { flex: 1, backgroundColor: T.bg },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 12, backgroundColor: T.surface,
@@ -182,7 +183,7 @@ const s = StyleSheet.create({
   badgeText: { color: T.error, fontWeight: '800', fontSize: 14, fontFamily: 'KantumruyPro-Bold' },
   
   tabWrapper: { backgroundColor: T.surface, paddingHorizontal: 20, paddingBottom: 16 },
-  tabContainer: { flexDirection: 'row', backgroundColor: T.background, padding: 4, borderRadius: 12, borderWidth: 1, borderColor: T.border },
+  tabContainer: { flexDirection: 'row', backgroundColor: T.bg, padding: 4, borderRadius: 12, borderWidth: 1, borderColor: T.border },
   tabButton: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
   tabButtonActive: { backgroundColor: T.surface, ...CARD_SHADOW },
   tabText: { fontSize: 14, fontWeight: '600', color: T.text3, fontFamily: 'KantumruyPro-SemiBold' },

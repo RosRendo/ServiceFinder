@@ -38,7 +38,6 @@ export default function SettingsPage() {
     notify_payout_failed: false,
     notify_low_rating: true,
     twilio_auth_token: "",
-    stripe_secret_key: "",
     google_maps_api_key: "",
     smtp_host: "",
     smtp_port: "",
@@ -393,18 +392,7 @@ export default function SettingsPage() {
                             />
                             <p className="text-xs font-medium text-muted-foreground">Used for SMS dispatching and OTP validation.</p>
                           </div>
-                          <div className="flex flex-col gap-2">
-                            <Label htmlFor="stripe" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Stripe Secret Key</Label>
-                            <input 
-                              id="stripe" 
-                              type="password"
-                              value={settings.stripe_secret_key} 
-                              onChange={e => updateKey("stripe_secret_key", e.target.value)}
-                              placeholder="••••••••••••••••"
-                              className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm font-mono tracking-widest" 
-                            />
-                            <p className="text-xs font-medium text-muted-foreground">Used for international credit card payments.</p>
-                          </div>
+
                           <div className="flex flex-col gap-2">
                             <Label htmlFor="gmaps" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Google Maps API Key</Label>
                             <input 

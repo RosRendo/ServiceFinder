@@ -8,7 +8,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
+// @ts-ignore
+import * as FileSystem from "expo-file-system/legacy";
 import ConfettiCannon from "react-native-confetti-cannon";
 import SignatureScreen, { SignatureViewRef } from "react-native-signature-canvas";
 import { api } from "@/store/authStore";
@@ -93,7 +94,7 @@ export default function JobCompleteScreen() {
       
       // Auto redirect after confetti
       setTimeout(() => {
-        router.replace("/(staff)/(tabs)/home" as any);
+        router.replace("/(staff)/(tabs)/today" as any);
       }, 3500);
 
     } catch (err: any) {

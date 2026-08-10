@@ -52,7 +52,7 @@ export declare class PaymentsController {
         message: string;
         qrString: any;
         amount: string;
-        billNumber: any;
+        billNumber: string;
     }>;
     completePayment(dto: CompletePaymentDto, req: any): Promise<{
         success: boolean;
@@ -88,7 +88,7 @@ export declare class PaymentsController {
     createWingCheckout(dto: CheckoutSessionDto, req: any): Promise<{
         success: boolean;
         message: string;
-        webPaymentUrl: any;
+        webPaymentUrl: string;
         orderReferenceNo: string;
     }>;
     handleWingWebhook(body: any): Promise<{

@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   ScrollView, View, Text, TextInput, TouchableOpacity, Pressable,
-  ActivityIndicator, StyleSheet, Keyboard, Platform, Image, Modal, FlatList
+  ActivityIndicator, StyleSheet, Keyboard, Platform, Image, Modal, FlatList, Alert
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -143,8 +143,13 @@ export default function Login() {
   };
 
   const handleSocialLogin = async (provider: "google" | "facebook") => {
-    if (provider === "google" && isGoogleReady) await promptGoogleAsync();
-    else if (provider === "facebook" && isFacebookReady) await promptFacebookAsync();
+    if (provider === "google") {
+      if (isGoogleReady) await promptGoogleAsync();
+      else Alert.alert("Google Login Unavailable", "Please add your Google Client IDs to the .env file.");
+    } else if (provider === "facebook") {
+      if (isFacebookReady) await promptFacebookAsync();
+      else Alert.alert("Facebook Login Unavailable", "Please add your Facebook App ID to the .env file.");
+    }
   };
 
   const stepTitle = step === "phone" ? "Welcome Back" : step === "email" ? "Login with Email" : step === "mfa" ? "Verification" : "Verify Number";

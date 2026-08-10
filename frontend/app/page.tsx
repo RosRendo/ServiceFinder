@@ -153,7 +153,7 @@ export default function LandingPage() {
   };
 
   const partners = [
-    "Google", "Microsoft", "Amazon", "Stripe", "Shopify", "Adobe",
+    "Google", "Microsoft", "Amazon", "Wing Bank", "Shopify", "Adobe",
     "Slack", "Airbnb", "OpenAI", "Meta", "Netflix", "Salesforce"
   ];
 
@@ -264,8 +264,8 @@ export default function LandingPage() {
     {
       q: { kh: "តើប្រាក់ទូទាត់របស់អតិថិជននឹងផ្ទេរចូលគណនីធនាគាររបស់ខ្ញុំដោយរបៀបណា?", en: "How do client payments get deposited to my company bank account?" },
       a: {
-        kh: "យើងភ្ជាប់ផ្ទាល់ជាមួយប្រព័ន្ធទូទាត់ប្រាក់ក្នុងស្រុក (ដូចជា ABA Pay នៅក្នុងប្រទេសកម្ពុជា) និងប្រព័ន្ធអន្តរជាតិ (Stripe/VISA/Mastercard)។ ប្រាក់ចំណូលនឹងត្រូវផ្ទេរចូលគណនីធនាគាររបស់អ្នករៀងរាល់ថ្ងៃ។",
-        en: "We integrate directly with local gateways (like ABA Pay in Cambodia) and global standard clearers (Stripe/VISA/Mastercard). Payouts are transferred automatically to your linked business bank account daily."
+        kh: "យើងភ្ជាប់ផ្ទាល់ជាមួយប្រព័ន្ធទូទាត់ប្រាក់ក្នុងស្រុក (ដូចជា Wing Bank KHQR / ABA Pay នៅក្នុងប្រទេសកម្ពុជា)។ ប្រាក់ចំណូលនឹងត្រូវផ្ទេរចូលគណនីធនាគាររបស់អ្នករៀងរាល់ថ្ងៃ។",
+        en: "We integrate directly with local gateways (like Wing Bank KHQR / ABA Pay in Cambodia). Payouts are transferred automatically to your linked business bank account daily."
       }
     },
     {

@@ -116,7 +116,8 @@ export default function WelcomeScreen() {
         {/* Bottom Actions */}
         <View style={s.actionsWrapper}>
           <PressBtn 
-            onPress={() => {
+            onPress={async () => {
+              await useAuthStore.getState().setHasSeenOnboarding(true);
               useAuthStore.getState().setGuestMode(true);
               router.replace("/(customer)/(tabs)/home");
             }} 

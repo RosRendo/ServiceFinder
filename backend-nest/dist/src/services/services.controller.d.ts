@@ -32,6 +32,9 @@ export declare class ServicesController {
                     id: string;
                     name: string;
                     slug: string;
+                    icon: string | null;
+                    imageUrl: string | null;
+                    useImageAsBadge: boolean;
                 };
             };
             createdAt: Date;
@@ -74,6 +77,9 @@ export declare class ServicesController {
                     id: string;
                     name: string;
                     slug: string;
+                    icon: string | null;
+                    imageUrl: string | null;
+                    useImageAsBadge: boolean;
                 };
             };
             bookingCount: number;
@@ -112,6 +118,9 @@ export declare class ServicesController {
                     id: string;
                     name: string;
                     slug: string;
+                    icon: string | null;
+                    imageUrl: string | null;
+                    useImageAsBadge: boolean;
                 };
             };
         }[];
@@ -144,6 +153,9 @@ export declare class ServicesController {
                     id: string;
                     name: string;
                     slug: string;
+                    icon: string | null;
+                    imageUrl: string | null;
+                    useImageAsBadge: boolean;
                 };
             };
             createdAt: Date;
@@ -198,6 +210,9 @@ export declare class ServicesController {
                 id: string;
                 name: string;
                 slug: string;
+                icon: string | null;
+                imageUrl: string | null;
+                useImageAsBadge: boolean;
             };
         };
         createdAt: Date;

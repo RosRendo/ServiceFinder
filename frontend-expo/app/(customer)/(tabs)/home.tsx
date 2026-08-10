@@ -18,7 +18,7 @@ import {
 const { width } = Dimensions.get("window");
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/authStore";
@@ -38,6 +38,21 @@ const ICON_MAP: Record<string, any> = {
   Scissors: "content-cut", Flower2: "local-florist", Fuel: "local-gas-station",
 };
 const mapIcon = (icon: string): any => ICON_MAP[icon] || "home-repair-service";
+
+const getCategoryIcon = (text: string): any => {
+  if (!text) return 'tools';
+  const t = text.toLowerCase();
+  if (t.includes('clean') || t.includes('maid') || t.includes('spark')) return 'broom';
+  if (t.includes('plumb') || t.includes('pipe') || t.includes('water')) return 'pipe-wrench';
+  if (t.includes('electric') || t.includes('wire') || t.includes('volt') || t.includes('zap')) return 'lightning-bolt';
+  if (t.includes('ac') || t.includes('air') || t.includes('cool') || t.includes('wind')) return 'air-conditioner';
+  if (t.includes('paint') || t.includes('color') || t.includes('brush')) return 'brush';
+  if (t.includes('move') || t.includes('pack') || t.includes('truck')) return 'truck-delivery';
+  if (t.includes('garden') || t.includes('lawn') || t.includes('yard') || t.includes('tree') || t.includes('landscap')) return 'tree';
+  if (t.includes('pest') || t.includes('bug')) return 'bug';
+  if (t.includes('build') || t.includes('construct') || t.includes('repair') || t.includes('wrench')) return 'hammer-wrench';
+  return 'tools'; 
+};
 
 function Skeleton({ width, height, radius = 8, style }: {
   width: number | string; height: number; radius?: number; style?: any;
@@ -250,9 +265,42 @@ export default function Home() {
               </View>
             )}
 
-            {/* ─── PROMO HERO BANNER CAROUSEL (Only if no active booking) ────── */}
+            {/* ─── CATEGORIES ──────────────────────────────────────── */}
+            <View style={{ marginTop: 24 }}>
+              <View style={s.sectionHeader}>
+                <Text style={s.sectionTitle}>{t('home.browseCategories')}</Text>
+                <TouchableOpacity onPress={() => router.push("/(customer)/(tabs)/explore" as any)}>
+                  <Text style={s.seeAll}>{t('home.seeAll')}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {isLoading && categories.length === 0 ? (
+                <View style={{ marginTop: 16 }}><CategorySkeleton /></View>
+              ) : (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, gap: 16, paddingBottom: 4 }}>
+                  {categories.map((cat, i) => (
+                    <FadeIn key={cat.id} delay={i * 100}>
+                      <PressCard onPress={() => router.push({ pathname: "/(customer)/category/[id]", params: { id: cat.slug } })}>
+                        <View style={s.catItem}>
+                          <View style={s.catIconBox}>
+                            {cat.useImageAsBadge && cat.imageUrl ? (
+                              <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                            ) : (
+                              <MaterialCommunityIcons name={(cat.icon as any) || getCategoryIcon(cat.name)} size={26} color={T.accent} style={{ zIndex: 1 }} />
+                            )}
+                          </View>
+                          <Text style={s.catLabel} numberOfLines={1}>{cat.name.split(" ")[0]}</Text>
+                        </View>
+                      </PressCard>
+                    </FadeIn>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+
+            {/* ─── PROMO HERO BANNER CAROUSEL (Sponsors, now in middle) ────── */}
             {!activeBooking && (
-              <View style={{ marginTop: 24 }}>
+              <View style={{ marginTop: 32 }}>
                 <ScrollView 
                   ref={carouselRef}
                   horizontal 
@@ -320,39 +368,6 @@ export default function Home() {
               </View>
             )}
 
-            {/* ─── CATEGORIES ──────────────────────────────────────── */}
-            <View style={{ marginTop: 32 }}>
-              <View style={s.sectionHeader}>
-                <Text style={s.sectionTitle}>{t('home.browseCategories')}</Text>
-                <TouchableOpacity onPress={() => router.push("/(customer)/(tabs)/explore" as any)}>
-                  <Text style={s.seeAll}>{t('home.seeAll')}</Text>
-                </TouchableOpacity>
-              </View>
-
-              {isLoading && categories.length === 0 ? (
-                <View style={{ marginTop: 16 }}><CategorySkeleton /></View>
-              ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, gap: 16, paddingBottom: 4 }}>
-                  {categories.map((cat, i) => (
-                    <FadeIn key={cat.id} delay={i * 100}>
-                      <PressCard onPress={() => router.push({ pathname: "/(customer)/category/[id]", params: { id: cat.slug } })}>
-                        <View style={s.catItem}>
-                          <View style={s.catIconBox}>
-                            {cat.imageUrl ? (
-                              <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-                            ) : (
-                              <MaterialIcons name={mapIcon(cat.icon)} size={26} color={T.accent} style={{ zIndex: 1 }} />
-                            )}
-                          </View>
-                          <Text style={s.catLabel} numberOfLines={1}>{cat.name.split(" ")[0]}</Text>
-                        </View>
-                      </PressCard>
-                    </FadeIn>
-                  ))}
-                </ScrollView>
-              )}
-            </View>
-
             {/* ─── TRENDING SERVICE TYPES ───────────────────────────── */}
             <View style={{ marginTop: 32 }}>
               <View style={s.sectionHeader}>
@@ -381,12 +396,27 @@ export default function Home() {
                               <Image source={{ uri: st.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
                             ) : (
                               <View style={[StyleSheet.absoluteFillObject, { alignItems: "center", justifyContent: "center", backgroundColor: T.accentLight }]}>
-                                <MaterialIcons name="cleaning-services" size={36} color={T.accentMid} />
+                                <MaterialCommunityIcons name={getCategoryIcon(st.serviceType?.name || st.name)} size={36} color={T.accentMid} />
                               </View>
                             )}
                             <View style={s.priceBadge}>
                               <Text style={s.priceBadgeText}>${st.basePrice}</Text>
                             </View>
+                             <View style={s.catBadge}>
+                               {st.serviceType?.category?.useImageAsBadge && st.serviceType?.category?.imageUrl ? (
+                                 <Image source={{ uri: st.serviceType.category.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                               ) : (
+                                 <MaterialCommunityIcons name={(st.serviceType?.category?.icon as any) || getCategoryIcon(st.serviceType?.category?.name || st.serviceType?.name || st.name)} size={18} color="#fff" />
+                               )}
+                             </View>
+                            {(st.company as any)?.ratingSummary && (
+                              <View style={s.ratingBadge}>
+                                <MaterialIcons name="star" size={10} color={T.gold} />
+                                <Text style={s.ratingBadgeText}>
+                                  {Number((st.company as any).ratingSummary.averageRating).toFixed(1)}
+                                </Text>
+                              </View>
+                            )}
                           </View>
                           <View style={s.serviceCardBody}>
                             <Text style={s.serviceCardTitle} numberOfLines={2}>{st.name}</Text>
@@ -415,11 +445,34 @@ export default function Home() {
               <FadeIn delay={index < 5 ? index * 100 : 0}>
                 <PressCard onPress={() => router.push(`/(customer)/service/${st.id}` as any)}>
                   <View style={[s.providerCard, { padding: 12, borderRadius: 16 }]}>
-                    <Image
-                      source={{ uri: st.image || "https://picsum.photos/200/200" }}
-                      style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: T.accentLight }}
-                      contentFit="cover"
-                    />
+                    <View style={{ width: 80, height: 80, position: 'relative' }}>
+                      {st.image ? (
+                        <Image
+                          source={{ uri: st.image }}
+                          style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: T.accentLight }}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <View style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: T.accentLight, alignItems: "center", justifyContent: "center" }}>
+                          <MaterialCommunityIcons name={getCategoryIcon(st.serviceType?.name || st.name)} size={28} color={T.accentMid} />
+                        </View>
+                      )}
+                      {st.company?.ratingSummary && (
+                        <View style={s.ratingBadgeMini}>
+                          <MaterialIcons name="star" size={9} color={T.gold} />
+                          <Text style={s.ratingBadgeTextMini}>
+                            {Number(st.company.ratingSummary.averageRating).toFixed(1)}
+                          </Text>
+                        </View>
+                      )}
+                      <View style={s.catBadgeMini}>
+                        {st.serviceType?.category?.useImageAsBadge && st.serviceType?.category?.imageUrl ? (
+                          <Image source={{ uri: st.serviceType.category.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                        ) : (
+                          <MaterialCommunityIcons name={(st.serviceType?.category?.icon as any) || getCategoryIcon(st.serviceType?.category?.name || st.serviceType?.name || st.name)} size={13} color="#fff" />
+                        )}
+                      </View>
+                    </View>
                     <View style={{ flex: 1, paddingLeft: 12, justifyContent: "center" }}>
                       <Text style={[s.providerName, { fontSize: 15 }]} numberOfLines={1}>{st.name}</Text>
                       <Text style={s.providerCity} numberOfLines={1}>{st.company?.name || 'Verified Provider'}</Text>
@@ -454,11 +507,27 @@ export default function Home() {
                     <FadeIn key={company.id} delay={i * 100}>
                       <PressCard onPress={() => router.push(`/(customer)/company/${company.id}` as any)}>
                         <View style={s.providerCard}>
-                          <Image
-                            source={{ uri: company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}` }}
-                            style={s.providerLogo}
-                            contentFit="cover"
-                          />
+                          <View style={{ position: 'relative' }}>
+                            <Image
+                              source={{ uri: company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}` }}
+                              style={s.providerLogo}
+                              contentFit="cover"
+                            />
+                            {(() => {
+                              const highlights = Array.isArray(company.cardHighlights) ? company.cardHighlights : (() => { try { return JSON.parse((company as any).cardHighlights || "[]"); } catch { return []; } })();
+                              const primaryCat = highlights[0] || 'Services';
+                              const matchedCat = categories.find(c => c.name.toLowerCase() === primaryCat.toLowerCase() || c.slug.toLowerCase() === primaryCat.toLowerCase());
+                              return (
+                                <View style={s.catBadgeMini}>
+                                  {matchedCat?.useImageAsBadge && matchedCat?.imageUrl ? (
+                                    <Image source={{ uri: matchedCat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                                  ) : (
+                                    <MaterialCommunityIcons name={(matchedCat?.icon as any) || getCategoryIcon(primaryCat)} size={13} color="#fff" />
+                                  )}
+                                </View>
+                              );
+                            })()}
+                          </View>
                           <View style={{ flex: 1 }}>
                             <View style={s.providerNameRow}>
                               <Text style={s.providerName} numberOfLines={1}>{company.name}</Text>
@@ -645,4 +714,70 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   trustLabel: { fontSize: 11, color: T.text2, fontWeight: "600", textAlign: "center" },
+  ratingBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.90)",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
+    gap: 2,
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+      android: { elevation: 1 }
+    })
+  },
+  ratingBadgeText: { fontSize: 10, fontWeight: "800", color: "#0F172A" },
+  ratingBadgeMini: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.90)",
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 1.5,
+  },
+  ratingBadgeTextMini: { fontSize: 8, fontWeight: "800", color: "#0F172A" },
+  catBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: T.accent,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 3 },
+      android: { elevation: 3 }
+    })
+  },
+  catBadgeMini: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    backgroundColor: T.accent,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    borderWidth: 0.75,
+    borderColor: "#FFFFFF",
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+      android: { elevation: 2 }
+    })
+  },
 });

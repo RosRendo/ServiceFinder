@@ -39,16 +39,7 @@ exports.encryptAES256GCM = encryptAES256GCM;
 exports.decryptAES256GCM = decryptAES256GCM;
 exports.generatePayloadHash = generatePayloadHash;
 const crypto = __importStar(require("crypto"));
-function deriveWingKey(clientId, customCipherKey) {
-    if (customCipherKey) {
-        try {
-            if (customCipherKey.includes('/') || customCipherKey.includes('+') || customCipherKey.endsWith('=')) {
-                return Buffer.from(customCipherKey, 'base64');
-            }
-        }
-        catch (e) {
-        }
-    }
+function deriveWingKey(clientId) {
     const padded = clientId.padEnd(32, '0').slice(0, 32);
     return Buffer.from(padded, 'utf8');
 }

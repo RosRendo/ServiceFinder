@@ -49,7 +49,7 @@ export declare class PaymentsService {
         message: string;
         qrString: any;
         amount: string;
-        billNumber: any;
+        billNumber: string;
     }>;
     private wingToken;
     private wingTokenExpiry;
@@ -57,7 +57,7 @@ export declare class PaymentsService {
     createWingCheckout(dto: CheckoutSessionDto, user: any): Promise<{
         success: boolean;
         message: string;
-        webPaymentUrl: any;
+        webPaymentUrl: string;
         orderReferenceNo: string;
     }>;
     handleWingWebhook(payload: any): Promise<{

@@ -247,8 +247,8 @@ export default function RefundsScreen() {
                 <Text style={s.mathValue}>${parsedAmount.toFixed(2)}</Text>
               </View>
               <View style={s.mathRow}>
-                <Text style={s.mathLabel}>Stripe Processing Fee (2.9% + 30¢)</Text>
-                <Text style={[s.mathValue, { color: T.error }]}>+ ${stripeFee.toFixed(2)}</Text>
+                <Text style={s.mathLabel}>KHQR Gateway Fee (1%)</Text>
+                <Text style={[s.mathValue, { color: T.error }]}>+ ${khqrFee.toFixed(2)}</Text>
               </View>
               
               <View style={s.divider} />

@@ -58,18 +58,6 @@ export declare class CompaniesController {
         };
     }>;
     getMyCompany(user: any): Promise<{
-        ratingSummary: {
-            companyId: bigint;
-            averageRating: import("@prisma/client/runtime/library").Decimal | null;
-            totalReviews: number;
-            lastUpdated: Date;
-        } | null;
-        serviceAreas: {
-            id: bigint;
-            companyId: bigint;
-            city: string;
-            coverageRadiusKm: number | null;
-        }[];
         services: {
             id: bigint;
             checklist: import("@prisma/client/runtime/library").JsonValue | null;
@@ -86,6 +74,18 @@ export declare class CompaniesController {
             durationMin: number;
             durationMax: number | null;
             isActive: boolean;
+        }[];
+        ratingSummary: {
+            companyId: bigint;
+            averageRating: import("@prisma/client/runtime/library").Decimal | null;
+            totalReviews: number;
+            lastUpdated: Date;
+        } | null;
+        serviceAreas: {
+            id: bigint;
+            companyId: bigint;
+            city: string;
+            coverageRadiusKm: number | null;
         }[];
     } & {
         id: bigint;
@@ -416,6 +416,7 @@ export declare class CompaniesController {
                 slug: string;
                 icon: string | null;
                 imageUrl: string | null;
+                useImageAsBadge: boolean;
                 displayOrder: number;
             };
         } & {
@@ -648,6 +649,7 @@ export declare class CompaniesController {
                 slug: string;
                 icon: string | null;
                 imageUrl: string | null;
+                useImageAsBadge: boolean;
                 displayOrder: number;
             };
             companies: any[];
@@ -672,6 +674,7 @@ export declare class CompaniesController {
                 slug: string;
                 icon: string | null;
                 imageUrl: string | null;
+                useImageAsBadge: boolean;
                 displayOrder: number;
             };
             serviceType: {
@@ -700,22 +703,6 @@ export declare class CompaniesController {
         staff: {
             id: bigint;
         }[];
-        owner: {
-            id: bigint;
-            fullName: string;
-            email: string | null;
-            phone: string | null;
-        };
-        ratingSummary: {
-            companyId: bigint;
-            averageRating: import("@prisma/client/runtime/library").Decimal | null;
-            totalReviews: number;
-            lastUpdated: Date;
-        } | null;
-        serviceAreas: {
-            city: string;
-            coverageRadiusKm: number | null;
-        }[];
         services: ({
             serviceType: {
                 category: {
@@ -728,6 +715,7 @@ export declare class CompaniesController {
                     slug: string;
                     icon: string | null;
                     imageUrl: string | null;
+                    useImageAsBadge: boolean;
                     displayOrder: number;
                 };
             } & {
@@ -760,6 +748,22 @@ export declare class CompaniesController {
             durationMax: number | null;
             isActive: boolean;
         })[];
+        owner: {
+            id: bigint;
+            fullName: string;
+            email: string | null;
+            phone: string | null;
+        };
+        ratingSummary: {
+            companyId: bigint;
+            averageRating: import("@prisma/client/runtime/library").Decimal | null;
+            totalReviews: number;
+            lastUpdated: Date;
+        } | null;
+        serviceAreas: {
+            city: string;
+            coverageRadiusKm: number | null;
+        }[];
     } & {
         id: bigint;
         latitude: import("@prisma/client/runtime/library").Decimal | null;

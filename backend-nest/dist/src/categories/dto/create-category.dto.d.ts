@@ -5,4 +5,6 @@ export declare class CreateCategoryDto {
     icon?: string;
     imageUrl?: string;
     displayOrder?: number;
+    status?: string;
+    useImageAsBadge?: boolean;
 }
