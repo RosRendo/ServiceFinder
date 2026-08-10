@@ -6,7 +6,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 
 @Injectable()
 export class MailService {
-  private transporter: nodemailer.Transporter | null = null;
+  private transporter: any = null;
   private readonly logger = new Logger(MailService.name);
 
   constructor(
@@ -32,19 +32,27 @@ export class MailService {
       },
     });
 
-    const settingsMap = settings.reduce((acc, curr) => {
-      acc[curr.keyName] = curr.value;
-      return acc;
-    }, {} as Record<string, string | null>);
+    const settingsMap = settings.reduce(
+      (acc, curr) => {
+        acc[curr.keyName] = curr.value;
+        return acc;
+      },
+      {} as Record<string, string | null>,
+    );
 
     // Fallback to ConfigService if not found in DB
-    const smtpHost = settingsMap['smtp_host'] || this.configService.get<string>('SMTP_HOST');
-    const smtpUser = settingsMap['smtp_user'] || this.configService.get<string>('SMTP_USER');
-    const smtpPass = settingsMap['smtp_pass'] || this.configService.get<string>('SMTP_PASS');
+    const smtpHost =
+      settingsMap['smtp_host'] || this.configService.get<string>('SMTP_HOST');
+    const smtpUser =
+      settingsMap['smtp_user'] || this.configService.get<string>('SMTP_USER');
+    const smtpPass =
+      settingsMap['smtp_pass'] || this.configService.get<string>('SMTP_PASS');
 
     if (smtpHost) {
       const port = parseInt(
-        settingsMap['smtp_port'] || this.configService.get<string>('SMTP_PORT') || '465',
+        settingsMap['smtp_port'] ||
+          this.configService.get<string>('SMTP_PORT') ||
+          '465',
         10,
       );
       this.transporter = nodemailer.createTransport({
@@ -70,7 +78,10 @@ export class MailService {
     return this.transporter;
   }
 
-  private renderTemplate(templateString: string, variables: Record<string, string>): string {
+  private renderTemplate(
+    templateString: string,
+    variables: Record<string, string>,
+  ): string {
     let result = templateString;
     for (const [key, value] of Object.entries(variables)) {
       const regex = new RegExp(`{{${key}}}`, 'g');
@@ -98,13 +109,15 @@ export class MailService {
         subject = this.renderTemplate(dbTemplate.subject, variables);
         html = this.renderTemplate(dbTemplate.body, variables);
         // Basic fallback for text if DB doesn't have a separate text field
-        text = html.replace(/<[^>]+>/g, ''); 
+        text = html.replace(/<[^>]+>/g, '');
       } else if (fallbackTemplate) {
         subject = fallbackTemplate.subject;
         html = fallbackTemplate.html;
         text = fallbackTemplate.text;
       } else {
-        this.logger.warn(`Template ${templateId} not found and no fallback provided.`);
+        this.logger.warn(
+          `Template ${templateId} not found and no fallback provided.`,
+        );
         return;
       }
 
@@ -141,7 +154,12 @@ export class MailService {
     await this.fetchAndSendTemplate(
       'staff_welcome',
       to,
-      { user_name: userName, company_name: companyName, temp_password: tempPassword, login_url: loginUrl },
+      {
+        user_name: userName,
+        company_name: companyName,
+        temp_password: tempPassword,
+        login_url: loginUrl,
+      },
       fallback,
     );
   }
@@ -164,7 +182,13 @@ export class MailService {
     await this.fetchAndSendTemplate(
       'booking_confirmation',
       to,
-      { customer_name: customerName, service_name: serviceName, company_name: companyName, date, time },
+      {
+        customer_name: customerName,
+        service_name: serviceName,
+        company_name: companyName,
+        date,
+        time,
+      },
       fallback,
     );
   }
@@ -180,7 +204,7 @@ export class MailService {
     const subject = `New Booking Request for ${serviceName}`;
     const text = `Hi ${companyName},\n\nYou have a new booking request for ${serviceName} on ${date} at ${time}.\nPlease log in to your dashboard to review.\n\n© ${year} Service Finder. All rights reserved.`;
     const html = `<div style="font-family: sans-serif; padding: 20px;"><h2>New Booking Request</h2><p>Hi ${companyName},</p><p>You have a new booking request for <strong>${serviceName}</strong> on ${date} at ${time}.</p><p>Please log in to your dashboard to review and confirm.</p></div>`;
-    
+
     await this.fetchAndSendTemplate(
       'new_booking',
       to,
@@ -213,11 +237,15 @@ export class MailService {
     const subject = `Booking Update: ${serviceName}`;
     const text = `Hi ${customerName},\n\nYour booking for ${serviceName} ${statusText}.\n\n© ${year} Service Finder.`;
     const html = `<div style="font-family: sans-serif; padding: 20px;"><h2>Booking Update</h2><p>Hi ${customerName},</p><p>Your booking for <strong>${serviceName}</strong> ${statusText}.</p></div>`;
-    
+
     await this.fetchAndSendTemplate(
       'booking_status_changed',
       to,
-      { customer_name: customerName, service_name: serviceName, status_text: statusText },
+      {
+        customer_name: customerName,
+        service_name: serviceName,
+        status_text: statusText,
+      },
       { subject, html, text },
     );
   }
@@ -235,7 +263,7 @@ export class MailService {
       ? `Hi ${companyName},\n\nGood news! Your company verification has been approved. You can now start accepting bookings on Service Finder.\n\n© ${year} Service Finder.`
       : `Hi ${companyName},\n\nUnfortunately, your company verification was rejected. Please log in to your dashboard to update your details and resubmit.\n\n© ${year} Service Finder.`;
     const html = `<div style="font-family: sans-serif; padding: 20px;"><h2>${approved ? 'Company Verified!' : 'Verification Update'}</h2><p>${text.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br/>')}</p></div>`;
-    
+
     await this.fetchAndSendTemplate(
       approved ? 'company_verified' : 'company_rejected',
       to,
@@ -253,7 +281,7 @@ export class MailService {
     const subject = `💰 Payout Processed`;
     const text = `Hi ${companyName},\n\nYour payout of $${amount.toFixed(2)} has been successfully processed.\n\n© ${year} Service Finder.`;
     const html = `<div style="font-family: sans-serif; padding: 20px;"><h2>Payout Processed</h2><p>Hi ${companyName},</p><p>Your payout of <strong>$${amount.toFixed(2)}</strong> has been successfully processed.</p></div>`;
-    
+
     await this.fetchAndSendTemplate(
       'payout_processed',
       to,
@@ -262,20 +290,18 @@ export class MailService {
     );
   }
 
-  async sendMail(
-    to: string,
-    subject: string,
-    text: string,
-    html: string,
-  ) {
+  async sendMail(to: string, subject: string, text: string, html: string) {
     try {
       const transporter = await this.getTransporter();
-      
+
       const settings = await this.prisma.systemSetting.findUnique({
-        where: { keyName: 'smtp_from_email' }
+        where: { keyName: 'smtp_from_email' },
       });
-      const fromEmail = settings?.value || this.configService.get<string>('SMTP_FROM_EMAIL') || this.configService.get<string>('SMTP_USER');
-      
+      const fromEmail =
+        settings?.value ||
+        this.configService.get<string>('SMTP_FROM_EMAIL') ||
+        this.configService.get<string>('SMTP_USER');
+
       await transporter.sendMail({
         from: '"Service Finder" <' + fromEmail + '>',
         to,

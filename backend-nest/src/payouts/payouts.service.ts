@@ -15,26 +15,22 @@ export class PayoutsService {
   }
 
   async getPayouts(companyId: bigint) {
-    try {
-      const company = await this.prisma.company.findUnique({
-        where: { id: companyId },
-        select: { availableBalance: true, pendingBalance: true },
-      });
-      if (!company) throw new NotFoundException('Company not found');
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { availableBalance: true, pendingBalance: true },
+    });
+    if (!company) throw new NotFoundException('Company not found');
 
-      const payouts = await this.prisma.payout.findMany({
-        where: { companyId },
-        orderBy: { requestedAt: 'desc' },
-      });
+    const payouts = await this.prisma.payout.findMany({
+      where: { companyId },
+      orderBy: { requestedAt: 'desc' },
+    });
 
-      return {
-        payouts,
-        availableBalance: Number(company.availableBalance),
-        pendingBalance: Number(company.pendingBalance),
-      };
-    } catch (e: any) {
-      throw e;
-    }
+    return {
+      payouts,
+      availableBalance: Number(company.availableBalance),
+      pendingBalance: Number(company.pendingBalance),
+    };
   }
 
   async requestPayout(companyId: bigint, amount: number, method: string) {
@@ -150,7 +146,11 @@ export class PayoutsService {
 
       return { payouts };
     } catch (e: any) {
-      console.error('\n\n=========================================\nCRITICAL STAFF PAYOUT ERROR:', e, '\n=========================================\n\n');
+      console.error(
+        '\n\n=========================================\nCRITICAL STAFF PAYOUT ERROR:',
+        e,
+        '\n=========================================\n\n',
+      );
       throw e;
     }
   }
