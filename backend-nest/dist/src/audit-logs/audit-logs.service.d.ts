@@ -32,4 +32,8 @@ export declare class AuditLogsService {
             totalPages: number;
         };
     }>;
+    deleteLogs(ids: string[]): Promise<{
+        message: string;
+        count: number;
+    }>;
 }

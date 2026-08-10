@@ -37,7 +37,6 @@ export class NotificationsController {
    */
   @Get()
   async getMyNotifications(@Req() req: any) {
-    console.log("DEBUG req.user:", req.user);
     const userId = req.user.id ? BigInt(req.user.id) : BigInt(req.user.userId || 0);
     return this.notificationsService.getNotificationsForUser(userId);
   }

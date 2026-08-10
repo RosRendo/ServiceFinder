@@ -21,6 +21,19 @@ export default function BookingsPage() {
   const { toast } = useToast();
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
 
+  const exportCSV = () => {
+    const rows = filtered.length ? filtered : bookings;
+    if (!rows.length) { toast({ title: "No data", description: "No bookings to export.", variant: "destructive" }); return; }
+    const header = "ID,Customer,Company,Service,Status,Date,Total";
+    const lines = rows.map((b: any) =>
+      `${b.id},"${b.customer?.fullName || ''}","${b.company?.name || ''}","${b.service?.name || ''}",${b.status},${b.bookingDate || ''},${b.totalPrice || 0}`
+    );
+    const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `bookings-${Date.now()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const fetchBookings = async () => {
     setLoading(true);
     try {
@@ -155,8 +168,8 @@ export default function BookingsPage() {
             { icon: Eye, label: "View Details", onClick: () => router.push(`/admin/bookings/${Array.from(selectedIds)[0]}`) },
             { icon: Edit, label: "Manage", onClick: () => openDrawer(Array.from(selectedIds)[0]) }
           ] : []),
-          { icon: Download, label: "Export CSV", onClick: () => {} },
-          { icon: SlidersHorizontal, label: "Assign Staff", onClick: () => {} },
+          { icon: Download, label: "Export CSV", onClick: exportCSV },
+          { icon: SlidersHorizontal, label: "Go to Dispatch", onClick: () => router.push("/company/dispatch") },
         ]}
       />
 

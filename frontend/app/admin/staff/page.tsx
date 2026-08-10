@@ -64,6 +64,19 @@ export default function StaffPage() {
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  const exportCSV = () => {
+    const rows = staff.filter((s) => !selectedIds.size || selectedIds.has(s.id));
+    if (!rows.length) { toast({ title: "No data", description: "No staff to export.", variant: "destructive" }); return; }
+    const header = "ID,Name,Email,Status,Company";
+    const lines = rows.map((s: any) =>
+      `${s.id},"${s.fullName || ''}","${s.email || ''}",${s.status || ''},"${s.staffMemberships?.[0]?.company?.name || ''}"`
+    );
+    const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `staff-${Date.now()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
   const { socket } = useSocket();
 
   const fetchStaff = async () => {
@@ -201,7 +214,7 @@ export default function StaffPage() {
               fetchStaff();
             }
           },
-          { icon: Download, label: "Export", onClick: () => {} }
+          { icon: Download, label: "Export", onClick: exportCSV }
         ]} />
 
       {activeStaff && (

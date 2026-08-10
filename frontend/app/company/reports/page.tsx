@@ -4,6 +4,7 @@ import { BarChart3, Download, Loader2, FileText, Filter, Calendar, Users, Briefc
 import { useAPI } from "@/lib/hooks/useAPI";
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { toast } from "sonner";
+import api from "@/lib/api/client";
 
 export default function CompanyReportsPage() {
   const { data, loading } = useAPI<any>('/api/companies/my-company/metrics');
@@ -16,12 +17,64 @@ export default function CompanyReportsPage() {
     }
   }, [data]);
 
-  const handleExport = (reportType: string) => {
+  const handleExport = async (reportType: string) => {
     setIsExporting(reportType);
-    setTimeout(() => {
-      setIsExporting(null);
+    try {
+      let csvContent = "";
+      let filename = `${reportType.replace(/\s+/g, "_")}-${Date.now()}.csv`;
+
+      if (reportType.includes("Ledger") || reportType.includes("Financial")) {
+        const res = await api.get("/companies/my-company/revenue");
+        const payload = res.data?.data || res.data;
+        const transactions = payload.transactions || [];
+        const header = "Booking ID,Date,Customer,Staff,Gross,Platform Fee,Net Earnings,Status\n";
+        const lines = transactions.map((t: any) =>
+          `${t.id || t.bookingId},"${t.createdAt || t.date}","${t.customer || ''}","${t.staff || ''}",${t.grossAmount || t.gross || 0},${t.platformFee || t.fee || 0},${t.netAmount || t.net || 0},"${t.status || ''}"`
+        );
+        csvContent = header + lines.join("\n");
+      } else if (reportType.includes("Booking")) {
+        const res = await api.get("/bookings?limit=100");
+        const payload = res.data?.data || res.data;
+        const bookingsList = payload.bookings || [];
+        const header = "Booking ID,Customer,Service,Status,Date,Total Price\n";
+        const lines = bookingsList.map((b: any) =>
+          `"${b.id}","${b.customer?.fullName || ''}","${b.service?.name || ''}","${b.status}","${b.bookingDate}",${b.totalPrice}`
+        );
+        csvContent = header + lines.join("\n");
+      } else if (reportType.includes("Staff")) {
+        const res = await api.get("/companies/my-company/staff");
+        const payload = res.data?.data || res.data;
+        const staffList = Array.isArray(payload) ? payload : (payload.staff || []);
+        const header = "Staff ID,Name,Email,Working Status,Completed Jobs,Rating\n";
+        const lines = staffList.map((s: any) =>
+          `"${s.id}","${s.fullName || ''}","${s.email || ''}","${s.workingStatus || s.status || ''}",${s.jobsCompleted || 0},${s.rating || 5.0}`
+        );
+        csvContent = header + lines.join("\n");
+      } else {
+        const header = "Metric,Value\n";
+        const lines = [
+          `"Total Bookings",${metrics?.completedBookings || 0}`,
+          `"Active Staff",${metrics?.activeStaff || 0}`,
+          `"Average Rating",${metrics?.avgRating || 5.0}`,
+          `"Current Month Revenue",${metrics?.revenue || 0}`
+        ];
+        csvContent = header + lines.join("\n");
+      }
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       toast.success(`${reportType} report has been successfully generated and downloaded.`);
-    }, 1500);
+    } catch (e) {
+      toast.error(`Failed to export ${reportType} report.`);
+    } finally {
+      setIsExporting(null);
+    }
   };
 
   const reports = [

@@ -151,9 +151,50 @@ export default function VerificationPage() {
     }
   ];
 
+  const handleBulkApprove = async () => {
+    if (!window.confirm(`Approve ${selectedIds.size} company application(s)?`)) return;
+    try {
+      const token = localStorage.getItem("token");
+      await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies/${id}/accept`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          })
+        )
+      );
+      toast.success(`${selectedIds.size} company application(s) approved.`);
+      setSelectedIds(new Set());
+      fetchPendingCompanies();
+    } catch {
+      toast.error("Failed to approve one or more applications.");
+    }
+  };
+
+  const handleBulkReject = async () => {
+    if (!window.confirm(`Reject ${selectedIds.size} company application(s)? This cannot be undone.`)) return;
+    try {
+      const token = localStorage.getItem("token");
+      await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies/${id}/reject`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ reason: "Bulk rejection by admin." }),
+          })
+        )
+      );
+      toast.success(`${selectedIds.size} company application(s) rejected.`);
+      setSelectedIds(new Set());
+      fetchPendingCompanies();
+    } catch {
+      toast.error("Failed to reject one or more applications.");
+    }
+  };
+
   const bulkActions = [
-    { label: "Approve Selected", icon: Check, onClick: () => toast.info("Bulk approve coming soon") },
-    { label: "Reject Selected", icon: X, onClick: () => toast.info("Bulk reject coming soon"), variant: "danger" as const },
+    { label: "Approve Selected", icon: Check, onClick: handleBulkApprove },
+    { label: "Reject Selected", icon: X, onClick: handleBulkReject, variant: "danger" as const },
   ];
 
   return (

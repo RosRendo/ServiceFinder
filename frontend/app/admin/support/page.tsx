@@ -129,8 +129,31 @@ export default function AdminSupportPage() {
     }
   ];
 
+  const handleBulkResolve = async () => {
+    if (!window.confirm(`Mark ${selectedIds.size} ticket(s) as resolved?`)) return;
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/support/tickets/${id}`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "resolved" }),
+          })
+        )
+      );
+      setLocalTickets((prev) =>
+        prev.map((t) => selectedIds.has(t.id) ? { ...t, status: "resolved" as TicketStatus } : t)
+      );
+      setSelectedIds(new Set());
+      toast.success(`${selectedIds.size} ticket(s) marked as resolved.`);
+    } catch {
+      toast.error("Failed to resolve one or more tickets.");
+    }
+  };
+
   const bulkActions = [
-    { label: "Mark Resolved", icon: MessageSquare, onClick: () => toast.info("Bulk resolve coming soon") },
+    { label: "Mark Resolved", icon: MessageSquare, onClick: handleBulkResolve },
   ];
 
   return (

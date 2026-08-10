@@ -33,7 +33,6 @@ export default function AddressAutocomplete({ onSelect, placeholder = "Search fo
         try {
           const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
           const data = await res.json();
-          console.log("Geocode results:", data);
           if (Array.isArray(data)) {
             setResults(data);
             setIsOpen(true);

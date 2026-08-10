@@ -25,4 +25,10 @@ export declare class AuditLogsController {
             totalPages: number;
         };
     }>;
+    deleteLogs(body: {
+        ids: string[];
+    }): Promise<{
+        message: string;
+        count: number;
+    }>;
 }

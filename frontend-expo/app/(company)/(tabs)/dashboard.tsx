@@ -228,7 +228,7 @@ export default function Dashboard() {
                 </PressCard>
                 
                 {/* Escrow Hold */}
-                <PressCard onPress={() => {}} style={[s.kpiCard, { flex: 1.5 }]}>
+                <PressCard onPress={() => router.push("/(company)/(tabs)/operations" as any)} style={[s.kpiCard, { flex: 1.5 }]}>
                   <Text style={s.kpiLabel}>In Escrow</Text>
                   <AnimatedNumber 
                     value={metrics?.escrowBalance || 0} 
@@ -252,7 +252,7 @@ export default function Dashboard() {
                   />
                   <Text style={s.kpiSubLabel}>All-time earnings</Text>
                 </PressCard>
-                <PressCard onPress={() => router.push("/(company)/(tabs)/bookings" as any)} style={s.kpiCard}>
+                <PressCard onPress={() => router.push("/(company)/(tabs)/operations" as any)} style={s.kpiCard}>
                   <Text style={s.kpiLabel}>Completion</Text>
                   <View style={{ flexDirection: "row", alignItems: "baseline" }}>
                     <AnimatedNumber 

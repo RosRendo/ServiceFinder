@@ -14,8 +14,6 @@ import {
   ActivityIndicator,
   Dimensions,
 } from "react-native";
-
-const { width } = Dimensions.get("window");
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -27,6 +25,8 @@ import NotificationBell from "@/components/NotificationBell";
 import FadeIn from "@/components/FadeIn";
 import ScaleButton from "@/components/ScaleButton";
 import { Theme } from "@/constants/theme";
+
+const { width } = Dimensions.get("window");
 
 const T = Theme.colors;
 
@@ -315,7 +315,7 @@ export default function Home() {
                   }}
                 >
                   {/* Sponsor 1 */}
-                  <PressCard onPress={() => {}} style={{ width: width - 48, height: 160, borderRadius: 16, overflow: 'hidden' }}>
+                  <PressCard onPress={() => router.push("/(customer)/(tabs)/explore" as any)} style={{ width: width - 48, height: 160, borderRadius: 16, overflow: 'hidden' }}>
                     <Image 
                       source={{ uri: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=2070&auto=format&fit=crop" }} 
                       style={StyleSheet.absoluteFillObject} 
@@ -332,7 +332,7 @@ export default function Home() {
                   </PressCard>
                   
                   {/* Sponsor 2 */}
-                  <PressCard onPress={() => {}} style={{ width: width - 48, height: 160, borderRadius: 16, overflow: 'hidden' }}>
+                  <PressCard onPress={() => router.push("/(customer)/(tabs)/explore" as any)} style={{ width: width - 48, height: 160, borderRadius: 16, overflow: 'hidden' }}>
                     <Image 
                       source={{ uri: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?q=80&w=2069&auto=format&fit=crop" }} 
                       style={StyleSheet.absoluteFillObject} 
@@ -349,7 +349,7 @@ export default function Home() {
                   </PressCard>
 
                   {/* Sponsor 3 */}
-                  <PressCard onPress={() => {}} style={{ width: width - 48, height: 160, borderRadius: 16, overflow: 'hidden' }}>
+                  <PressCard onPress={() => router.push("/(customer)/(tabs)/explore" as any)} style={{ width: width - 48, height: 160, borderRadius: 16, overflow: 'hidden' }}>
                     <Image 
                       source={{ uri: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=2070&auto=format&fit=crop" }} 
                       style={StyleSheet.absoluteFillObject} 

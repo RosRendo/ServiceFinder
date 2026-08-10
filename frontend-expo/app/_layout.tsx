@@ -18,6 +18,16 @@ import {
   KantumruyPro_700Bold,
 } from '@expo-google-fonts/kantumruy-pro';
 
+
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuthStore } from '@/store/authStore';
+import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import Toast from 'react-native-toast-message';
+import { OfflineNotice } from '@/components/common/OfflineNotice';
+import * as Sentry from '@sentry/react-native';
+import { PostHogProvider } from 'posthog-react-native';
+
 // Suppress defaultProps warning since it's the most reliable global font hack in RN
 const originalConsoleError = console.error;
 console.error = (...args) => {
@@ -31,16 +41,6 @@ if (!(Text as any).defaultProps) (Text as any).defaultProps = {};
 (Text as any).defaultProps.style = { fontFamily: 'KantumruyPro-Regular' };
 if (!(TextInput as any).defaultProps) (TextInput as any).defaultProps = {};
 (TextInput as any).defaultProps.style = { fontFamily: 'KantumruyPro-Regular' };
-
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuthStore } from '@/store/authStore';
-import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
-import Toast from 'react-native-toast-message';
-import { OfflineNotice } from '@/components/common/OfflineNotice';
-import * as Sentry from '@sentry/react-native';
-import { PostHogProvider } from 'posthog-react-native';
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || "https://688d3cbe50b27f2509ee7fd9ac59b6bf@o4511473384030208.ingest.us.sentry.io/4511473386651649",

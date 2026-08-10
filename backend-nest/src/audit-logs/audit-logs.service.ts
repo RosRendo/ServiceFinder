@@ -75,4 +75,12 @@ export class AuditLogsService {
       },
     };
   }
+
+  async deleteLogs(ids: string[]) {
+    const bigIntIds = ids.map((id) => BigInt(id));
+    const { count } = await this.prisma.auditLog.deleteMany({
+      where: { id: { in: bigIntIds } },
+    });
+    return { message: `${count} audit log(s) deleted successfully.`, count };
+  }
 }

@@ -174,8 +174,20 @@ export default function CategoriesPage() {
     }
   ];
 
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} categor${selectedIds.size === 1 ? 'y' : 'ies'}? This cannot be undone.`)) return;
+    try {
+      await Promise.all(Array.from(selectedIds).map((id) => api.delete(`/categories/${id}`)));
+      toast({ title: "Deleted", description: `${selectedIds.size} categor${selectedIds.size === 1 ? 'y' : 'ies'} deleted.` });
+      setSelectedIds(new Set());
+      fetchCategories();
+    } catch {
+      toast({ title: "Error", description: "Failed to delete one or more categories.", variant: "destructive" });
+    }
+  };
+
   const bulkActions = [
-    { label: "Delete Selected", icon: Trash2, onClick: () => toast({ title: "Info", description: "Bulk delete coming soon" }), variant: "danger" as const },
+    { label: "Delete Selected", icon: Trash2, onClick: handleBulkDelete, variant: "danger" as const },
   ];
 
   return (

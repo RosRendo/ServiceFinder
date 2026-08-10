@@ -7,12 +7,12 @@ import {
   Platform,
 } from "react-native";
 import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
-const FlashList = ShopifyFlashList as any;
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useNotificationStore, AppNotification, NotificationType } from "@/store/notificationStore";
 import { Theme } from "@/constants/theme";
+const FlashList = ShopifyFlashList as any;
 
 const T = Theme.colors;
 

@@ -28,6 +28,9 @@ let AuditLogsController = class AuditLogsController {
     getAllLogs(query) {
         return this.auditLogsService.getAllLogs(query);
     }
+    deleteLogs(body) {
+        return this.auditLogsService.deleteLogs(body.ids);
+    }
 };
 exports.AuditLogsController = AuditLogsController;
 __decorate([
@@ -39,6 +42,15 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AuditLogsController.prototype, "getAllLogs", null);
+__decorate([
+    (0, common_1.Delete)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete audit logs by IDs (Admin only)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Audit logs deleted.' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AuditLogsController.prototype, "deleteLogs", null);
 exports.AuditLogsController = AuditLogsController = __decorate([
     (0, swagger_1.ApiTags)('Audit Logs'),
     (0, common_1.Controller)('audit-logs'),

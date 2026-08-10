@@ -176,8 +176,20 @@ export default function AdminServiceTypesPage() {
     }
   ];
 
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} service type(s)? This cannot be undone.`)) return;
+    try {
+      await Promise.all(Array.from(selectedIds).map((id) => api.delete(`/service-types/${id}`)));
+      toast({ title: "Deleted", description: `${selectedIds.size} service type(s) deleted.` });
+      setSelectedIds(new Set());
+      fetchServiceTypes();
+    } catch {
+      toast({ title: "Error", description: "Failed to delete one or more service types.", variant: "destructive" });
+    }
+  };
+
   const bulkActions = [
-    { label: "Delete Selected", icon: Trash2, onClick: () => toast({ title: "Info", description: "Bulk delete coming soon" }), variant: "danger" as const },
+    { label: "Delete Selected", icon: Trash2, onClick: handleBulkDelete, variant: "danger" as const },
   ];
 
   return (

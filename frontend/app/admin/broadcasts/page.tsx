@@ -25,43 +25,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// Mock data for broadcasts
-const MOCK_BROADCASTS = [
-  {
-    id: "br-101",
-    title: "System Maintenance Notice",
-    message: "The platform will be down for scheduled maintenance on Sunday at 2 AM EST for approximately 2 hours.",
-    audience: "All Users & Companies",
-    audienceType: "all",
-    sentAt: "2026-08-01T14:30:00Z",
-    sentCount: 15420,
-    openRate: 68,
-    status: "sent"
-  },
-  {
-    id: "br-102",
-    title: "New Feature: Instant Payouts",
-    message: "Companies can now opt-in for instant payouts via Wing Bank. Check your billing settings to enable this feature.",
-    audience: "All Companies",
-    audienceType: "companies",
-    sentAt: "2026-07-28T09:15:00Z",
-    sentCount: 450,
-    openRate: 82,
-    status: "sent"
-  },
-  {
-    id: "br-103",
-    title: "Summer Discount Promo Code",
-    message: "Use code SUMMER20 to get 20% off your next cleaning booking! Valid until August 31st.",
-    audience: "All Customers",
-    audienceType: "customers",
-    sentAt: "2026-07-15T11:00:00Z",
-    sentCount: 12800,
-    openRate: 45,
-    status: "sent"
-  }
-];
-
 const audienceLabels: Record<string, string> = {
   all: "All Users & Companies",
   companies: "All Companies",

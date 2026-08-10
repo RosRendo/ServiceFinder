@@ -27,6 +27,18 @@ export default function PayoutsPage() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const exportCSV = (rows: PayoutRow[]) => {
+    if (!rows.length) { toast({ title: "No data", description: "No payouts to export.", variant: "destructive" }); return; }
+    const header = "ID,Recipient,Type,Amount,Method,Status,Date";
+    const lines = rows.map((p) =>
+      `${p.id},"${p.recipient}",${p.type},$${p.amount.toFixed(2)},${p.method},${p.status},${p.scheduledDate}`
+    );
+    const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `payouts-${Date.now()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const fetchPayouts = async () => {
     setLoading(true);
     try {
@@ -149,8 +161,18 @@ export default function PayoutsPage() {
 
       <BulkActionBar selectedCount={selectedIds.size} onClear={() => setSelectedIds(new Set())}
         actions={[
-          { icon: RotateCcw, label: "Retry Payout", onClick: () => {} },
-          { icon: Download, label: "Export CSV", onClick: () => {} },
+          { icon: RotateCcw, label: "Process Payout", onClick: async () => {
+            if (!confirm(`Mark ${selectedIds.size} payout(s) as completed/processed?`)) return;
+            try {
+              await Promise.all(Array.from(selectedIds).map((id) => api.patch(`/admin/payouts/${id}/process`, {})));
+              toast({ title: "Payouts Processed", description: `${selectedIds.size} payout(s) processed successfully.` });
+              setSelectedIds(new Set()); fetchPayouts();
+            } catch { toast({ title: "Error", description: "Failed to process one or more payouts.", variant: "destructive" }); }
+          }},
+          { icon: Download, label: "Export CSV", onClick: () => {
+            const selected = payouts.filter((p) => selectedIds.has(p.id));
+            exportCSV(selected.length ? selected : payouts);
+          }},
         ]} />
     </div>
   );

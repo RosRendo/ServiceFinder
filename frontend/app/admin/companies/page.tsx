@@ -24,6 +24,19 @@ export default function CompaniesPage() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const exportCSV = () => {
+    const rows = mappedCompanies.filter((c) => !selectedIds.size || selectedIds.has(c.id));
+    if (!rows.length) { toast({ title: "No data", description: "No companies to export.", variant: "destructive" }); return; }
+    const header = "ID,Name,Owner,Phone,Staff Count,Platform Fee,Rating,Total Revenue,Total Bookings,Status";
+    const lines = rows.map((c) =>
+      `${c.id},"${c.name}","${c.owner}","${c.phone}",${c.staffCount},${c.platformFee}%,${c.rating},${c.totalRevenue},${c.totalBookings},${c.status}`
+    );
+    const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `companies-${Date.now()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const fetchCompanies = async () => {
     setLoading(true);
     try {
@@ -179,7 +192,7 @@ export default function CompaniesPage() {
               fetchCompanies();
             }
           },
-          { icon: Download, label: "Export CSV", onClick: () => {} },
+          { icon: Download, label: "Export CSV", onClick: exportCSV },
         ]} />
 
       <AddCompanyModal open={addModalOpen} onClose={() => setAddModalOpen(false)} onSuccess={fetchCompanies} />

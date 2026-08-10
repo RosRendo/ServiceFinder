@@ -105,10 +105,70 @@ export default function AdminReportsPage() {
 
   const handleExport = (reportId: string) => {
     setIsExporting(reportId);
-    setTimeout(() => {
-      setIsExporting(null);
+    try {
+      let csvContent = "";
+      let filename = `${reportId.replace(/\s+/g, "_")}-${Date.now()}.csv`;
+      
+      if (reportId.includes("Ledger") || reportId.includes("Transaction")) {
+        const header = "Date,ID,Customer,Company,Amount,Fee,Status\n";
+        const txs = toArray(txData);
+        const lines = txs.map((t: any) => {
+          const date = t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '';
+          const id = t.bookingId ? `BK-${t.bookingId}` : t.id;
+          const customer = t.booking?.customer?.fullName || t.customerName || 'Unknown';
+          const company = t.booking?.company?.name      || t.companyName  || 'Unknown';
+          const amount = Number(t.amount || 0);
+          const fee = Number(t.platformFee || t.fee || t.booking?.platformFee || 0);
+          const status = t.status || 'Unknown';
+          return `"${date}","${id}","${customer}","${company}",${amount},${fee},"${status}"`;
+        });
+        csvContent = header + lines.join("\n");
+      } else if (reportId.includes("Payout") || reportId.includes("Platform Disbursement") || reportId.includes("Disbursement")) {
+        const header = "Company/Recipient,Jobs Completed,Gross Amount,Platform Fee,Net Payout\n";
+        const payouts = toArray(payoutsData);
+        const lines = payouts.map((p: any) => {
+          const company = p.company?.name || p.recipientName || 'Unknown';
+          const jobs = p.jobsCompleted || 0;
+          const gross = Number(p.grossAmount || p.amount || 0);
+          const fee = Number(p.platformFee || 0);
+          const payout = Number(p.netAmount   || p.amount || 0);
+          return `"${company}",${jobs},${gross},${fee},${payout}`;
+        });
+        csvContent = header + lines.join("\n");
+      } else if (reportId.includes("Tax")) {
+        const header = "Metric,Value\n";
+        const lines = [
+          `"Estimated Taxable Volume",${totalRevenue}`,
+          `"Tax Collected (10%)",${incomeStatement.revenue * 0.1}`,
+          `"Tax Remitted (6.8%)",${incomeStatement.revenue * 0.068}`,
+          `"Tax Due (3.2%)",${incomeStatement.revenue * 0.032}`
+        ];
+        csvContent = header + lines.join("\n");
+      } else {
+        // Fallback: Income Statement / P&L
+        const header = "Category,Detail,Amount\n";
+        const lines = [
+          `"Platform Revenue","Direct earnings",${platformRevenue}`,
+          `"Expenses","Payment Gateway Fees",${-gatewayFee}`,
+          `"Net Profit","Final margin",${platformRevenue - gatewayFee}`
+        ];
+        csvContent = header + lines.join("\n");
+      }
+      
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       toast.success(`${reportId} has been successfully downloaded.`);
-    }, 1500);
+    } catch (e) {
+      toast.error(`Failed to export ${reportId}`);
+    } finally {
+      setIsExporting(null);
+    }
   };
 
   return (

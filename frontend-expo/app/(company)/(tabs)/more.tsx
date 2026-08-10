@@ -38,12 +38,12 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
     title: "Operations (What's happening today?)",
     items: [
       { id: 101, title: "Today's Booking",      subtitle: "Real-time job statuses",         icon: "calendar-today",        action: "route", route: "/(company)/(tabs)/dashboard" },
-      { id: 102, title: "Pending Approval",     subtitle: "Bookings awaiting acceptance",   icon: "check-decagram-outline",action: "route", route: "/(company)/pending" },
+      { id: 102, title: "Pending Approval",     subtitle: "Bookings awaiting acceptance",   icon: "check-decagram-outline",action: "route", route: "/(company)/(tabs)/operations" },
       { id: 103, title: "Dispatch Staff",       subtitle: "Move jobs to available workers", icon: "truck-fast-outline",    action: "route", route: "/(company)/(tabs)/staff" },
       { id: 104, title: "Staff Availability",   subtitle: "Who is online right now",        icon: "account-clock-outline", action: "route", route: "/(company)/(tabs)/staff" },
       { id: 105, title: "Coverage",             subtitle: "Geofence / service radius",      icon: "map-marker-radius",     action: "route", route: "/(company)/coverage" },
-      { id: 106, title: "Attendance",           subtitle: "Clock-in / Clock-out tracking",  icon: "fingerprint",           action: "route", route: "/(company)/attendance" },
-      { id: 107, title: "Schedules",            subtitle: "Shift planning",                 icon: "calendar-month-outline",action: "route", route: "/(company)/schedules" },
+      { id: 106, title: "Attendance",           subtitle: "Clock-in / Clock-out tracking",  icon: "fingerprint",           action: "route", route: "/(company)/(tabs)/staff" },
+      { id: 107, title: "Schedules",            subtitle: "Shift planning",                 icon: "calendar-month-outline",action: "route", route: "/(company)/settings" },
       { id: 108, title: "Available Jobs",        subtitle: "Claim open pool bookings",       icon: "hand-pointing-right",   action: "route", route: "/(company)/available-jobs" },
     ],
   },
@@ -94,7 +94,7 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
     items: [
       { id: 701, title: "Password",             subtitle: "Account protection",             icon: "lock-outline",          action: "route", route: "/(company)/change-password" },
       { id: 702, title: "2FA",                  subtitle: "Multi-factor authentication",    icon: "shield-lock-outline",   action: "mfa" },
-      { id: 703, title: "Legal",                subtitle: "TOS & Privacy policies",         icon: "scale-balance",         action: "route", route: "/(company)/legal" },
+      { id: 703, title: "Legal",                subtitle: "TOS & Privacy policies",         icon: "scale-balance",         action: "route", route: "/(company)/settings" },
     ],
   },
 ];

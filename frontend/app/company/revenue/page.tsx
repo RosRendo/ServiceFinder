@@ -17,29 +17,6 @@ import api from "@/lib/api/client";
 
 
 
-const serviceData = [
-  { name: 'Deep Cleaning', revenue: 14200, percentage: 85 },
-  { name: 'Office Cleaning', revenue: 10100, percentage: 65 },
-  { name: 'Move Out', revenue: 7600, percentage: 45 },
-  { name: 'Window Cleaning', revenue: 4200, percentage: 25 },
-];
-
-const staffData = [
-  { id: 1, name: 'Alice Smith', avatar: '', jobs: 198, revenue: 8420, rating: 4.8, badge: '🥇' },
-  { id: 2, name: 'Bob Johnson', avatar: '', jobs: 184, revenue: 7950, rating: 4.9, badge: '🥈' },
-  { id: 3, name: 'Charlie Davis', avatar: '', jobs: 171, revenue: 6980, rating: 4.7, badge: '🥉' },
-  { id: 4, name: 'Diana Prince', avatar: '', jobs: 142, revenue: 5800, rating: 4.9, badge: null },
-  { id: 5, name: 'Evan Wright', avatar: '', jobs: 120, revenue: 4500, rating: 4.6, badge: null },
-];
-
-const transactions = [
-  { id: 'BK-2841', date: '2023-08-01T10:00:00Z', customer: 'John Doe', staff: 'Alice Smith', gross: 120, fee: 12, net: 108, payment: 'Wing KHQR', status: 'paid' },
-  { id: 'BK-2842', date: '2023-08-01T11:30:00Z', customer: 'Sarah Connor', staff: 'Bob Johnson', gross: 240, fee: 24, net: 216, payment: 'PayPal', status: 'paid' },
-  { id: 'BK-2843', date: '2023-08-01T14:15:00Z', customer: 'Mike Ross', staff: 'Charlie Davis', gross: 85, fee: 8.5, net: 76.5, payment: 'Wing KHQR', status: 'pending' },
-  { id: 'BK-2844', date: '2023-08-01T16:00:00Z', customer: 'Harvey Specter', staff: 'Alice Smith', gross: 450, fee: 45, net: 405, payment: 'Bank Transfer', status: 'paid' },
-  { id: 'BK-2845', date: '2023-08-02T09:00:00Z', customer: 'Rachel Zane', staff: 'Diana Prince', gross: 150, fee: 15, net: 135, payment: 'Wing KHQR', status: 'refunded' },
-];
-
 export default function CompanyRevenuePage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);

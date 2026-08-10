@@ -10,9 +10,9 @@ import { useRouter, useFocusEffect } from "expo-router";
 import api from "@/utils/api";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
-const FlashList = ShopifyFlashList as any;
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
+const FlashList = ShopifyFlashList as any;
 
 const T = Theme.colors;
 

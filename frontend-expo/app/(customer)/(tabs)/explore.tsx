@@ -393,8 +393,8 @@ export default function Explore() {
         fetchExploreData({ lat: loc.coords.latitude, lng: loc.coords.longitude });
         return;
       }
-    } catch (e) {
-      console.log('Location error:', e);
+    } catch {
+      // Location unavailable — fall back to non-geolocation fetch
     }
     fetchExploreData();
   };

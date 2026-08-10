@@ -196,8 +196,20 @@ export default function PromotionsPage() {
     }
   ];
 
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} promo code(s)? This cannot be undone.`)) return;
+    try {
+      await Promise.all(Array.from(selectedIds).map((id) => api.delete(`/promo-codes/${id}`)));
+      toast({ title: "Deleted", description: `${selectedIds.size} promo code(s) deleted.` });
+      setSelectedIds(new Set());
+      fetchPromos();
+    } catch {
+      toast({ title: "Error", description: "Failed to delete one or more promo codes.", variant: "destructive" });
+    }
+  };
+
   const bulkActions = [
-    { label: "Delete Selected", icon: Trash2, onClick: () => toast({ title: "Info", description: "Bulk delete coming soon" }), variant: "danger" as const },
+    { label: "Delete Selected", icon: Trash2, onClick: handleBulkDelete, variant: "danger" as const },
   ];
 
   return (

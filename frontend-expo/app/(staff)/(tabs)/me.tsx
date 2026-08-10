@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../store/authStore';
@@ -46,13 +46,44 @@ export default function MeScreen() {
         {/* Section: Support */}
         <Text style={s.sectionTitle}>Support</Text>
         <View style={s.card}>
-          <TouchableOpacity style={s.rowItem}>
+          <TouchableOpacity 
+            style={s.rowItem} 
+            onPress={() => {
+              Alert.alert(
+                "Contact Dispatch",
+                "Start a chat with your company admin or call the dispatch team.",
+                [
+                  { text: "Start Chat", onPress: () => router.push('/(staff)/messages/new' as any) },
+                  { text: "Call Dispatch", onPress: () => Alert.alert("Dialing", "Dialing dispatch hotline: +1 (555) 019-2834...") },
+                  { text: "Cancel", style: "cancel" }
+                ]
+              );
+            }}
+          >
             <MaterialCommunityIcons name="headphones" size={24} color={T.text2} />
             <Text style={s.rowText}>Contact Dispatch</Text>
             <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
           <View style={s.divider} />
-          <TouchableOpacity style={s.rowItem}>
+          <TouchableOpacity 
+            style={s.rowItem}
+            onPress={() => {
+              Alert.alert(
+                "Report Emergency",
+                "Do you want to alert your dispatcher or call local emergency services?",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "Call 911", style: "destructive", onPress: () => Alert.alert("Calling Emergency", "Dialing emergency services...") },
+                  { 
+                    text: "Alert Dispatcher", 
+                    onPress: () => {
+                      Alert.alert("Alert Sent", "An emergency alert has been sent to your company dispatch desk. Stay safe.");
+                    } 
+                  }
+                ]
+              );
+            }}
+          >
             <MaterialCommunityIcons name="shield-alert-outline" size={24} color={T.danger} />
             <Text style={[s.rowText, { color: T.danger }]}>Report Emergency</Text>
           </TouchableOpacity>

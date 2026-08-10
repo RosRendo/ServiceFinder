@@ -7,6 +7,8 @@ import { BulkActionBar } from "@/components/grid/BulkActionBar";
 import { UserDrawer, UserRow } from "@/components/drawers/UserDrawer";
 import { CreateUserDrawer } from "@/components/drawers/CreateUserDrawer";
 import { Search, Loader2, Users, Download, Plus, Trash2, Ban, Eye } from "lucide-react";
+import { useToast } from "@/lib/hooks/use-toast";
+import api from "@/lib/api/client";
 
 const ROLE_OPTIONS = [
   { label: "All Roles", value: "all" },
@@ -26,6 +28,7 @@ export default function UsersPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => { fetchUsers(); }, []);
 
@@ -93,10 +96,38 @@ export default function UsersPage() {
     }
   ];
 
+  const handleSuspend = async () => {
+    if (!window.confirm(`Suspend ${selectedIds.size} user(s)? They will lose platform access immediately.`)) return;
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map((id) => api.post(`/admin/users/${id}/suspend`))
+      );
+      toast({ title: "Users Suspended", description: `${selectedIds.size} user(s) suspended successfully.` });
+      setSelectedIds(new Set());
+      fetchUsers();
+    } catch {
+      toast({ title: "Error", description: "Failed to suspend one or more users.", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Permanently delete ${selectedIds.size} user(s)? This cannot be undone.`)) return;
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map((id) => api.delete(`/users/${id}`))
+      );
+      toast({ title: "Users Deleted", description: `${selectedIds.size} user(s) deleted successfully.` });
+      setSelectedIds(new Set());
+      fetchUsers();
+    } catch {
+      toast({ title: "Error", description: "Failed to delete one or more users.", variant: "destructive" });
+    }
+  };
+
   const bulkActions = [
     ...(selectedIds.size === 1 ? [{ label: "View Detail", icon: Eye, onClick: () => router.push(`/admin/users/${Array.from(selectedIds)[0]}`) }] : []),
-    { label: "Suspend", icon: Ban, onClick: () => console.log("Suspend", selectedIds) },
-    { label: "Delete", icon: Trash2, onClick: () => console.log("Delete", selectedIds), variant: "danger" as const },
+    { label: "Suspend", icon: Ban, onClick: handleSuspend },
+    { label: "Delete", icon: Trash2, onClick: handleDelete, variant: "danger" as const },
   ];
 
   return (

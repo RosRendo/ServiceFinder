@@ -8,11 +8,10 @@ import {
   ActivityIndicator, Alert
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter , useFocusEffect } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { api } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
-import { useFocusEffect } from "expo-router";
 
 const T = Theme.colors;
 

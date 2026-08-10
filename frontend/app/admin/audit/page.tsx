@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { Search, Download, Trash2, Calendar, FileText } from "lucide-react";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { toast } from "sonner";
 
 const ACTION_LABELS: Record<string, { label: string; class: string }> = {
   company_approved: { label: "Company Approved", class: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
@@ -126,8 +127,25 @@ export default function AuditLogsPage() {
     }
   ];
 
+  const handleDeleteLogs = async () => {
+    if (!window.confirm(`Permanently delete ${selectedIds.size} audit log(s)? This cannot be undone.`)) return;
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/audit-logs`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+      setLogs((prev) => prev.filter((l) => !selectedIds.has(l.id)));
+      setSelectedIds(new Set());
+      toast.success(`${selectedIds.size} log(s) deleted.`);
+    } catch {
+      toast.error("Failed to delete audit logs.");
+    }
+  };
+
   const bulkActions = [
-    { label: "Delete Logs", icon: Trash2, onClick: () => console.log("Delete logs", selectedIds), variant: "danger" as const },
+    { label: "Delete Logs", icon: Trash2, onClick: handleDeleteLogs, variant: "danger" as const },
   ];
 
   return (

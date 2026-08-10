@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { ScrollView, Text, View, TouchableOpacity, RefreshControl, ActivityIndicator, Alert, StyleSheet, Animated, Easing, Pressable, Platform, Dimensions } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, RefreshControl, ActivityIndicator, Alert, StyleSheet, Animated, Easing, Pressable, Platform, Dimensions , Share } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -8,7 +8,6 @@ import { api, useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
 import ScaleButton from "@/components/ScaleButton";
-import { Share } from "react-native";
 
 const T = Theme.colors;
 const { width } = Dimensions.get('window');

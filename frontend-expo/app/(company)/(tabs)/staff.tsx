@@ -10,9 +10,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { api } from "@/store/authStore";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
-const FlashList = ShopifyFlashList as any;
 import { Theme } from "@/constants/theme";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+const FlashList = ShopifyFlashList as any;
 
 const T = Theme.colors;
 

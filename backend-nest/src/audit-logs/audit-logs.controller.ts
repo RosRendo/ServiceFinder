@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Delete, Query, Body, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -23,5 +23,12 @@ export class AuditLogsController {
   @ApiResponse({ status: 200, description: 'Return all audit logs.' })
   getAllLogs(@Query() query: any) {
     return this.auditLogsService.getAllLogs(query);
+  }
+
+  @Delete()
+  @ApiOperation({ summary: 'Delete audit logs by IDs (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Audit logs deleted.' })
+  deleteLogs(@Body() body: { ids: string[] }) {
+    return this.auditLogsService.deleteLogs(body.ids);
   }
 }

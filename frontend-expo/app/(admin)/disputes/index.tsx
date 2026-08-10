@@ -8,8 +8,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import api from "@/utils/api";
 import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
-const FlashList = ShopifyFlashList as any;
 import { Theme } from "@/constants/theme";
+const FlashList = ShopifyFlashList as any;
 
 const T = Theme.colors;
 
