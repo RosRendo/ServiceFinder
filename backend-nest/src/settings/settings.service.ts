@@ -59,7 +59,7 @@ export class SettingsService {
     });
 
     await Promise.all(updates);
-    
+
     this.eventEmitter.emit('settings.updated', dto);
 
     return { message: 'Settings updated successfully' };

@@ -99,11 +99,24 @@ let AdminService = class AdminService {
                     createdAt: true,
                     status: true,
                     totalPrice: true,
-                    service: { select: { serviceType: { select: { name: true } } } }
+                    service: { select: { serviceType: { select: { name: true } } } },
                 },
             }),
         ]);
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthNames = [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec',
+        ];
         const months = [];
         for (let i = 5; i >= 0; i--) {
             const d = new Date();
@@ -114,13 +127,18 @@ let AdminService = class AdminService {
             });
         }
         const registrationTrend = months.map((m) => {
-            const uCount = recentUsers.filter(u => `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` === m.monthKey).length;
-            const cCount = recentCompanies.filter(c => `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` === m.monthKey).length;
+            const uCount = recentUsers.filter((u) => `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` ===
+                m.monthKey).length;
+            const cCount = recentCompanies.filter((c) => `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` ===
+                m.monthKey).length;
             return { name: m.name, users: uCount, companies: cCount };
         });
         const monthlyData = months.map((m) => {
-            const bks = recentBookings.filter(b => `${b.createdAt.getFullYear()}-${b.createdAt.getMonth()}` === m.monthKey);
-            const rev = bks.filter(b => b.status === 'completed').reduce((sum, b) => sum + Number(b.totalPrice || 0), 0);
+            const bks = recentBookings.filter((b) => `${b.createdAt.getFullYear()}-${b.createdAt.getMonth()}` ===
+                m.monthKey);
+            const rev = bks
+                .filter((b) => b.status === 'completed')
+                .reduce((sum, b) => sum + Number(b.totalPrice || 0), 0);
             return { name: m.name, revenue: rev, bookings: bks.length };
         });
         const statuses = await this.prisma.booking.groupBy({
@@ -155,8 +173,9 @@ let AdminService = class AdminService {
                 },
             },
         });
-        const satColors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
-        const categorySaturationData = serviceTypes.map((st, i) => {
+        const satColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+        const categorySaturationData = serviceTypes
+            .map((st, i) => {
             const uniqueCompanies = new Set(st.services.map((s) => s.companyId.toString()));
             const count = uniqueCompanies.size;
             let status = 'Balanced';
@@ -174,21 +193,43 @@ let AdminService = class AdminService {
                 fill: satColors[i % satColors.length],
                 status,
             };
-        }).sort((a, b) => b.value - a.value).slice(0, 5);
+        })
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5);
         const thisMonthKey = months[5].monthKey;
         const lastMonthKey = months[4].monthKey;
-        const usersThisMonth = recentUsers.filter(u => `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` === thisMonthKey).length;
-        const usersLastMonth = recentUsers.filter(u => `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` === lastMonthKey).length;
-        const usersGrowth = usersLastMonth ? Number(((usersThisMonth - usersLastMonth) / usersLastMonth * 100).toFixed(1)) : (usersThisMonth > 0 ? 100 : 0);
-        const compThisMonth = recentCompanies.filter(c => `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` === thisMonthKey).length;
-        const compLastMonth = recentCompanies.filter(c => `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` === lastMonthKey).length;
-        const companiesGrowth = compLastMonth ? Number(((compThisMonth - compLastMonth) / compLastMonth * 100).toFixed(1)) : (compThisMonth > 0 ? 100 : 0);
+        const usersThisMonth = recentUsers.filter((u) => `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` ===
+            thisMonthKey).length;
+        const usersLastMonth = recentUsers.filter((u) => `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` ===
+            lastMonthKey).length;
+        const usersGrowth = usersLastMonth
+            ? Number((((usersThisMonth - usersLastMonth) / usersLastMonth) * 100).toFixed(1))
+            : usersThisMonth > 0
+                ? 100
+                : 0;
+        const compThisMonth = recentCompanies.filter((c) => `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` ===
+            thisMonthKey).length;
+        const compLastMonth = recentCompanies.filter((c) => `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` ===
+            lastMonthKey).length;
+        const companiesGrowth = compLastMonth
+            ? Number((((compThisMonth - compLastMonth) / compLastMonth) * 100).toFixed(1))
+            : compThisMonth > 0
+                ? 100
+                : 0;
         const revThisMonth = monthlyData[5].revenue;
         const revLastMonth = monthlyData[4].revenue;
-        const revenueGrowth = revLastMonth ? Number(((revThisMonth - revLastMonth) / revLastMonth * 100).toFixed(1)) : (revThisMonth > 0 ? 100 : 0);
+        const revenueGrowth = revLastMonth
+            ? Number((((revThisMonth - revLastMonth) / revLastMonth) * 100).toFixed(1))
+            : revThisMonth > 0
+                ? 100
+                : 0;
         const bksThisMonth = monthlyData[5].bookings;
         const bksLastMonth = monthlyData[4].bookings;
-        const bookingsGrowth = bksLastMonth ? Number(((bksThisMonth - bksLastMonth) / bksLastMonth * 100).toFixed(1)) : (bksThisMonth > 0 ? 100 : 0);
+        const bookingsGrowth = bksLastMonth
+            ? Number((((bksThisMonth - bksLastMonth) / bksLastMonth) * 100).toFixed(1))
+            : bksThisMonth > 0
+                ? 100
+                : 0;
         const weeklyStats = [];
         const today = new Date();
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -403,7 +444,7 @@ let AdminService = class AdminService {
                 services: true,
                 bookings: {
                     select: { id: true, totalPrice: true, status: true, createdAt: true },
-                }
+                },
             },
         });
         if (!company) {
@@ -422,9 +463,11 @@ let AdminService = class AdminService {
                 id: s.id.toString(),
                 userId: s.userId.toString(),
                 companyId: s.companyId?.toString(),
-                user: s.user ? {
-                    ...s.user,
-                } : null,
+                user: s.user
+                    ? {
+                        ...s.user,
+                    }
+                    : null,
             })),
             services: company.services.map((s) => ({
                 ...s,
@@ -436,7 +479,7 @@ let AdminService = class AdminService {
                 id: b.id.toString(),
                 totalPrice: b.totalPrice ? Number(b.totalPrice) : 0,
                 status: b.status,
-            }))
+            })),
         };
     }
     async updateCompany(id, dto) {
@@ -642,7 +685,9 @@ let AdminService = class AdminService {
         });
     }
     async processRefund(paymentId, body) {
-        const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+        const payment = await this.prisma.payment.findUnique({
+            where: { id: paymentId },
+        });
         if (!payment)
             throw new common_2.NotFoundException('Payment not found');
         const updatedPayment = await this.prisma.payment.update({
@@ -684,7 +729,9 @@ let AdminService = class AdminService {
         const bookingMap = new Map(bookings.map((b) => [b.id.toString(), b]));
         return {
             data: transactions.map((t) => {
-                const booking = t.bookingId ? bookingMap.get(t.bookingId.toString()) : null;
+                const booking = t.bookingId
+                    ? bookingMap.get(t.bookingId.toString())
+                    : null;
                 return {
                     ...t,
                     id: t.id.toString(),
@@ -789,15 +836,19 @@ let AdminService = class AdminService {
                     id: i.booking.id.toString(),
                     customerId: i.booking.customerId.toString(),
                     companyId: i.booking.companyId.toString(),
-                    customer: i.booking.customer ? {
-                        ...i.booking.customer,
-                        id: i.booking.customer.id.toString(),
-                    } : null,
-                    company: i.booking.company ? {
-                        ...i.booking.company,
-                        id: i.booking.company.id.toString(),
-                        ownerId: i.booking.company.ownerId?.toString(),
-                    } : null,
+                    customer: i.booking.customer
+                        ? {
+                            ...i.booking.customer,
+                            id: i.booking.customer.id.toString(),
+                        }
+                        : null,
+                    company: i.booking.company
+                        ? {
+                            ...i.booking.company,
+                            id: i.booking.company.id.toString(),
+                            ownerId: i.booking.company.ownerId?.toString(),
+                        }
+                        : null,
                 },
             })),
             meta: { total, page: Number(page), limit: take },
@@ -943,23 +994,23 @@ let AdminService = class AdminService {
     async seedEmailTemplates() {
         const defaultTemplates = [
             {
-                templateId: "welcome",
-                name: "Welcome Email",
-                description: "Sent when a user signs up",
-                subject: "Welcome to ServiceFinder, {{user_name}}!",
+                templateId: 'welcome',
+                name: 'Welcome Email',
+                description: 'Sent when a user signs up',
+                subject: 'Welcome to ServiceFinder, {{user_name}}!',
                 body: "Hi {{user_name}},\n\nWelcome to ServiceFinder! We're thrilled to have you on board.\n\nBest,\nThe ServiceFinder Team",
-                variables: ["user_name", "company_name", "login_url"],
-                status: "active"
+                variables: ['user_name', 'company_name', 'login_url'],
+                status: 'active',
             },
             {
-                templateId: "password_reset",
-                name: "Password Reset",
-                description: "Sent when a user requests a password reset",
-                subject: "Reset Your Password - ServiceFinder",
-                body: "Hi {{user_name}},\n\nWe received a request to reset your password. Click the link below to choose a new one:\n\n{{reset_url}}\n\nIf you did not request this, please ignore this email.\n\nBest,\nThe ServiceFinder Team",
-                variables: ["user_name", "reset_url", "expiry_time"],
-                status: "active"
-            }
+                templateId: 'password_reset',
+                name: 'Password Reset',
+                description: 'Sent when a user requests a password reset',
+                subject: 'Reset Your Password - ServiceFinder',
+                body: 'Hi {{user_name}},\n\nWe received a request to reset your password. Click the link below to choose a new one:\n\n{{reset_url}}\n\nIf you did not request this, please ignore this email.\n\nBest,\nThe ServiceFinder Team',
+                variables: ['user_name', 'reset_url', 'expiry_time'],
+                status: 'active',
+            },
         ];
         for (const t of defaultTemplates) {
             await this.prisma.emailTemplate.upsert({
@@ -983,7 +1034,7 @@ let AdminService = class AdminService {
             expiry_time: '15 minutes',
             login_url: 'https://example.com/login',
             date: '2023-10-25',
-            time: '14:00'
+            time: '14:00',
         };
         if (dto.variables && Array.isArray(dto.variables)) {
             dto.variables.forEach((v) => {
@@ -1000,14 +1051,14 @@ let AdminService = class AdminService {
             return {
                 success: true,
                 message: 'Test email logic triggered and email sent',
-                preview: { subject, body }
+                preview: { subject, body },
             };
         }
         catch (e) {
             return {
                 success: false,
                 message: 'Failed to send test email: ' + e.message,
-                preview: { subject, body }
+                preview: { subject, body },
             };
         }
     }

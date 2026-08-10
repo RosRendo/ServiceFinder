@@ -77,7 +77,12 @@ export class CompaniesController {
   @ApiOperation({ summary: 'Update current user company details' })
   async updateMyCompany(@CurrentUser() user: any, @Body() body: any) {
     const company = await this.companiesService.getMyCompany(BigInt(user.id));
-    return this.companiesService.updateCompany(company.id, BigInt(user.id), user.role, body);
+    return this.companiesService.updateCompany(
+      company.id,
+      BigInt(user.id),
+      user.role,
+      body,
+    );
   }
 
   @Get('my-company/metrics')
@@ -122,7 +127,10 @@ export class CompaniesController {
     @Param('customerId') customerId: string,
   ) {
     const company = await this.companiesService.getMyCompany(BigInt(user.id));
-    return this.companiesService.getCompanyCustomerDetail(company.id, BigInt(customerId));
+    return this.companiesService.getCompanyCustomerDetail(
+      company.id,
+      BigInt(customerId),
+    );
   }
 
   @Get('my-company/reviews')
@@ -130,7 +138,10 @@ export class CompaniesController {
   @Roles('company_admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current company reviews' })
-  @ApiResponse({ status: 200, description: 'Return list of reviews for the current company.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return list of reviews for the current company.',
+  })
   async getMyCompanyReviews(@CurrentUser() user: any, @Query() query: any) {
     const company = await this.companiesService.getMyCompany(BigInt(user.id));
     if (!company) {
@@ -144,13 +155,19 @@ export class CompaniesController {
   @Roles('company_admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current company review detail' })
-  @ApiResponse({ status: 200, description: 'Return review detail for the current company.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return review detail for the current company.',
+  })
   async getMyCompanyReview(
     @CurrentUser() user: any,
     @Param('reviewId') reviewId: string,
   ) {
     const company = await this.companiesService.getMyCompany(BigInt(user.id));
-    return this.companiesService.getCompanyReviewDetail(company.id, BigInt(reviewId));
+    return this.companiesService.getCompanyReviewDetail(
+      company.id,
+      BigInt(reviewId),
+    );
   }
 
   @Get('my-company/revenue')
@@ -158,7 +175,10 @@ export class CompaniesController {
   @Roles('company_admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current company revenue data' })
-  @ApiResponse({ status: 200, description: 'Return revenue data for the current company.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return revenue data for the current company.',
+  })
   async getMyCompanyRevenue(@CurrentUser() user: any) {
     const company = await this.companiesService.getMyCompany(BigInt(user.id));
     if (!company) {
@@ -172,7 +192,10 @@ export class CompaniesController {
   @Roles('company_admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current company services' })
-  @ApiResponse({ status: 200, description: 'Return services for the current company.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return services for the current company.',
+  })
   async getMyCompanyServices(@CurrentUser() user: any) {
     const company = await this.companiesService.getMyCompany(BigInt(user.id));
     if (!company) {
@@ -186,13 +209,19 @@ export class CompaniesController {
   @Roles('company_admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current company service detail' })
-  @ApiResponse({ status: 200, description: 'Return service detail for the current company.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return service detail for the current company.',
+  })
   async getMyCompanyService(
     @CurrentUser() user: any,
     @Param('serviceId') serviceId: string,
   ) {
     const company = await this.companiesService.getMyCompany(BigInt(user.id));
-    return this.companiesService.getCompanyServiceDetail(company.id, BigInt(serviceId));
+    return this.companiesService.getCompanyServiceDetail(
+      company.id,
+      BigInt(serviceId),
+    );
   }
 
   @Post('my-company/services')
@@ -213,10 +242,14 @@ export class CompaniesController {
   async updateMyCompanyService(
     @CurrentUser() user: any,
     @Param('serviceId') serviceId: string,
-    @Body() body: any
+    @Body() body: any,
   ) {
     const company = await this.companiesService.getMyCompany(BigInt(user.id));
-    return this.companiesService.updateCompanyService(company.id, BigInt(serviceId), body);
+    return this.companiesService.updateCompanyService(
+      company.id,
+      BigInt(serviceId),
+      body,
+    );
   }
 
   @Get('staff/:staffId')
@@ -402,7 +435,6 @@ export class CompaniesController {
     return this.companiesService.getRecommendedCompanies(query);
   }
 
-
   @Get('categories/:categorySlug')
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(30000)
@@ -584,10 +616,7 @@ export class CompaniesController {
   @Roles('company_admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a private staff note' })
-  deleteStaffNote(
-    @Param('noteId') noteId: string,
-    @CurrentUser() user: any,
-  ) {
+  deleteStaffNote(@Param('noteId') noteId: string, @CurrentUser() user: any) {
     return this.companiesService.deleteStaffNote(
       BigInt(noteId),
       BigInt(user.id),

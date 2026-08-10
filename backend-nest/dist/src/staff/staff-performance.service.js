@@ -48,7 +48,7 @@ let StaffPerformanceService = class StaffPerformanceService {
                 where: {
                     assignedStaffId: staffRecord.id,
                     status: 'completed',
-                    bookingDate: { gte: thisWeek }
+                    bookingDate: { gte: thisWeek },
                 },
                 select: { bookingDate: true, staffEarnings: true },
             }),

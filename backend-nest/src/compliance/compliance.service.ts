@@ -25,13 +25,21 @@ export class ComplianceService {
         id: r.id.toString(),
         companyId: r.companyId.toString(),
         companyName: r.company.name,
-        documentType: (
-          r.type === 'business_license' ? 'license' :
-          r.type === 'background_check' ? 'background_check' :
-          r.type === 'insurance' ? 'insurance' : 'id_verification'
-        ),
+        documentType:
+          r.type === 'business_license'
+            ? 'license'
+            : r.type === 'background_check'
+              ? 'background_check'
+              : r.type === 'insurance'
+                ? 'insurance'
+                : 'id_verification',
         documentUrl: r.documentUrl ?? '',
-        status: r.status === 'pending' ? 'pending_review' : r.status === 'verified' ? 'approved' : r.status,
+        status:
+          r.status === 'pending'
+            ? 'pending_review'
+            : r.status === 'verified'
+              ? 'approved'
+              : r.status,
         submittedAt: r.createdAt.toISOString(),
         notes: r.notes ?? '',
       })),
@@ -39,7 +47,12 @@ export class ComplianceService {
   }
 
   async updateStatus(id: number, status: string) {
-    const dbStatus = status === 'approved' ? 'verified' : status === 'pending_review' ? 'pending' : status;
+    const dbStatus =
+      status === 'approved'
+        ? 'verified'
+        : status === 'pending_review'
+          ? 'pending'
+          : status;
     const updated = await this.prisma.complianceReport.update({
       where: { id: BigInt(id) },
       data: { status: dbStatus, reviewedAt: new Date() },

@@ -205,7 +205,9 @@ let BookingsService = class BookingsService {
             throw new common_1.NotFoundException('Service not found');
         if (!service.isActive)
             throw new common_1.BadRequestException('Service is not available');
-        const cleanDate = dto.bookingDate.includes('T') ? dto.bookingDate.split('T')[0] : dto.bookingDate;
+        const cleanDate = dto.bookingDate.includes('T')
+            ? dto.bookingDate.split('T')[0]
+            : dto.bookingDate;
         let parsedTime = dto.startTime.trim();
         if (parsedTime.toLowerCase().includes('m')) {
             const isPM = parsedTime.toLowerCase().includes('pm');
@@ -242,7 +244,7 @@ let BookingsService = class BookingsService {
             where: { companyId: BigInt(dto.companyId), isActive: true },
         });
         let totalSurchargePercent = 0;
-        pricingRules.forEach(rule => {
+        pricingRules.forEach((rule) => {
             let matchesDay = true;
             let matchesTime = true;
             if (rule.dayOfWeek !== null && rule.dayOfWeek !== bookingDay) {

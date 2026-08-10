@@ -52,7 +52,9 @@ let UsersService = class UsersService {
         this.prisma = prisma;
     }
     async createUser(dto) {
-        const existingUser = await this.prisma.user.findUnique({ where: { email: dto.email } });
+        const existingUser = await this.prisma.user.findUnique({
+            where: { email: dto.email },
+        });
         if (existingUser) {
             throw new common_1.ConflictException('User with this email already exists');
         }
@@ -65,7 +67,7 @@ let UsersService = class UsersService {
                 role: dto.role || 'customer',
                 passwordHash,
                 status: 'active',
-            }
+            },
         });
         return { data: user };
     }
@@ -436,7 +438,9 @@ let UsersService = class UsersService {
             throw new common_1.ForbiddenException('Access denied');
         }
         const actionText = `STATUS_CHANGE_${dto.status.toUpperCase()}`;
-        const fullAction = dto.reason ? `${actionText} - Reason: ${dto.reason.substring(0, 100)}` : actionText;
+        const fullAction = dto.reason
+            ? `${actionText} - Reason: ${dto.reason.substring(0, 100)}`
+            : actionText;
         const [user] = await this.prisma.$transaction([
             this.prisma.user.update({
                 where: { id },

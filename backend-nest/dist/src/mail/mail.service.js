@@ -80,7 +80,9 @@ let MailService = MailService_1 = class MailService {
         const smtpUser = settingsMap['smtp_user'] || this.configService.get('SMTP_USER');
         const smtpPass = settingsMap['smtp_pass'] || this.configService.get('SMTP_PASS');
         if (smtpHost) {
-            const port = parseInt(settingsMap['smtp_port'] || this.configService.get('SMTP_PORT') || '465', 10);
+            const port = parseInt(settingsMap['smtp_port'] ||
+                this.configService.get('SMTP_PORT') ||
+                '465', 10);
             this.transporter = nodemailer.createTransport({
                 host: smtpHost,
                 port: port,
@@ -145,11 +147,22 @@ let MailService = MailService_1 = class MailService {
     async sendStaffWelcomeEmail(to, tempPassword, companyName, userName) {
         const loginUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
         const fallback = this.getStaffWelcomeTemplate(userName, companyName, tempPassword, loginUrl);
-        await this.fetchAndSendTemplate('staff_welcome', to, { user_name: userName, company_name: companyName, temp_password: tempPassword, login_url: loginUrl }, fallback);
+        await this.fetchAndSendTemplate('staff_welcome', to, {
+            user_name: userName,
+            company_name: companyName,
+            temp_password: tempPassword,
+            login_url: loginUrl,
+        }, fallback);
     }
     async sendBookingConfirmationEmail(to, customerName, serviceName, companyName, date, time) {
         const fallback = this.getBookingConfirmationTemplate(customerName, serviceName, companyName, date, time);
-        await this.fetchAndSendTemplate('booking_confirmation', to, { customer_name: customerName, service_name: serviceName, company_name: companyName, date, time }, fallback);
+        await this.fetchAndSendTemplate('booking_confirmation', to, {
+            customer_name: customerName,
+            service_name: serviceName,
+            company_name: companyName,
+            date,
+            time,
+        }, fallback);
     }
     async sendNewBookingEmail(to, companyName, serviceName, date, time) {
         const year = new Date().getFullYear();
@@ -177,7 +190,11 @@ let MailService = MailService_1 = class MailService {
         const subject = `Booking Update: ${serviceName}`;
         const text = `Hi ${customerName},\n\nYour booking for ${serviceName} ${statusText}.\n\n© ${year} Service Finder.`;
         const html = `<div style="font-family: sans-serif; padding: 20px;"><h2>Booking Update</h2><p>Hi ${customerName},</p><p>Your booking for <strong>${serviceName}</strong> ${statusText}.</p></div>`;
-        await this.fetchAndSendTemplate('booking_status_changed', to, { customer_name: customerName, service_name: serviceName, status_text: statusText }, { subject, html, text });
+        await this.fetchAndSendTemplate('booking_status_changed', to, {
+            customer_name: customerName,
+            service_name: serviceName,
+            status_text: statusText,
+        }, { subject, html, text });
     }
     async sendCompanyVerifiedEmail(to, companyName, approved) {
         const year = new Date().getFullYear();
@@ -201,9 +218,11 @@ let MailService = MailService_1 = class MailService {
         try {
             const transporter = await this.getTransporter();
             const settings = await this.prisma.systemSetting.findUnique({
-                where: { keyName: 'smtp_from_email' }
+                where: { keyName: 'smtp_from_email' },
             });
-            const fromEmail = settings?.value || this.configService.get('SMTP_FROM_EMAIL') || this.configService.get('SMTP_USER');
+            const fromEmail = settings?.value ||
+                this.configService.get('SMTP_FROM_EMAIL') ||
+                this.configService.get('SMTP_USER');
             await transporter.sendMail({
                 from: '"Service Finder" <' + fromEmail + '>',
                 to,

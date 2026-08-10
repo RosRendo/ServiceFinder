@@ -14,17 +14,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EditCompanyModal } from "@/components/admin/EditCompanyModal";
 import { useToast } from "@/lib/hooks/use-toast";
 import { useAPI } from "@/lib/hooks/useAPI";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api/client";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function AdminCompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
     const router = useRouter();
     const { toast } = useToast();
     const [isActioning, setIsActioning] = useState(false);
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState("overview");
 
     const { data: company, loading, error, refetch } = useAPI(`/api/admin/companies/${resolvedParams.id}`);
 
@@ -95,6 +99,22 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
         commissionPlan: company.platformFeePercent || 15
     };
 
+    const now = new Date();
+    const chartData = Array.from({ length: 6 }).map((_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+        const monthLabel = format(d, 'MMM');
+        
+        const monthBookings = realBookings.filter((b: any) => {
+            if (!b.createdAt) return false;
+            const bDate = new Date(b.createdAt);
+            return bDate.getMonth() === d.getMonth() && bDate.getFullYear() === d.getFullYear();
+        });
+        
+        const revenue = monthBookings.reduce((sum: number, b: any) => sum + (b.totalPrice || 0), 0);
+        
+        return { month: monthLabel, revenue };
+    });
+
     return (
         <div className="h-full overflow-y-auto bg-muted/30 font-sans pb-24 custom-scrollbar">
             {/* 1. Global Header */}
@@ -148,8 +168,8 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                         </div>
                         
                         <div className="flex flex-wrap items-center gap-2">
-                            <Button variant="outline" className="rounded-xl h-9 bg-background shadow-sm text-foreground font-bold">
-                                <Edit2 className="w-4 h-4 mr-2" /> Edit
+                            <Button onClick={() => setEditModalOpen(true)} variant="outline" className="rounded-xl h-9 bg-background shadow-sm text-foreground font-bold hover:bg-muted/50">
+                                <Edit2 className="w-4 h-4 mr-2" /> Edit Profile
                             </Button>
                             {!isVerified && !isSuspended && (
                                 <Button onClick={handleVerify} disabled={isActioning} className="rounded-xl bg-emerald-500 hover:bg-emerald-600 font-bold h-9 shadow-sm text-white">
@@ -168,20 +188,21 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                             <Button variant="outline" className="rounded-xl h-9 bg-background shadow-sm text-foreground font-bold">
                                 <MessageSquare className="w-4 h-4 mr-2" /> Message
                             </Button>
-                            <Button variant="outline" className="rounded-xl h-9 bg-background shadow-sm text-foreground font-bold">
+                            <Button onClick={() => setActiveTab("logs")} variant="outline" className="rounded-xl h-9 bg-background shadow-sm text-foreground font-bold hover:bg-muted/50">
                                 <History className="w-4 h-4 mr-2" /> View Audit Log
                             </Button>
                         </div>
                     </div>
 
                     {/* Tab Navigation */}
-                    <Tabs defaultValue="overview" className="w-full">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <TabsList className="h-12 bg-transparent border-b border-border w-full justify-start rounded-none p-0 gap-6">
                             {[
                                 { id: "overview", label: "Overview" },
                                 { id: "verification", label: "Verification" },
                                 { id: "users", label: "Users" },
                                 { id: "services", label: "Services" },
+                                { id: "analytics", label: "Analytics" },
                                 { id: "finance", label: "Finance" },
                                 { id: "logs", label: "Logs" }
                             ].map(tab => (
@@ -250,7 +271,7 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                                                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Performance Snapshot</span>
                                                 <Link href="/admin/analytics">
                                                     <Button variant="link" className="h-auto p-0 text-[10px] font-bold text-violet-600 uppercase tracking-widest">
-                                                        → Open Company Analytics
+                                                        → Open Full Analytics
                                                     </Button>
                                                 </Link>
                                             </div>
@@ -498,6 +519,63 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                                 </div>
                             </TabsContent>
 
+                            {/* --- TAB: ANALYTICS --- */}
+                            <TabsContent value="analytics" className="m-0 space-y-6">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {[
+                                        { label: "Total Bookings", value: metricsData.bookings.toLocaleString(), icon: Calendar, color: "text-blue-500", bg: "bg-blue-500/10" },
+                                        { label: "Lifetime Revenue", value: `$${(metricsData.revenue).toLocaleString()}`, icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+                                        { label: "Completion Rate", value: `${metricsData.completionRate}%`, icon: CheckCircle2, color: "text-violet-500", bg: "bg-violet-500/10" },
+                                        { label: "Customer Rating", value: `${metricsData.rating}`, icon: Star, color: "text-amber-500", bg: "bg-amber-500/10" },
+                                    ].map((stat, i) => (
+                                        <div key={i} className="bg-background border border-border rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stat.bg}`}>
+                                                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{stat.label}</p>
+                                                <p className="text-2xl font-black text-foreground">{stat.value}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="bg-background rounded-xl border border-border shadow-sm p-6">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-sm font-bold text-foreground">Revenue Trend (6 Months)</h3>
+                                        <select className="h-8 px-2 bg-muted/30 border border-border rounded-lg text-xs font-medium text-foreground outline-none focus:border-violet-500/60">
+                                            <option>Last 6 Months</option>
+                                            <option>This Year</option>
+                                            <option>All Time</option>
+                                        </select>
+                                    </div>
+                                    <div className="h-[350px] w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                <defs>
+                                                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} dy={10} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(val) => `$${val}`} />
+                                                <Tooltip 
+                                                    contentStyle={{ backgroundColor: "hsl(var(--background))", borderRadius: "8px", border: "1px solid hsl(var(--border))", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                                                    itemStyle={{ color: "#8b5cf6", fontWeight: "bold" }}
+                                                    formatter={(value: any) => [`$${value}`, "Revenue"]}
+                                                    labelStyle={{ color: "hsl(var(--muted-foreground))", marginBottom: "4px" }}
+                                                />
+                                                <Area type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </TabsContent>
+
                             {/* --- TAB: FINANCE --- */}
                             <TabsContent value="finance" className="m-0 space-y-6">
                                 <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden p-12 flex flex-col items-center justify-center text-center">
@@ -509,7 +587,6 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                                 </div>
                             </TabsContent>
 
-                            {/* --- TAB: LOGS --- */}
                             <TabsContent value="logs" className="m-0 space-y-6">
                                 <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden p-12 flex flex-col items-center justify-center text-center">
                                     <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-4 border border-border">
@@ -525,6 +602,13 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
 
                 </div>
             </div>
+
+            <EditCompanyModal 
+                open={editModalOpen} 
+                onClose={() => setEditModalOpen(false)} 
+                company={company} 
+                onSuccess={refetch} 
+            />
         </div>
     );
 }

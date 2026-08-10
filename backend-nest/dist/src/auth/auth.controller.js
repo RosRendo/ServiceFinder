@@ -142,7 +142,7 @@ let AuthController = class AuthController {
             message: 'Token refreshed',
             token: accessToken,
             accessToken: accessToken,
-            refreshToken: newRefreshToken
+            refreshToken: newRefreshToken,
         };
     }
     async googleLogin(googleLoginDto, res) {

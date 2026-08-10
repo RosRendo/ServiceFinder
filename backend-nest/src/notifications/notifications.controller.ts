@@ -37,7 +37,9 @@ export class NotificationsController {
    */
   @Get()
   async getMyNotifications(@Req() req: any) {
-    const userId = req.user.id ? BigInt(req.user.id) : BigInt(req.user.userId || 0);
+    const userId = req.user.id
+      ? BigInt(req.user.id)
+      : BigInt(req.user.userId || 0);
     return this.notificationsService.getNotificationsForUser(userId);
   }
 

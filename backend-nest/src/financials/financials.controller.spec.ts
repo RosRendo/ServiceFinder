@@ -11,7 +11,7 @@ describe('FinancialsController', () => {
       controllers: [FinancialsController],
       providers: [
         { provide: FinancialsService, useValue: {} },
-        { provide: PrismaService, useValue: {} }
+        { provide: PrismaService, useValue: {} },
       ],
     }).compile();
 

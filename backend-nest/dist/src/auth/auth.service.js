@@ -314,7 +314,10 @@ let AuthService = class AuthService {
             },
         });
         console.log(`[SMS MOCK] OTP for ${phone} is: ${code}`);
-        return { success: true, message: 'OTP sent successfully (Use 123456 for testing)' };
+        return {
+            success: true,
+            message: 'OTP sent successfully (Use 123456 for testing)',
+        };
     }
     async verifyOtpToken(phone, code) {
         if (!phone || !code) {

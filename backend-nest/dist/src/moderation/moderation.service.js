@@ -30,7 +30,11 @@ let ModerationService = class ModerationService {
             success: true,
             data: logs.map((log) => ({
                 id: log.id.toString(),
-                type: (log.entityType === 'review' ? 'review' : log.entityType === 'user' ? 'profile' : 'other'),
+                type: log.entityType === 'review'
+                    ? 'review'
+                    : log.entityType === 'user'
+                        ? 'profile'
+                        : 'other',
                 reportedBy: { id: log.adminId.toString(), name: log.admin.fullName },
                 targetId: log.entityId.toString(),
                 targetName: `${log.entityType.charAt(0).toUpperCase() + log.entityType.slice(1)} #${log.entityId}`,
@@ -42,7 +46,11 @@ let ModerationService = class ModerationService {
         };
     }
     async applyAction(id, action) {
-        const newStatus = action === 'resolve' ? 'resolved' : action === 'dismiss' ? 'dismissed' : 'resolved';
+        const newStatus = action === 'resolve'
+            ? 'resolved'
+            : action === 'dismiss'
+                ? 'dismissed'
+                : 'resolved';
         const updated = await this.prisma.moderationLog.update({
             where: { id: BigInt(id) },
             data: { status: newStatus },

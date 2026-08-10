@@ -210,7 +210,10 @@ __decorate([
     (0, common_1.Post)('wing/checkout'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Create Wing Bank KHQR Checkout' }),
-    (0, swagger_1.ApiResponse)({ status: 201, description: 'Wing checkout generated successfully.' }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'Wing checkout generated successfully.',
+    }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),

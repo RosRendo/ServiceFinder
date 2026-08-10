@@ -28,7 +28,9 @@ let NotificationsController = class NotificationsController {
         return { message: 'Push token saved successfully' };
     }
     async getMyNotifications(req) {
-        const userId = req.user.id ? BigInt(req.user.id) : BigInt(req.user.userId || 0);
+        const userId = req.user.id
+            ? BigInt(req.user.id)
+            : BigInt(req.user.userId || 0);
         return this.notificationsService.getNotificationsForUser(userId);
     }
     async markAsRead(req, id) {

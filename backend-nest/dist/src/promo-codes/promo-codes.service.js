@@ -19,17 +19,17 @@ let PromoCodesService = class PromoCodesService {
     }
     async getAllPromoCodes() {
         const codes = await this.prisma.promoCode.findMany({
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
         });
-        return codes.map(c => ({
+        return codes.map((c) => ({
             ...c,
             id: c.id.toString(),
-            discountPercent: Number(c.discountPercent)
+            discountPercent: Number(c.discountPercent),
         }));
     }
     async createPromoCode(dto) {
         const existing = await this.prisma.promoCode.findUnique({
-            where: { code: dto.code.toUpperCase() }
+            where: { code: dto.code.toUpperCase() },
         });
         if (existing) {
             throw new common_1.BadRequestException('Promo code already exists');
@@ -41,17 +41,17 @@ let PromoCodesService = class PromoCodesService {
                 maxUses: dto.maxUses || null,
                 expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
                 isActive: dto.isActive !== undefined ? dto.isActive : true,
-            }
+            },
         });
         return {
             ...created,
             id: created.id.toString(),
-            discountPercent: Number(created.discountPercent)
+            discountPercent: Number(created.discountPercent),
         };
     }
     async validatePromoCode(code) {
         const promo = await this.prisma.promoCode.findUnique({
-            where: { code: code.toUpperCase() }
+            where: { code: code.toUpperCase() },
         });
         if (!promo) {
             throw new common_1.NotFoundException('Invalid promo code');
@@ -69,7 +69,7 @@ let PromoCodesService = class PromoCodesService {
             valid: true,
             id: promo.id.toString(),
             code: promo.code,
-            discountPercent: Number(promo.discountPercent)
+            discountPercent: Number(promo.discountPercent),
         };
     }
     async toggleActive(id) {
@@ -78,12 +78,12 @@ let PromoCodesService = class PromoCodesService {
             throw new common_1.NotFoundException('Promo code not found');
         const updated = await this.prisma.promoCode.update({
             where: { id },
-            data: { isActive: !promo.isActive }
+            data: { isActive: !promo.isActive },
         });
         return {
             ...updated,
             id: updated.id.toString(),
-            discountPercent: Number(updated.discountPercent)
+            discountPercent: Number(updated.discountPercent),
         };
     }
     async deletePromoCode(id) {

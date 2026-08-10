@@ -1,4 +1,12 @@
-import { Controller, Get, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ComplianceService } from './compliance.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -14,7 +22,9 @@ export class ComplianceController {
   constructor(private readonly complianceService: ComplianceService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all compliance reports, optionally filtered by status' })
+  @ApiOperation({
+    summary: 'Get all compliance reports, optionally filtered by status',
+  })
   getReports(@Query('status') status?: string) {
     return this.complianceService.getReports(status);
   }

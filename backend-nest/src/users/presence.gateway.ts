@@ -14,7 +14,9 @@ import { PrismaService } from '../prisma/prisma.service';
     origin: '*',
   },
 })
-export class PresenceGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class PresenceGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -23,7 +25,9 @@ export class PresenceGateway implements OnGatewayConnection, OnGatewayDisconnect
   constructor(private prisma: PrismaService) {}
 
   async handleConnection(client: Socket) {
-    const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '');
+    const token =
+      client.handshake.auth?.token ||
+      client.handshake.headers?.authorization?.replace('Bearer ', '');
     if (!token) return;
 
     try {
@@ -38,7 +42,10 @@ export class PresenceGateway implements OnGatewayConnection, OnGatewayDisconnect
         });
 
         if (process.env.NODE_ENV === 'development') {
-          Logger.log(`🔗 User ${userId} came online (Socket: ${client.id})`, 'PresenceGateway');
+          Logger.log(
+            `🔗 User ${userId} came online (Socket: ${client.id})`,
+            'PresenceGateway',
+          );
         }
 
         // Broadcast to everyone that this user is online
@@ -57,7 +64,7 @@ export class PresenceGateway implements OnGatewayConnection, OnGatewayDisconnect
     const userIdStr = this.userSockets.get(client.id);
     if (userIdStr) {
       this.userSockets.delete(client.id);
-      
+
       const userId = BigInt(userIdStr);
       await this.prisma.user.update({
         where: { id: userId },
@@ -65,7 +72,10 @@ export class PresenceGateway implements OnGatewayConnection, OnGatewayDisconnect
       });
 
       if (process.env.NODE_ENV === 'development') {
-        Logger.log(`🔴 User ${userId} went offline (Socket: ${client.id})`, 'PresenceGateway');
+        Logger.log(
+          `🔴 User ${userId} went offline (Socket: ${client.id})`,
+          'PresenceGateway',
+        );
       }
 
       this.server.emit('user_status_changed', {

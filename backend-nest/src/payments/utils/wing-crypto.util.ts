@@ -12,18 +12,26 @@ export function deriveWingIV(clientId: string): Buffer {
   return Buffer.from(sliced, 'utf8');
 }
 
-export function encryptAES256GCM(plainText: string, key: Buffer, iv: Buffer): string {
+export function encryptAES256GCM(
+  plainText: string,
+  key: Buffer,
+  iv: Buffer,
+): string {
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   const encrypted = Buffer.concat([
     cipher.update(plainText, 'utf8'),
-    cipher.final()
+    cipher.final(),
   ]);
   const tag = cipher.getAuthTag(); // 16-byte authentication tag
   const combined = Buffer.concat([encrypted, tag]);
   return combined.toString('base64');
 }
 
-export function decryptAES256GCM(base64CipherText: string, key: Buffer, iv: Buffer): string {
+export function decryptAES256GCM(
+  base64CipherText: string,
+  key: Buffer,
+  iv: Buffer,
+): string {
   const dataBuffer = Buffer.from(base64CipherText, 'base64');
   // Authentication tag is always the last 16 bytes in GCM mode when concatenated
   const ciphertext = dataBuffer.subarray(0, dataBuffer.length - 16);
@@ -31,10 +39,10 @@ export function decryptAES256GCM(base64CipherText: string, key: Buffer, iv: Buff
 
   const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
   decipher.setAuthTag(tag);
-  
+
   const decrypted = Buffer.concat([
     decipher.update(ciphertext),
-    decipher.final()
+    decipher.final(),
   ]);
   return decrypted.toString('utf8');
 }
@@ -48,7 +56,7 @@ export function generatePayloadHash(
   cancelUrl: string,
   timestamp: string,
   key: Buffer,
-  iv: Buffer
+  iv: Buffer,
 ): string {
   // Step 1: Concatenate parameters using # separator
   const rawStr = `${clientId}#${amount}#${currency}#${orderReferenceNo}#${returnUrl}#${cancelUrl}#${timestamp}`;

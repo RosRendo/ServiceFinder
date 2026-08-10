@@ -142,17 +142,17 @@ let ServiceTypesService = class ServiceTypesService {
                         logoUrl: true,
                         verificationStatus: true,
                         createdAt: true,
-                    }
-                }
-            }
+                    },
+                },
+            },
         });
-        const providers = services.map(srv => {
+        const providers = services.map((srv) => {
             const idNum = Number(srv.company.id.toString());
             const rating = 4.0 + ((idNum * 13) % 11) / 10;
             const jobsCompleted = 50 + ((idNum * 47) % 5000);
             const completionRate = 0.85 + ((idNum * 17) % 15) / 100;
             const responseTimeMin = 5 + ((idNum * 7) % 55);
-            const isInsured = (idNum % 2) === 0;
+            const isInsured = idNum % 2 === 0;
             return {
                 serviceId: srv.id.toString(),
                 name: srv.name,
@@ -171,7 +171,7 @@ let ServiceTypesService = class ServiceTypesService {
                     completionRate: Number(completionRate.toFixed(2)),
                     responseTimeMin,
                     isInsured,
-                }
+                },
             };
         });
         return providers;

@@ -112,7 +112,10 @@ export class BookingsController {
 
   @Patch(':id/accept')
   @ApiOperation({ summary: 'Accept a job assignment (Assigned staff only)' })
-  @ApiResponse({ status: 200, description: 'Job assignment successfully accepted.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Job assignment successfully accepted.',
+  })
   acceptAssignment(@Param('id') id: string, @Request() req) {
     const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
     return this.bookingsService.acceptAssignment(BigInt(id), BigInt(user.id));
@@ -120,14 +123,20 @@ export class BookingsController {
 
   @Patch(':id/reject')
   @ApiOperation({ summary: 'Reject a job assignment (Assigned staff only)' })
-  @ApiResponse({ status: 200, description: 'Job assignment successfully rejected.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Job assignment successfully rejected.',
+  })
   rejectAssignment(@Param('id') id: string, @Request() req) {
     const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
     return this.bookingsService.rejectAssignment(BigInt(id), BigInt(user.id));
   }
 
   @Patch(':id/claim')
-  @ApiOperation({ summary: 'Claim an unassigned booking from the company pool (Open Pool mode, Staff only)' })
+  @ApiOperation({
+    summary:
+      'Claim an unassigned booking from the company pool (Open Pool mode, Staff only)',
+  })
   @ApiResponse({ status: 200, description: 'Booking successfully claimed.' })
   claimBooking(@Param('id') id: string, @Request() req) {
     const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
@@ -139,7 +148,12 @@ export class BookingsController {
   @ApiResponse({ status: 200, description: 'Job successfully started.' })
   startJob(@Param('id') id: string, @Body() body: any, @Request() req) {
     const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
-    return this.bookingsService.startJob(BigInt(id), BigInt(user.id), body?.staffStartLatitude, body?.staffStartLongitude);
+    return this.bookingsService.startJob(
+      BigInt(id),
+      BigInt(user.id),
+      body?.staffStartLatitude,
+      body?.staffStartLongitude,
+    );
   }
 
   @Patch(':id/progress')
@@ -159,20 +173,20 @@ export class BookingsController {
       BigInt(user.id),
       dto.progressPercent,
       dto.staffNotes,
-      dto.checklist
+      dto.checklist,
     );
   }
 
   @Patch(':id/complete')
   @ApiOperation({ summary: 'Complete a job (Assigned staff only)' })
   @ApiResponse({ status: 200, description: 'Job successfully completed.' })
-  completeJob(
-    @Param('id') id: string, 
-    @Body() body: any,
-    @Request() req
-  ) {
+  completeJob(@Param('id') id: string, @Body() body: any, @Request() req) {
     const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
-    return this.bookingsService.completeJob(BigInt(id), BigInt(user.id), body?.proofOfWorkPhoto);
+    return this.bookingsService.completeJob(
+      BigInt(id),
+      BigInt(user.id),
+      body?.proofOfWorkPhoto,
+    );
   }
 
   @Patch(':id/cancel')

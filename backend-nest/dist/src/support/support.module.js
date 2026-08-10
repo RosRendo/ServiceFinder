@@ -16,7 +16,7 @@ exports.SupportModule = SupportModule;
 exports.SupportModule = SupportModule = __decorate([
     (0, common_1.Module)({
         controllers: [support_controller_1.SupportController],
-        providers: [support_service_1.SupportService]
+        providers: [support_service_1.SupportService],
     })
 ], SupportModule);
 //# sourceMappingURL=support.module.js.map

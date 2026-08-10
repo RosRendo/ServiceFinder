@@ -72,19 +72,32 @@ export class AdminService {
       }),
       this.prisma.booking.findMany({
         where: { createdAt: { gte: sixMonthsAgo } },
-        select: { 
-          createdAt: true, 
-          status: true, 
-          totalPrice: true, 
-          service: { select: { serviceType: { select: { name: true } } } } 
+        select: {
+          createdAt: true,
+          status: true,
+          totalPrice: true,
+          service: { select: { serviceType: { select: { name: true } } } },
         },
       }),
     ]);
 
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
     // Generate the last 6 months in order
-    const months: Array<{name: string, monthKey: string}> = [];
+    const months: Array<{ name: string; monthKey: string }> = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
@@ -96,15 +109,29 @@ export class AdminService {
 
     // Build Registration Trend
     const registrationTrend = months.map((m) => {
-      const uCount = recentUsers.filter(u => `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` === m.monthKey).length;
-      const cCount = recentCompanies.filter(c => `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` === m.monthKey).length;
+      const uCount = recentUsers.filter(
+        (u) =>
+          `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` ===
+          m.monthKey,
+      ).length;
+      const cCount = recentCompanies.filter(
+        (c) =>
+          `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` ===
+          m.monthKey,
+      ).length;
       return { name: m.name, users: uCount, companies: cCount };
     });
 
     // Build Monthly Revenue & Bookings Trend
     const monthlyData = months.map((m) => {
-      const bks = recentBookings.filter(b => `${b.createdAt.getFullYear()}-${b.createdAt.getMonth()}` === m.monthKey);
-      const rev = bks.filter(b => b.status === 'completed').reduce((sum, b) => sum + Number(b.totalPrice || 0), 0);
+      const bks = recentBookings.filter(
+        (b) =>
+          `${b.createdAt.getFullYear()}-${b.createdAt.getMonth()}` ===
+          m.monthKey,
+      );
+      const rev = bks
+        .filter((b) => b.status === 'completed')
+        .reduce((sum, b) => sum + Number(b.totalPrice || 0), 0);
       return { name: m.name, revenue: rev, bookings: bks.length };
     });
 
@@ -129,7 +156,10 @@ export class AdminService {
     const catMap = new Map<string, number>();
     for (const b of recentBookings) {
       if (b.status === 'completed' && b.service?.serviceType?.name) {
-        catMap.set(b.service.serviceType.name, (catMap.get(b.service.serviceType.name) || 0) + 1);
+        catMap.set(
+          b.service.serviceType.name,
+          (catMap.get(b.service.serviceType.name) || 0) + 1,
+        );
       }
     }
     const categoryData = Array.from(catMap.entries())
@@ -148,43 +178,90 @@ export class AdminService {
       },
     });
 
-    const satColors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
-    const categorySaturationData = serviceTypes.map((st, i) => {
-      const uniqueCompanies = new Set(st.services.map((s) => s.companyId.toString()));
-      const count = uniqueCompanies.size;
-      let status = 'Balanced';
-      if (count === 0) status = 'No Providers';
-      else if (count < 2) status = 'High Demand';
-      else if (count < 4) status = 'Growing';
-      else status = 'Saturated';
+    const satColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+    const categorySaturationData = serviceTypes
+      .map((st, i) => {
+        const uniqueCompanies = new Set(
+          st.services.map((s) => s.companyId.toString()),
+        );
+        const count = uniqueCompanies.size;
+        let status = 'Balanced';
+        if (count === 0) status = 'No Providers';
+        else if (count < 2) status = 'High Demand';
+        else if (count < 4) status = 'Growing';
+        else status = 'Saturated';
 
-      return {
-        name: st.name,
-        value: count,
-        fill: satColors[i % satColors.length],
-        status,
-      };
-    }).sort((a, b) => b.value - a.value).slice(0, 5);
+        return {
+          name: st.name,
+          value: count,
+          fill: satColors[i % satColors.length],
+          status,
+        };
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
 
     // Growth Metrics (Comparing this month to last month)
     const thisMonthKey = months[5].monthKey;
     const lastMonthKey = months[4].monthKey;
-    
-    const usersThisMonth = recentUsers.filter(u => `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` === thisMonthKey).length;
-    const usersLastMonth = recentUsers.filter(u => `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` === lastMonthKey).length;
-    const usersGrowth = usersLastMonth ? Number(((usersThisMonth - usersLastMonth) / usersLastMonth * 100).toFixed(1)) : (usersThisMonth > 0 ? 100 : 0);
 
-    const compThisMonth = recentCompanies.filter(c => `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` === thisMonthKey).length;
-    const compLastMonth = recentCompanies.filter(c => `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` === lastMonthKey).length;
-    const companiesGrowth = compLastMonth ? Number(((compThisMonth - compLastMonth) / compLastMonth * 100).toFixed(1)) : (compThisMonth > 0 ? 100 : 0);
-    
+    const usersThisMonth = recentUsers.filter(
+      (u) =>
+        `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` ===
+        thisMonthKey,
+    ).length;
+    const usersLastMonth = recentUsers.filter(
+      (u) =>
+        `${u.createdAt.getFullYear()}-${u.createdAt.getMonth()}` ===
+        lastMonthKey,
+    ).length;
+    const usersGrowth = usersLastMonth
+      ? Number(
+          (((usersThisMonth - usersLastMonth) / usersLastMonth) * 100).toFixed(
+            1,
+          ),
+        )
+      : usersThisMonth > 0
+        ? 100
+        : 0;
+
+    const compThisMonth = recentCompanies.filter(
+      (c) =>
+        `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` ===
+        thisMonthKey,
+    ).length;
+    const compLastMonth = recentCompanies.filter(
+      (c) =>
+        `${c.createdAt.getFullYear()}-${c.createdAt.getMonth()}` ===
+        lastMonthKey,
+    ).length;
+    const companiesGrowth = compLastMonth
+      ? Number(
+          (((compThisMonth - compLastMonth) / compLastMonth) * 100).toFixed(1),
+        )
+      : compThisMonth > 0
+        ? 100
+        : 0;
+
     const revThisMonth = monthlyData[5].revenue;
     const revLastMonth = monthlyData[4].revenue;
-    const revenueGrowth = revLastMonth ? Number(((revThisMonth - revLastMonth) / revLastMonth * 100).toFixed(1)) : (revThisMonth > 0 ? 100 : 0);
+    const revenueGrowth = revLastMonth
+      ? Number(
+          (((revThisMonth - revLastMonth) / revLastMonth) * 100).toFixed(1),
+        )
+      : revThisMonth > 0
+        ? 100
+        : 0;
 
     const bksThisMonth = monthlyData[5].bookings;
     const bksLastMonth = monthlyData[4].bookings;
-    const bookingsGrowth = bksLastMonth ? Number(((bksThisMonth - bksLastMonth) / bksLastMonth * 100).toFixed(1)) : (bksThisMonth > 0 ? 100 : 0);
+    const bookingsGrowth = bksLastMonth
+      ? Number(
+          (((bksThisMonth - bksLastMonth) / bksLastMonth) * 100).toFixed(1),
+        )
+      : bksThisMonth > 0
+        ? 100
+        : 0;
 
     // Weekly stats
     const weeklyStats: Array<{
@@ -403,7 +480,7 @@ export class AdminService {
           rating: Number(c.ratingSummary?.averageRating || 5.0),
           staffCount: c._count.staff,
         };
-      })
+      }),
     );
 
     return {
@@ -426,7 +503,7 @@ export class AdminService {
         services: true,
         bookings: {
           select: { id: true, totalPrice: true, status: true, createdAt: true },
-        }
+        },
       },
     });
 
@@ -447,9 +524,11 @@ export class AdminService {
         id: s.id.toString(),
         userId: s.userId.toString(),
         companyId: s.companyId?.toString(),
-        user: s.user ? {
-          ...s.user,
-        } : null,
+        user: s.user
+          ? {
+              ...s.user,
+            }
+          : null,
       })),
       services: company.services.map((s) => ({
         ...s,
@@ -461,7 +540,7 @@ export class AdminService {
         id: b.id.toString(),
         totalPrice: b.totalPrice ? Number(b.totalPrice) : 0,
         status: b.status,
-      }))
+      })),
     };
   }
 
@@ -702,8 +781,10 @@ export class AdminService {
     // We simulate a KHQR refund processing logic. Since KHQR refunds often
     // require manual banking transfers via an API gateway, we'll mark the
     // payment as refunded and notify the admin of the manual KHQR transfer required.
-    
-    const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
     if (!payment) throw new NotFoundException('Payment not found');
 
     const updatedPayment = await this.prisma.payment.update({
@@ -712,7 +793,8 @@ export class AdminService {
     });
 
     return {
-      message: 'KHQR Refund marked as processed. Please ensure the transfer is completed via your banking gateway (e.g. ABA/Bakong).',
+      message:
+        'KHQR Refund marked as processed. Please ensure the transfer is completed via your banking gateway (e.g. ABA/Bakong).',
       paymentId: paymentId.toString(),
       status: updatedPayment.status,
     };
@@ -740,7 +822,7 @@ export class AdminService {
 
     const bookingIds = transactions
       .map((t) => t.bookingId)
-      .filter((id) => id !== null) as bigint[];
+      .filter((id) => id !== null);
     const bookings = await this.prisma.booking.findMany({
       where: { id: { in: bookingIds } },
       include: {
@@ -752,7 +834,9 @@ export class AdminService {
 
     return {
       data: transactions.map((t) => {
-        const booking = t.bookingId ? bookingMap.get(t.bookingId.toString()) : null;
+        const booking = t.bookingId
+          ? bookingMap.get(t.bookingId.toString())
+          : null;
         return {
           ...t,
           id: t.id.toString(),
@@ -825,7 +909,6 @@ export class AdminService {
       })),
       meta: { total, page: Number(page), limit: take },
     };
-
   }
 
   // ─── Invoices ────────────────────────────────────────────────────────────────
@@ -869,15 +952,19 @@ export class AdminService {
           id: i.booking.id.toString(),
           customerId: i.booking.customerId.toString(),
           companyId: i.booking.companyId.toString(),
-          customer: i.booking.customer ? {
-            ...i.booking.customer,
-            id: i.booking.customer.id.toString(),
-          } : null,
-          company: i.booking.company ? {
-            ...i.booking.company,
-            id: i.booking.company.id.toString(),
-            ownerId: i.booking.company.ownerId?.toString(),
-          } : null,
+          customer: i.booking.customer
+            ? {
+                ...i.booking.customer,
+                id: i.booking.customer.id.toString(),
+              }
+            : null,
+          company: i.booking.company
+            ? {
+                ...i.booking.company,
+                id: i.booking.company.id.toString(),
+                ownerId: i.booking.company.ownerId?.toString(),
+              }
+            : null,
         },
       })),
       meta: { total, page: Number(page), limit: take },
@@ -1037,23 +1124,23 @@ export class AdminService {
   async seedEmailTemplates() {
     const defaultTemplates = [
       {
-        templateId: "welcome",
-        name: "Welcome Email",
-        description: "Sent when a user signs up",
-        subject: "Welcome to ServiceFinder, {{user_name}}!",
+        templateId: 'welcome',
+        name: 'Welcome Email',
+        description: 'Sent when a user signs up',
+        subject: 'Welcome to ServiceFinder, {{user_name}}!',
         body: "Hi {{user_name}},\n\nWelcome to ServiceFinder! We're thrilled to have you on board.\n\nBest,\nThe ServiceFinder Team",
-        variables: ["user_name", "company_name", "login_url"],
-        status: "active"
+        variables: ['user_name', 'company_name', 'login_url'],
+        status: 'active',
       },
       {
-        templateId: "password_reset",
-        name: "Password Reset",
-        description: "Sent when a user requests a password reset",
-        subject: "Reset Your Password - ServiceFinder",
-        body: "Hi {{user_name}},\n\nWe received a request to reset your password. Click the link below to choose a new one:\n\n{{reset_url}}\n\nIf you did not request this, please ignore this email.\n\nBest,\nThe ServiceFinder Team",
-        variables: ["user_name", "reset_url", "expiry_time"],
-        status: "active"
-      }
+        templateId: 'password_reset',
+        name: 'Password Reset',
+        description: 'Sent when a user requests a password reset',
+        subject: 'Reset Your Password - ServiceFinder',
+        body: 'Hi {{user_name}},\n\nWe received a request to reset your password. Click the link below to choose a new one:\n\n{{reset_url}}\n\nIf you did not request this, please ignore this email.\n\nBest,\nThe ServiceFinder Team',
+        variables: ['user_name', 'reset_url', 'expiry_time'],
+        status: 'active',
+      },
     ];
 
     for (const t of defaultTemplates) {
@@ -1074,7 +1161,7 @@ export class AdminService {
     // Generate dummy values for variables to populate the template
     let subject = dto.subject || 'Test Email';
     let body = dto.body || 'This is a test email.';
-    
+
     const dummyVariables: Record<string, string> = {
       user_name: 'John Doe',
       company_name: 'Test Company',
@@ -1082,7 +1169,7 @@ export class AdminService {
       expiry_time: '15 minutes',
       login_url: 'https://example.com/login',
       date: '2023-10-25',
-      time: '14:00'
+      time: '14:00',
     };
 
     if (dto.variables && Array.isArray(dto.variables)) {
@@ -1095,7 +1182,7 @@ export class AdminService {
     }
 
     // Default test email to admin's email or a system default if not provided
-    const testToEmail = dto.testEmail || 'admin@servicefinder.test'; 
+    const testToEmail = dto.testEmail || 'admin@servicefinder.test';
     const text = body.replace(/<[^>]+>/g, '');
 
     try {
@@ -1103,13 +1190,13 @@ export class AdminService {
       return {
         success: true,
         message: 'Test email logic triggered and email sent',
-        preview: { subject, body }
+        preview: { subject, body },
       };
     } catch (e: any) {
       return {
         success: false,
         message: 'Failed to send test email: ' + e.message,
-        preview: { subject, body }
+        preview: { subject, body },
       };
     }
   }
@@ -1120,7 +1207,11 @@ export class AdminService {
     });
   }
 
-  async createBroadcast(dto: { title: string; message: string; audience: string }) {
+  async createBroadcast(dto: {
+    title: string;
+    message: string;
+    audience: string;
+  }) {
     let sentCount = 0;
     let targetUserIds: bigint[] = [];
 

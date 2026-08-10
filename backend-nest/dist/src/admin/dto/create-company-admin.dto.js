@@ -19,8 +19,10 @@ class InitialServiceDto {
     basePrice;
     durationMin;
     description;
+    imageUrl;
+    checklist;
     static _OPENAPI_METADATA_FACTORY() {
-        return { name: { required: true, type: () => String }, typeId: { required: true, type: () => Number }, basePrice: { required: false, type: () => Number }, durationMin: { required: false, type: () => Number }, description: { required: false, type: () => String } };
+        return { name: { required: true, type: () => String }, typeId: { required: true, type: () => Number }, basePrice: { required: false, type: () => Number }, durationMin: { required: false, type: () => Number }, description: { required: false, type: () => String }, imageUrl: { required: false, type: () => String }, checklist: { required: false, type: () => [String] } };
     }
 }
 exports.InitialServiceDto = InitialServiceDto;
@@ -52,6 +54,17 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], InitialServiceDto.prototype, "description", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], InitialServiceDto.prototype, "imageUrl", void 0);
+__decorate([
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], InitialServiceDto.prototype, "checklist", void 0);
 class CreateCompanyAdminDto {
     ownerName;
     ownerEmail;
@@ -77,9 +90,13 @@ class CreateCompanyAdminDto {
     serviceBasePrice;
     serviceDurationMin;
     serviceDescription;
+    email;
+    description;
+    isInsured;
+    coverageRadiusKm;
     services;
     static _OPENAPI_METADATA_FACTORY() {
-        return { ownerName: { required: true, type: () => String }, ownerEmail: { required: true, type: () => String, format: "email" }, ownerPassword: { required: true, type: () => String, minLength: 6 }, ownerPhone: { required: false, type: () => String }, companyName: { required: true, type: () => String }, companyDescription: { required: false, type: () => String }, companyAddress: { required: false, type: () => String }, companyCity: { required: false, type: () => String }, companyPhone: { required: false, type: () => String }, companyEmail: { required: false, type: () => String }, logoUrl: { required: false, type: () => String }, registrationNumber: { required: false, type: () => String }, latitude: { required: false, type: () => Number }, longitude: { required: false, type: () => Number }, coverImageUrl: { required: false, type: () => String }, verificationDocumentUrl: { required: false, type: () => String }, establishedYear: { required: false, type: () => Number }, cardHighlights: { required: false, type: () => [String] }, detailHighlights: { required: false, type: () => [String] }, serviceName: { required: false, type: () => String }, serviceTypeId: { required: false, type: () => Number }, serviceBasePrice: { required: false, type: () => Number }, serviceDurationMin: { required: false, type: () => Number }, serviceDescription: { required: false, type: () => String }, services: { required: false, type: () => [require("./create-company-admin.dto").InitialServiceDto] } };
+        return { ownerName: { required: true, type: () => String }, ownerEmail: { required: true, type: () => String, format: "email" }, ownerPassword: { required: true, type: () => String, minLength: 6 }, ownerPhone: { required: false, type: () => String }, companyName: { required: true, type: () => String }, companyDescription: { required: false, type: () => String }, companyAddress: { required: false, type: () => String }, companyCity: { required: false, type: () => String }, companyPhone: { required: false, type: () => String }, companyEmail: { required: false, type: () => String }, logoUrl: { required: false, type: () => String }, registrationNumber: { required: false, type: () => String }, latitude: { required: false, type: () => Number }, longitude: { required: false, type: () => Number }, coverImageUrl: { required: false, type: () => String }, verificationDocumentUrl: { required: false, type: () => String }, establishedYear: { required: false, type: () => Number }, cardHighlights: { required: false, type: () => [String] }, detailHighlights: { required: false, type: () => [String] }, serviceName: { required: false, type: () => String }, serviceTypeId: { required: false, type: () => Number }, serviceBasePrice: { required: false, type: () => Number }, serviceDurationMin: { required: false, type: () => Number }, serviceDescription: { required: false, type: () => String }, email: { required: false, type: () => String }, description: { required: false, type: () => String }, isInsured: { required: false, type: () => Boolean }, coverageRadiusKm: { required: false, type: () => Number }, services: { required: false, type: () => [require("./create-company-admin.dto").InitialServiceDto] } };
     }
 }
 exports.CreateCompanyAdminDto = CreateCompanyAdminDto;
@@ -211,6 +228,27 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateCompanyAdminDto.prototype, "serviceDescription", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateCompanyAdminDto.prototype, "email", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateCompanyAdminDto.prototype, "description", void 0);
+__decorate([
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], CreateCompanyAdminDto.prototype, "isInsured", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    __metadata("design:type", Number)
+], CreateCompanyAdminDto.prototype, "coverageRadiusKm", void 0);
 __decorate([
     (0, class_validator_1.IsArray)(),
     (0, class_validator_1.ValidateNested)({ each: true }),

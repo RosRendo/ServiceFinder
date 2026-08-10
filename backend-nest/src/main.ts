@@ -24,13 +24,16 @@ import * as admin from 'firebase-admin';
 };
 
 async function bootstrap() {
-  const serviceAccountPath = path.join(process.cwd(), 'firebase-service-account.json');
+  const serviceAccountPath = path.join(
+    process.cwd(),
+    'firebase-service-account.json',
+  );
   const firebaseConfigEnv = process.env.FIREBASE_CONFIG_JSON;
 
   if (firebaseConfigEnv || require('fs').existsSync(serviceAccountPath)) {
     try {
-      const serviceAccount = firebaseConfigEnv 
-        ? JSON.parse(firebaseConfigEnv) 
+      const serviceAccount = firebaseConfigEnv
+        ? JSON.parse(firebaseConfigEnv)
         : require(serviceAccountPath);
       const { initializeApp, cert } = require('firebase-admin/app');
       initializeApp({
@@ -38,13 +41,23 @@ async function bootstrap() {
       });
       Logger.log('✅ Firebase Admin initialized successfully', 'Bootstrap');
     } catch (e: any) {
-      Logger.error('❌ Failed to initialize Firebase Admin SDK:', e?.message, 'Bootstrap');
+      Logger.error(
+        '❌ Failed to initialize Firebase Admin SDK:',
+        e?.message,
+        'Bootstrap',
+      );
     }
   } else {
     if (process.env.NODE_ENV === 'production') {
-      Logger.warn('⚠️ Firebase credentials not found (neither FIREBASE_CONFIG_JSON env nor firebase-service-account.json). Firebase Auth will fail if invoked!', 'Bootstrap');
+      Logger.warn(
+        '⚠️ Firebase credentials not found (neither FIREBASE_CONFIG_JSON env nor firebase-service-account.json). Firebase Auth will fail if invoked!',
+        'Bootstrap',
+      );
     } else {
-      Logger.log('ℹ️ Firebase credentials not provided, skipping Firebase SDK initialization.', 'Bootstrap');
+      Logger.log(
+        'ℹ️ Firebase credentials not provided, skipping Firebase SDK initialization.',
+        'Bootstrap',
+      );
     }
   }
 
@@ -124,7 +137,7 @@ async function bootstrap() {
         // Allow any local network IP in dev (for mobile device testing)
         (isDev && origin?.match(/^http:\/\/192\.168\./)) ||
         (isDev && origin?.match(/^http:\/\/10\./)) ||
-        (isDev && origin?.match(/^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\./)) 
+        (isDev && origin?.match(/^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\./))
       ) {
         callback(null, true);
       } else {
@@ -133,7 +146,12 @@ async function bootstrap() {
       }
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+    ],
     credentials: true,
   });
 

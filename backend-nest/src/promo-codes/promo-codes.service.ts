@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePromoCodeDto } from './dto/create-promo-code.dto';
 
@@ -8,18 +12,18 @@ export class PromoCodesService {
 
   async getAllPromoCodes() {
     const codes = await this.prisma.promoCode.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
-    return codes.map(c => ({
+    return codes.map((c) => ({
       ...c,
       id: c.id.toString(),
-      discountPercent: Number(c.discountPercent)
+      discountPercent: Number(c.discountPercent),
     }));
   }
 
   async createPromoCode(dto: CreatePromoCodeDto) {
     const existing = await this.prisma.promoCode.findUnique({
-      where: { code: dto.code.toUpperCase() }
+      where: { code: dto.code.toUpperCase() },
     });
     if (existing) {
       throw new BadRequestException('Promo code already exists');
@@ -32,19 +36,19 @@ export class PromoCodesService {
         maxUses: dto.maxUses || null,
         expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
         isActive: dto.isActive !== undefined ? dto.isActive : true,
-      }
+      },
     });
 
     return {
       ...created,
       id: created.id.toString(),
-      discountPercent: Number(created.discountPercent)
+      discountPercent: Number(created.discountPercent),
     };
   }
 
   async validatePromoCode(code: string) {
     const promo = await this.prisma.promoCode.findUnique({
-      where: { code: code.toUpperCase() }
+      where: { code: code.toUpperCase() },
     });
 
     if (!promo) {
@@ -67,7 +71,7 @@ export class PromoCodesService {
       valid: true,
       id: promo.id.toString(),
       code: promo.code,
-      discountPercent: Number(promo.discountPercent)
+      discountPercent: Number(promo.discountPercent),
     };
   }
 
@@ -77,13 +81,13 @@ export class PromoCodesService {
 
     const updated = await this.prisma.promoCode.update({
       where: { id },
-      data: { isActive: !promo.isActive }
+      data: { isActive: !promo.isActive },
     });
 
     return {
       ...updated,
       id: updated.id.toString(),
-      discountPercent: Number(updated.discountPercent)
+      discountPercent: Number(updated.discountPercent),
     };
   }
 

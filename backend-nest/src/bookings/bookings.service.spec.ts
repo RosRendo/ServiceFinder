@@ -74,17 +74,23 @@ describe('BookingsService', () => {
           },
         },
         { provide: AnalyticsService, useValue: { captureEvent: jest.fn() } },
-        { 
-          provide: NotificationsService, 
-          useValue: { 
-            sendPushNotification: jest.fn(), 
+        {
+          provide: NotificationsService,
+          useValue: {
+            sendPushNotification: jest.fn(),
             sendInAppNotification: jest.fn(),
             notifyBookingCreated: jest.fn(),
-            notifyBookingStatusChange: jest.fn()
-          } 
+            notifyBookingStatusChange: jest.fn(),
+          },
         },
-        { provide: PromoCodesService, useValue: { validatePromoCode: jest.fn() } },
-        { provide: ConversationsService, useValue: { startConversation: jest.fn() } },
+        {
+          provide: PromoCodesService,
+          useValue: { validatePromoCode: jest.fn() },
+        },
+        {
+          provide: ConversationsService,
+          useValue: { startConversation: jest.fn() },
+        },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
       ],
     }).compile();

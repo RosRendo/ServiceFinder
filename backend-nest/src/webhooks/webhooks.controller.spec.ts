@@ -11,7 +11,7 @@ describe('WebhooksController', () => {
       controllers: [WebhooksController],
       providers: [
         { provide: WebhooksService, useValue: {} },
-        { provide: PrismaService, useValue: {} }
+        { provide: PrismaService, useValue: {} },
       ],
     }).compile();
 

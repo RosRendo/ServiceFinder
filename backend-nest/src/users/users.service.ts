@@ -17,7 +17,9 @@ export class UsersService {
   constructor(private prisma: PrismaService) {}
 
   async createUser(dto: any) {
-    const existingUser = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
@@ -30,7 +32,7 @@ export class UsersService {
         role: dto.role || 'customer',
         passwordHash,
         status: 'active',
-      }
+      },
     });
     return { data: user };
   }
@@ -444,7 +446,9 @@ export class UsersService {
     }
 
     const actionText = `STATUS_CHANGE_${dto.status.toUpperCase()}`;
-    const fullAction = dto.reason ? `${actionText} - Reason: ${dto.reason.substring(0, 100)}` : actionText;
+    const fullAction = dto.reason
+      ? `${actionText} - Reason: ${dto.reason.substring(0, 100)}`
+      : actionText;
 
     const [user] = await this.prisma.$transaction([
       this.prisma.user.update({

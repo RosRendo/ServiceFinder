@@ -19,7 +19,7 @@ let PricingRulesService = class PricingRulesService {
     }
     async getCompanyOrThrow(ownerId) {
         const company = await this.prisma.company.findFirst({
-            where: { ownerId }
+            where: { ownerId },
         });
         if (!company) {
             throw new common_1.NotFoundException('You do not own a company');
@@ -30,13 +30,13 @@ let PricingRulesService = class PricingRulesService {
         const company = await this.getCompanyOrThrow(ownerId);
         const rules = await this.prisma.pricingRule.findMany({
             where: { companyId: company.id },
-            orderBy: { id: 'desc' }
+            orderBy: { id: 'desc' },
         });
-        return rules.map(r => ({
+        return rules.map((r) => ({
             ...r,
             id: r.id.toString(),
             companyId: r.companyId.toString(),
-            surchargePercent: Number(r.surchargePercent)
+            surchargePercent: Number(r.surchargePercent),
         }));
     }
     async createPricingRule(ownerId, dto) {
@@ -50,19 +50,19 @@ let PricingRulesService = class PricingRulesService {
                 endHour: dto.endHour !== undefined ? dto.endHour : null,
                 surchargePercent: dto.surchargePercent,
                 isActive: dto.isActive !== undefined ? dto.isActive : true,
-            }
+            },
         });
         return {
             ...created,
             id: created.id.toString(),
             companyId: created.companyId.toString(),
-            surchargePercent: Number(created.surchargePercent)
+            surchargePercent: Number(created.surchargePercent),
         };
     }
     async toggleActive(ownerId, ruleId) {
         const company = await this.getCompanyOrThrow(ownerId);
         const rule = await this.prisma.pricingRule.findUnique({
-            where: { id: ruleId }
+            where: { id: ruleId },
         });
         if (!rule)
             throw new common_1.NotFoundException('Pricing rule not found');
@@ -70,26 +70,26 @@ let PricingRulesService = class PricingRulesService {
             throw new common_1.ForbiddenException('Access denied');
         const updated = await this.prisma.pricingRule.update({
             where: { id: ruleId },
-            data: { isActive: !rule.isActive }
+            data: { isActive: !rule.isActive },
         });
         return {
             ...updated,
             id: updated.id.toString(),
             companyId: updated.companyId.toString(),
-            surchargePercent: Number(updated.surchargePercent)
+            surchargePercent: Number(updated.surchargePercent),
         };
     }
     async deletePricingRule(ownerId, ruleId) {
         const company = await this.getCompanyOrThrow(ownerId);
         const rule = await this.prisma.pricingRule.findUnique({
-            where: { id: ruleId }
+            where: { id: ruleId },
         });
         if (!rule)
             throw new common_1.NotFoundException('Pricing rule not found');
         if (rule.companyId !== company.id)
             throw new common_1.ForbiddenException('Access denied');
         await this.prisma.pricingRule.delete({
-            where: { id: ruleId }
+            where: { id: ruleId },
         });
         return { success: true, message: 'Pricing rule deleted successfully' };
     }

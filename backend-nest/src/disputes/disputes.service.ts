@@ -47,8 +47,8 @@ export class DisputesService {
     const frozenAmount = Number(booking.companyEarnings || 0);
 
     const dispute = await this.prisma.$transaction(async (tx) => {
-      let pendingBalance = Number(booking.company.pendingBalance);
-      let availableBalance = Number(booking.company.availableBalance);
+      const pendingBalance = Number(booking.company.pendingBalance);
+      const availableBalance = Number(booking.company.availableBalance);
 
       let freezeFromPending = 0;
       let freezeFromAvailable = 0;

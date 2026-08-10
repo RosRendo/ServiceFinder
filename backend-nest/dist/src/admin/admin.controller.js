@@ -110,12 +110,7 @@ let AdminController = class AdminController {
         return this.adminService.seedEmailTemplates();
     }
     testEmailTemplate(dto) {
-        try {
-            return this.adminService.testEmailTemplate(dto);
-        }
-        catch (e) {
-            throw e;
-        }
+        return this.adminService.testEmailTemplate(dto);
     }
     getBroadcasts() {
         return this.adminService.getBroadcasts();

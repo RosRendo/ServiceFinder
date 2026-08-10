@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePricingRuleDto } from './dto/create-pricing-rule.dto';
 
@@ -8,7 +12,7 @@ export class PricingRulesService {
 
   private async getCompanyOrThrow(ownerId: bigint) {
     const company = await this.prisma.company.findFirst({
-      where: { ownerId }
+      where: { ownerId },
     });
     if (!company) {
       throw new NotFoundException('You do not own a company');
@@ -20,13 +24,13 @@ export class PricingRulesService {
     const company = await this.getCompanyOrThrow(ownerId);
     const rules = await this.prisma.pricingRule.findMany({
       where: { companyId: company.id },
-      orderBy: { id: 'desc' }
+      orderBy: { id: 'desc' },
     });
-    return rules.map(r => ({
+    return rules.map((r) => ({
       ...r,
       id: r.id.toString(),
       companyId: r.companyId.toString(),
-      surchargePercent: Number(r.surchargePercent)
+      surchargePercent: Number(r.surchargePercent),
     }));
   }
 
@@ -42,36 +46,37 @@ export class PricingRulesService {
         endHour: dto.endHour !== undefined ? dto.endHour : null,
         surchargePercent: dto.surchargePercent,
         isActive: dto.isActive !== undefined ? dto.isActive : true,
-      }
+      },
     });
 
     return {
       ...created,
       id: created.id.toString(),
       companyId: created.companyId.toString(),
-      surchargePercent: Number(created.surchargePercent)
+      surchargePercent: Number(created.surchargePercent),
     };
   }
 
   async toggleActive(ownerId: bigint, ruleId: number) {
     const company = await this.getCompanyOrThrow(ownerId);
-    
+
     const rule = await this.prisma.pricingRule.findUnique({
-      where: { id: ruleId }
+      where: { id: ruleId },
     });
     if (!rule) throw new NotFoundException('Pricing rule not found');
-    if (rule.companyId !== company.id) throw new ForbiddenException('Access denied');
+    if (rule.companyId !== company.id)
+      throw new ForbiddenException('Access denied');
 
     const updated = await this.prisma.pricingRule.update({
       where: { id: ruleId },
-      data: { isActive: !rule.isActive }
+      data: { isActive: !rule.isActive },
     });
 
     return {
       ...updated,
       id: updated.id.toString(),
       companyId: updated.companyId.toString(),
-      surchargePercent: Number(updated.surchargePercent)
+      surchargePercent: Number(updated.surchargePercent),
     };
   }
 
@@ -79,13 +84,14 @@ export class PricingRulesService {
     const company = await this.getCompanyOrThrow(ownerId);
 
     const rule = await this.prisma.pricingRule.findUnique({
-      where: { id: ruleId }
+      where: { id: ruleId },
     });
     if (!rule) throw new NotFoundException('Pricing rule not found');
-    if (rule.companyId !== company.id) throw new ForbiddenException('Access denied');
+    if (rule.companyId !== company.id)
+      throw new ForbiddenException('Access denied');
 
     await this.prisma.pricingRule.delete({
-      where: { id: ruleId }
+      where: { id: ruleId },
     });
 
     return { success: true, message: 'Pricing rule deleted successfully' };

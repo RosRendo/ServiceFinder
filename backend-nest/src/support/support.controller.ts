@@ -1,4 +1,13 @@
-import { Controller, Get, Patch, Post, Param, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { SupportService } from './support.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -23,7 +32,12 @@ export class SupportController {
     @CurrentUser() user?: any,
   ) {
     const filterUserId = user.role !== 'admin' ? BigInt(user.id) : undefined;
-    return this.supportService.getTickets(status, Number(page) || 1, Number(limit) || 20, filterUserId);
+    return this.supportService.getTickets(
+      status,
+      Number(page) || 1,
+      Number(limit) || 20,
+      filterUserId,
+    );
   }
 
   @Post('tickets')

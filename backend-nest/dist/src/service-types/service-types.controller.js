@@ -79,8 +79,13 @@ __decorate([
 ], ServiceTypesController.prototype, "getServiceTypeBySlug", null);
 __decorate([
     (0, common_1.Get)(':slug/providers'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get providers (companies) offering a specific service type' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Return list of providers with pure facts.' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Get providers (companies) offering a specific service type',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Return list of providers with pure facts.',
+    }),
     __param(0, (0, common_1.Param)('slug')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),

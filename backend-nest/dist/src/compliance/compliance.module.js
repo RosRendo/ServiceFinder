@@ -16,7 +16,7 @@ exports.ComplianceModule = ComplianceModule;
 exports.ComplianceModule = ComplianceModule = __decorate([
     (0, common_1.Module)({
         controllers: [compliance_controller_1.ComplianceController],
-        providers: [compliance_service_1.ComplianceService]
+        providers: [compliance_service_1.ComplianceService],
     })
 ], ComplianceModule);
 //# sourceMappingURL=compliance.module.js.map

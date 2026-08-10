@@ -274,7 +274,7 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             billNumber: `BK-${bookingId}`,
             storeLabel: merchantName,
             terminalLabel: 'WebApp',
-            expirationTimestamp: Date.now() + (30 * 60 * 1000)
+            expirationTimestamp: Date.now() + 30 * 60 * 1000,
         };
         const merchantInfo = new MerchantInfo(`${merchantId}@${acquirerId}`, merchantName, 'Phnom Penh', merchantId, acquirerId, optionalData);
         const khqr = new BakongKHQR();
@@ -325,8 +325,10 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             return this.wingToken;
         }
         const clientId = this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
-        const clientSecret = this.config.get('WING_CLIENT_SECRET') || 'h02F_zaRmn6PhFjIolbFcb16BgWGMrcfX93frd13Id8a';
-        const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-partner-gateway.wingbank.com';
+        const clientSecret = this.config.get('WING_CLIENT_SECRET') ||
+            'h02F_zaRmn6PhFjIolbFcb16BgWGMrcfX93frd13Id8a';
+        const baseUrl = this.config.get('WING_BASE_URL') ||
+            'https://stage-partner-gateway.wingbank.com';
         const url = `${baseUrl}/idp/v1/token`;
         const body = new URLSearchParams();
         body.append('grant_type', 'client_credentials');
@@ -368,8 +370,10 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         if (booking.status !== 'pending')
             throw new common_1.BadRequestException('This booking has already been processed');
         const clientId = this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
-        const cipherKeyStr = this.config.get('WING_CIPHER_KEY') || 'pEHt/rl63W4YZUqPRs92DPHHpHWfnkiMLvJdwhxQBb4=';
-        const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-partner-gateway.wingbank.com';
+        const cipherKeyStr = this.config.get('WING_CIPHER_KEY') ||
+            'pEHt/rl63W4YZUqPRs92DPHHpHWfnkiMLvJdwhxQBb4=';
+        const baseUrl = this.config.get('WING_BASE_URL') ||
+            'https://stage-partner-gateway.wingbank.com';
         const frontendUrl = this.config.get('FRONTEND_URL') || 'http://localhost:3000';
         const key = (0, wing_crypto_util_1.deriveWingKey)(clientId);
         const iv = (0, wing_crypto_util_1.deriveWingIV)(clientId);
@@ -400,8 +404,8 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`,
+                    Accept: 'application/json',
+                    Authorization: `Bearer ${accessToken}`,
                     'X-Payload-Hash': payloadHash,
                 },
                 body: JSON.stringify({
@@ -476,7 +480,10 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             throw new common_1.NotFoundException(`No payment found for order reference: ${orderRef}`);
         }
         if (payment.status === 'paid') {
-            return { code: '200', message: 'Push callback is successfully received.' };
+            return {
+                code: '200',
+                message: 'Push callback is successfully received.',
+            };
         }
         const expectedAmount = Number(payment.amount);
         const receivedAmount = Number(amount);
@@ -528,7 +535,8 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             throw new common_1.BadRequestException('Not a Wing transaction');
         }
         const clientId = this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
-        const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-partner-gateway.wingbank.com';
+        const baseUrl = this.config.get('WING_BASE_URL') ||
+            'https://stage-partner-gateway.wingbank.com';
         const accessToken = await this.getWingAccessToken();
         const url = `${baseUrl}/inquiry/khqr/success`;
         try {
@@ -536,7 +544,7 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`,
+                    Authorization: `Bearer ${accessToken}`,
                 },
                 body: JSON.stringify({
                     order_reference_no: orderRef,
@@ -544,7 +552,11 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             });
             if (!response.ok) {
                 if (response.status === 404) {
-                    return { success: false, status: 'pending', message: 'Payment pending or not found' };
+                    return {
+                        success: false,
+                        status: 'pending',
+                        message: 'Payment pending or not found',
+                    };
                 }
                 throw new Error(`Inquiry failed with status: ${response.status}`);
             }
@@ -557,7 +569,11 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
                     amount,
                     transaction_id: transactionId,
                 });
-                return { success: true, status: 'paid', message: 'Payment successfully verified' };
+                return {
+                    success: true,
+                    status: 'paid',
+                    message: 'Payment successfully verified',
+                };
             }
             return { success: false, status: 'pending' };
         }

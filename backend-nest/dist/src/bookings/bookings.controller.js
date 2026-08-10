@@ -159,7 +159,10 @@ __decorate([
 __decorate([
     (0, common_1.Patch)(':id/accept'),
     (0, swagger_1.ApiOperation)({ summary: 'Accept a job assignment (Assigned staff only)' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Job assignment successfully accepted.' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Job assignment successfully accepted.',
+    }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -169,7 +172,10 @@ __decorate([
 __decorate([
     (0, common_1.Patch)(':id/reject'),
     (0, swagger_1.ApiOperation)({ summary: 'Reject a job assignment (Assigned staff only)' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Job assignment successfully rejected.' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Job assignment successfully rejected.',
+    }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -178,7 +184,9 @@ __decorate([
 ], BookingsController.prototype, "rejectAssignment", null);
 __decorate([
     (0, common_1.Patch)(':id/claim'),
-    (0, swagger_1.ApiOperation)({ summary: 'Claim an unassigned booking from the company pool (Open Pool mode, Staff only)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Claim an unassigned booking from the company pool (Open Pool mode, Staff only)',
+    }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Booking successfully claimed.' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Request)()),

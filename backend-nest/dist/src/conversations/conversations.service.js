@@ -48,7 +48,7 @@ let ConversationsService = class ConversationsService {
             }
             const staffUserId = booking.assignedStaff.userId;
             const participants = [userId, staffUserId];
-            let existing = await this.prisma.conversation.findFirst({
+            const existing = await this.prisma.conversation.findFirst({
                 where: {
                     type: 'job',
                     bookingId,
@@ -273,7 +273,14 @@ let ConversationsService = class ConversationsService {
             participants: {
                 include: {
                     user: {
-                        select: { id: true, fullName: true, avatar: true, role: true, workingStatus: true, lastSeen: true },
+                        select: {
+                            id: true,
+                            fullName: true,
+                            avatar: true,
+                            role: true,
+                            workingStatus: true,
+                            lastSeen: true,
+                        },
                     },
                 },
             },

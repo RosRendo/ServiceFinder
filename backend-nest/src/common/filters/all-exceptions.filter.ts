@@ -41,7 +41,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     // Log the error
-    console.error('\n\n=== UNHANDLED EXCEPTION ===\n', exception, '\n===========================\n\n');
+    console.error(
+      '\n\n=== UNHANDLED EXCEPTION ===\n',
+      exception,
+      '\n===========================\n\n',
+    );
     this.logger.error(
       `${request.method} ${request.url} - Status: ${status} - Message: ${JSON.stringify(message)}`,
       exception instanceof Error ? exception.stack : '',

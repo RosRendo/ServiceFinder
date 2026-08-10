@@ -36,7 +36,9 @@ exports.ComplianceController = ComplianceController;
 __decorate([
     openapi.ApiQuery({ name: "status", required: false }),
     (0, common_1.Get)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Get all compliance reports, optionally filtered by status' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Get all compliance reports, optionally filtered by status',
+    }),
     openapi.ApiResponse({ status: 200 }),
     __param(0, (0, common_1.Query)('status')),
     __metadata("design:type", Function),

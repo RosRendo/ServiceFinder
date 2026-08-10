@@ -4,6 +4,8 @@ export declare class InitialServiceDto {
     basePrice?: number;
     durationMin?: number;
     description?: string;
+    imageUrl?: string;
+    checklist?: string[];
 }
 export declare class CreateCompanyAdminDto {
     ownerName: string;
@@ -30,5 +32,9 @@ export declare class CreateCompanyAdminDto {
     serviceBasePrice?: number;
     serviceDurationMin?: number;
     serviceDescription?: string;
+    email?: string;
+    description?: string;
+    isInsured?: boolean;
+    coverageRadiusKm?: number;
     services?: InitialServiceDto[];
 }

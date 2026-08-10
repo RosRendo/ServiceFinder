@@ -109,18 +109,18 @@ let WalletsService = class WalletsService {
         const payouts = await this.prisma.payoutRequest.findMany({
             where: { ownerType: 'company', ownerId: company.id },
             orderBy: { createdAt: 'desc' },
-            take: 50
+            take: 50,
         });
         const walletData = await this.getCompanyWallet(company.id, userId);
         return {
             ...walletData,
-            payouts: payouts.map(p => ({
+            payouts: payouts.map((p) => ({
                 ...p,
                 id: p.id.toString(),
                 ownerId: p.ownerId.toString(),
                 amount: Number(p.amount),
-                requestedAt: p.createdAt
-            }))
+                requestedAt: p.createdAt,
+            })),
         };
     }
     async requestMyCompanyPayout(userId, dto) {
@@ -144,13 +144,15 @@ let WalletsService = class WalletsService {
             where: { ownerType: 'company', ownerId: companyId, status: 'approved' },
             _sum: { amount: true },
         });
-        await this.prisma.company.update({
+        await this.prisma.company
+            .update({
             where: { id: companyId },
             data: {
                 availableBalance: ledger.availableBalance,
                 pendingBalance: ledger.pendingBalance,
             },
-        }).catch(err => console.warn('Failed to sync company balance cache:', err.message));
+        })
+            .catch((err) => console.warn('Failed to sync company balance cache:', err.message));
         return {
             balance: ledger.availableBalance,
             pendingBalance: ledger.pendingBalance,

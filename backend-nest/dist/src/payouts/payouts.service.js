@@ -21,26 +21,21 @@ let PayoutsService = class PayoutsService {
         return this.prisma.company.findFirst({ where: { ownerId } });
     }
     async getPayouts(companyId) {
-        try {
-            const company = await this.prisma.company.findUnique({
-                where: { id: companyId },
-                select: { availableBalance: true, pendingBalance: true },
-            });
-            if (!company)
-                throw new common_1.NotFoundException('Company not found');
-            const payouts = await this.prisma.payout.findMany({
-                where: { companyId },
-                orderBy: { requestedAt: 'desc' },
-            });
-            return {
-                payouts,
-                availableBalance: Number(company.availableBalance),
-                pendingBalance: Number(company.pendingBalance),
-            };
-        }
-        catch (e) {
-            throw e;
-        }
+        const company = await this.prisma.company.findUnique({
+            where: { id: companyId },
+            select: { availableBalance: true, pendingBalance: true },
+        });
+        if (!company)
+            throw new common_1.NotFoundException('Company not found');
+        const payouts = await this.prisma.payout.findMany({
+            where: { companyId },
+            orderBy: { requestedAt: 'desc' },
+        });
+        return {
+            payouts,
+            availableBalance: Number(company.availableBalance),
+            pendingBalance: Number(company.pendingBalance),
+        };
     }
     async requestPayout(companyId, amount, method) {
         if (amount <= 0)

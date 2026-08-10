@@ -51,7 +51,7 @@ function encryptAES256GCM(plainText, key, iv) {
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
     const encrypted = Buffer.concat([
         cipher.update(plainText, 'utf8'),
-        cipher.final()
+        cipher.final(),
     ]);
     const tag = cipher.getAuthTag();
     const combined = Buffer.concat([encrypted, tag]);
@@ -65,7 +65,7 @@ function decryptAES256GCM(base64CipherText, key, iv) {
     decipher.setAuthTag(tag);
     const decrypted = Buffer.concat([
         decipher.update(ciphertext),
-        decipher.final()
+        decipher.final(),
     ]);
     return decrypted.toString('utf8');
 }

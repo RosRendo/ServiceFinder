@@ -56,7 +56,8 @@ let PresenceGateway = class PresenceGateway {
         this.prisma = prisma;
     }
     async handleConnection(client) {
-        const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '');
+        const token = client.handshake.auth?.token ||
+            client.handshake.headers?.authorization?.replace('Bearer ', '');
         if (!token)
             return;
         try {

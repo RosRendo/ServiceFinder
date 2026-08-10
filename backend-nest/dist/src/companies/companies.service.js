@@ -228,13 +228,27 @@ let CompaniesService = class CompaniesService {
                         bookingDate: true,
                         startTime: true,
                         endTime: true,
-                        service: { select: { name: true, serviceType: { select: { category: { select: { name: true } } } } } },
+                        service: {
+                            select: {
+                                name: true,
+                                serviceType: {
+                                    select: { category: { select: { name: true } } },
+                                },
+                            },
+                        },
                         assignedStaff: { select: { user: { select: { fullName: true } } } },
-                        dispute: { select: { id: true, status: true, description: true, createdAt: true } },
+                        dispute: {
+                            select: {
+                                id: true,
+                                status: true,
+                                description: true,
+                                createdAt: true,
+                            },
+                        },
                         conversations: {
                             take: 1,
-                            select: { id: true }
-                        }
+                            select: { id: true },
+                        },
                     },
                     orderBy: { bookingDate: 'desc' },
                 },
@@ -264,7 +278,7 @@ let CompaniesService = class CompaniesService {
                 activeDisputes,
                 lastActivity,
             },
-            bookings: bookings.map(b => ({
+            bookings: bookings.map((b) => ({
                 id: b.id.toString(),
                 serviceName: b.service?.name,
                 serviceCategory: b.service?.serviceType?.category?.name,
@@ -274,9 +288,15 @@ let CompaniesService = class CompaniesService {
                 status: b.status,
                 amount: b.totalPrice,
                 staffName: b.assignedStaff?.user?.fullName || null,
-                dispute: b.dispute ? { id: b.dispute.id.toString(), status: b.dispute.status, reason: b.dispute.description } : null,
-                hasMessages: b.conversations.length > 0
-            }))
+                dispute: b.dispute
+                    ? {
+                        id: b.dispute.id.toString(),
+                        status: b.dispute.status,
+                        reason: b.dispute.description,
+                    }
+                    : null,
+                hasMessages: b.conversations.length > 0,
+            })),
         };
     }
     async getCompanyReviews(companyId, query) {
@@ -289,7 +309,11 @@ let CompaniesService = class CompaniesService {
                     OR: [
                         { companyComment: { contains: search, mode: 'insensitive' } },
                         { staffComment: { contains: search, mode: 'insensitive' } },
-                        { customer: { fullName: { contains: search, mode: 'insensitive' } } },
+                        {
+                            customer: {
+                                fullName: { contains: search, mode: 'insensitive' },
+                            },
+                        },
                     ],
                 }
                 : {}),
@@ -334,8 +358,12 @@ let CompaniesService = class CompaniesService {
                 booking: { companyId },
             },
             include: {
-                customer: { select: { fullName: true, avatar: true, email: true, phone: true } },
-                staff: { include: { user: { select: { fullName: true, avatar: true } } } },
+                customer: {
+                    select: { fullName: true, avatar: true, email: true, phone: true },
+                },
+                staff: {
+                    include: { user: { select: { fullName: true, avatar: true } } },
+                },
                 booking: { include: { service: true, dispute: true } },
             },
         });
@@ -366,12 +394,14 @@ let CompaniesService = class CompaniesService {
             staffText: review.staffComment,
             date: review.createdAt.toISOString(),
             status: 'visible',
-            dispute: review.booking.dispute ? {
-                id: review.booking.dispute.id.toString(),
-                status: review.booking.dispute.status,
-                reason: review.booking.dispute.description,
-                createdAt: review.booking.dispute.createdAt
-            } : null
+            dispute: review.booking.dispute
+                ? {
+                    id: review.booking.dispute.id.toString(),
+                    status: review.booking.dispute.status,
+                    reason: review.booking.dispute.description,
+                    createdAt: review.booking.dispute.createdAt,
+                }
+                : null,
         };
     }
     async getCompanyRevenue(companyId) {
@@ -386,7 +416,7 @@ let CompaniesService = class CompaniesService {
                     assignedStaffId: true,
                     serviceId: true,
                 },
-                orderBy: { bookingDate: 'asc' }
+                orderBy: { bookingDate: 'asc' },
             }),
             this.prisma.booking.findMany({
                 where: { companyId },
@@ -395,23 +425,26 @@ let CompaniesService = class CompaniesService {
                 include: {
                     customer: { select: { fullName: true } },
                     assignedStaff: { select: { user: { select: { fullName: true } } } },
-                    payment: { select: { method: true } }
-                }
+                    payment: { select: { method: true } },
+                },
             }),
-            this.prisma.service.findMany({ where: { companyId }, select: { id: true, name: true } }),
+            this.prisma.service.findMany({
+                where: { companyId },
+                select: { id: true, name: true },
+            }),
             this.prisma.companyStaff.findMany({
                 where: { companyId },
                 include: {
                     user: { select: { fullName: true, avatar: true } },
-                    reviews: { select: { staffRating: true } }
-                }
-            })
+                    reviews: { select: { staffRating: true } },
+                },
+            }),
         ]);
         let totalGross = 0;
         let totalPlatformFee = 0;
         let totalNet = 0;
-        const mappedTransactions = transactions.map(t => ({
-            id: "BK-" + t.id.toString(),
+        const mappedTransactions = transactions.map((t) => ({
+            id: 'BK-' + t.id.toString(),
             date: t.bookingDate.toISOString(),
             customer: t.customer?.fullName || 'Unknown',
             staff: t.assignedStaff?.user?.fullName || 'Unassigned',
@@ -419,7 +452,7 @@ let CompaniesService = class CompaniesService {
             fee: Number(t.platformFee || 0),
             net: Number(t.companyEarnings || 0),
             payment: t.payment?.method || 'Unknown',
-            status: t.status
+            status: t.status,
         }));
         const serviceRevenue = {};
         const staffRevenue = {};
@@ -439,48 +472,92 @@ let CompaniesService = class CompaniesService {
             totalGross += gross;
             totalNet += net;
             totalPlatformFee += fee;
-            const dayName = b.bookingDate.toLocaleDateString('en-US', { weekday: 'short' });
+            const dayName = b.bookingDate.toLocaleDateString('en-US', {
+                weekday: 'short',
+            });
             if (trendMap[dayName]) {
                 trendMap[dayName].gross += gross;
                 trendMap[dayName].net += net;
             }
             if (b.serviceId) {
-                serviceRevenue[b.serviceId.toString()] = (serviceRevenue[b.serviceId.toString()] || 0) + gross;
+                serviceRevenue[b.serviceId.toString()] =
+                    (serviceRevenue[b.serviceId.toString()] || 0) + gross;
             }
             if (b.assignedStaffId) {
-                staffRevenue[b.assignedStaffId.toString()] = (staffRevenue[b.assignedStaffId.toString()] || 0) + gross;
-                staffJobs[b.assignedStaffId.toString()] = (staffJobs[b.assignedStaffId.toString()] || 0) + 1;
+                staffRevenue[b.assignedStaffId.toString()] =
+                    (staffRevenue[b.assignedStaffId.toString()] || 0) + gross;
+                staffJobs[b.assignedStaffId.toString()] =
+                    (staffJobs[b.assignedStaffId.toString()] || 0) + 1;
             }
         }
         const staffPayout = totalNet * 0.6;
         const profit = totalNet - staffPayout;
         const kpis = [
-            { label: "Gross Revenue", value: "$" + totalGross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), up: true, pct: "12%" },
-            { label: "Net Revenue", value: "$" + totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), up: true, pct: "8%" },
-            { label: "Profit", value: "$" + profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), up: true, pct: "15%" },
-            { label: "Avg Booking", value: "$" + (bookings.length ? totalGross / bookings.length : 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), up: true, pct: "3%" },
+            {
+                label: 'Gross Revenue',
+                value: '$' +
+                    totalGross.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                    }),
+                up: true,
+                pct: '12%',
+            },
+            {
+                label: 'Net Revenue',
+                value: '$' +
+                    totalNet.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                    }),
+                up: true,
+                pct: '8%',
+            },
+            {
+                label: 'Profit',
+                value: '$' +
+                    profit.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                    }),
+                up: true,
+                pct: '15%',
+            },
+            {
+                label: 'Avg Booking',
+                value: '$' +
+                    (bookings.length ? totalGross / bookings.length : 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                up: true,
+                pct: '3%',
+            },
         ];
-        const trendData = Object.keys(trendMap).map(day => ({
+        const trendData = Object.keys(trendMap).map((day) => ({
             day,
             gross: trendMap[day].gross,
-            net: trendMap[day].net
+            net: trendMap[day].net,
         }));
-        const serviceData = Object.keys(serviceRevenue).map(sId => {
-            const svc = services.find(s => s.id.toString() === sId);
+        const serviceData = Object.keys(serviceRevenue)
+            .map((sId) => {
+            const svc = services.find((s) => s.id.toString() === sId);
             const rev = serviceRevenue[sId];
             return {
                 name: svc ? svc.name : 'Unknown Service',
                 revenue: rev,
-                percentage: totalGross > 0 ? (rev / totalGross) * 100 : 0
+                percentage: totalGross > 0 ? (rev / totalGross) * 100 : 0,
             };
-        }).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
-        const staffData = Object.keys(staffRevenue).map(sId => {
-            const stf = staffMembers.find(s => s.id.toString() === sId);
+        })
+            .sort((a, b) => b.revenue - a.revenue)
+            .slice(0, 5);
+        const staffData = Object.keys(staffRevenue)
+            .map((sId) => {
+            const stf = staffMembers.find((s) => s.id.toString() === sId);
             const rev = staffRevenue[sId];
             const jobs = staffJobs[sId];
             let rating = 0;
             if (stf && stf.reviews && stf.reviews.length > 0) {
-                rating = stf.reviews.reduce((acc, r) => acc + (r.staffRating || 0), 0) / stf.reviews.length;
+                rating =
+                    stf.reviews.reduce((acc, r) => acc + (r.staffRating || 0), 0) /
+                        stf.reviews.length;
             }
             return {
                 id: sId,
@@ -488,11 +565,13 @@ let CompaniesService = class CompaniesService {
                 avatar: stf?.user?.avatar || '',
                 jobs: jobs,
                 revenue: rev,
-                rating: Number(rating.toFixed(1))
+                rating: Number(rating.toFixed(1)),
             };
-        }).sort((a, b) => b.revenue - a.revenue).map((s, i) => ({
+        })
+            .sort((a, b) => b.revenue - a.revenue)
+            .map((s, i) => ({
             ...s,
-            badge: i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
+            badge: i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null,
         }));
         const breakdown = {
             gross: totalGross,
@@ -500,7 +579,7 @@ let CompaniesService = class CompaniesService {
             staffPayout: staffPayout,
             discounts: 0,
             refunds: 0,
-            net: totalNet
+            net: totalNet,
         };
         return {
             kpis,
@@ -508,7 +587,7 @@ let CompaniesService = class CompaniesService {
             breakdown,
             serviceData,
             staffData,
-            transactions: mappedTransactions
+            transactions: mappedTransactions,
         };
     }
     async getCompanyById(id) {
@@ -589,14 +668,19 @@ let CompaniesService = class CompaniesService {
                 : null;
         }
         if (updates.coverageRadiusKm !== undefined) {
-            const radius = updates.coverageRadiusKm ? Number(updates.coverageRadiusKm) : 15;
+            const radius = updates.coverageRadiusKm
+                ? Number(updates.coverageRadiusKm)
+                : 15;
             const serviceArea = await this.prisma.serviceArea.findFirst({
                 where: { companyId: id },
             });
             if (serviceArea) {
                 await this.prisma.serviceArea.update({
                     where: { id: serviceArea.id },
-                    data: { coverageRadiusKm: radius, city: updates.city || company.city || 'Phnom Penh' },
+                    data: {
+                        coverageRadiusKm: radius,
+                        city: updates.city || company.city || 'Phnom Penh',
+                    },
                 });
             }
             else {
@@ -655,7 +739,7 @@ let CompaniesService = class CompaniesService {
         const companyId = company.id;
         const recentDate = new Date();
         recentDate.setDate(recentDate.getDate() - 7);
-        const [allBookings, weeklyBookings, recentActivity, escrowResult, completedEarnings, paidPayouts] = await Promise.all([
+        const [allBookings, weeklyBookings, recentActivity, escrowResult, completedEarnings, paidPayouts,] = await Promise.all([
             this.prisma.booking.findMany({
                 where: { companyId },
                 select: {
@@ -869,12 +953,31 @@ let CompaniesService = class CompaniesService {
         const currMonthCount = monthlyBookings.length;
         const prevMonthCount = prevMonthBookings.length;
         const revenueGrowth = prevMonthRevenue > 0
-            ? Number((((currMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100).toFixed(1))
-            : (currMonthRevenue > 0 ? 100 : 0);
+            ? Number((((currMonthRevenue - prevMonthRevenue) / prevMonthRevenue) *
+                100).toFixed(1))
+            : currMonthRevenue > 0
+                ? 100
+                : 0;
         const bookingsGrowth = prevMonthCount > 0
-            ? Number((((currMonthCount - prevMonthCount) / prevMonthCount) * 100).toFixed(1))
-            : (currMonthCount > 0 ? 100 : 0);
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            ? Number((((currMonthCount - prevMonthCount) / prevMonthCount) *
+                100).toFixed(1))
+            : currMonthCount > 0
+                ? 100
+                : 0;
+        const monthNames = [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec',
+        ];
         const months = [];
         for (let i = 5; i >= 0; i--) {
             const d = new Date();
@@ -884,15 +987,47 @@ let CompaniesService = class CompaniesService {
                 monthKey: `${d.getFullYear()}-${d.getMonth()}`,
             });
         }
-        const avgRatingVal = company.ratingSummary?.averageRating ? Number(company.ratingSummary.averageRating) : 4.5;
+        const avgRatingVal = company.ratingSummary?.averageRating
+            ? Number(company.ratingSummary.averageRating)
+            : 4.5;
         const radarBase = avgRatingVal * 25;
         const qualityRadar = [
-            { subject: 'Punctuality', A: Math.round(radarBase + (Math.random() * 10 - 5)), B: 110, fullMark: 150 },
-            { subject: 'Communication', A: Math.round(radarBase + (Math.random() * 10 - 5)), B: 110, fullMark: 150 },
-            { subject: 'Cleanliness', A: Math.round(radarBase + (Math.random() * 10 - 5)), B: 110, fullMark: 150 },
-            { subject: 'Expertise', A: Math.round(radarBase + (Math.random() * 10 - 5)), B: 110, fullMark: 150 },
-            { subject: 'Value', A: Math.round(radarBase + (Math.random() * 10 - 5)), B: 110, fullMark: 150 },
-            { subject: 'Professionalism', A: Math.round(radarBase + (Math.random() * 10 - 5)), B: 110, fullMark: 150 },
+            {
+                subject: 'Punctuality',
+                A: Math.round(radarBase + (Math.random() * 10 - 5)),
+                B: 110,
+                fullMark: 150,
+            },
+            {
+                subject: 'Communication',
+                A: Math.round(radarBase + (Math.random() * 10 - 5)),
+                B: 110,
+                fullMark: 150,
+            },
+            {
+                subject: 'Cleanliness',
+                A: Math.round(radarBase + (Math.random() * 10 - 5)),
+                B: 110,
+                fullMark: 150,
+            },
+            {
+                subject: 'Expertise',
+                A: Math.round(radarBase + (Math.random() * 10 - 5)),
+                B: 110,
+                fullMark: 150,
+            },
+            {
+                subject: 'Value',
+                A: Math.round(radarBase + (Math.random() * 10 - 5)),
+                B: 110,
+                fullMark: 150,
+            },
+            {
+                subject: 'Professionalism',
+                A: Math.round(radarBase + (Math.random() * 10 - 5)),
+                B: 110,
+                fullMark: 150,
+            },
         ];
         const staffData = await this.prisma.companyStaff.findMany({
             where: { companyId },
@@ -907,25 +1042,35 @@ let CompaniesService = class CompaniesService {
                 },
             },
         });
-        const topStaff = staffData.map((s) => {
+        const topStaff = staffData
+            .map((s) => {
             const jobsCount = s.assignedBookings.length;
             const revenue = s.assignedBookings.reduce((sum, b) => sum + Number(b.companyEarnings), 0);
-            const ratings = s.reviews.map(r => r.staffRating).filter((v) => v !== null);
-            const rating = ratings.length > 0 ? Number((ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(1)) : 5.0;
+            const ratings = s.reviews
+                .map((r) => r.staffRating)
+                .filter((v) => v !== null);
+            const rating = ratings.length > 0
+                ? Number((ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(1))
+                : 5.0;
             return {
                 name: s.user.fullName,
                 revenue,
                 rating,
                 jobs: jobsCount,
             };
-        }).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+        })
+            .sort((a, b) => b.revenue - a.revenue)
+            .slice(0, 5);
         const companyReviews = await this.prisma.review.findMany({
             where: { booking: { companyId } },
             select: { createdAt: true, companyRating: true },
         });
         const ratingTrend = months.map((m) => {
-            const revs = companyReviews.filter(r => `${r.createdAt.getFullYear()}-${r.createdAt.getMonth()}` === m.monthKey);
-            const avg = revs.length > 0 ? Number((revs.reduce((sum, r) => sum + r.companyRating, 0) / revs.length).toFixed(1)) : avgRatingVal;
+            const revs = companyReviews.filter((r) => `${r.createdAt.getFullYear()}-${r.createdAt.getMonth()}` ===
+                m.monthKey);
+            const avg = revs.length > 0
+                ? Number((revs.reduce((sum, r) => sum + r.companyRating, 0) / revs.length).toFixed(1))
+                : avgRatingVal;
             return {
                 name: m.name,
                 rating: avg,
@@ -993,12 +1138,13 @@ let CompaniesService = class CompaniesService {
                 ? validReviews.reduce((acc, r) => acc + Number(r.staffRating), 0) /
                     validReviews.length
                 : null;
-            const isAvailable = s.status === 'active' && !s.assignedBookings.some(b => b.status === 'in_progress');
+            const isAvailable = s.status === 'active' &&
+                !s.assignedBookings.some((b) => b.status === 'in_progress');
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
-            const todayJobsCount = s.assignedBookings.filter(b => b.bookingDate >= today && b.bookingDate < tomorrow).length;
+            const todayJobsCount = s.assignedBookings.filter((b) => b.bookingDate >= today && b.bookingDate < tomorrow).length;
             return {
                 id: s.id.toString(),
                 userId: s.userId.toString(),
@@ -1007,12 +1153,20 @@ let CompaniesService = class CompaniesService {
                 email: s.user.email,
                 avatar: s.user.avatar,
                 phone: s.user.phone || '+855 12 000 000',
-                role: s.role === 'worker' ? 'Field Agent' : s.role === 'supervisor' ? 'Senior Technician' : 'Manager',
+                role: s.role === 'worker'
+                    ? 'Field Agent'
+                    : s.role === 'supervisor'
+                        ? 'Senior Technician'
+                        : 'Manager',
                 status: isAvailable ? 'online' : 'offline',
                 rating: avgRating ? Number(avgRating.toFixed(1)) : 0,
                 jobsCompleted: s._count.assignedBookings,
                 todayJobs: todayJobsCount,
-                earningsToday: s.assignedBookings.filter(b => b.status === 'completed' && b.bookingDate >= today && b.bookingDate < tomorrow).reduce((sum, b) => sum + Number(b.staffEarnings), 0),
+                earningsToday: s.assignedBookings
+                    .filter((b) => b.status === 'completed' &&
+                    b.bookingDate >= today &&
+                    b.bookingDate < tomorrow)
+                    .reduce((sum, b) => sum + Number(b.staffEarnings), 0),
                 pendingPayout: Number(s.walletBalance),
                 tips: 0,
                 attendance: 90 + Math.floor(Math.random() * 10),
@@ -1020,14 +1174,14 @@ let CompaniesService = class CompaniesService {
                 currentLocation: 'Phnom Penh',
                 activeJob: undefined,
                 compliance: [
-                    { label: "National ID", verified: true },
-                    { label: "Background Check", verified: true },
-                    { label: "Service Contract", verified: true },
+                    { label: 'National ID', verified: true },
+                    { label: 'Background Check', verified: true },
+                    { label: 'Service Contract', verified: true },
                 ],
                 schedule: [
-                    { time: "09:00", service: "Standard Service", status: "done" },
-                    { time: "11:30", service: "Maintenance", status: "active" },
-                    { time: "14:00", service: "TBD", status: "upcoming" },
+                    { time: '09:00', service: 'Standard Service', status: 'done' },
+                    { time: '11:30', service: 'Maintenance', status: 'active' },
+                    { time: '14:00', service: 'TBD', status: 'upcoming' },
                 ],
                 activeRequests: s._count.assignedRequests,
                 averageRating: avgRating ? Number(avgRating.toFixed(1)) : null,
@@ -1092,7 +1246,7 @@ let CompaniesService = class CompaniesService {
             : null;
         const revenueAgg = await this.prisma.booking.aggregate({
             where: { assignedStaffId: staffId, status: 'completed' },
-            _sum: { totalPrice: true }
+            _sum: { totalPrice: true },
         });
         const totalRevenue = Number(revenueAgg._sum.totalPrice || 0);
         const completedJobsCount = await this.prisma.booking.count({
@@ -1102,8 +1256,9 @@ let CompaniesService = class CompaniesService {
             where: { assignedStaffId: staffId, status: 'cancelled' },
         });
         const totalBookingsCount = staff.assignedBookings.length;
-        const completionRate = (totalBookingsCount - cancelledJobsCount) > 0
-            ? Number(((completedJobsCount / (totalBookingsCount - cancelledJobsCount)) * 100).toFixed(1))
+        const completionRate = totalBookingsCount - cancelledJobsCount > 0
+            ? Number(((completedJobsCount / (totalBookingsCount - cancelledJobsCount)) *
+                100).toFixed(1))
             : 100;
         const cancellationRate = totalBookingsCount > 0
             ? Number(((cancelledJobsCount / totalBookingsCount) * 100).toFixed(1))
@@ -1251,7 +1406,9 @@ let CompaniesService = class CompaniesService {
             data: {
                 role: updates.role,
                 status: updates.status,
-                splitPercent: updates.splitPercent !== undefined && updates.splitPercent !== null ? Number(updates.splitPercent) : null,
+                splitPercent: updates.splitPercent !== undefined && updates.splitPercent !== null
+                    ? Number(updates.splitPercent)
+                    : null,
             },
         });
         return { success: true };
@@ -1364,12 +1521,12 @@ let CompaniesService = class CompaniesService {
             where: { companyId },
             include: {
                 serviceType: {
-                    include: { category: true }
-                }
+                    include: { category: true },
+                },
             },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
         });
-        return services.map(s => ({
+        return services.map((s) => ({
             ...s,
             id: s.id.toString(),
             companyId: s.companyId.toString(),
@@ -1383,7 +1540,7 @@ let CompaniesService = class CompaniesService {
             where: { id: serviceId, companyId },
             include: {
                 serviceType: {
-                    include: { category: true }
+                    include: { category: true },
                 },
                 bookings: {
                     select: {
@@ -1391,26 +1548,28 @@ let CompaniesService = class CompaniesService {
                         status: true,
                         totalPrice: true,
                         bookingDate: true,
-                    }
+                    },
                 },
                 _count: {
-                    select: { bookings: true }
-                }
-            }
+                    select: { bookings: true },
+                },
+            },
         });
         if (!service) {
             throw new common_1.NotFoundException('Service not found');
         }
         const bookings = service.bookings;
-        const completedBookings = bookings.filter(b => b.status === 'completed');
+        const completedBookings = bookings.filter((b) => b.status === 'completed');
         const totalRevenue = completedBookings.reduce((sum, b) => sum + Number(b.totalPrice), 0);
-        const activeBookings = bookings.filter(b => ['pending', 'in_progress', 'confirmed'].includes(b.status)).length;
+        const activeBookings = bookings.filter((b) => ['pending', 'in_progress', 'confirmed'].includes(b.status)).length;
         return {
             id: service.id.toString(),
             name: service.name,
             description: service.description,
             basePrice: Number(service.basePrice),
-            discountPrice: service.discountPrice ? Number(service.discountPrice) : null,
+            discountPrice: service.discountPrice
+                ? Number(service.discountPrice)
+                : null,
             isActive: service.isActive,
             image: service.image,
             category: service.serviceType?.category?.name || 'General',
@@ -1424,12 +1583,12 @@ let CompaniesService = class CompaniesService {
             recentBookings: bookings
                 .sort((a, b) => b.bookingDate.getTime() - a.bookingDate.getTime())
                 .slice(0, 5)
-                .map(b => ({
+                .map((b) => ({
                 id: b.id.toString(),
                 status: b.status,
                 amount: Number(b.totalPrice),
-                date: b.bookingDate
-            }))
+                date: b.bookingDate,
+            })),
         };
     }
     async updateCompanyService(companyId, serviceId, data) {
@@ -1446,7 +1605,9 @@ let CompaniesService = class CompaniesService {
         if (data.basePrice !== undefined)
             updateData.basePrice = Number(data.basePrice);
         if (data.discountPrice !== undefined)
-            updateData.discountPrice = data.discountPrice ? Number(data.discountPrice) : null;
+            updateData.discountPrice = data.discountPrice
+                ? Number(data.discountPrice)
+                : null;
         if (data.isActive !== undefined)
             updateData.isActive = data.isActive;
         if (data.image !== undefined)
@@ -1468,7 +1629,7 @@ let CompaniesService = class CompaniesService {
                 durationMin: data.durationMin || 60,
                 isActive: data.isActive ?? true,
                 image: data.image,
-            }
+            },
         });
     }
     async getMyCompanyCampaigns(userId) {
@@ -1918,7 +2079,9 @@ let CompaniesService = class CompaniesService {
             name: document.name,
             documentUrl: document.documentUrl,
             status: document.status,
-            expiryDate: document.expiryDate ? document.expiryDate.toISOString() : null,
+            expiryDate: document.expiryDate
+                ? document.expiryDate.toISOString()
+                : null,
         };
     }
     async addStaffNote(staffId, userId, dto) {

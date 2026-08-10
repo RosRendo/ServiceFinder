@@ -27,7 +27,9 @@ let SupportService = class SupportService {
         const [tickets, total] = await Promise.all([
             this.prisma.supportTicket.findMany({
                 where,
-                include: { user: { select: { id: true, fullName: true, email: true } } },
+                include: {
+                    user: { select: { id: true, fullName: true, email: true } },
+                },
                 orderBy: { createdAt: 'desc' },
                 skip,
                 take: limit,
@@ -47,7 +49,11 @@ let SupportService = class SupportService {
                 updatedAt: t.updatedAt.toISOString(),
                 resolvedAt: t.resolvedAt?.toISOString() ?? null,
                 user: t.user
-                    ? { id: t.user.id.toString(), fullName: t.user.fullName, email: t.user.email }
+                    ? {
+                        id: t.user.id.toString(),
+                        fullName: t.user.fullName,
+                        email: t.user.email,
+                    }
                     : null,
             })),
             meta: { total, page, limit },
@@ -68,7 +74,11 @@ let SupportService = class SupportService {
             where: { id: BigInt(id) },
             data: { status: 'in_progress' },
         });
-        return { success: true, message: 'Reply logged. (Ticket marked in_progress)', ticketId: id.toString() };
+        return {
+            success: true,
+            message: 'Reply logged. (Ticket marked in_progress)',
+            ticketId: id.toString(),
+        };
     }
     async createTicket(userId, subject, description, priority = 'medium') {
         const ticket = await this.prisma.supportTicket.create({

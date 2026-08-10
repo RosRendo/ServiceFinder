@@ -73,7 +73,11 @@ export class PayoutsController {
         companyId,
       );
     } catch (e: any) {
-      console.error('\n\n=========================================\nCRITICAL CONTROLLER ERROR:', e, '\n=========================================\n\n');
+      console.error(
+        '\n\n=========================================\nCRITICAL CONTROLLER ERROR:',
+        e,
+        '\n=========================================\n\n',
+      );
       throw e;
     }
   }

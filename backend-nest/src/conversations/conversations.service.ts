@@ -62,7 +62,7 @@ export class ConversationsService {
       const participants = [userId, staffUserId];
 
       // Find or create the job conversation for this booking
-      let existing = await this.prisma.conversation.findFirst({
+      const existing = await this.prisma.conversation.findFirst({
         where: {
           type: 'job',
           bookingId,
@@ -297,9 +297,7 @@ export class ConversationsService {
             status: 'pending',
           },
         })
-        .catch((e) =>
-          console.warn('ModerationLog create failed:', e?.message),
-        );
+        .catch((e) => console.warn('ModerationLog create failed:', e?.message));
     }
 
     const response = {
@@ -345,7 +343,14 @@ export class ConversationsService {
       participants: {
         include: {
           user: {
-            select: { id: true, fullName: true, avatar: true, role: true, workingStatus: true, lastSeen: true },
+            select: {
+              id: true,
+              fullName: true,
+              avatar: true,
+              role: true,
+              workingStatus: true,
+              lastSeen: true,
+            },
           },
         },
       },

@@ -149,21 +149,21 @@ export class ServiceTypesService {
             logoUrl: true,
             verificationStatus: true,
             createdAt: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     // Mock pure facts for the MVP. In production, these come from real aggregated metrics.
-    const providers = services.map(srv => {
+    const providers = services.map((srv) => {
       const idNum = Number(srv.company.id.toString());
-      
+
       // Deterministic pseudo-random generation based on company ID
       const rating = 4.0 + ((idNum * 13) % 11) / 10; // Between 4.0 and 5.0
       const jobsCompleted = 50 + ((idNum * 47) % 5000); // 50 to 5050
       const completionRate = 0.85 + ((idNum * 17) % 15) / 100; // 0.85 to 0.99
       const responseTimeMin = 5 + ((idNum * 7) % 55); // 5 to 60 mins
-      const isInsured = (idNum % 2) === 0;
+      const isInsured = idNum % 2 === 0;
 
       return {
         serviceId: srv.id.toString(),
@@ -183,7 +183,7 @@ export class ServiceTypesService {
           completionRate: Number(completionRate.toFixed(2)),
           responseTimeMin,
           isInsured,
-        }
+        },
       };
     });
 

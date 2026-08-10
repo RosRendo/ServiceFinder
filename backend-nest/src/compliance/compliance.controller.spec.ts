@@ -8,9 +8,7 @@ describe('ComplianceController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ComplianceController],
-      providers: [
-        { provide: ComplianceService, useValue: {} },
-      ],
+      providers: [{ provide: ComplianceService, useValue: {} }],
     }).compile();
 
     controller = module.get<ComplianceController>(ComplianceController);

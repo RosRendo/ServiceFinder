@@ -39,8 +39,8 @@ let BookingListener = class BookingListener {
         if (!staff)
             return;
         await this.notificationsService
-            .createNotification(staff.userId, "new_assignment", "New Job Assignment", `You have been assigned to a new booking. Please accept or reject it.`, { bookingId: event.bookingId.toString() })
-            .catch((e) => console.warn("Assigned notification failed:", e.message));
+            .createNotification(staff.userId, 'new_assignment', 'New Job Assignment', `You have been assigned to a new booking. Please accept or reject it.`, { bookingId: event.bookingId.toString() })
+            .catch((e) => console.warn('Assigned notification failed:', e.message));
     }
     async handleBookingAccepted(event) {
         const staff = await this.prisma.companyStaff.findUnique({
@@ -51,13 +51,13 @@ let BookingListener = class BookingListener {
             return;
         await this.conversationsService
             .getOrCreateConversation(event.customerId, {
-            type: "job",
+            type: 'job',
             bookingId: event.bookingId.toString(),
         })
-            .catch((e) => console.warn("Failed to auto-create job chat:", e.message));
+            .catch((e) => console.warn('Failed to auto-create job chat:', e.message));
         await this.notificationsService
-            .createNotification(event.customerId, "staff_assigned", "Staff Accepted Your Job", `${staff.user.fullName} has accepted your booking and is preparing for service.`, { bookingId: event.bookingId.toString() })
-            .catch((e) => console.warn("Accepted notification failed:", e.message));
+            .createNotification(event.customerId, 'staff_assigned', 'Staff Accepted Your Job', `${staff.user.fullName} has accepted your booking and is preparing for service.`, { bookingId: event.bookingId.toString() })
+            .catch((e) => console.warn('Accepted notification failed:', e.message));
     }
     async handleBookingRejected(event) {
         const staff = await this.prisma.companyStaff.findUnique({
@@ -72,21 +72,21 @@ let BookingListener = class BookingListener {
         if (!company)
             return;
         await this.notificationsService
-            .createNotification(company.ownerId, "assignment_rejected", "Assignment Rejected by Staff", `Staff member ${staff.user.fullName} has rejected the assignment for booking #${event.bookingId.toString()}. Job returned to dispatch queue.`, { bookingId: event.bookingId.toString() })
-            .catch((e) => console.warn("Rejected notification failed:", e.message));
+            .createNotification(company.ownerId, 'assignment_rejected', 'Assignment Rejected by Staff', `Staff member ${staff.user.fullName} has rejected the assignment for booking #${event.bookingId.toString()}. Job returned to dispatch queue.`, { bookingId: event.bookingId.toString() })
+            .catch((e) => console.warn('Rejected notification failed:', e.message));
     }
     async handleBookingCompleted(event) {
-        const holdHours = await this.settingsService.getSettingNumber("PAYOUT_HOLD_HOURS", 72);
+        const holdHours = await this.settingsService.getSettingNumber('PAYOUT_HOLD_HOURS', 72);
         const archivedAt = new Date(Date.now() + holdHours * 60 * 60 * 1000);
         await this.prisma.conversation
             .updateMany({
             where: { bookingId: event.bookingId },
             data: { archivedAt },
         })
-            .catch((e) => console.warn("Failed to schedule chat archival:", e.message));
+            .catch((e) => console.warn('Failed to schedule chat archival:', e.message));
         await this.notificationsService
-            .createNotification(event.customerId, "job_completed", "Service Completed", `Your booking has been completed! Please rate your service.`, { bookingId: event.bookingId.toString() })
-            .catch((e) => console.warn("Completed notification failed:", e.message));
+            .createNotification(event.customerId, 'job_completed', 'Service Completed', `Your booking has been completed! Please rate your service.`, { bookingId: event.bookingId.toString() })
+            .catch((e) => console.warn('Completed notification failed:', e.message));
     }
     async handleDisputeOpened(event) {
         const company = await this.prisma.company.findUnique({
@@ -95,37 +95,37 @@ let BookingListener = class BookingListener {
         if (!company)
             return;
         await this.notificationsService
-            .createNotification(company.ownerId, "dispute_opened", "Dispute Opened", `A dispute has been opened for booking #${event.bookingId.toString()}. Payout frozen.`, { bookingId: event.bookingId.toString() })
-            .catch((e) => console.warn("Dispute notification failed:", e.message));
+            .createNotification(company.ownerId, 'dispute_opened', 'Dispute Opened', `A dispute has been opened for booking #${event.bookingId.toString()}. Payout frozen.`, { bookingId: event.bookingId.toString() })
+            .catch((e) => console.warn('Dispute notification failed:', e.message));
     }
 };
 exports.BookingListener = BookingListener;
 __decorate([
-    (0, event_emitter_1.OnEvent)("booking.assigned"),
+    (0, event_emitter_1.OnEvent)('booking.assigned'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [booking_events_1.BookingAssignedEvent]),
     __metadata("design:returntype", Promise)
 ], BookingListener.prototype, "handleBookingAssigned", null);
 __decorate([
-    (0, event_emitter_1.OnEvent)("booking.accepted"),
+    (0, event_emitter_1.OnEvent)('booking.accepted'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [booking_events_1.BookingAcceptedEvent]),
     __metadata("design:returntype", Promise)
 ], BookingListener.prototype, "handleBookingAccepted", null);
 __decorate([
-    (0, event_emitter_1.OnEvent)("booking.rejected"),
+    (0, event_emitter_1.OnEvent)('booking.rejected'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [booking_events_1.BookingRejectedEvent]),
     __metadata("design:returntype", Promise)
 ], BookingListener.prototype, "handleBookingRejected", null);
 __decorate([
-    (0, event_emitter_1.OnEvent)("booking.completed"),
+    (0, event_emitter_1.OnEvent)('booking.completed'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [booking_events_1.BookingCompletedEvent]),
     __metadata("design:returntype", Promise)
 ], BookingListener.prototype, "handleBookingCompleted", null);
 __decorate([
-    (0, event_emitter_1.OnEvent)("dispute.opened"),
+    (0, event_emitter_1.OnEvent)('dispute.opened'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [booking_events_1.DisputeOpenedEvent]),
     __metadata("design:returntype", Promise)

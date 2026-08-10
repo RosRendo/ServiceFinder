@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/grid/StatusBadge";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
 import { CompanyDrawer, CompanyRow } from "@/components/drawers/CompanyDrawer";
 import { AddCompanyModal } from "@/components/admin/AddCompanyModal";
+import { EditCompanyModal } from "@/components/admin/EditCompanyModal";
 import { Search, Download, Building2, Star, Loader2, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
@@ -15,10 +16,13 @@ export default function CompaniesPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [timeFilter, setTimeFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [activeCompany, setActiveCompany] = useState<CompanyRow | null>(null);
+  const [rawActiveCompany, setRawActiveCompany] = useState<any>(null);
   
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,13 +62,26 @@ export default function CompaniesPage() {
   const filtered = companies.filter((c) => {
     const matchSearch = !search || [c.name, c.owner?.fullName, c.id].some((v) => v?.toString().toLowerCase().includes(search.toLowerCase()));
     const matchStatus = statusFilter === "all" || c.verificationStatus === statusFilter;
-    return matchSearch && matchStatus;
+    
+    let matchTime = true;
+    if (timeFilter !== "all") {
+      const activeTime = new Date(c.owner?.lastLoginAt || c.owner?.lastSeen || c.updatedAt || c.createdAt).getTime();
+      const now = Date.now();
+      const diffHrs = (now - activeTime) / (1000 * 60 * 60);
+      if (timeFilter === "1h") matchTime = diffHrs <= 1;
+      if (timeFilter === "1d") matchTime = diffHrs <= 24;
+      if (timeFilter === "1m") matchTime = diffHrs <= 24 * 30;
+      if (timeFilter === "inactive") matchTime = diffHrs > 24 * 30; // Inactive for > 1 month
+    }
+
+    return matchSearch && matchStatus && matchTime;
   });
 
   const mappedCompanies: CompanyRow[] = filtered.map(c => ({
     id: c.id.toString(),
     name: c.name || "Unknown Company",
     owner: c.owner?.fullName || "Unknown Owner",
+    ownerEmail: c.owner?.email || "No email",
     phone: c.phone || "No phone",
     staffCount: c.staffCount || c._count?.staffMembers || 0,
     platformFee: c.platformFeePercent || 15, // default
@@ -73,26 +90,53 @@ export default function CompaniesPage() {
     totalBookings: c.totalBookings || 0,
     status: c.verificationStatus || "pending_verification",
     joinedDate: new Date(c.createdAt).toLocaleDateString(),
+    lastActive: c.owner?.lastLoginAt || c.owner?.lastSeen || c.updatedAt || c.createdAt,
+    workingStatus: c.owner?.workingStatus || "offline",
     verified: c.verificationStatus === "active" || c.verificationStatus === "verified",
     services: [],
     documents: c.verificationDocumentUrl ? [{ label: "KYC Documents", verified: c.verificationStatus === "active" || c.verificationStatus === "verified" }] : [],
     verificationDocumentUrl: c.verificationDocumentUrl || undefined,
     ownerId: c.ownerId?.toString(),
-  }));
+    logoUrl: c.logoUrl || undefined,
+  })).sort((a, b) => {
+    const timeA = new Date(a.lastActive || 0).getTime();
+    const timeB = new Date(b.lastActive || 0).getTime();
+    return timeB - timeA; // Descending (most recently active on top)
+  });
 
   const columns: Column<CompanyRow>[] = [
     {
       key: "name", header: "Company", sortable: true,
       render: (r) => (
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0">
-            <Building2 className="w-3.5 h-3.5 text-white" />
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0 overflow-hidden">
+            {r.logoUrl ? (
+              <img src={r.logoUrl} alt={r.name} className="w-full h-full object-cover" />
+            ) : (
+              <Building2 className="w-3.5 h-3.5 text-white" />
+            )}
           </div>
           <span className="font-medium text-foreground">{r.name}</span>
         </div>
       ),
     },
-    { key: "owner", header: "Owner", sortable: true, render: (r) => <span className="text-foreground">{r.owner}</span> },
+    { 
+      key: "owner", 
+      header: "Owner", 
+      sortable: true, 
+      render: (r) => (
+        <div className="flex flex-col">
+          <span className="text-foreground">{r.owner}</span>
+          <span className="text-xs text-muted-foreground">{r.ownerEmail}</span>
+        </div>
+      ) 
+    },
+    { 
+      key: "phone", 
+      header: "Contact", 
+      sortable: true, 
+      render: (r) => <span className="text-muted-foreground">{r.phone}</span> 
+    },
     { key: "staffCount", header: "Staff", sortable: true, render: (r) => <span className="text-muted-foreground">{r.staffCount}</span> },
     { key: "platformFee", header: "Platform Fee", sortable: true, render: (r) => <span className="font-medium text-amber-500">{r.platformFee}%</span> },
     {
@@ -100,6 +144,47 @@ export default function CompaniesPage() {
       render: (r) => <span className="flex items-center gap-1 text-amber-500 text-sm"><Star className="w-3 h-3 fill-current" />{r.rating}</span>,
     },
     { key: "totalRevenue", header: "Revenue", sortable: true, render: (r) => <span className="text-emerald-500 font-semibold">${r.totalRevenue.toLocaleString()}</span> },
+    { 
+      key: "lastActive", 
+      header: "Last Active", 
+      sortable: true, 
+      render: (r) => {
+        if (r.workingStatus === "online") {
+          return (
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs text-emerald-500 font-bold">Online</span>
+            </div>
+          );
+        }
+
+        if (!r.lastActive) return <span className="text-muted-foreground text-xs">Unknown</span>;
+        const activeDate = new Date(r.lastActive);
+        const diffHrs = (Date.now() - activeDate.getTime()) / (1000 * 60 * 60);
+        
+        let text = "";
+        let color = "text-muted-foreground";
+        
+        if (diffHrs <= 1) { 
+          text = "< 1h ago"; 
+          color = "text-amber-500 font-medium"; 
+        }
+        else if (diffHrs <= 24) { 
+          text = "Today"; 
+          color = "text-muted-foreground"; 
+        }
+        else if (diffHrs <= 24 * 30) { 
+          text = "This Month"; 
+          color = "text-muted-foreground/70"; 
+        }
+        else { 
+          text = activeDate.toLocaleDateString(); 
+          color = "text-rose-500/70"; 
+        }
+        
+        return <span className={`text-xs ${color}`}>{text}</span>;
+      }
+    },
     { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
   ];
 
@@ -122,6 +207,18 @@ export default function CompaniesPage() {
               {s === "all" ? "All" : s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
             </button>
           ))}
+          <div className="w-px h-6 bg-border mx-2" />
+          <select 
+            value={timeFilter} 
+            onChange={(e) => setTimeFilter(e.target.value)}
+            className="h-8 px-2 bg-muted/30 border border-border rounded-lg text-xs text-foreground outline-none focus:border-violet-500/60"
+          >
+            <option value="all">Any Time</option>
+            <option value="1h">Active &lt; 1h</option>
+            <option value="1d">Active Today</option>
+            <option value="1m">Active This Month</option>
+            <option value="inactive">Inactive &gt; 1m</option>
+          </select>
         </div>
         <div className="flex-1" />
         <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-foreground hover:bg-muted/50 bg-background">
@@ -168,10 +265,10 @@ export default function CompaniesPage() {
               }
             },
             { icon: Edit, label: "Edit", onClick: () => {
-                const company = mappedCompanies.find(c => c.id === Array.from(selectedIds)[0]);
-                if (company) {
-                  setActiveCompany(company);
-                  setDrawerOpen(true);
+                const rawCompany = companies.find(c => c.id.toString() === Array.from(selectedIds)[0]);
+                if (rawCompany) {
+                  setRawActiveCompany(rawCompany);
+                  setEditModalOpen(true);
                 }
               }
             }
@@ -197,6 +294,9 @@ export default function CompaniesPage() {
 
       <AddCompanyModal open={addModalOpen} onClose={() => setAddModalOpen(false)} onSuccess={fetchCompanies} />
       <CompanyDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} company={activeCompany} onSuccess={fetchCompanies} />
+      {rawActiveCompany && (
+        <EditCompanyModal open={editModalOpen} onClose={() => setEditModalOpen(false)} company={rawActiveCompany} onSuccess={fetchCompanies} />
+      )}
     </div>
   );
 }

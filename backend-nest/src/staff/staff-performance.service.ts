@@ -24,30 +24,31 @@ export class StaffPerformanceService {
     today.setHours(0, 0, 0, 0);
 
     const thisWeek = new Date(today);
-    const dayOfWeek = today.getDay(); 
-    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
+    const dayOfWeek = today.getDay();
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     thisWeek.setDate(today.getDate() - daysToSubtract);
 
-    const [completedBookings, totalBookings, reviews, completedDetails] = await Promise.all([
-      this.prisma.booking.count({
-        where: { assignedStaffId: staffRecord.id, status: 'completed' },
-      }),
-      this.prisma.booking.count({
-        where: { assignedStaffId: staffRecord.id },
-      }),
-      this.prisma.review.findMany({
-        where: { staffId: staffRecord.id },
-        select: { staffRating: true },
-      }),
-      this.prisma.booking.findMany({
-        where: { 
-          assignedStaffId: staffRecord.id, 
-          status: 'completed',
-          bookingDate: { gte: thisWeek } 
-        },
-        select: { bookingDate: true, staffEarnings: true },
-      }),
-    ]);
+    const [completedBookings, totalBookings, reviews, completedDetails] =
+      await Promise.all([
+        this.prisma.booking.count({
+          where: { assignedStaffId: staffRecord.id, status: 'completed' },
+        }),
+        this.prisma.booking.count({
+          where: { assignedStaffId: staffRecord.id },
+        }),
+        this.prisma.review.findMany({
+          where: { staffId: staffRecord.id },
+          select: { staffRating: true },
+        }),
+        this.prisma.booking.findMany({
+          where: {
+            assignedStaffId: staffRecord.id,
+            status: 'completed',
+            bookingDate: { gte: thisWeek },
+          },
+          select: { bookingDate: true, staffEarnings: true },
+        }),
+      ]);
 
     let todayCompleted = 0;
     let todayEarnings = 0;

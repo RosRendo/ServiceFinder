@@ -1,8 +1,8 @@
-import { PrismaService } from "../../prisma/prisma.service";
-import { ConversationsService } from "../../conversations/conversations.service";
-import { NotificationsService } from "../../notifications/notifications.service";
-import { SettingsService } from "../../settings/settings.service";
-import { BookingAssignedEvent, BookingAcceptedEvent, BookingRejectedEvent, BookingCompletedEvent, DisputeOpenedEvent } from "../events/booking.events";
+import { PrismaService } from '../../prisma/prisma.service';
+import { ConversationsService } from '../../conversations/conversations.service';
+import { NotificationsService } from '../../notifications/notifications.service';
+import { SettingsService } from '../../settings/settings.service';
+import { BookingAssignedEvent, BookingAcceptedEvent, BookingRejectedEvent, BookingCompletedEvent, DisputeOpenedEvent } from '../events/booking.events';
 export declare class BookingListener {
     private readonly prisma;
     private readonly notificationsService;

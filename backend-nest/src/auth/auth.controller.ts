@@ -173,7 +173,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: express.Response,
   ) {
     const { message, user, accessToken, refreshToken } =
-      await this.authService.verifyOtpToken(verifyOtpDto.phone, verifyOtpDto.code);
+      await this.authService.verifyOtpToken(
+        verifyOtpDto.phone,
+        verifyOtpDto.code,
+      );
     this.setAuthCookies(res, accessToken, refreshToken);
     return { message, user, token: accessToken };
   }
@@ -192,11 +195,11 @@ export class AuthController {
     const { accessToken, refreshToken: newRefreshToken } =
       await this.authService.refreshAccessToken(refreshToken);
     this.setAuthCookies(res, accessToken, newRefreshToken);
-    return { 
-      message: 'Token refreshed', 
+    return {
+      message: 'Token refreshed',
       token: accessToken,
       accessToken: accessToken,
-      refreshToken: newRefreshToken
+      refreshToken: newRefreshToken,
     };
   }
 

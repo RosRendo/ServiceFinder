@@ -16,7 +16,7 @@ exports.ModerationModule = ModerationModule;
 exports.ModerationModule = ModerationModule = __decorate([
     (0, common_1.Module)({
         controllers: [moderation_controller_1.ModerationController],
-        providers: [moderation_service_1.ModerationService]
+        providers: [moderation_service_1.ModerationService],
     })
 ], ModerationModule);
 //# sourceMappingURL=moderation.module.js.map

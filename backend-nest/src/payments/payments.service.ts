@@ -256,7 +256,7 @@ export class PaymentsService {
   }
 
   // ─── KHQR Generate ────────────────────────────────────────────────────────
-  
+
   async generateKhqr(dto: CheckoutSessionDto, user: any) {
     const bookingId = BigInt(dto.bookingId);
 
@@ -272,43 +272,47 @@ export class PaymentsService {
       throw new BadRequestException('This booking has already been processed');
 
     const amount = Number(booking.totalPrice).toFixed(2);
-    
+
     // In production, fetch these from database settings or ENV
-    const merchantId = this.config.get('KHQR_MERCHANT_ID') || 'khqr_merchant_placeholder';
+    const merchantId =
+      this.config.get('KHQR_MERCHANT_ID') || 'khqr_merchant_placeholder';
     const acquirerId = this.config.get('KHQR_ACQUIRER_ID') || 'DEV_BANK';
-    const merchantName = this.config.get('KHQR_MERCHANT_NAME') || 'Service Finder';
-    
+    const merchantName =
+      this.config.get('KHQR_MERCHANT_NAME') || 'Service Finder';
+
     // Using official bakong-khqr library to generate standard EMVCo QR String
     const { BakongKHQR, khqrData, MerchantInfo } = require('bakong-khqr');
     const optionalData = {
-        currency: khqrData.currency.usd,
-        amount: Number(amount),
-        billNumber: `BK-${bookingId}`,
-        storeLabel: merchantName,
-        terminalLabel: 'WebApp',
-        expirationTimestamp: Date.now() + (30 * 60 * 1000) // Expires in 30 minutes
+      currency: khqrData.currency.usd,
+      amount: Number(amount),
+      billNumber: `BK-${bookingId}`,
+      storeLabel: merchantName,
+      terminalLabel: 'WebApp',
+      expirationTimestamp: Date.now() + 30 * 60 * 1000, // Expires in 30 minutes
     };
 
     const merchantInfo = new MerchantInfo(
-        `${merchantId}@${acquirerId}`, 
-        merchantName,
-        'Phnom Penh',
-        merchantId,
-        acquirerId,
-        optionalData
+      `${merchantId}@${acquirerId}`,
+      merchantName,
+      'Phnom Penh',
+      merchantId,
+      acquirerId,
+      optionalData,
     );
 
     const khqr = new BakongKHQR();
     const qrResponse = khqr.generateMerchant(merchantInfo);
-    
+
     // Check if generation succeeded
     if (qrResponse.status?.code !== 0) {
-       this.logger.error('Failed to generate KHQR:', qrResponse);
-       throw new InternalServerErrorException(qrResponse.status?.message || 'KHQR generation failed');
+      this.logger.error('Failed to generate KHQR:', qrResponse);
+      throw new InternalServerErrorException(
+        qrResponse.status?.message || 'KHQR generation failed',
+      );
     }
-    
+
     const qrString = qrResponse;
-    
+
     // Check if a payment record exists
     const existingPayment = await this.prisma.payment.findUnique({
       where: { bookingId },
@@ -356,12 +360,17 @@ export class PaymentsService {
       return this.wingToken;
     }
 
-    const clientId = this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
-    const clientSecret = this.config.get('WING_CLIENT_SECRET') || 'h02F_zaRmn6PhFjIolbFcb16BgWGMrcfX93frd13Id8a';
-    const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-partner-gateway.wingbank.com';
+    const clientId =
+      this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
+    const clientSecret =
+      this.config.get('WING_CLIENT_SECRET') ||
+      'h02F_zaRmn6PhFjIolbFcb16BgWGMrcfX93frd13Id8a';
+    const baseUrl =
+      this.config.get('WING_BASE_URL') ||
+      'https://stage-partner-gateway.wingbank.com';
 
     const url = `${baseUrl}/idp/v1/token`;
-    
+
     const body = new URLSearchParams();
     body.append('grant_type', 'client_credentials');
     body.append('client_id', clientId);
@@ -379,7 +388,9 @@ export class PaymentsService {
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(`Wing Token auth failed: ${response.status} ${errText}`);
+        throw new Error(
+          `Wing Token auth failed: ${response.status} ${errText}`,
+        );
       }
 
       const data: any = await response.json();
@@ -388,7 +399,9 @@ export class PaymentsService {
       return this.wingToken!;
     } catch (err) {
       this.logger.error('Failed to get Wing Access Token', err);
-      throw new InternalServerErrorException('Failed to authenticate with Wing Bank');
+      throw new InternalServerErrorException(
+        'Failed to authenticate with Wing Bank',
+      );
     }
   }
 
@@ -406,10 +419,16 @@ export class PaymentsService {
     if (booking.status !== 'pending')
       throw new BadRequestException('This booking has already been processed');
 
-    const clientId = this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
-    const cipherKeyStr = this.config.get('WING_CIPHER_KEY') || 'pEHt/rl63W4YZUqPRs92DPHHpHWfnkiMLvJdwhxQBb4=';
-    const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-partner-gateway.wingbank.com';
-    const frontendUrl = this.config.get('FRONTEND_URL') || 'http://localhost:3000';
+    const clientId =
+      this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
+    const cipherKeyStr =
+      this.config.get('WING_CIPHER_KEY') ||
+      'pEHt/rl63W4YZUqPRs92DPHHpHWfnkiMLvJdwhxQBb4=';
+    const baseUrl =
+      this.config.get('WING_BASE_URL') ||
+      'https://stage-partner-gateway.wingbank.com';
+    const frontendUrl =
+      this.config.get('FRONTEND_URL') || 'http://localhost:3000';
 
     const key = deriveWingKey(clientId);
     const iv = deriveWingIV(clientId);
@@ -431,7 +450,7 @@ export class PaymentsService {
       cancelUrl,
       timestamp,
       key,
-      iv
+      iv,
     );
 
     const payloadObj = {
@@ -445,19 +464,23 @@ export class PaymentsService {
       additional_data: JSON.stringify({ bookingId: bookingId.toString() }),
     };
 
-    const encryptedPayload = encryptAES256GCM(JSON.stringify(payloadObj), key, iv);
+    const encryptedPayload = encryptAES256GCM(
+      JSON.stringify(payloadObj),
+      key,
+      iv,
+    );
     let webPaymentUrl = '';
-    
+
     try {
       const accessToken = await this.getWingAccessToken();
       const generateUrl = `${baseUrl}/generate/khqr`;
-      
+
       const response = await fetch(generateUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
+          Accept: 'application/json',
+          Authorization: `Bearer ${accessToken}`,
           'X-Payload-Hash': payloadHash,
         },
         body: JSON.stringify({
@@ -472,53 +495,59 @@ export class PaymentsService {
 
       const resData: any = await response.json();
       if (resData.code !== 'SUCCESS' || !resData.data?.web_payment_url) {
-        throw new Error(resData.message || 'Failed to initialize Wing payment link');
+        throw new Error(
+          resData.message || 'Failed to initialize Wing payment link',
+        );
       }
-      
+
       webPaymentUrl = resData.data.web_payment_url;
     } catch (err: any) {
       this.logger.error(`Failed to initialize Wing payment: ${err.message}`);
       if (process.env.NODE_ENV !== 'production') {
-        this.logger.warn('⚠️ Development mode: Falling back to mock payment URL');
+        this.logger.warn(
+          '⚠️ Development mode: Falling back to mock payment URL',
+        );
         webPaymentUrl = returnUrl;
       } else {
-        throw new InternalServerErrorException('Payment gateway connection failed. Please try again later.');
+        throw new InternalServerErrorException(
+          'Payment gateway connection failed. Please try again later.',
+        );
       }
     }
 
-      const existingPayment = await this.prisma.payment.findUnique({
-        where: { bookingId },
+    const existingPayment = await this.prisma.payment.findUnique({
+      where: { bookingId },
+    });
+
+    if (existingPayment) {
+      await this.prisma.payment.update({
+        where: { id: existingPayment.id },
+        data: {
+          method: 'bank',
+          amount: booking.totalPrice,
+          transactionRef: orderRef,
+          status: 'pending',
+        },
       });
+    } else {
+      await this.prisma.payment.create({
+        data: {
+          bookingId,
+          userId: booking.customerId,
+          method: 'bank',
+          amount: booking.totalPrice,
+          transactionRef: orderRef,
+          status: 'pending',
+        },
+      });
+    }
 
-      if (existingPayment) {
-        await this.prisma.payment.update({
-          where: { id: existingPayment.id },
-          data: {
-            method: 'bank',
-            amount: booking.totalPrice,
-            transactionRef: orderRef,
-            status: 'pending',
-          },
-        });
-      } else {
-        await this.prisma.payment.create({
-          data: {
-            bookingId,
-            userId: booking.customerId,
-            method: 'bank',
-            amount: booking.totalPrice,
-            transactionRef: orderRef,
-            status: 'pending',
-          },
-        });
-      }
-
-      return {
-        success: true,
-        message: 'Wing KHQR Payment initialized successfully',
-        webPaymentUrl: webPaymentUrl,
-        orderReferenceNo: orderRef,
-      };
+    return {
+      success: true,
+      message: 'Wing KHQR Payment initialized successfully',
+      webPaymentUrl: webPaymentUrl,
+      orderReferenceNo: orderRef,
+    };
   }
 
   async handleWingWebhook(payload: any) {
@@ -536,17 +565,24 @@ export class PaymentsService {
     });
 
     if (!payment) {
-      throw new NotFoundException(`No payment found for order reference: ${orderRef}`);
+      throw new NotFoundException(
+        `No payment found for order reference: ${orderRef}`,
+      );
     }
 
     if (payment.status === 'paid') {
-      return { code: '200', message: 'Push callback is successfully received.' };
+      return {
+        code: '200',
+        message: 'Push callback is successfully received.',
+      };
     }
 
     const expectedAmount = Number(payment.amount);
     const receivedAmount = Number(amount);
     if (receivedAmount < expectedAmount) {
-      this.logger.warn(`Wing payment amount mismatch. Expected >= ${expectedAmount}, received: ${receivedAmount}`);
+      this.logger.warn(
+        `Wing payment amount mismatch. Expected >= ${expectedAmount}, received: ${receivedAmount}`,
+      );
       throw new BadRequestException('Invalid transaction amount');
     }
 
@@ -606,8 +642,11 @@ export class PaymentsService {
       throw new BadRequestException('Not a Wing transaction');
     }
 
-    const clientId = this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
-    const baseUrl = this.config.get('WING_BASE_URL') || 'https://stage-partner-gateway.wingbank.com';
+    const clientId =
+      this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
+    const baseUrl =
+      this.config.get('WING_BASE_URL') ||
+      'https://stage-partner-gateway.wingbank.com';
     const accessToken = await this.getWingAccessToken();
 
     const url = `${baseUrl}/inquiry/khqr/success`;
@@ -617,7 +656,7 @@ export class PaymentsService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           order_reference_no: orderRef,
@@ -626,7 +665,11 @@ export class PaymentsService {
 
       if (!response.ok) {
         if (response.status === 404) {
-          return { success: false, status: 'pending', message: 'Payment pending or not found' };
+          return {
+            success: false,
+            status: 'pending',
+            message: 'Payment pending or not found',
+          };
         }
         throw new Error(`Inquiry failed with status: ${response.status}`);
       }
@@ -635,14 +678,18 @@ export class PaymentsService {
       if (resData.data && resData.data.amount) {
         const amount = resData.data.amount;
         const transactionId = resData.data.transaction_id;
-        
+
         await this.handleWingWebhook({
           order_reference_no: orderRef,
           amount,
           transaction_id: transactionId,
         });
 
-        return { success: true, status: 'paid', message: 'Payment successfully verified' };
+        return {
+          success: true,
+          status: 'paid',
+          message: 'Payment successfully verified',
+        };
       }
 
       return { success: false, status: 'pending' };

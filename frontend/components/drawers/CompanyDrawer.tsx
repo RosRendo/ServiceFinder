@@ -7,25 +7,31 @@ import { cn } from "@/lib/utils";
 import { VerifyCompanyModal } from "../admin/VerifyCompanyModal";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
+import { Loader2, Edit2, Save, X } from "lucide-react";
 
 export interface CompanyRow {
   id: string;
   name: string;
   owner: string;
+  ownerEmail: string;
   phone: string;
   staffCount: number;
   platformFee: number;
   rating: number;
   totalRevenue: number;
   totalBookings: number;
-  status: "active" | "suspended" | "pending_verification";
+  status: "active" | "suspended" | "pending_verification" | "verified";
   joinedDate: string;
+  lastActive?: string;
+  workingStatus?: string;
   verified: boolean;
   services: { name: string; price: string }[];
   documents: { label: string; verified: boolean }[];
   verificationDocumentUrl?: string;
   ownerId?: string;
+  logoUrl?: string;
 }
 
 interface CompanyDrawerProps {
@@ -43,14 +49,35 @@ const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }
 
 export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDrawerProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [fee, setFee] = useState(15);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editForm, setEditForm] = useState({ name: "", phone: "" });
   
   useEffect(() => {
     if (company) {
       setFee(company.platformFee);
+      setEditForm({ name: company.name, phone: company.phone });
+      setIsEditing(false);
     }
   }, [company]);
+
+  const handleSave = async () => {
+    if (!company) return;
+    setIsSaving(true);
+    try {
+      await api.patch(`/admin/companies/${company.id}`, editForm);
+      toast({ title: "Saved", description: "Company details updated successfully." });
+      setIsEditing(false);
+      onSuccess?.(); // trigger table refresh
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to update details.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (!company) return null;
 
@@ -63,24 +90,94 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
           
           {/* Identity & Status */}
           <div className="flex items-center gap-4 bg-muted/10 border border-border rounded-xl p-4">
-            <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-sm border border-primary/20">
-              <Building2 className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-sm border border-primary/20 overflow-hidden">
+              {company.logoUrl ? (
+                <img src={company.logoUrl} alt={company.name} className="w-full h-full object-cover" />
+              ) : (
+                <Building2 className="w-6 h-6" />
+              )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-bold text-sm text-foreground truncate">{company.name}</p>
-                <span className={cn(
-                  "text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-widest",
-                  statusConfig.bg, statusConfig.border, statusConfig.text
-                )}>
-                  {company.status?.replace(/_/g, " ") || 'Unknown'}
-                </span>
+              <div className="flex items-center justify-between gap-2">
+                {isEditing ? (
+                  <input 
+                    value={editForm.name} 
+                    onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
+                    className="flex-1 h-7 px-2 text-sm font-bold bg-background border border-border rounded focus:outline-none focus:border-primary"
+                  />
+                ) : (
+                  <p className="font-bold text-sm text-foreground truncate">{company.name}</p>
+                )}
+                {!isEditing && (
+                  <span className={cn(
+                    "text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-widest shrink-0",
+                    statusConfig.bg, statusConfig.border, statusConfig.text
+                  )}>
+                    {company.status?.replace(/_/g, " ") || 'Unknown'}
+                  </span>
+                )}
               </div>
-              <p className={cn("text-xs font-bold mt-0.5 flex items-center gap-1.5", company.verified ? "text-emerald-500" : "text-amber-500")}>
+              <p className={cn("text-xs font-bold mt-1 flex items-center gap-1.5", company.verified ? "text-emerald-500" : "text-amber-500")}>
                 {company.verified ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
                 {company.verified ? "Verified Partner" : "Pending Verification"}
               </p>
             </div>
+          </div>
+
+          {/* Contact & Owner Info */}
+          <div className="space-y-3 bg-muted/10 border border-border rounded-xl p-4">
+            <div className="flex justify-between items-center border-b border-border/50 pb-2 mb-2">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-2">
+                <Users className="w-3.5 h-3.5" /> Contact Details
+              </p>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(`Email: ${company.ownerEmail}\nPassword: Password123!`);
+                  toast({ title: "Copied!", description: "Credentials copied to clipboard." });
+                }}
+                className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded font-bold uppercase hover:bg-primary/20 transition-colors"
+              >
+                Copy Credentials
+              </button>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground text-sm">Owner Name</span>
+              <span className="font-bold text-foreground text-sm">{company.owner}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground text-sm">Email</span>
+              <span className="font-medium text-foreground text-sm">{company.ownerEmail || "No email"}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground text-sm shrink-0 mr-4">Phone</span>
+              {isEditing ? (
+                <input 
+                  value={editForm.phone} 
+                  onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))}
+                  className="h-7 w-32 px-2 text-sm font-bold bg-background border border-border rounded focus:outline-none focus:border-primary text-right"
+                />
+              ) : (
+                <span className="font-medium text-foreground text-sm truncate">{company.phone || "No phone"}</span>
+              )}
+            </div>
+            
+            {/* Inline Edit Controls */}
+            {isEditing ? (
+              <div className="flex gap-2 pt-2 border-t border-border/50">
+                <Button variant="outline" size="sm" className="flex-1 h-8" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                  <X className="w-3 h-3 mr-1" /> Cancel
+                </Button>
+                <Button size="sm" className="flex-1 h-8" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Save className="w-3 h-3 mr-1" />} Save
+                </Button>
+              </div>
+            ) : (
+              <div className="pt-2 border-t border-border/50">
+                <Button variant="ghost" size="sm" className="w-full h-8 text-xs text-muted-foreground hover:text-foreground" onClick={() => setIsEditing(true)}>
+                  <Edit2 className="w-3 h-3 mr-1" /> Quick Edit Details
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Performance KPIs */}
@@ -168,15 +265,16 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
           {/* Quick Actions */}
           <div className="grid grid-cols-2 gap-3 pt-2">
             {[
-              { id: "verify", icon: ShieldCheck, label: "Verify Company", color: "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20", disabled: company.status === "active" },
+              { id: "verify", icon: ShieldCheck, label: "Verify Company", color: "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20", show: company.status !== "active" && company.status !== "verified" },
               { id: "message", icon: MessageSquare, label: "Contact Owner", color: "bg-background text-foreground hover:bg-muted border-border" },
               { id: "profile", icon: TrendingUp, label: "Full Profile", color: "bg-primary text-primary-foreground hover:bg-primary/90 border-transparent" },
               { id: "suspend", icon: Ban, label: "Suspend Company", color: "bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-500/20" },
-            ].map(({ id, icon: Icon, label, color, disabled }) => (
+            ]
+            .filter((action) => action.show !== false)
+            .map(({ id, icon: Icon, label, color }) => (
               <Button 
                 key={label}
                 variant="outline"
-                disabled={disabled}
                 onClick={async () => {
                   if (id === "verify") setVerifyModalOpen(true);
                   if (id === "profile") {

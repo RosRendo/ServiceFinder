@@ -7,10 +7,7 @@ describe('WebhooksService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        WebhooksService,
-        { provide: PrismaService, useValue: {} }
-      ],
+      providers: [WebhooksService, { provide: PrismaService, useValue: {} }],
     }).compile();
 
     service = module.get<WebhooksService>(WebhooksService);

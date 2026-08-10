@@ -161,7 +161,10 @@ export class PaymentsController {
   @Post('wing/checkout')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create Wing Bank KHQR Checkout' })
-  @ApiResponse({ status: 201, description: 'Wing checkout generated successfully.' })
+  @ApiResponse({
+    status: 201,
+    description: 'Wing checkout generated successfully.',
+  })
   createWingCheckout(@Body() dto: CheckoutSessionDto, @Request() req) {
     return this.paymentsService.createWingCheckout(dto, req.user);
   }

@@ -25,7 +25,7 @@ import {
   BookingAcceptedEvent,
   BookingRejectedEvent,
   BookingCompletedEvent,
-  BookingStatusChangedEvent
+  BookingStatusChangedEvent,
 } from './events/booking.events';
 
 @Injectable()
@@ -74,7 +74,8 @@ export class BookingsService {
       const staff = await this.prisma.companyStaff.findFirst({
         where: { userId: BigInt(user.id) },
       });
-      if (!staff) throw new ForbiddenException('You are not associated with any company');
+      if (!staff)
+        throw new ForbiddenException('You are not associated with any company');
       where.companyId = staff.companyId;
     } else if (companyId) {
       where.companyId = BigInt(companyId);
@@ -182,8 +183,10 @@ export class BookingsService {
     if (!service.isActive)
       throw new BadRequestException('Service is not available');
 
-    const cleanDate = dto.bookingDate.includes('T') ? dto.bookingDate.split('T')[0] : dto.bookingDate;
-    
+    const cleanDate = dto.bookingDate.includes('T')
+      ? dto.bookingDate.split('T')[0]
+      : dto.bookingDate;
+
     let parsedTime = dto.startTime.trim();
     if (parsedTime.toLowerCase().includes('m')) {
       const isPM = parsedTime.toLowerCase().includes('pm');
@@ -215,7 +218,9 @@ export class BookingsService {
     let discountPercent = 0;
     let promoCodeId: bigint | null = null;
     if (dto.promoCode) {
-      const validation = await this.promoCodesService.validatePromoCode(dto.promoCode);
+      const validation = await this.promoCodesService.validatePromoCode(
+        dto.promoCode,
+      );
       if (validation.valid) {
         discountPercent = validation.discountPercent;
         promoCodeId = BigInt(validation.id);
@@ -232,10 +237,10 @@ export class BookingsService {
     });
 
     let totalSurchargePercent = 0;
-    pricingRules.forEach(rule => {
+    pricingRules.forEach((rule) => {
       let matchesDay = true;
       let matchesTime = true;
-      
+
       if (rule.dayOfWeek !== null && rule.dayOfWeek !== bookingDay) {
         matchesDay = false;
       }
@@ -245,17 +250,23 @@ export class BookingsService {
       if (rule.endHour !== null && startHour >= rule.endHour) {
         matchesTime = false;
       }
-      
+
       if (matchesDay && matchesTime) {
         totalSurchargePercent += Number(rule.surchargePercent);
       }
     });
 
-    const surchargeAmount = Number(((basePrice * totalSurchargePercent) / 100).toFixed(2));
+    const surchargeAmount = Number(
+      ((basePrice * totalSurchargePercent) / 100).toFixed(2),
+    );
     const priceBeforeDiscount = basePrice + surchargeAmount;
 
-    const discountAmount = Number(((priceBeforeDiscount * discountPercent) / 100).toFixed(2));
-    const totalPrice = Number((priceBeforeDiscount - discountAmount).toFixed(2));
+    const discountAmount = Number(
+      ((priceBeforeDiscount * discountPercent) / 100).toFixed(2),
+    );
+    const totalPrice = Number(
+      (priceBeforeDiscount - discountAmount).toFixed(2),
+    );
 
     // Split formula on price after discount
     const platformFee = Number(
@@ -528,7 +539,7 @@ export class BookingsService {
     const updated = await this.prisma.$transaction(async (tx) => {
       // Platform only tracks companyEarnings = totalPrice - platformFee.
       // No staff earnings recalculation — staff payroll is Company's responsibility.
-      
+
       const updateResult = await tx.booking.updateMany({
         where: {
           id,
@@ -543,7 +554,9 @@ export class BookingsService {
       });
 
       if (updateResult.count === 0) {
-        throw new ConflictException('Job already taken or no longer available.');
+        throw new ConflictException(
+          'Job already taken or no longer available.',
+        );
       }
 
       const u = await tx.booking.findUnique({
@@ -608,7 +621,8 @@ export class BookingsService {
       where: { userId, status: 'active' },
       include: { company: true },
     });
-    if (!staff) throw new ForbiddenException('You are not registered as active staff');
+    if (!staff)
+      throw new ForbiddenException('You are not registered as active staff');
 
     // 2. Check company is in open_pool mode
     if (staff.company.bookingMode !== 'open_pool') {
@@ -622,7 +636,9 @@ export class BookingsService {
 
     // 4. Verify booking belongs to the same company
     if (booking.companyId.toString() !== staff.companyId.toString()) {
-      throw new ForbiddenException('This booking does not belong to your company');
+      throw new ForbiddenException(
+        'This booking does not belong to your company',
+      );
     }
 
     // 5. Booking must be pending and unassigned
@@ -630,7 +646,9 @@ export class BookingsService {
       throw new BadRequestException('Only pending bookings can be claimed');
     }
     if (booking.assignedStaffId) {
-      throw new ConflictException('This booking has already been claimed by another staff member');
+      throw new ConflictException(
+        'This booking has already been claimed by another staff member',
+      );
     }
 
     // 6. Assign and confirm in a transaction
@@ -684,7 +702,6 @@ export class BookingsService {
   }
 
   async acceptAssignment(id: bigint, userId: bigint) {
-
     const staff = await this.prisma.companyStaff.findFirst({
       where: { userId },
     });
@@ -770,7 +787,7 @@ export class BookingsService {
     const updated = await this.prisma.$transaction(async (tx) => {
       const u = await tx.booking.update({
         where: { id },
-        data: { 
+        data: {
           status: 'pending',
           assignedStaffId: null,
         },
@@ -819,7 +836,12 @@ export class BookingsService {
     return result;
   }
 
-  async startJob(id: bigint, userId: bigint, staffStartLat?: number, staffStartLng?: number) {
+  async startJob(
+    id: bigint,
+    userId: bigint,
+    staffStartLat?: number,
+    staffStartLng?: number,
+  ) {
     const staff = await this.prisma.companyStaff.findFirst({
       where: { userId },
     });
@@ -842,7 +864,7 @@ export class BookingsService {
         actualStartTime: new Date(),
         progressPercent: 0,
       };
-      
+
       if (staffStartLat) updateData.staffStartLatitude = staffStartLat;
       if (staffStartLng) updateData.staffStartLongitude = staffStartLng;
 
@@ -999,7 +1021,7 @@ export class BookingsService {
       if (proofOfWorkPhoto) {
         updateData.proofOfWorkPhoto = proofOfWorkPhoto;
       }
-      
+
       const u = await (tx.booking as any).update({
         where: { id },
         data: updateData,
@@ -1282,7 +1304,7 @@ export class BookingsService {
 
         await tx.company.update({
           where: { id: u.companyId },
-          data: { 
+          data: {
             availableBalance: Math.max(0, currentAvail - platformFee),
             walletBalance: Math.max(0, currentAvail - platformFee),
           },
