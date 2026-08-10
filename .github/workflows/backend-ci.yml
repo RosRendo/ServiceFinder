@@ -134,6 +134,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Lowercase repository name
+        working-directory: .
         run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
 
       - name: Deploy via SSH
