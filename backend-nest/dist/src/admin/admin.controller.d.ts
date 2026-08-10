@@ -171,6 +171,7 @@ export declare class AdminController {
             registrationNumber: string | null;
             address: string | null;
             city: string | null;
+            googleMapUrl: string | null;
             verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
             logoUrl: string | null;
             coverImageUrl: string | null;
@@ -214,6 +215,7 @@ export declare class AdminController {
             registrationNumber: string | null;
             address: string | null;
             city: string | null;
+            googleMapUrl: string | null;
             verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
             logoUrl: string | null;
             coverImageUrl: string | null;
@@ -292,6 +294,7 @@ export declare class AdminController {
         registrationNumber: string | null;
         address: string | null;
         city: string | null;
+        googleMapUrl: string | null;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         logoUrl: string | null;
         coverImageUrl: string | null;
@@ -496,6 +499,7 @@ export declare class AdminController {
                 registrationNumber: string | null;
                 address: string | null;
                 city: string | null;
+                googleMapUrl: string | null;
                 verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
                 logoUrl: string | null;
                 coverImageUrl: string | null;
@@ -630,6 +634,7 @@ export declare class AdminController {
                     registrationNumber: string | null;
                     address: string | null;
                     city: string | null;
+                    googleMapUrl: string | null;
                     verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
                     logoUrl: string | null;
                     coverImageUrl: string | null;

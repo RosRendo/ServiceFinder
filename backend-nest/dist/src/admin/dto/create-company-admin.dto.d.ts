@@ -19,6 +19,7 @@ export declare class CreateCompanyAdminDto {
     companyPhone?: string;
     companyEmail?: string;
     logoUrl?: string;
+    googleMapUrl?: string;
     registrationNumber?: string;
     latitude?: number;
     longitude?: number;

@@ -20,6 +20,7 @@ class UpdateCompanyDto {
     city;
     latitude;
     longitude;
+    googleMapUrl;
     phone;
     email;
     logoUrl;
@@ -30,7 +31,7 @@ class UpdateCompanyDto {
     coverageRadiusKm;
     bookingMode;
     static _OPENAPI_METADATA_FACTORY() {
-        return { name: { required: false, type: () => String }, description: { required: false, type: () => String }, registrationNumber: { required: false, type: () => String }, address: { required: false, type: () => String }, city: { required: false, type: () => String }, latitude: { required: false, type: () => String }, longitude: { required: false, type: () => String }, phone: { required: false, type: () => String }, email: { required: false, type: () => String, format: "email" }, logoUrl: { required: false, type: () => String }, coverImageUrl: { required: false, type: () => String }, establishedYear: { required: false, type: () => String }, verificationStatus: { required: false, enum: ["pending", "verified", "rejected"] }, verificationDocumentUrl: { required: false, type: () => String }, coverageRadiusKm: { required: false, type: () => Number }, bookingMode: { required: false, type: () => String, enum: ['dispatch', 'open_pool'] } };
+        return { name: { required: false, type: () => String }, description: { required: false, type: () => String }, registrationNumber: { required: false, type: () => String }, address: { required: false, type: () => String }, city: { required: false, type: () => String }, latitude: { required: false, type: () => Number }, longitude: { required: false, type: () => Number }, googleMapUrl: { required: false, type: () => String }, phone: { required: false, type: () => String }, email: { required: false, type: () => String, format: "email" }, logoUrl: { required: false, type: () => String }, coverImageUrl: { required: false, type: () => String }, establishedYear: { required: false, type: () => String }, verificationStatus: { required: false, enum: ["pending", "verified", "rejected"] }, verificationDocumentUrl: { required: false, type: () => String }, coverageRadiusKm: { required: false, type: () => Number }, bookingMode: { required: false, type: () => String, enum: ['dispatch', 'open_pool'] } };
     }
 }
 exports.UpdateCompanyDto = UpdateCompanyDto;
@@ -60,15 +61,20 @@ __decorate([
     __metadata("design:type", String)
 ], UpdateCompanyDto.prototype, "city", void 0);
 __decorate([
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Number)
 ], UpdateCompanyDto.prototype, "latitude", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], UpdateCompanyDto.prototype, "longitude", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
-], UpdateCompanyDto.prototype, "longitude", void 0);
+], UpdateCompanyDto.prototype, "googleMapUrl", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),

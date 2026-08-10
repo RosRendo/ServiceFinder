@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, IsIn } from 'class-validator';
+import { IsEmail, IsOptional, IsString, IsIn, IsNumber } from 'class-validator';
 
 export class UpdateCompanyDto {
   @IsString()
@@ -21,13 +21,17 @@ export class UpdateCompanyDto {
   @IsOptional()
   city?: string;
 
-  @IsString()
+  @IsNumber()
   @IsOptional()
-  latitude?: string;
+  latitude?: number;
+
+  @IsNumber()
+  @IsOptional()
+  longitude?: number;
 
   @IsString()
   @IsOptional()
-  longitude?: string;
+  googleMapUrl?: string;
 
   @IsString()
   @IsOptional()

@@ -4,8 +4,9 @@ export declare class UpdateCompanyDto {
     registrationNumber?: string;
     address?: string;
     city?: string;
-    latitude?: string;
-    longitude?: string;
+    latitude?: number;
+    longitude?: number;
+    googleMapUrl?: string;
     phone?: string;
     email?: string;
     logoUrl?: string;

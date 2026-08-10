@@ -35,6 +35,10 @@ export class UpdateServiceDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsString()
+  @IsOptional()
+  image?: string;
 }
 
 export class UpdateCompanyAdminDto {
@@ -100,6 +104,10 @@ export class UpdateCompanyAdminDto {
   @IsOptional()
   @Type(() => Number)
   longitude?: number;
+
+  @IsString()
+  @IsOptional()
+  googleMapUrl?: string;
 
   @IsArray()
   @IsOptional()

@@ -77,6 +77,7 @@ class CreateCompanyAdminDto {
     companyPhone;
     companyEmail;
     logoUrl;
+    googleMapUrl;
     registrationNumber;
     latitude;
     longitude;
@@ -96,7 +97,7 @@ class CreateCompanyAdminDto {
     coverageRadiusKm;
     services;
     static _OPENAPI_METADATA_FACTORY() {
-        return { ownerName: { required: true, type: () => String }, ownerEmail: { required: true, type: () => String, format: "email" }, ownerPassword: { required: true, type: () => String, minLength: 6 }, ownerPhone: { required: false, type: () => String }, companyName: { required: true, type: () => String }, companyDescription: { required: false, type: () => String }, companyAddress: { required: false, type: () => String }, companyCity: { required: false, type: () => String }, companyPhone: { required: false, type: () => String }, companyEmail: { required: false, type: () => String }, logoUrl: { required: false, type: () => String }, registrationNumber: { required: false, type: () => String }, latitude: { required: false, type: () => Number }, longitude: { required: false, type: () => Number }, coverImageUrl: { required: false, type: () => String }, verificationDocumentUrl: { required: false, type: () => String }, establishedYear: { required: false, type: () => Number }, cardHighlights: { required: false, type: () => [String] }, detailHighlights: { required: false, type: () => [String] }, serviceName: { required: false, type: () => String }, serviceTypeId: { required: false, type: () => Number }, serviceBasePrice: { required: false, type: () => Number }, serviceDurationMin: { required: false, type: () => Number }, serviceDescription: { required: false, type: () => String }, email: { required: false, type: () => String }, description: { required: false, type: () => String }, isInsured: { required: false, type: () => Boolean }, coverageRadiusKm: { required: false, type: () => Number }, services: { required: false, type: () => [require("./create-company-admin.dto").InitialServiceDto] } };
+        return { ownerName: { required: true, type: () => String }, ownerEmail: { required: true, type: () => String, format: "email" }, ownerPassword: { required: true, type: () => String, minLength: 6 }, ownerPhone: { required: false, type: () => String }, companyName: { required: true, type: () => String }, companyDescription: { required: false, type: () => String }, companyAddress: { required: false, type: () => String }, companyCity: { required: false, type: () => String }, companyPhone: { required: false, type: () => String }, companyEmail: { required: false, type: () => String }, logoUrl: { required: false, type: () => String }, googleMapUrl: { required: false, type: () => String }, registrationNumber: { required: false, type: () => String }, latitude: { required: false, type: () => Number }, longitude: { required: false, type: () => Number }, coverImageUrl: { required: false, type: () => String }, verificationDocumentUrl: { required: false, type: () => String }, establishedYear: { required: false, type: () => Number }, cardHighlights: { required: false, type: () => [String] }, detailHighlights: { required: false, type: () => [String] }, serviceName: { required: false, type: () => String }, serviceTypeId: { required: false, type: () => Number }, serviceBasePrice: { required: false, type: () => Number }, serviceDurationMin: { required: false, type: () => Number }, serviceDescription: { required: false, type: () => String }, email: { required: false, type: () => String }, description: { required: false, type: () => String }, isInsured: { required: false, type: () => Boolean }, coverageRadiusKm: { required: false, type: () => Number }, services: { required: false, type: () => [require("./create-company-admin.dto").InitialServiceDto] } };
     }
 }
 exports.CreateCompanyAdminDto = CreateCompanyAdminDto;
@@ -155,6 +156,11 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateCompanyAdminDto.prototype, "logoUrl", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateCompanyAdminDto.prototype, "googleMapUrl", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),

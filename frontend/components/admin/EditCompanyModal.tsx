@@ -30,6 +30,7 @@ export function EditCompanyModal({ open, onClose, company, onSuccess }: EditComp
     phone: "",
     address: "",
     city: "",
+    googleMapUrl: "",
     logoUrl: "",
     description: "",
     services: [] as any[]
@@ -56,6 +57,7 @@ export function EditCompanyModal({ open, onClose, company, onSuccess }: EditComp
         phone: company.phone || "",
         address: company.address || "",
         city: company.city || "",
+        googleMapUrl: company.googleMapUrl || "",
         logoUrl: company.logoUrl || "",
         description: company.description || "",
         services: (company.services || []).map((s: any) => ({
@@ -108,7 +110,7 @@ export function EditCompanyModal({ open, onClose, company, onSuccess }: EditComp
         ...formData,
         services: formData.services.map(s => ({
           ...s,
-          typeId: Number(s.typeId),
+          typeId: s.typeId ? parseInt(s.typeId, 10) : 1, // Fallback to 1 if empty to pass validation
           basePrice: s.basePrice ? Number(s.basePrice) : undefined,
           durationMin: s.durationMin ? Number(s.durationMin) : undefined
         }))
@@ -183,6 +185,11 @@ export function EditCompanyModal({ open, onClose, company, onSuccess }: EditComp
                   <Label className="text-xs font-bold text-muted-foreground uppercase">City</Label>
                   <Input value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} className="h-9 font-medium" />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-muted-foreground uppercase">Google Maps Link</Label>
+                <Input value={formData.googleMapUrl} onChange={e => setFormData({ ...formData, googleMapUrl: e.target.value })} placeholder="Paste Google Maps URL here..." className="h-9 font-medium" />
               </div>
 
               <div className="space-y-2">

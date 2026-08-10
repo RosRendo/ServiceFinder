@@ -5,6 +5,7 @@ export declare class UpdateServiceDto {
     basePrice?: number;
     durationMin?: number;
     description?: string;
+    image?: string;
 }
 export declare class UpdateCompanyAdminDto {
     name?: string;
@@ -22,6 +23,7 @@ export declare class UpdateCompanyAdminDto {
     establishedYear?: number;
     latitude?: number;
     longitude?: number;
+    googleMapUrl?: string;
     cardHighlights?: string[];
     detailHighlights?: string[];
     services?: UpdateServiceDto[];

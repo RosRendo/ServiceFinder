@@ -564,6 +564,7 @@ export class AdminService {
       dataToUpdate.establishedYear = dto.establishedYear;
     if (dto.latitude !== undefined) dataToUpdate.latitude = dto.latitude;
     if (dto.longitude !== undefined) dataToUpdate.longitude = dto.longitude;
+    if (dto.googleMapUrl !== undefined) dataToUpdate.googleMapUrl = dto.googleMapUrl;
     if (dto.cardHighlights !== undefined)
       dataToUpdate.cardHighlights = dto.cardHighlights;
     if (dto.detailHighlights !== undefined)
@@ -1016,6 +1017,7 @@ export class AdminService {
           phone: dto.companyPhone || null,
           email: dto.companyEmail || dto.ownerEmail,
           logoUrl: dto.logoUrl || null,
+          googleMapUrl: dto.googleMapUrl || null,
           registrationNumber: dto.registrationNumber || null,
           latitude: dto.latitude || null,
           longitude: dto.longitude || null,

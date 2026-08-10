@@ -79,6 +79,7 @@ model Company {
   city                    String?                @db.VarChar(100)
   latitude                Decimal?               @db.Decimal(10, 7)
   longitude               Decimal?               @db.Decimal(10, 7)
+  googleMapUrl            String?                @map("google_map_url") @db.Text
   phone                   String?                @db.VarChar(20)
   email                   String?                @db.VarChar(150)
   ownerId                 BigInt                 @map("owner_id")
@@ -156,18 +157,18 @@ model CompanyStaff {
 }
 
 model Category {
-  id           BigInt         @id @default(autoincrement())
-  name         String         @db.VarChar(100)
-  slug         String         @unique @db.VarChar(100)
-  description  String?
-  icon         String?        @db.VarChar(50)
-  imageUrl     String?        @map("image_url")
-  useImageAsBadge Boolean    @default(false) @map("use_image_as_badge")
-  status       CategoryStatus @default(active)
-  displayOrder Int            @default(0) @map("display_order")
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-  serviceTypes ServiceType[]
+  id              BigInt         @id @default(autoincrement())
+  name            String         @db.VarChar(100)
+  slug            String         @unique @db.VarChar(100)
+  description     String?
+  icon            String?        @db.VarChar(50)
+  imageUrl        String?        @map("image_url")
+  useImageAsBadge Boolean        @default(false) @map("use_image_as_badge")
+  status          CategoryStatus @default(active)
+  displayOrder    Int            @default(0) @map("display_order")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  serviceTypes    ServiceType[]
 
   @@index([slug])
   @@map("categories")
@@ -917,30 +918,30 @@ model ComplianceReport {
 }
 
 model Broadcast {
-  id           BigInt   @id @default(autoincrement())
-  title        String   @db.VarChar(200)
-  message      String
-  audience     String   @db.VarChar(50) // 'all', 'companies', 'customers'
-  sentAt       DateTime @default(now()) @map("sent_at")
-  sentCount    Int      @default(0) @map("sent_count")
-  openRate     Int      @default(0) @map("open_rate")
-  status       String   @default("sent") @db.VarChar(20) // 'sent', 'draft'
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id        BigInt   @id @default(autoincrement())
+  title     String   @db.VarChar(200)
+  message   String
+  audience  String   @db.VarChar(50) // 'all', 'companies', 'customers'
+  sentAt    DateTime @default(now()) @map("sent_at")
+  sentCount Int      @default(0) @map("sent_count")
+  openRate  Int      @default(0) @map("open_rate")
+  status    String   @default("sent") @db.VarChar(20) // 'sent', 'draft'
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("broadcasts")
 }
 
 model StaffDocument {
-  id           BigInt       @id @default(autoincrement())
-  staffId      BigInt       @map("staff_id")
-  name         String       @db.VarChar(150)
-  documentUrl  String       @map("document_url")
-  status       String       @default("pending") @db.VarChar(50)
-  expiryDate   DateTime?    @map("expiry_date")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
-  staff        CompanyStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  id          BigInt       @id @default(autoincrement())
+  staffId     BigInt       @map("staff_id")
+  name        String       @db.VarChar(150)
+  documentUrl String       @map("document_url")
+  status      String       @default("pending") @db.VarChar(50)
+  expiryDate  DateTime?    @map("expiry_date")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  staff       CompanyStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([staffId])
   @@map("staff_documents")

@@ -653,14 +653,10 @@ let CompaniesService = class CompaniesService {
             delete updateData.verificationStatus;
         }
         if (updates.latitude !== undefined) {
-            updateData.latitude = updates.latitude
-                ? parseFloat(updates.latitude)
-                : null;
+            updateData.latitude = updates.latitude !== null ? updates.latitude : null;
         }
         if (updates.longitude !== undefined) {
-            updateData.longitude = updates.longitude
-                ? parseFloat(updates.longitude)
-                : null;
+            updateData.longitude = updates.longitude !== null ? updates.longitude : null;
         }
         if (updates.establishedYear !== undefined) {
             updateData.establishedYear = updates.establishedYear

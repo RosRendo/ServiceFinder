@@ -94,6 +94,10 @@ export class CreateCompanyAdminDto {
 
   @IsString()
   @IsOptional()
+  googleMapUrl?: string;
+
+  @IsString()
+  @IsOptional()
   registrationNumber?: string;
 
   @IsNumber()

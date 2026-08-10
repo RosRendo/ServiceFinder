@@ -265,6 +265,71 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                                             </div>
                                         </div>
 
+                                        {/* Business Location Map */}
+                                        <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
+                                            <div className="px-5 py-4 bg-muted/30 border-b border-border/50 flex justify-between items-center">
+                                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Business Location</span>
+                                                {(company.address || company.googleMapUrl) && (
+                                                    <a 
+                                                        href={
+                                                            company.googleMapUrl
+                                                                ? company.googleMapUrl
+                                                                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((company.address || "") + ", " + (company.city || ""))}`
+                                                        }
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="text-[10px] font-bold text-violet-600 hover:underline uppercase tracking-widest"
+                                                    >
+                                                        Open in Google Maps →
+                                                    </a>
+                                                )}
+                                            </div>
+                                            <div className="p-0 border-b border-border/50">
+                                                {company.address || company.googleMapUrl ? (
+                                                    <iframe 
+                                                        width="100%" 
+                                                        height="260" 
+                                                        style={{ border: 0 }} 
+                                                        loading="lazy" 
+                                                        allowFullScreen
+                                                        src={(() => {
+                                                            const url = (company.googleMapUrl || "").trim();
+                                                            // 1. If it's an iframe snippet, extract the src
+                                                            if (url.includes('<iframe')) {
+                                                                const match = url.match(/src="([^"]+)"/);
+                                                                if (match) return match[1];
+                                                            }
+                                                            // 2. If they pasted an embed link directly
+                                                            if (url.includes('/embed')) {
+                                                                return url;
+                                                            }
+                                                            // 3. If it contains coordinates
+                                                            const coordsMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                                                            if (coordsMatch) {
+                                                                return `https://www.google.com/maps?q=${coordsMatch[1]},${coordsMatch[2]}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+                                                            }
+                                                            // 4. If they just pasted a normal Google Maps link, use it as a query (or just use address if empty)
+                                                            if (url.startsWith('http') && !url.includes('<iframe')) {
+                                                                 // Don't use the direct URL as src because it will be blocked by X-Frame-Options
+                                                                 // Fallback to searching the address.
+                                                            } else if (url && !url.startsWith('http')) {
+                                                                 // If they just typed a place name directly into the Google Maps Link field!
+                                                                 return `https://www.google.com/maps?q=${encodeURIComponent(url)}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
+                                                            }
+                                                            
+                                                            // 5. Fallback to Address
+                                                            const addressQuery = company.address ? `${company.address}, ${company.city || ""}` : (company.city || "Phnom Penh");
+                                                            return `https://www.google.com/maps?q=${encodeURIComponent(addressQuery)}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
+                                                        })()}
+                                                    />
+                                                ) : (
+                                                    <div className="p-8 text-center text-sm text-muted-foreground bg-muted/5">
+                                                        No address or maps link set for this company.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
                                         {/* Performance Snapshot */}
                                         <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
                                             <div className="px-5 py-4 bg-muted/30 border-b border-border/50 flex justify-between items-center">
