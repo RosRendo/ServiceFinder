@@ -7,6 +7,7 @@ import {
   IsNumber,
   IsArray,
   ValidateNested,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -33,6 +34,15 @@ export class InitialServiceDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
+
+  @IsArray()
+  @IsOptional()
+  @IsString({ each: true })
+  checklist?: string[];
 }
 
 export class CreateCompanyAdminDto {
@@ -142,6 +152,23 @@ export class CreateCompanyAdminDto {
   @IsString()
   @IsOptional()
   serviceDescription?: string;
+
+  @IsString()
+  @IsOptional()
+  email?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isInsured?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  coverageRadiusKm?: number;
 
   @IsArray()
   @ValidateNested({ each: true })
