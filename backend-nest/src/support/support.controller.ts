@@ -56,16 +56,36 @@ export class SupportController {
   }
 
   @Patch('tickets/:id')
-  @Roles('admin', 'company_admin')
+  @Roles('admin', 'company_admin', 'customer')
   @ApiOperation({ summary: 'Update support ticket status' })
-  updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
-    return this.supportService.updateTicketStatus(Number(id), body.status);
+  updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.supportService.updateTicketStatus(
+      Number(id),
+      body.status,
+      BigInt(user.id),
+      user.role,
+    );
   }
 
   @Post('tickets/:id/reply')
-  @Roles('admin', 'company_admin')
+  @Roles('admin', 'company_admin', 'customer')
   @ApiOperation({ summary: 'Reply to a support ticket' })
-  reply(@Param('id') id: string, @Body() body: { message: string }) {
-    return this.supportService.replyToTicket(Number(id), body.message);
+  reply(
+    @Param('id') id: string,
+    @Body() body: { message: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.supportService.replyToTicket(
+      Number(id),
+      body.message,
+      BigInt(user.id),
+      user.fullName,
+      user.role,
+    );
   }
 }
+

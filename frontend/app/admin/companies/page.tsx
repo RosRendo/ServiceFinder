@@ -61,7 +61,8 @@ export default function CompaniesPage() {
 
   const filtered = companies.filter((c) => {
     const matchSearch = !search || [c.name, c.owner?.fullName, c.id].some((v) => v?.toString().toLowerCase().includes(search.toLowerCase()));
-    const matchStatus = statusFilter === "all" || c.verificationStatus === statusFilter;
+    const displayStatus = c.subscriptionStatus === "suspended" ? "suspended" : (c.verificationStatus || "pending_verification");
+    const matchStatus = statusFilter === "all" || displayStatus === statusFilter;
     
     let matchTime = true;
     if (timeFilter !== "all") {
@@ -88,7 +89,7 @@ export default function CompaniesPage() {
     rating: c.rating || 5.0,
     totalRevenue: c.totalRevenue || 0,
     totalBookings: c.totalBookings || 0,
-    status: c.verificationStatus || "pending_verification",
+    status: c.subscriptionStatus === "suspended" ? "suspended" : (c.verificationStatus || "pending_verification"),
     joinedDate: new Date(c.createdAt).toLocaleDateString(),
     lastActive: c.owner?.lastLoginAt || c.owner?.lastSeen || c.updatedAt || c.createdAt,
     workingStatus: c.owner?.workingStatus || "offline",

@@ -79,17 +79,20 @@ let LocationController = class LocationController {
         if (!allowed)
             throw new common_1.ForbiddenException('Access denied');
         const entry = locationStore.get(bookingId) ?? null;
-        const stale = entry && Date.now() - entry.updatedAt.getTime() > 60_000;
+        const isCustomer = booking.customerId === uid && user.role === 'customer';
+        const showLocation = !isCustomer || ['confirmed', 'arrived', 'in_progress'].includes(booking.status);
+        const activeEntry = showLocation ? entry : null;
+        const stale = activeEntry && Date.now() - activeEntry.updatedAt.getTime() > 60_000;
         return {
             success: true,
             data: {
-                staffLocation: entry && !stale ? entry : null,
-                isOnline: !!entry && !stale,
+                staffLocation: activeEntry && !stale ? activeEntry : null,
+                isOnline: !!activeEntry && !stale,
                 serviceAddress: booking.serviceAddress,
                 serviceLat: booking.latitude ? Number(booking.latitude) : null,
                 serviceLng: booking.longitude ? Number(booking.longitude) : null,
                 bookingStatus: booking.status,
-                lastSeen: entry?.updatedAt ?? null,
+                lastSeen: activeEntry?.updatedAt ?? null,
             },
         };
     }

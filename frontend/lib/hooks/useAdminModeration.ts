@@ -16,7 +16,7 @@ export function useAdminModeration() {
   const { mutate, loading: actionLoading } = useMutation();
 
   const moderateItem = async (itemId: string, action: 'resolve' | 'dismiss', notes?: string) => {
-    return mutate(`/api/admin/moderation/${itemId}`, { action, notes }, 'PUT');
+    return mutate(`/api/admin/moderation/${itemId}/action`, { action }, 'POST');
   };
 
   return {

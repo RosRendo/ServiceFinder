@@ -29,6 +29,9 @@ let SupportService = class SupportService {
                 where,
                 include: {
                     user: { select: { id: true, fullName: true, email: true } },
+                    messages: {
+                        orderBy: { createdAt: 'asc' },
+                    },
                 },
                 orderBy: { createdAt: 'desc' },
                 skip,
@@ -55,11 +58,27 @@ let SupportService = class SupportService {
                         email: t.user.email,
                     }
                     : null,
+                messages: t.messages.map((m) => ({
+                    id: m.id.toString(),
+                    senderId: m.senderId.toString(),
+                    senderName: m.senderName,
+                    senderRole: m.senderRole,
+                    content: m.content,
+                    createdAt: m.createdAt.toISOString(),
+                })),
             })),
             meta: { total, page, limit },
         };
     }
-    async updateTicketStatus(id, status) {
+    async updateTicketStatus(id, status, userId, userRole) {
+        const ticket = await this.prisma.supportTicket.findUnique({
+            where: { id: BigInt(id) },
+        });
+        if (!ticket)
+            throw new common_1.NotFoundException('Support ticket not found');
+        if (userRole !== 'admin' && ticket.userId !== userId) {
+            throw new common_1.ForbiddenException('Access denied: You do not own this ticket');
+        }
         const updated = await this.prisma.supportTicket.update({
             where: { id: BigInt(id) },
             data: {
@@ -69,10 +88,29 @@ let SupportService = class SupportService {
         });
         return { success: true, id: updated.id.toString(), status: updated.status };
     }
-    async replyToTicket(id, message) {
-        await this.prisma.supportTicket.update({
+    async replyToTicket(id, message, senderId, senderName, senderRole) {
+        const ticket = await this.prisma.supportTicket.findUnique({
             where: { id: BigInt(id) },
-            data: { status: 'in_progress' },
+        });
+        if (!ticket)
+            throw new common_1.NotFoundException('Support ticket not found');
+        if (senderRole !== 'admin' && ticket.userId !== senderId) {
+            throw new common_1.ForbiddenException('Access denied: You do not own this ticket');
+        }
+        await this.prisma.$transaction(async (tx) => {
+            await tx.supportTicket.update({
+                where: { id: BigInt(id) },
+                data: { status: 'in_progress' },
+            });
+            await tx.supportTicketMessage.create({
+                data: {
+                    ticketId: BigInt(id),
+                    senderId,
+                    senderName,
+                    senderRole,
+                    content: message,
+                },
+            });
         });
         return {
             success: true,
@@ -81,6 +119,12 @@ let SupportService = class SupportService {
         };
     }
     async createTicket(userId, subject, description, priority = 'medium') {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { fullName: true, role: true },
+        });
+        const senderName = user ? user.fullName : 'User';
+        const senderRole = user ? user.role.toLowerCase() : 'customer';
         const ticket = await this.prisma.supportTicket.create({
             data: {
                 userId,
@@ -88,6 +132,17 @@ let SupportService = class SupportService {
                 description,
                 status: 'open',
                 priority,
+                messages: {
+                    create: {
+                        senderId: userId,
+                        senderName,
+                        senderRole,
+                        content: description,
+                    },
+                },
+            },
+            include: {
+                messages: true,
             },
         });
         return {
@@ -99,6 +154,14 @@ let SupportService = class SupportService {
             priority: ticket.priority,
             createdAt: ticket.createdAt.toISOString(),
             updatedAt: ticket.updatedAt.toISOString(),
+            messages: ticket.messages.map((m) => ({
+                id: m.id.toString(),
+                senderId: m.senderId.toString(),
+                senderName: m.senderName,
+                senderRole: m.senderRole,
+                content: m.content,
+                createdAt: m.createdAt.toISOString(),
+            })),
         };
     }
 };

@@ -756,11 +756,16 @@ export class PaymentsService {
       throw new BadRequestException('Invalid ABA PayWay signature');
     }
 
+    const payment = await this.prisma.payment.findFirst({
+      where: { transactionRef: tran_id },
+    });
+
     if (status === '0' || status === 'APPROVED') {
-      const payment = await this.prisma.payment.findFirst({
-        where: { transactionRef: tran_id },
-      });
       if (payment) {
+        // Idempotency guard: skip if already processed
+        if (payment.status === 'paid') {
+          return { received: true };
+        }
         await this.prisma.payment.update({
           where: { id: payment.id },
           data: { status: 'paid' as any, paidAt: new Date() },
@@ -780,9 +785,6 @@ export class PaymentsService {
         });
       }
     } else {
-      const payment = await this.prisma.payment.findFirst({
-        where: { transactionRef: tran_id },
-      });
       if (payment) {
         await this.prisma.payment.update({
           where: { id: payment.id },

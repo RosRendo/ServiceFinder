@@ -19,6 +19,14 @@ export declare class SupportController {
                 fullName: string;
                 email: string | null;
             } | null;
+            messages: {
+                id: string;
+                senderId: string;
+                senderName: string;
+                senderRole: string;
+                content: string;
+                createdAt: string;
+            }[];
         }[];
         meta: {
             total: number;
@@ -39,17 +47,25 @@ export declare class SupportController {
         priority: string;
         createdAt: string;
         updatedAt: string;
+        messages: {
+            id: string;
+            senderId: string;
+            senderName: string;
+            senderRole: string;
+            content: string;
+            createdAt: string;
+        }[];
     }>;
     updateStatus(id: string, body: {
         status: string;
-    }): Promise<{
+    }, user: any): Promise<{
         success: boolean;
         id: string;
         status: string;
     }>;
     reply(id: string, body: {
         message: string;
-    }): Promise<{
+    }, user: any): Promise<{
         success: boolean;
         message: string;
         ticketId: string;

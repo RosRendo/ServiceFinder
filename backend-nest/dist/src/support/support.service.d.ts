@@ -19,6 +19,14 @@ export declare class SupportService {
                 fullName: string;
                 email: string | null;
             } | null;
+            messages: {
+                id: string;
+                senderId: string;
+                senderName: string;
+                senderRole: string;
+                content: string;
+                createdAt: string;
+            }[];
         }[];
         meta: {
             total: number;
@@ -26,12 +34,12 @@ export declare class SupportService {
             limit: number;
         };
     }>;
-    updateTicketStatus(id: number, status: string): Promise<{
+    updateTicketStatus(id: number, status: string, userId: bigint, userRole: string): Promise<{
         success: boolean;
         id: string;
         status: string;
     }>;
-    replyToTicket(id: number, message: string): Promise<{
+    replyToTicket(id: number, message: string, senderId: bigint, senderName: string, senderRole: string): Promise<{
         success: boolean;
         message: string;
         ticketId: string;
@@ -45,5 +53,13 @@ export declare class SupportService {
         priority: string;
         createdAt: string;
         updatedAt: string;
+        messages: {
+            id: string;
+            senderId: string;
+            senderName: string;
+            senderRole: string;
+            content: string;
+            createdAt: string;
+        }[];
     }>;
 }

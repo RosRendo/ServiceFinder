@@ -101,9 +101,9 @@ export default function TrackStaffScreen() {
   // Initial load
   useEffect(() => { fetchLocation(); }, [fetchLocation]);
 
-  // WebSocket Live Updates
+  // WebSocket Live Updates — only connect when job is actively in progress
   useEffect(() => {
-    if (!bookingId || !locationData || locationData.bookingStatus !== 'in_progress') return;
+    if (!bookingId || !locationData || !['confirmed', 'arrived', 'in_progress'].includes(locationData.bookingStatus)) return;
 
     let socket: Socket | null = null;
     let isActive = true;

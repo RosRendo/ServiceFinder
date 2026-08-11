@@ -620,11 +620,14 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         if (hash !== expectedHash) {
             throw new common_1.BadRequestException('Invalid ABA PayWay signature');
         }
+        const payment = await this.prisma.payment.findFirst({
+            where: { transactionRef: tran_id },
+        });
         if (status === '0' || status === 'APPROVED') {
-            const payment = await this.prisma.payment.findFirst({
-                where: { transactionRef: tran_id },
-            });
             if (payment) {
+                if (payment.status === 'paid') {
+                    return { received: true };
+                }
                 await this.prisma.payment.update({
                     where: { id: payment.id },
                     data: { status: 'paid', paidAt: new Date() },
@@ -645,9 +648,6 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             }
         }
         else {
-            const payment = await this.prisma.payment.findFirst({
-                where: { transactionRef: tran_id },
-            });
             if (payment) {
                 await this.prisma.payment.update({
                     where: { id: payment.id },

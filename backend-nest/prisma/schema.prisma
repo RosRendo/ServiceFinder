@@ -46,6 +46,7 @@ model User {
   serviceRequestsMade       ServiceRequest[]          @relation("CustomerRequests")
   addresses                 UserAddress[]
   supportTickets            SupportTicket[]
+  supportTicketMessages     SupportTicketMessage[]
   moderationActions         ModerationLog[]
   writtenStaffNotes         StaffNote[]               @relation("NoteAuthor")
 
@@ -875,6 +876,7 @@ model SupportTicket {
   resolvedAt  DateTime? @map("resolved_at")
 
   user User @relation(fields: [userId], references: [id])
+  messages SupportTicketMessage[]
 
   @@index([userId])
   @@index([status])
@@ -961,3 +963,21 @@ model StaffNote {
   @@index([authorId])
   @@map("staff_notes")
 }
+
+model SupportTicketMessage {
+  id          BigInt        @id @default(autoincrement())
+  ticketId    BigInt        @map("ticket_id")
+  senderId    BigInt        @map("sender_id")
+  senderName  String        @map("sender_name") @db.VarChar(150)
+  senderRole  String        @map("sender_role") @db.VarChar(20)
+  content     String
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender      User          @relation(fields: [senderId], references: [id])
+
+  @@index([ticketId])
+  @@index([senderId])
+  @@map("support_ticket_messages")
+}
+

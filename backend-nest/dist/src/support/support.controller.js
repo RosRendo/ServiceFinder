@@ -33,11 +33,11 @@ let SupportController = class SupportController {
     createTicket(body, user) {
         return this.supportService.createTicket(BigInt(user.id), body.subject, body.message, body.priority);
     }
-    updateStatus(id, body) {
-        return this.supportService.updateTicketStatus(Number(id), body.status);
+    updateStatus(id, body, user) {
+        return this.supportService.updateTicketStatus(Number(id), body.status, BigInt(user.id), user.role);
     }
-    reply(id, body) {
-        return this.supportService.replyToTicket(Number(id), body.message);
+    reply(id, body, user) {
+        return this.supportService.replyToTicket(Number(id), body.message, BigInt(user.id), user.fullName, user.role);
     }
 };
 exports.SupportController = SupportController;
@@ -70,24 +70,26 @@ __decorate([
 ], SupportController.prototype, "createTicket", null);
 __decorate([
     (0, common_1.Patch)('tickets/:id'),
-    (0, roles_decorator_1.Roles)('admin', 'company_admin'),
+    (0, roles_decorator_1.Roles)('admin', 'company_admin', 'customer'),
     (0, swagger_1.ApiOperation)({ summary: 'Update support ticket status' }),
     openapi.ApiResponse({ status: 200 }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], SupportController.prototype, "updateStatus", null);
 __decorate([
     (0, common_1.Post)('tickets/:id/reply'),
-    (0, roles_decorator_1.Roles)('admin', 'company_admin'),
+    (0, roles_decorator_1.Roles)('admin', 'company_admin', 'customer'),
     (0, swagger_1.ApiOperation)({ summary: 'Reply to a support ticket' }),
     openapi.ApiResponse({ status: 201 }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], SupportController.prototype, "reply", null);
 exports.SupportController = SupportController = __decorate([
