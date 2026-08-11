@@ -37,15 +37,30 @@ export default function CustomerLayout() {
 
       {/* ── Booking Flow ─────────────────────────── */}
       <Stack.Screen name="booking/cancel" />
+      <Stack.Screen name="booking/failed" />
+      <Stack.Screen name="booking/reschedule" />
+      <Stack.Screen name="booking/messages" />
+      <Stack.Screen name="booking/track-staff" />
       <Stack.Screen name="booking/[id]" />
       <Stack.Screen name="checkout" />
 
       {/* ── Reviews ──────────────────────────────── */}
+      <Stack.Screen name="reviews/index" />
       <Stack.Screen name="reviews/new" />
 
+      {/* ── Addresses ────────────────────────────── */}
+      <Stack.Screen name="address/index" />
+      <Stack.Screen name="address/[id]" />
+
       {/* ── Messaging ────────────────────────────── */}
+      <Stack.Screen name="messages/index" />
       <Stack.Screen name="messages/new" />
       <Stack.Screen name="messages/[id]" />
+
+      {/* ── Profile & Settings ───────────────────── */}
+      <Stack.Screen name="edit-profile" />
+      <Stack.Screen name="change-password" />
+      <Stack.Screen name="settings" />
 
       {/* ── Complete Profile ─────────────────────── */}
       <Stack.Screen name="complete-profile" />

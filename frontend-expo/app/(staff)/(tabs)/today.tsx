@@ -356,7 +356,8 @@ export default function TodayScreen() {
        return;
     }
     const name = activeBooking?.customer?.fullName || 'Customer';
-    router.push(`/(staff)/chat/${activeBooking.customerId}?otherName=${encodeURIComponent(name)}`);
+    // Navigate to the real staff messages screen (/(staff)/messages/[userId])
+    router.push(`/(staff)/messages/${activeBooking.customerId}?otherName=${encodeURIComponent(name)}` as any);
   };
 
   const handleMarkStepComplete = async () => {
