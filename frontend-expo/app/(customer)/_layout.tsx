@@ -36,7 +36,6 @@ export default function CustomerLayout() {
       <Stack.Screen name="company/[id]" />
 
       {/* ── Booking Flow ─────────────────────────── */}
-      <Stack.Screen name="booking/[id]/tracking" />
       <Stack.Screen name="booking/cancel" />
       <Stack.Screen name="booking/[id]" />
       <Stack.Screen name="checkout" />
