@@ -164,7 +164,11 @@ export default function PayoutsPage() {
           { icon: RotateCcw, label: "Process Payout", onClick: async () => {
             if (!confirm(`Mark ${selectedIds.size} payout(s) as completed/processed?`)) return;
             try {
-              await Promise.all(Array.from(selectedIds).map((id) => api.patch(`/admin/payouts/${id}/process`, {})));
+              await Promise.all(
+                Array.from(selectedIds).map((id) =>
+                  api.post(`/admin/payouts/${id.replace("PAY-", "")}/approve`)
+                )
+              );
               toast({ title: "Payouts Processed", description: `${selectedIds.size} payout(s) processed successfully.` });
               setSelectedIds(new Set()); fetchPayouts();
             } catch { toast({ title: "Error", description: "Failed to process one or more payouts.", variant: "destructive" }); }

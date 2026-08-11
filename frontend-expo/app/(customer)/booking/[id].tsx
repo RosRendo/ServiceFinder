@@ -242,10 +242,9 @@ export default function BookingDetailsScreen() {
     if (!booking?.company?.id) return;
     setIsSubmittingDispute(true);
     try {
-      await api.post("/api/disputes", {
-        bookingId: id,
-        companyId: booking.company.id,
-        reason: disputeReason.trim(),
+      await api.post(`/api/bookings/${id}/dispute`, {
+        type: "other",
+        description: disputeReason.trim(),
       });
       Alert.alert("Dispute Filed", "Your dispute has been submitted and will be reviewed.");
       setDisputeReason("");

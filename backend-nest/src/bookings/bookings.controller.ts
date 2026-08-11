@@ -156,6 +156,14 @@ export class BookingsController {
     );
   }
 
+  @Patch(':id/arrive')
+  @ApiOperation({ summary: 'Staff reports arrival at job location (Assigned staff only)' })
+  @ApiResponse({ status: 200, description: 'Staff successfully arrived.' })
+  arriveJob(@Param('id') id: string, @Request() req) {
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+    return this.bookingsService.arriveJob(BigInt(id), BigInt(user.id));
+  }
+
   @Patch(':id/progress')
   @ApiOperation({ summary: 'Update job progress (Assigned staff only)' })
   @ApiResponse({

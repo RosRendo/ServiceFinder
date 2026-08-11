@@ -29,27 +29,56 @@ export default function UpdateStatusScreen() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      await api.put(`/api/staff/jobs/${id}/status`, {
-        status: currentStatus,
-        notes,
-        photos: photos.map((p) => p.uri),
-        timestamp: new Date().toISOString(),
-      });
+      if (currentStatus === "en_route") {
+        Alert.alert("En Route", "You are now en route to the customer location.");
+        router.back();
+        return;
+      }
+
+      if (currentStatus === "arrived") {
+        await api.patch(`/api/bookings/${id}/arrive`);
+        Alert.alert("Status Updated", "Status changed to Arrived");
+        router.back();
+        return;
+      }
+
+      if (currentStatus === "working") {
+        await api.patch(`/api/bookings/${id}/start`);
+        Alert.alert("Status Updated", "Status changed to Working (In Progress)");
+        router.back();
+        return;
+      }
 
       if (currentStatus === "completed") {
+        let proofOfWorkPhotoUrl = "";
+        if (photos.length > 0) {
+          const formData = new FormData();
+          formData.append('file', {
+            uri: photos[0].uri,
+            name: `proof_${id}.jpg`,
+            type: 'image/jpeg'
+          } as any);
+
+          const uploadRes = await api.post('/api/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          proofOfWorkPhotoUrl = uploadRes.data.url;
+        }
+
+        await api.patch(`/api/bookings/${id}/complete`, {
+          proofOfWorkPhoto: proofOfWorkPhotoUrl || undefined,
+          notes,
+        });
+
         Alert.alert(
           "Job Completed! 🎉",
-          "Great work! The customer has been notified. Please collect any final signatures.",
+          "Great work! The customer has been notified.",
           [{ text: "Done", onPress: () => router.replace("/(staff)/(tabs)/today") }]
         );
-      } else {
-        Alert.alert("Status Updated", `Status changed to "${STATUS_STEPS.find(s => s.key === currentStatus)?.label}"`);
-        router.back();
       }
     } catch (err: any) {
-      // Graceful fallback for MVP
-      Alert.alert("Updated", "Status has been updated.");
-      router.back();
+      const msg = err.response?.data?.message || err.message;
+      Alert.alert("Error", `Failed to update status: ${msg}`);
     } finally {
       setSubmitting(false);
     }

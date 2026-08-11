@@ -83,6 +83,7 @@ export default function JobCompleteScreen() {
 
       // 3. Mark Booking as Complete
       await api.patch(`/api/bookings/${jobId}/complete`, {
+        proofOfWorkPhoto: signatureUrl,
         proofOfWorkImageUrl: signatureUrl, // In MVP we save signature as proof or just append it
         notes,
       });

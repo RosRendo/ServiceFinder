@@ -67,6 +67,10 @@ let BookingsController = class BookingsController {
         const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
         return this.bookingsService.startJob(BigInt(id), BigInt(user.id), body?.staffStartLatitude, body?.staffStartLongitude);
     }
+    arriveJob(id, req) {
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.arriveJob(BigInt(id), BigInt(user.id));
+    }
     updateProgress(id, dto, req) {
         const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
         return this.bookingsService.updateProgress(BigInt(id), BigInt(user.id), dto.progressPercent, dto.staffNotes, dto.checklist);
@@ -205,6 +209,16 @@ __decorate([
     __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], BookingsController.prototype, "startJob", null);
+__decorate([
+    (0, common_1.Patch)(':id/arrive'),
+    (0, swagger_1.ApiOperation)({ summary: 'Staff reports arrival at job location (Assigned staff only)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Staff successfully arrived.' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], BookingsController.prototype, "arriveJob", null);
 __decorate([
     (0, common_1.Patch)(':id/progress'),
     (0, swagger_1.ApiOperation)({ summary: 'Update job progress (Assigned staff only)' }),

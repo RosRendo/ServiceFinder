@@ -87,6 +87,11 @@ export declare class BookingsService {
         message: string;
         booking: any;
     }>;
+    arriveJob(id: bigint, userId: bigint): Promise<{
+        success: boolean;
+        message: string;
+        booking: any;
+    }>;
     updateProgress(id: bigint, userId: bigint, progressPercent: number, staffNotes?: string, checklist?: any): Promise<{
         success: boolean;
         message: string;

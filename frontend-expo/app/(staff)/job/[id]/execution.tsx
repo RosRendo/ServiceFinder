@@ -325,7 +325,7 @@ export default function JobExecutionScreen() {
   // ── Complete ──
   const handleArrive = async () => {
     try {
-      await api.patch(`/api/bookings/${id}/status`, { status: "arrived" });
+      await api.patch(`/api/bookings/${id}/arrive`);
       setJobData((prev: any) => ({ ...prev, status: "arrived" }));
     } catch {
       Alert.alert("Error", "Could not update status to arrived.");

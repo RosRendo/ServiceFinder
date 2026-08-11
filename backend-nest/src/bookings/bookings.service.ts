@@ -923,6 +923,81 @@ export class BookingsService {
     return result;
   }
 
+  async arriveJob(id: bigint, userId: bigint) {
+    const staff = await this.prisma.companyStaff.findFirst({
+      where: { userId },
+    });
+    if (!staff) throw new ForbiddenException('You are not registered as staff');
+
+    const booking = await this.findOrFail(id, true);
+
+    if (
+      !booking.assignedStaffId ||
+      booking.assignedStaffId.toString() !== staff.id.toString()
+    ) {
+      throw new BadRequestException('You are not assigned to this booking');
+    }
+
+    validateTransition(booking.status, 'arrived');
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.booking.update({
+        where: { id },
+        data: {
+          status: 'arrived',
+        },
+        include: {
+          customer: true,
+          company: true,
+          service: true,
+          assignedStaff: true,
+        },
+      });
+
+      await tx.bookingStatusLog.create({
+        data: {
+          bookingId: id,
+          oldStatus: booking.status,
+          newStatus: 'arrived',
+          changedBy: userId,
+        },
+      });
+
+      return u;
+    });
+
+    await this.notificationsService
+      .notifyBookingStatusChanged(
+        booking.customerId,
+        'arrived',
+        updated.service.name,
+        id.toString(),
+      )
+      .catch((e) =>
+        console.warn('Notification create failed (arrived):', e?.message),
+      );
+
+    const result = {
+      success: true,
+      message: 'Arrived at job location successfully',
+      booking: this.serializeBooking(updated),
+    };
+
+    this.bookingsGateway.broadcastBookingUpdate(
+      id.toString(),
+      'arrived',
+      result.booking,
+    );
+
+    // Broadcast status change to Admin dashboard
+    this.adminGateway.broadcastKpiUpdate('booking_status_changed', {
+      id: id.toString(),
+      status: 'arrived',
+    });
+
+    return result;
+  }
+
   async updateProgress(
     id: bigint,
     userId: bigint,
@@ -1094,7 +1169,20 @@ export class BookingsService {
   async cancelBooking(id: bigint, reason: string | undefined, user: any) {
     const booking = await this.findOrFail(id);
 
-    if (booking.customerId !== BigInt(user.id) && user.role !== 'admin') {
+    const isCustomer = booking.customerId === BigInt(user.id);
+    const isAdmin = user.role === 'admin';
+    
+    let isCompanyOwner = false;
+    if (user.role === 'company_admin') {
+      const company = await this.prisma.company.findFirst({
+        where: { ownerId: BigInt(user.id) },
+      });
+      if (company && company.id === booking.companyId) {
+        isCompanyOwner = true;
+      }
+    }
+
+    if (!isCustomer && !isAdmin && !isCompanyOwner) {
       throw new ForbiddenException('Access denied');
     }
 
