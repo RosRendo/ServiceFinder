@@ -630,6 +630,9 @@ export declare class CompaniesController {
     getFeaturedCompanies(query: any): Promise<{
         data: any[];
     }>;
+    getSponsoredCompanies(query: any): Promise<{
+        data: any[];
+    }>;
     getNearbyCompanies(query: any): Promise<{
         data: any[];
     }>;

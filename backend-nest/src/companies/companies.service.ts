@@ -1960,6 +1960,43 @@ export class CompaniesService {
     return { data: this.formatCompanies(companies) };
   }
 
+  async getSponsoredCompanies(query: any) {
+    const { limit = 5 } = query;
+    const take = parseInt(limit.toString());
+    const now = new Date();
+
+    const campaigns = await this.prisma.marketingCampaign.findMany({
+      where: {
+        status: 'active',
+        startDate: { lte: now },
+        OR: [
+          { endDate: null },
+          { endDate: { gte: now } },
+        ],
+      },
+      include: {
+        company: {
+          include: {
+            ratingSummary: true,
+            _count: { select: { services: true } },
+          },
+        },
+      },
+      take: take * 2, // Fetch slightly more to filter spent campaigns in memory
+    });
+
+    const activeCompanies = campaigns
+      .filter((c) => Number(c.budget) > Number(c.spent))
+      .map((c) => c.company);
+
+    // Deduplicate companies
+    const uniqueCompanies = Array.from(
+      new Map(activeCompanies.map((co) => [co.id.toString(), co])).values(),
+    );
+
+    return { data: this.formatCompanies(uniqueCompanies.slice(0, take)) };
+  }
+
   async getNearbyCompanies(query: any) {
     const { lat, lng, radius = 5, limit = 12 } = query;
     // Prisma does not have native geo querying without raw SQL.

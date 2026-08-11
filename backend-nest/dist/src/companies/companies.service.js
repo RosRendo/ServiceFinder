@@ -1665,6 +1665,35 @@ let CompaniesService = class CompaniesService {
         });
         return { data: this.formatCompanies(companies) };
     }
+    async getSponsoredCompanies(query) {
+        const { limit = 5 } = query;
+        const take = parseInt(limit.toString());
+        const now = new Date();
+        const campaigns = await this.prisma.marketingCampaign.findMany({
+            where: {
+                status: 'active',
+                startDate: { lte: now },
+                OR: [
+                    { endDate: null },
+                    { endDate: { gte: now } },
+                ],
+            },
+            include: {
+                company: {
+                    include: {
+                        ratingSummary: true,
+                        _count: { select: { services: true } },
+                    },
+                },
+            },
+            take: take * 2,
+        });
+        const activeCompanies = campaigns
+            .filter((c) => Number(c.budget) > Number(c.spent))
+            .map((c) => c.company);
+        const uniqueCompanies = Array.from(new Map(activeCompanies.map((co) => [co.id.toString(), co])).values());
+        return { data: this.formatCompanies(uniqueCompanies.slice(0, take)) };
+    }
     async getNearbyCompanies(query) {
         const { lat, lng, radius = 5, limit = 12 } = query;
         const take = parseInt(limit.toString());

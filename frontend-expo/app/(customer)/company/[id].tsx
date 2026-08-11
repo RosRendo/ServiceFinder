@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { ScrollView, Text, View, TouchableOpacity, RefreshControl, ActivityIndicator, Alert, StyleSheet, Animated, Easing, Pressable, Platform, Dimensions , Share } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, RefreshControl, ActivityIndicator, Alert, StyleSheet, Animated, Easing, Pressable, Platform, Dimensions, Share } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -28,7 +28,7 @@ export default function CompanyDetailScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { isGuest } = useAuthStore();
-  
+
   const TABS = [t('companyProfile.tabs.services', 'Services'), t('companyProfile.tabs.reviews', 'Reviews'), t('companyProfile.tabs.about', 'About')];
 
   const [company, setCompany] = useState<any>(null);
@@ -36,7 +36,7 @@ export default function CompanyDetailScreen() {
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const loadCompany = useCallback(async () => {
@@ -46,7 +46,7 @@ export default function CompanyDetailScreen() {
       const res = await api.get(`/api/companies/${id}`);
       const data = res?.data?.data || res?.data;
       setCompany(data);
-      
+
       if (!isGuest) {
         try {
           const checkRes = await api.get(`/api/saved-items/check`, { params: { itemType: 'company', itemIds: id } });
@@ -75,12 +75,12 @@ export default function CompanyDetailScreen() {
       "Please log in or create an account to use this feature.",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Log In", 
+        {
+          text: "Log In",
           onPress: () => {
             useAuthStore.getState().setGuestMode(false);
             router.replace("/(public)/login");
-          } 
+          }
         }
       ]
     );
@@ -125,7 +125,7 @@ export default function CompanyDetailScreen() {
     );
   }
 
-  const heroImage = company.coverImageUrl || `https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800`;
+  const heroImage = company.coverImageUrl;
   const logoImage = company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}`;
   const rating = company.ratingSummary?.averageRating ? Number(company.ratingSummary.averageRating).toFixed(1) : "New";
   const reviewCount = company.ratingSummary?.totalReviews || 0;
@@ -142,7 +142,7 @@ export default function CompanyDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} style={s.iconBtn}>
           <MaterialIcons name="arrow-back" size={24} color={T.text1} />
         </TouchableOpacity>
-        
+
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <TouchableOpacity onPress={() => Share.share({ message: `Check out ${company?.name} on Service Finder!` })} style={s.iconBtn}>
             <MaterialIcons name="share" size={20} color={T.text1} />
@@ -182,7 +182,7 @@ export default function CompanyDetailScreen() {
               })
             }]
           }]}>
-            <Image source={{ uri: heroImage }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+            {heroImage && <Image source={{ uri: heroImage }} style={StyleSheet.absoluteFillObject} contentFit="cover" />}
             <View style={s.heroOverlay} />
           </Animated.View>
 
@@ -215,7 +215,7 @@ export default function CompanyDetailScreen() {
             <View style={s.trustItem}>
               <View style={s.trustValRow}>
                 <MaterialIcons name="work" size={16} color={T.text2} />
-                <Text style={s.trustVal}>{completedJobs > 1000 ? `${(completedJobs/1000).toFixed(1)}k+` : completedJobs}</Text>
+                <Text style={s.trustVal}>{completedJobs > 1000 ? `${(completedJobs / 1000).toFixed(1)}k+` : completedJobs}</Text>
               </View>
               <Text style={s.trustLabel}>Jobs done</Text>
             </View>
@@ -252,7 +252,7 @@ export default function CompanyDetailScreen() {
 
         {/* INDEX 2: TAB CONTENT */}
         <View style={s.tabContentWrapper}>
-          
+
           {/* SERVICES TAB */}
           {activeTab === TABS[0] && (
             <View style={s.tabSection}>
@@ -264,8 +264,8 @@ export default function CompanyDetailScreen() {
               ) : (
                 <View style={s.serviceList}>
                   {services.map((service: any, idx: number) => (
-                    <TouchableOpacity 
-                      key={service.id} 
+                    <TouchableOpacity
+                      key={service.id}
                       style={s.serviceCard}
                       onPress={() => router.push(`/(customer)/service/${service.id}` as any)}
                     >
@@ -344,11 +344,11 @@ export default function CompanyDetailScreen() {
           {/* ABOUT TAB */}
           {activeTab === TABS[2] && (
             <View style={s.tabSection}>
-              
+
               {/* Gallery Mini */}
               <Text style={s.aboutTitle}>Gallery</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
-                {services.filter((s:any)=>s.image).map((s:any) => (
+                {services.filter((s: any) => s.image).map((s: any) => (
                   <Image key={s.id} source={{ uri: s.image }} style={s.galleryImg} />
                 ))}
                 <Image source={{ uri: heroImage }} style={s.galleryImg} />
@@ -362,7 +362,7 @@ export default function CompanyDetailScreen() {
               <Text style={s.aboutDesc}>
                 {company.description || "A highly rated service provider dedicated to quality and customer satisfaction."}
               </Text>
-              
+
               <View style={s.infoList}>
                 <View style={s.infoRow}>
                   <MaterialIcons name="event" size={20} color={T.accent} />
@@ -381,7 +381,7 @@ export default function CompanyDetailScreen() {
               </View>
 
               <View style={s.divider} />
-              
+
               {/* Location/Map placeholder */}
               <Text style={s.aboutTitle}>Service Area</Text>
               <View style={s.mapPlaceholder}>
@@ -421,15 +421,15 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   centerRoot: { flex: 1, backgroundColor: T.bg, alignItems: "center", justifyContent: "center", gap: 12 },
   errorText: { color: T.error, fontSize: 16, fontWeight: '600', marginTop: 12 },
-  
+
   // Floating Header
   floatingHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12, backgroundColor: 'rgba(255,255,255,0.95)', borderBottomWidth: 1, borderColor: T.border },
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  
+
   // Hero
   heroContainer: { height: 220, backgroundColor: T.border },
   heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.05)' },
-  
+
   // Header Info
   headerInfoBox: { paddingHorizontal: 24, flexDirection: 'row', alignItems: 'flex-end', gap: 16, marginTop: -32 },
   logoWrapper: { width: 80, height: 80, borderRadius: 16, backgroundColor: T.surface, borderWidth: 3, borderColor: T.surface, ...CARD_SHADOW, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
@@ -484,7 +484,7 @@ const s = StyleSheet.create({
   barLabel: { fontSize: 11, fontWeight: "700", color: T.text3, width: 8 },
   barTrack: { flex: 1, height: 6, backgroundColor: T.bg, borderRadius: 3, overflow: 'hidden' },
   barFill: { height: '100%', backgroundColor: '#F59E0B', borderRadius: 3 },
-  
+
   reviewCard: { backgroundColor: T.surface, padding: 20, borderRadius: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   reviewAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: T.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: T.border },

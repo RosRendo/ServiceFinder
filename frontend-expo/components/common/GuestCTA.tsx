@@ -18,10 +18,10 @@ interface GuestCTAProps {
   icon?: keyof typeof MaterialCommunityIcons.glyphMap;
 }
 
-export function GuestCTA({ 
-  title = "Log in required", 
-  subtitle = "Please log in or create an account to access this feature.", 
-  icon = "lock-outline" 
+export function GuestCTA({
+  title = "Log in required",
+  subtitle = "Please log in or create an account to access this feature.",
+  icon = "lock-outline"
 }: GuestCTAProps) {
   const router = useRouter();
 
@@ -41,7 +41,7 @@ export function GuestCTA({
         </View>
         <Text style={s.title}>{title}</Text>
         <Text style={s.subtitle}>{subtitle}</Text>
-        
+
         <Pressable onPress={handleLogin} style={s.btn}>
           <Text style={s.btnText}>Log in / Sign up</Text>
         </Pressable>

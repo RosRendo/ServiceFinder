@@ -408,6 +408,15 @@ export class CompaniesController {
     return this.companiesService.getFeaturedCompanies(query);
   }
 
+  @Get('sponsored')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(30000)
+  @ApiOperation({ summary: 'Get sponsored companies with active marketing campaigns' })
+  @ApiResponse({ status: 200, description: 'Return sponsored companies.' })
+  getSponsoredCompanies(@Query() query: any) {
+    return this.companiesService.getSponsoredCompanies(query);
+  }
+
   @Get('nearby')
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(30000)

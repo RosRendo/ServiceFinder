@@ -76,7 +76,7 @@ const getCategoryIcon = (text: string): any => {
   if (t.includes('garden') || t.includes('lawn') || t.includes('yard') || t.includes('tree')) return 'leaf';
   if (t.includes('pest') || t.includes('bug')) return 'bug';
   if (t.includes('build') || t.includes('construct') || t.includes('repair') || t.includes('wrench')) return 'hammer-wrench';
-  return 'tools'; 
+  return 'tools';
 };
 
 function Skeleton({ width, height, radius = 8, style }: { width: number | string; height: number; radius?: number; style?: any; }) {
@@ -213,7 +213,7 @@ export default function CategoryScreen() {
         pageNumber === 1 ? api.get("/api/companies", { params: { categoryId: activeCategory?.id || id } }) : Promise.resolve({ data: [] }),
         api.get("/api/services", { params: { limit: 20, page: pageNumber, categoryId: activeCategory?.id || id } }),
       ]);
-      
+
       const newServices = extractArray(servicesRes.data);
       if (pageNumber === 1) {
         setCompanies(extractArray(companiesRes.data));
@@ -264,11 +264,11 @@ export default function CategoryScreen() {
           <TouchableOpacity onPress={() => router.back()} style={s.iconBtn}>
             <MaterialIcons name="arrow-back" size={24} color={T.text1} />
           </TouchableOpacity>
-          
+
           <Text style={s.appBarTitle} numberOfLines={1}>
             {activeCategory?.name || "Category"}
           </Text>
-          
+
           <View style={{ flexDirection: "row", gap: 4 }}>
             <TouchableOpacity onPress={() => router.push(`/(customer)/map-view?categoryId=${activeCategory?.id || id}` as any)} style={s.iconBtn}>
               <MaterialIcons name="map" size={24} color={T.text1} />
@@ -294,202 +294,211 @@ export default function CategoryScreen() {
         onEndReachedThreshold={0.5}
         ListHeaderComponent={
           <>
-        {/* Category Tabs */}
-        {allCategories.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.tabsScrollContent}
-          >
-            {allCategories.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                onPress={() => switchCategory(cat)}
-                style={[s.tabBtn, activeSlug === cat.slug && s.tabBtnActive]}
+            {/* Category Tabs */}
+            {allCategories.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={s.tabsScrollContent}
               >
-                <Text style={[s.tabBtnText, activeSlug === cat.slug && s.tabBtnTextActive]}>
-                  {cat.name.split(" ")[0]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
+                {allCategories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    onPress={() => switchCategory(cat)}
+                    style={[s.tabBtn, activeSlug === cat.slug && s.tabBtnActive]}
+                  >
+                    <Text style={[s.tabBtnText, activeSlug === cat.slug && s.tabBtnTextActive]}>
+                      {cat.name.split(" ")[0]}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
 
-        {/* Search Bar */}
-        <View style={s.searchSection}>
-          <View style={s.searchBox}>
-            <MaterialIcons name="search" size={20} color={T.text3} />
-            <TextInput
-              placeholder="Search for professionals..."
-              placeholderTextColor={T.text3}
-              style={s.searchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {isSearching ? (
-              <Skeleton width={16} height={16} radius={8} />
-            ) : searchQuery.length > 0 ? (
-              <TouchableOpacity onPress={() => setSearchQuery("")}>
-                <MaterialIcons name="cancel" size={20} color={T.text3} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        </View>
-
-        {isLoading ? (
-          <CategoryScreenSkeleton />
-        ) : (
-          <>
-            {/* Top Rated Companies */}
-            <View style={s.section}>
-              <View style={s.sectionHeader}>
-                <Text style={s.sectionTitle}>Top Rated Companies</Text>
-                <TouchableOpacity>
-                  <Text style={s.sectionAction}>View All</Text>
-                </TouchableOpacity>
+            {/* Search Bar */}
+            <View style={s.searchSection}>
+              <View style={s.searchBox}>
+                <MaterialIcons name="search" size={20} color={T.text3} />
+                <TextInput
+                  placeholder="Search for professionals..."
+                  placeholderTextColor={T.text3}
+                  style={s.searchInput}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {isSearching ? (
+                  <Skeleton width={16} height={16} radius={8} />
+                ) : searchQuery.length > 0 ? (
+                  <TouchableOpacity onPress={() => setSearchQuery("")}>
+                    <MaterialIcons name="cancel" size={20} color={T.text3} />
+                  </TouchableOpacity>
+                ) : null}
               </View>
-
-              {companies.length === 0 ? (
-                <View style={s.emptyState}>
-                  <Text style={s.emptyIcon}>🏢</Text>
-                  <Text style={s.emptyBody}>No providers found for this category.</Text>
-                </View>
-              ) : (
-                <View style={{ gap: 12 }}>
-                  {companies.map((company, i) => (
-                    <FadeIn key={company.id} delay={i * 100}>
-                      <PressCard
-                        onPress={() => router.push(`/(customer)/company/${company.id}` as any)}
-                      >
-                        <View style={s.companyCard}>
-                          <View style={{ position: 'relative' }}>
-                            <Image
-                              source={{ uri: company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}` }}
-                              style={s.companyImg}
-                            />
-                             <View style={s.catBadgeMini}>
-                               {activeCategory?.useImageAsBadge && activeCategory?.imageUrl ? (
-                                 <Image source={{ uri: activeCategory.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-                               ) : (
-                                 <MaterialCommunityIcons name={(activeCategory?.icon as any) || getCategoryIcon(activeCategory?.name || '')} size={13} color="#fff" />
-                               )}
-                             </View>
-                          </View>
-                          <View style={s.companyInfo}>
-                            <View style={s.companyNameRow}>
-                              <Text style={s.companyName} numberOfLines={1}>{company.name}</Text>
-                              {company.verificationStatus === "verified" && (
-                                <MaterialIcons name="verified" size={14} color={T.accentMid} />
-                              )}
-                            </View>
-                            
-                            <View style={s.companyMetaRow}>
-                              <MaterialIcons name="star" size={13} color={T.gold} />
-                              <Text style={s.companyRating}>
-                                {company.ratingSummary ? Number(company.ratingSummary.averageRating).toFixed(1) : "New"}
-                              </Text>
-                              <Text style={s.metaDot}>•</Text>
-                              <Text style={s.companyCity}>{company.city}</Text>
-                              {company.ratingSummary && (
-                                <>
-                                  <Text style={s.metaDot}>•</Text>
-                                  <Text style={s.companyReviews}>{company.ratingSummary.totalReviews} reviews</Text>
-                                </>
-                              )}
-                            </View>
-
-                            {company.cardHighlights && (
-                              <View style={s.tagsRow}>
-                                {(Array.isArray(company.cardHighlights) ? company.cardHighlights : (() => { try { return JSON.parse(company.cardHighlights); } catch { return []; } })())
-                                  .slice(0, 2)
-                                  .map((tag: string, i: number) => (
-                                    <View key={i} style={s.tag}>
-                                      <Text style={s.tagText}>{tag.toUpperCase()}</Text>
-                                    </View>
-                                  ))}
-                              </View>
-                            )}
-                          </View>
-                          <MaterialIcons name="chevron-right" size={20} color={T.text3} />
-                        </View>
-                      </PressCard>
-                    </FadeIn>
-                  ))}
-                </View>
-              )}
             </View>
 
-            {/* Featured Service */}
-            {featuredService && (
-              <View style={[s.section, { marginTop: 32 }]}>
-                <View style={s.sectionHeader}>
-                  <Text style={s.sectionTitle}>Featured Service</Text>
-                  <Text style={s.limitedBadge}>LIMITED TIME</Text>
+            {isLoading ? (
+              <CategoryScreenSkeleton />
+            ) : (
+              <>
+                {/* Top Rated Companies */}
+                <View style={s.section}>
+                  <View style={s.sectionHeader}>
+                    <Text style={s.sectionTitle}>Top Rated Companies</Text>
+                    <TouchableOpacity>
+                      <Text style={s.sectionAction}>View All</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {companies.length === 0 ? (
+                    <View style={s.emptyState}>
+                      <Text style={s.emptyIcon}>🏢</Text>
+                      <Text style={s.emptyBody}>No providers found for this category.</Text>
+                    </View>
+                  ) : (
+                    <View style={{ gap: 12 }}>
+                      {companies.map((company, i) => (
+                        <FadeIn key={company.id} delay={i * 100}>
+                          <PressCard
+                            onPress={() => router.push(`/(customer)/company/${company.id}` as any)}
+                          >
+                            <View style={s.companyCard}>
+                              <View style={{ position: 'relative' }}>
+                                <Image
+                                  source={{ uri: company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}` }}
+                                  style={s.companyImg}
+                                />
+                                <View style={s.catBadgeMini}>
+                                  {activeCategory?.useImageAsBadge && activeCategory?.imageUrl ? (
+                                    <Image source={{ uri: activeCategory.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                                  ) : (
+                                    <MaterialCommunityIcons name={(activeCategory?.icon as any) || getCategoryIcon(activeCategory?.name || '')} size={13} color="#fff" />
+                                  )}
+                                </View>
+                              </View>
+                              <View style={s.companyInfo}>
+                                <View style={s.companyNameRow}>
+                                  <Text style={s.companyName} numberOfLines={1}>{company.name}</Text>
+                                  {company.verificationStatus === "verified" && (
+                                    <MaterialIcons name="verified" size={14} color={T.accentMid} />
+                                  )}
+                                </View>
+
+                                <View style={s.companyMetaRow}>
+                                  <MaterialIcons name="star" size={13} color={T.gold} />
+                                  <Text style={s.companyRating}>
+                                    {company.ratingSummary ? Number(company.ratingSummary.averageRating).toFixed(1) : "New"}
+                                  </Text>
+                                  <Text style={s.metaDot}>•</Text>
+                                  <Text style={s.companyCity}>{company.city}</Text>
+                                  {company.ratingSummary && (
+                                    <>
+                                      <Text style={s.metaDot}>•</Text>
+                                      <Text style={s.companyReviews}>{company.ratingSummary.totalReviews} reviews</Text>
+                                    </>
+                                  )}
+                                </View>
+
+                                {company.cardHighlights && (
+                                  <View style={s.tagsRow}>
+                                    {(Array.isArray(company.cardHighlights) ? company.cardHighlights : (() => { try { return JSON.parse(company.cardHighlights); } catch { return []; } })())
+                                      .slice(0, 2)
+                                      .map((tag: string, i: number) => (
+                                        <View key={i} style={s.tag}>
+                                          <Text style={s.tagText}>{tag.toUpperCase()}</Text>
+                                        </View>
+                                      ))}
+                                  </View>
+                                )}
+                              </View>
+                              <MaterialIcons name="chevron-right" size={20} color={T.text3} />
+                            </View>
+                          </PressCard>
+                        </FadeIn>
+                      ))}
+                    </View>
+                  )}
                 </View>
 
-                <PressCard onPress={() => router.push(`/(customer)/service/${featuredService.id}` as any)}>
-                  <View style={s.featuredCard}>
-                    <View style={{ width: '100%', height: 160, position: 'relative' }}>
-                      <Image
-                        source={{ uri: featuredService.image || featuredService.serviceType?.imageUrl || featuredService.serviceType?.category?.imageUrl || activeCategory?.imageUrl || featuredService.company?.logoUrl || `https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600` }}
-                        style={s.featuredImg}
-                        contentFit="cover"
-                      />
-                       <View style={s.catBadge}>
-                         {activeCategory?.useImageAsBadge && activeCategory?.imageUrl ? (
-                           <Image source={{ uri: activeCategory.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-                         ) : (
-                           <MaterialCommunityIcons name={(activeCategory?.icon as any) || getCategoryIcon(activeCategory?.name || '')} size={18} color="#fff" />
-                         )}
-                       </View>
-                      {(featuredService.company as any)?.ratingSummary && (
-                        <View style={s.ratingBadge}>
-                          <MaterialIcons name="star" size={11} color={T.gold} />
-                          <Text style={s.ratingBadgeText}>
-                            {Number((featuredService.company as any).ratingSummary.averageRating).toFixed(1)}
-                          </Text>
-                        </View>
-                      )}
+                {/* Featured Service */}
+                {featuredService && (
+                  <View style={[s.section, { marginTop: 32 }]}>
+                    <View style={s.sectionHeader}>
+                      <Text style={s.sectionTitle}>Featured Service</Text>
+                      <Text style={s.limitedBadge}>LIMITED TIME</Text>
                     </View>
-                    <View style={s.featuredBody}>
-                      <View style={s.featuredTopRow}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={s.featuredTitle}>{featuredService.name}</Text>
-                          <Text style={s.featuredDesc} numberOfLines={2}>
-                            {featuredService.description || `Professional ${featuredService.name} by ${featuredService.company?.name}`}
-                          </Text>
-                        </View>
-                        <View style={s.featuredPriceBox}>
-                          <Text style={s.featuredPrice}>${featuredService.basePrice}+</Text>
-                        </View>
-                      </View>
-                      
-                      <View style={s.featuredBottomRow}>
-                        <View style={s.featuredMetaItem}>
-                          <MaterialIcons name="storefront" size={16} color={T.text2} />
-                          <Text style={s.featuredMetaText} numberOfLines={1}>{featuredService.company?.name}</Text>
-                        </View>
-                        <View style={s.featuredMetaItem}>
-                          <MaterialIcons name="schedule" size={16} color={T.text2} />
-                          <Text style={s.featuredMetaText}>{featuredService.durationMin} min</Text>
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-                </PressCard>
-              </View>
-            )}
 
-            {/* All Services List Header */}
-            {services.length > 1 && (
-              <View style={[s.section, { marginTop: 32, paddingBottom: 12 }]}>
-                <Text style={s.sectionTitle}>All Services</Text>
-              </View>
+                    <PressCard onPress={() => router.push(`/(customer)/service/${featuredService.id}` as any)}>
+                      <View style={s.featuredCard}>
+                        <View style={{ width: '100%', height: 160, position: 'relative' }}>
+                          {(() => {
+                            const featuredImageUrl = featuredService.image || featuredService.serviceType?.imageUrl || featuredService.serviceType?.category?.imageUrl || activeCategory?.imageUrl || featuredService.company?.logoUrl;
+                            return featuredImageUrl ? (
+                              <Image
+                                source={{ uri: featuredImageUrl }}
+                                style={s.featuredImg}
+                                contentFit="cover"
+                              />
+                            ) : (
+                              <View style={[s.featuredImg, { backgroundColor: T.border, alignItems: 'center', justifyContent: 'center' }]}>
+                                <MaterialCommunityIcons name="image-off" size={32} color={T.text3} />
+                              </View>
+                            );
+                          })()}
+                          <View style={s.catBadge}>
+                            {activeCategory?.useImageAsBadge && activeCategory?.imageUrl ? (
+                              <Image source={{ uri: activeCategory.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                            ) : (
+                              <MaterialCommunityIcons name={(activeCategory?.icon as any) || getCategoryIcon(activeCategory?.name || '')} size={18} color="#fff" />
+                            )}
+                          </View>
+                          {(featuredService.company as any)?.ratingSummary && (
+                            <View style={s.ratingBadge}>
+                              <MaterialIcons name="star" size={11} color={T.gold} />
+                              <Text style={s.ratingBadgeText}>
+                                {Number((featuredService.company as any).ratingSummary.averageRating).toFixed(1)}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <View style={s.featuredBody}>
+                          <View style={s.featuredTopRow}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={s.featuredTitle}>{featuredService.name}</Text>
+                              <Text style={s.featuredDesc} numberOfLines={2}>
+                                {featuredService.description || `Professional ${featuredService.name} by ${featuredService.company?.name}`}
+                              </Text>
+                            </View>
+                            <View style={s.featuredPriceBox}>
+                              <Text style={s.featuredPrice}>${featuredService.basePrice}+</Text>
+                            </View>
+                          </View>
+
+                          <View style={s.featuredBottomRow}>
+                            <View style={s.featuredMetaItem}>
+                              <MaterialIcons name="storefront" size={16} color={T.text2} />
+                              <Text style={s.featuredMetaText} numberOfLines={1}>{featuredService.company?.name}</Text>
+                            </View>
+                            <View style={s.featuredMetaItem}>
+                              <MaterialIcons name="schedule" size={16} color={T.text2} />
+                              <Text style={s.featuredMetaText}>{featuredService.durationMin} min</Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    </PressCard>
+                  </View>
+                )}
+
+                {/* All Services List Header */}
+                {services.length > 1 && (
+                  <View style={[s.section, { marginTop: 32, paddingBottom: 12 }]}>
+                    <Text style={s.sectionTitle}>All Services</Text>
+                  </View>
+                )}
+              </>
             )}
           </>
-        )}
-        </>
-      }
+        }
         renderItem={({ item: service, index: i }) => (
           <View style={{ paddingHorizontal: 24, paddingBottom: 12 }}>
             <FadeIn delay={i < 10 ? i * 100 : 0}>
@@ -541,7 +550,7 @@ export default function CategoryScreen() {
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <View style={s.modalHandle} />
-            
+
             <View style={s.modalHeader}>
               <TouchableOpacity onPress={() => setShowFilter(false)}>
                 <MaterialIcons name="close" size={24} color={T.text1} />
@@ -635,7 +644,7 @@ export default function CategoryScreen() {
 // ─────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
-  
+
   // App bar
   appBar: { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
   appBarContent: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, height: 56 },
@@ -704,7 +713,7 @@ const s = StyleSheet.create({
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
   modalTitle: { fontSize: 20, fontWeight: "800", color: T.text1 },
   modalReset: { fontSize: 15, fontWeight: "700", color: T.text3 },
-  
+
   filterSection: { paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: T.border },
   filterTitle: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 16 },
   filterRow: { flexDirection: "row", gap: 12 },
@@ -712,7 +721,7 @@ const s = StyleSheet.create({
   filterInputBox: { flexDirection: "row", alignItems: "center", backgroundColor: T.bg, borderRadius: 12, paddingHorizontal: 12, height: 44, borderWidth: 1, borderColor: T.border },
   filterInputPrefix: { fontSize: 15, fontWeight: "700", color: T.text3, marginRight: 8 },
   filterInput: { flex: 1, fontSize: 15, fontWeight: "700", color: T.text1 },
-  
+
   ratingBtn: { flex: 1, height: 48, borderRadius: 14, backgroundColor: T.bg, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 4, borderWidth: 1, borderColor: T.border },
   ratingBtnActive: { backgroundColor: T.accentLight, borderColor: T.accent },
   ratingBtnText: { fontSize: 14, fontWeight: "700", color: T.text2 },

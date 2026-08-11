@@ -32,11 +32,11 @@ export default function Login() {
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredCountries = COUNTRIES.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredCountries = COUNTRIES.filter(c =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.code.includes(searchQuery)
   );
-  
+
   const [otpCode, setOtpCode] = useState("");
   const [mfaCode, setMfaCode] = useState("");
   const [tempMfaToken, setTempMfaToken] = useState("");
@@ -92,11 +92,11 @@ export default function Login() {
     Keyboard.dismiss();
     const cleanOtp = otpCode.trim();
     if (!cleanOtp || cleanOtp.length < 6) return setError("Please enter a valid 6-digit OTP");
-    
+
     setError(""); setIsLoading(true);
     try {
       await verifyOtp(getFullPhone(), cleanOtp);
-      
+
       const user = useAuthStore.getState().user;
       if (!user) return setError("Login failed: No user data.");
       navigateUser(user);
@@ -155,8 +155,8 @@ export default function Login() {
   const stepTitle = step === "phone" ? "Welcome Back" : step === "email" ? "Login with Email" : step === "mfa" ? "Verification" : "Verify Number";
   const stepSubtitle = step === "phone" ? "Enter your phone number to receive an OTP code"
     : step === "otp" ? `We've sent a 6-digit code to\n${selectedCountry.code} ${phone}`
-    : step === "email" ? "Log in with your email address"
-    : "Enter the 6-digit code from your authenticator app";
+      : step === "email" ? "Log in with your email address"
+        : "Enter the 6-digit code from your authenticator app";
 
   return (
     <SafeAreaView style={s.root}>
@@ -368,15 +368,15 @@ export default function Login() {
         {step === "phone" && (
           <View style={s.socialRow}>
             <TouchableOpacity onPress={() => handleSocialLogin("google")} style={s.socialBtn} activeOpacity={0.7} disabled={isLoading}>
-               <Image source={{ uri: "https://img.icons8.com/color/48/000000/google-logo.png" }} style={{ width: 26, height: 26 }} />
+              <Image source={{ uri: "https://img.icons8.com/color/48/000000/google-logo.png" }} style={{ width: 26, height: 26 }} />
             </TouchableOpacity>
-            
+
             <TouchableOpacity onPress={() => handleSocialLogin("facebook")} style={s.socialBtn} activeOpacity={0.7} disabled={isLoading}>
-               <MaterialCommunityIcons name="facebook" size={30} color="#1877F2" />
+              <MaterialCommunityIcons name="facebook" size={30} color="#1877F2" />
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => { setStep("email"); setError(""); }} style={s.socialBtn} activeOpacity={0.7}>
-               <MaterialCommunityIcons name="email-outline" size={28} color={T.text1} />
+              <MaterialCommunityIcons name="email-outline" size={28} color={T.text1} />
             </TouchableOpacity>
           </View>
         )}
@@ -410,6 +410,18 @@ export default function Login() {
               </TouchableOpacity>
             </View>
           )}
+
+          <TouchableOpacity 
+            onPress={() => {
+              useAuthStore.getState().setGuestMode(true);
+              router.replace("/(customer)/(tabs)/home");
+            }}
+            style={{ marginTop: 20, paddingVertical: 8, alignItems: 'center' }}
+          >
+            <Text style={{ color: T.accent, fontSize: 15, fontWeight: '700', letterSpacing: 0.3 }}>
+              {t("auth.continueGuest", "CONTINUE AS GUEST")}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -464,10 +476,10 @@ const s = StyleSheet.create({
   btnPrimaryText: { fontSize: 16, fontWeight: "600", color: "#fff" },
 
   socialRow: { flexDirection: "row", justifyContent: "center", gap: 16, marginTop: 32 },
-  socialBtn: { 
-    width: 60, height: 60, borderRadius: 16, 
-    backgroundColor: T.surface, 
-    borderWidth: 1, borderColor: T.border, 
+  socialBtn: {
+    width: 60, height: 60, borderRadius: 16,
+    backgroundColor: T.surface,
+    borderWidth: 1, borderColor: T.border,
     alignItems: "center", justifyContent: "center",
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },

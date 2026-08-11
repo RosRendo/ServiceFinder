@@ -51,7 +51,7 @@ const getCategoryIcon = (text: string): any => {
   if (t.includes('garden') || t.includes('lawn') || t.includes('yard') || t.includes('tree') || t.includes('landscap')) return 'tree';
   if (t.includes('pest') || t.includes('bug')) return 'bug';
   if (t.includes('build') || t.includes('construct') || t.includes('repair') || t.includes('wrench')) return 'hammer-wrench';
-  return 'tools'; 
+  return 'tools';
 };
 
 function Skeleton({ width, height, radius = 8, style }: {
@@ -128,18 +128,19 @@ export default function Home() {
   const router = useRouter();
   const { t } = useTranslation();
   const { user } = useAuthStore();
-  const { 
-    categories, 
-    trendingServices, 
-    recommendedServices, 
-    activeBooking, 
-    isLoading, 
-    isLoadingMore, 
-    hasMore, 
-    error, 
-    fetchHomeData, 
+  const {
+    categories,
+    trendingServices,
+    recommendedServices,
+    activeBooking,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    error,
+    fetchHomeData,
     loadMoreServices,
     topCompanies,
+    sponsoredCompanies,
   } = useCustomerHomeStore();
 
   useEffect(() => { fetchHomeData(); }, []);
@@ -157,20 +158,74 @@ export default function Home() {
     return t('home.goodEvening');
   }, [t]);
 
+  const carouselItems = useMemo(() => {
+    // 1. If we have actual sponsored companies from the API, use them!
+    if (sponsoredCompanies && sponsoredCompanies.length > 0) {
+      return sponsoredCompanies.map((co) => ({
+        id: co.id,
+        title: co.name,
+        subtitle: co.description || "Top-rated verified provider",
+        image: co.coverImageUrl || co.logoUrl || "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=2070&auto=format&fit=crop",
+        badge: "SPONSORED",
+        route: `/(customer)/company/${co.id}`,
+      }));
+    }
+
+    // 2. Fallback to top rated companies if no campaigns are active
+    if (topCompanies && topCompanies.length > 0) {
+      return topCompanies.slice(0, 3).map((co) => ({
+        id: co.id,
+        title: co.name,
+        subtitle: co.description || "Top-rated verified provider",
+        image: co.coverImageUrl || co.logoUrl || "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=2070&auto=format&fit=crop",
+        badge: "FEATURED",
+        route: `/(customer)/company/${co.id}`,
+      }));
+    }
+
+    // 3. Fallback to mock data if DB is completely empty (for dev sandbox)
+    return [
+      {
+        id: "mock-1",
+        title: "Sparkle Cleaning Co.",
+        subtitle: "Top-rated house cleaning in your area.",
+        image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=2070&auto=format&fit=crop",
+        badge: "SPONSORED",
+        route: "/(customer)/(tabs)/explore",
+      },
+      {
+        id: "mock-2",
+        title: "Elite Plumbing Solutions",
+        subtitle: "24/7 Emergency repairs. Call now.",
+        image: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?q=80&w=2069&auto=format&fit=crop",
+        badge: "SPONSORED",
+        route: "/(customer)/(tabs)/explore",
+      },
+      {
+        id: "mock-3",
+        title: "Urban Handyman",
+        subtitle: "TV Mounting & Furniture Assembly.",
+        image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=2070&auto=format&fit=crop",
+        badge: "SPONSORED",
+        route: "/(customer)/(tabs)/explore",
+      },
+    ];
+  }, [sponsoredCompanies, topCompanies]);
+
   const carouselRef = useRef<ScrollView>(null);
   const [carouselIndex, React_setCarouselIndex] = React.useState(0);
 
   useEffect(() => {
-    if (activeBooking) return;
+    if (activeBooking || carouselItems.length === 0) return;
     const interval = setInterval(() => {
       React_setCarouselIndex((prev) => {
-        const next = (prev + 1) % 3; // 3 banners
+        const next = (prev + 1) % carouselItems.length;
         carouselRef.current?.scrollTo({ x: next * (width - 48 + 16), animated: true });
         return next;
       });
     }, 4000);
     return () => clearInterval(interval);
-  }, [activeBooking]);
+  }, [activeBooking, carouselItems]);
 
   return (
     <SafeAreaView style={s.root}>
@@ -252,7 +307,7 @@ export default function Home() {
                         {activeBooking.status === 'in_progress' ? '15 MINS' : 'LIVE'}
                       </Text>
                       <Text style={s.activeServiceText}>{activeBooking.service?.name || "Service Active"}</Text>
-                      
+
                       <ScaleButton onPress={() => router.push(`/(customer)/booking/${activeBooking.id}` as any)}>
                         <View style={s.trackBtn}>
                           <Text style={s.trackBtnText}>TRACK NOW</Text>
@@ -299,11 +354,11 @@ export default function Home() {
             </View>
 
             {/* ─── PROMO HERO BANNER CAROUSEL (Sponsors, now in middle) ────── */}
-            {!activeBooking && (
+            {!activeBooking && carouselItems.length > 0 && (
               <View style={{ marginTop: 32 }}>
-                <ScrollView 
+                <ScrollView
                   ref={carouselRef}
-                  horizontal 
+                  horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{ paddingHorizontal: 24, gap: 16 }}
                   snapToInterval={width - 48 + 16}
@@ -314,56 +369,31 @@ export default function Home() {
                     React_setCarouselIndex(newIndex);
                   }}
                 >
-                  {/* Sponsor 1 */}
-                  <PressCard onPress={() => router.push("/(customer)/(tabs)/explore" as any)} style={{ width: width - 48, height: 160, borderRadius: 16, overflow: 'hidden' }}>
-                    <Image 
-                      source={{ uri: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=2070&auto=format&fit=crop" }} 
-                      style={StyleSheet.absoluteFillObject} 
-                      contentFit="cover" 
-                    />
-                    <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' }} />
-                    <View style={{ position: 'absolute', top: 12, left: 12, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>SPONSORED</Text>
-                    </View>
-                    <View style={{ position: 'absolute', bottom: 16, left: 16 }}>
-                      <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800' }}>Sparkle Cleaning Co.</Text>
-                      <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: '500', marginTop: 4 }}>Top-rated house cleaning in your area.</Text>
-                    </View>
-                  </PressCard>
-                  
-                  {/* Sponsor 2 */}
-                  <PressCard onPress={() => router.push("/(customer)/(tabs)/explore" as any)} style={{ width: width - 48, height: 160, borderRadius: 16, overflow: 'hidden' }}>
-                    <Image 
-                      source={{ uri: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?q=80&w=2069&auto=format&fit=crop" }} 
-                      style={StyleSheet.absoluteFillObject} 
-                      contentFit="cover" 
-                    />
-                    <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' }} />
-                    <View style={{ position: 'absolute', top: 12, left: 12, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>SPONSORED</Text>
-                    </View>
-                    <View style={{ position: 'absolute', bottom: 16, left: 16 }}>
-                      <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800' }}>Elite Plumbing Solutions</Text>
-                      <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: '500', marginTop: 4 }}>24/7 Emergency repairs. Call now.</Text>
-                    </View>
-                  </PressCard>
-
-                  {/* Sponsor 3 */}
-                  <PressCard onPress={() => router.push("/(customer)/(tabs)/explore" as any)} style={{ width: width - 48, height: 160, borderRadius: 16, overflow: 'hidden' }}>
-                    <Image 
-                      source={{ uri: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=2070&auto=format&fit=crop" }} 
-                      style={StyleSheet.absoluteFillObject} 
-                      contentFit="cover" 
-                    />
-                    <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' }} />
-                    <View style={{ position: 'absolute', top: 12, left: 12, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>SPONSORED</Text>
-                    </View>
-                    <View style={{ position: 'absolute', bottom: 16, left: 16 }}>
-                      <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800' }}>Urban Handyman</Text>
-                      <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: '500', marginTop: 4 }}>TV Mounting & Furniture Assembly.</Text>
-                    </View>
-                  </PressCard>
+                  {carouselItems.map((item) => (
+                    <PressCard 
+                      key={item.id.toString()} 
+                      onPress={() => router.push(item.route as any)} 
+                      style={{ width: width - 48, height: 160, borderRadius: 16, overflow: 'hidden' }}
+                    >
+                      <Image
+                        source={{ uri: item.image }}
+                        style={StyleSheet.absoluteFillObject}
+                        contentFit="cover"
+                      />
+                      <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' }} />
+                      <View style={{ position: 'absolute', top: 12, left: 12, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                        <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>{item.badge}</Text>
+                      </View>
+                      <View style={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
+                        <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800' }} numberOfLines={1}>
+                          {item.title}
+                        </Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: '500', marginTop: 4 }} numberOfLines={1}>
+                          {item.subtitle}
+                        </Text>
+                      </View>
+                    </PressCard>
+                  ))}
                 </ScrollView>
               </View>
             )}
@@ -402,13 +432,13 @@ export default function Home() {
                             <View style={s.priceBadge}>
                               <Text style={s.priceBadgeText}>${st.basePrice}</Text>
                             </View>
-                             <View style={s.catBadge}>
-                               {st.serviceType?.category?.useImageAsBadge && st.serviceType?.category?.imageUrl ? (
-                                 <Image source={{ uri: st.serviceType.category.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-                               ) : (
-                                 <MaterialCommunityIcons name={(st.serviceType?.category?.icon as any) || getCategoryIcon(st.serviceType?.category?.name || st.serviceType?.name || st.name)} size={18} color="#fff" />
-                               )}
-                             </View>
+                            <View style={s.catBadge}>
+                              {st.serviceType?.category?.useImageAsBadge && st.serviceType?.category?.imageUrl ? (
+                                <Image source={{ uri: st.serviceType.category.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                              ) : (
+                                <MaterialCommunityIcons name={(st.serviceType?.category?.icon as any) || getCategoryIcon(st.serviceType?.category?.name || st.serviceType?.name || st.name)} size={18} color="#fff" />
+                              )}
+                            </View>
                             {(st.company as any)?.ratingSummary && (
                               <View style={s.ratingBadge}>
                                 <MaterialIcons name="star" size={10} color={T.gold} />
@@ -610,11 +640,13 @@ const s = StyleSheet.create({
   },
   searchIconWrap: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: "#FFFFFF",
-    alignItems: "center", justifyContent: "center"},
+    alignItems: "center", justifyContent: "center"
+  },
   searchPlaceholder: { flex: 1, fontSize: 16, color: T.text2, fontWeight: "500" },
   filterBtn: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: "#FFFFFF",
-    alignItems: "center", justifyContent: "center"},
+    alignItems: "center", justifyContent: "center"
+  },
   heroBanner: {
     borderRadius: 20, backgroundColor: T.accent, padding: 24,
     overflow: "hidden", minHeight: 140,

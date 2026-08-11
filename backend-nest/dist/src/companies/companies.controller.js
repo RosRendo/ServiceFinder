@@ -127,6 +127,9 @@ let CompaniesController = class CompaniesController {
     getFeaturedCompanies(query) {
         return this.companiesService.getFeaturedCompanies(query);
     }
+    getSponsoredCompanies(query) {
+        return this.companiesService.getSponsoredCompanies(query);
+    }
     getNearbyCompanies(query) {
         return this.companiesService.getNearbyCompanies(query);
     }
@@ -525,6 +528,17 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], CompaniesController.prototype, "getFeaturedCompanies", null);
+__decorate([
+    (0, common_1.Get)('sponsored'),
+    (0, common_1.UseInterceptors)(cache_manager_1.CacheInterceptor),
+    (0, cache_manager_1.CacheTTL)(30000),
+    (0, swagger_1.ApiOperation)({ summary: 'Get sponsored companies with active marketing campaigns' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Return sponsored companies.' }),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], CompaniesController.prototype, "getSponsoredCompanies", null);
 __decorate([
     (0, common_1.Get)('nearby'),
     (0, common_1.UseInterceptors)(cache_manager_1.CacheInterceptor),

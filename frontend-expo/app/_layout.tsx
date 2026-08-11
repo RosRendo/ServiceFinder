@@ -89,7 +89,8 @@ function RootLayout() {
       const isPublicSubpage = segments[0] === '(public)' && segments.length > 1;
       if (!isPublicSubpage) {
         if (hasSeenOnboarding) {
-          router.replace("/(public)/login");
+          // Default to Guest Mode on startup (like Grab/Wownow)
+          useAuthStore.getState().setGuestMode(true);
         } else {
           router.replace("/");
         }
@@ -105,17 +106,17 @@ function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Stack screenOptions={{ headerShown: false }}>
-        {!user && !isGuest ? (
-          <Stack.Screen name="(public)" options={{ gestureEnabled: false }} />
-        ) : user?.role?.toLowerCase() === 'admin' ? (
-          <Stack.Screen name="(admin)" options={{ gestureEnabled: false }} />
-        ) : (user?.role?.toLowerCase() === 'company' || user?.role?.toLowerCase() === 'company_admin') ? (
-          <Stack.Screen name="(company)" options={{ gestureEnabled: false }} />
-        ) : user?.role?.toLowerCase() === 'staff' ? (
-          <Stack.Screen name="(staff)" options={{ gestureEnabled: false }} />
-        ) : (
-          <Stack.Screen name="(customer)" options={{ gestureEnabled: false }} />
-        )}
+          {!user && !isGuest ? (
+            <Stack.Screen name="(public)" options={{ gestureEnabled: false }} />
+          ) : user?.role?.toLowerCase() === 'admin' ? (
+            <Stack.Screen name="(admin)" options={{ gestureEnabled: false }} />
+          ) : (user?.role?.toLowerCase() === 'company' || user?.role?.toLowerCase() === 'company_admin') ? (
+            <Stack.Screen name="(company)" options={{ gestureEnabled: false }} />
+          ) : user?.role?.toLowerCase() === 'staff' ? (
+            <Stack.Screen name="(staff)" options={{ gestureEnabled: false }} />
+          ) : (
+            <Stack.Screen name="(customer)" options={{ gestureEnabled: false }} />
+          )}
         </Stack>
         <StatusBar style="auto" />
         <OfflineNotice />
@@ -127,7 +128,7 @@ function RootLayout() {
 
 function App() {
   return (
-    <PostHogProvider 
+    <PostHogProvider
       apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY || "phc_placeholder_key_replace_me"}
       options={{
         host: process.env.EXPO_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",

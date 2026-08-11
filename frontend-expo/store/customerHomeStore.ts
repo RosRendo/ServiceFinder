@@ -54,6 +54,7 @@ interface CustomerHomeStore {
   trendingServices: Service[];
   recommendedServices: Service[];
   topCompanies: Company[];
+  sponsoredCompanies: Company[];
   
   // Status
   isLoading: boolean;
@@ -96,6 +97,7 @@ export const useCustomerHomeStore = create<CustomerHomeStore>((set, get) => ({
   trendingServices: [],
   recommendedServices: [],
   topCompanies: [],
+  sponsoredCompanies: [],
   isLoading: false,
   isLoadingMore: false,
   page: 1,
@@ -106,12 +108,20 @@ export const useCustomerHomeStore = create<CustomerHomeStore>((set, get) => ({
     set({ isLoading: true, error: null, page: 1, hasMore: true });
     try {
       // Execute all API requests in parallel
-      const [categoriesRes, serviceTypesRes, servicesRes, bookingsRes, companiesRes] = await Promise.all([
+      const [
+        categoriesRes,
+        serviceTypesRes,
+        servicesRes,
+        bookingsRes,
+        companiesRes,
+        sponsoredRes,
+      ] = await Promise.all([
         api.get('/api/categories'),
         api.get('/api/service-types'),
         api.get('/api/services'),
         api.get('/api/bookings').catch(() => ({ data: [] })), // Graceful fallback
         api.get('/api/companies'),
+        api.get('/api/companies/sponsored').catch(() => ({ data: [] })), // Graceful fallback
       ]);
 
       const categories = extractArray(categoriesRes.data);
@@ -124,6 +134,7 @@ export const useCustomerHomeStore = create<CustomerHomeStore>((set, get) => ({
       const activeBooking = allBookings.find(b => ['confirmed', 'in_progress'].includes(b.status)) || null;
 
       const topCompanies = extractArray(companiesRes.data);
+      const sponsoredCompanies = extractArray(sponsoredRes.data);
 
       set({
         categories,
@@ -132,6 +143,7 @@ export const useCustomerHomeStore = create<CustomerHomeStore>((set, get) => ({
         trendingServices: services.slice(0, 5),
         recommendedServices: services.slice(5, 15),
         topCompanies,
+        sponsoredCompanies,
         hasMore: false,
         isLoading: false,
       });
