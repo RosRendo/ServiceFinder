@@ -109,22 +109,22 @@ describe('Login Screen', () => {
   });
 
   it('renders all expected UI elements for phone login by default', () => {
-    const { getByText, getByPlaceholderText } = render(<Login />);
+    const { getByText, getByPlaceholderText, getByTestId } = render(<Login />);
 
     expect(getByText('Welcome Back')).toBeTruthy();
     expect(getByText('Enter your phone number to receive an OTP code')).toBeTruthy();
-    expect(getByPlaceholderText('+1 (555) 000-0000')).toBeTruthy();
+    expect(getByPlaceholderText('12 345 678')).toBeTruthy();
     expect(getByText('auth.sendCode')).toBeTruthy();
-    expect(getByText('auth.continueGoogle')).toBeTruthy();
-    expect(getByText('auth.continueFacebook')).toBeTruthy();
-    expect(getByText('Login with Email')).toBeTruthy();
+    expect(getByTestId('google-login-btn')).toBeTruthy();
+    expect(getByTestId('facebook-login-btn')).toBeTruthy();
+    expect(getByTestId('email-login-btn')).toBeTruthy();
   });
 
   it('shows validation error when submitting with empty email/password', async () => {
-    const { getByText } = render(<Login />);
+    const { getByText, getByTestId } = render(<Login />);
 
     // Switch to email mode
-    fireEvent.press(getByText('Login with Email'));
+    fireEvent.press(getByTestId('email-login-btn'));
 
     fireEvent.press(getByText('auth.login'));
 
@@ -136,10 +136,10 @@ describe('Login Screen', () => {
   });
 
   it('shows validation error when only email is filled', async () => {
-    const { getByText, getByPlaceholderText } = render(<Login />);
+    const { getByText, getByPlaceholderText, getByTestId } = render(<Login />);
 
     // Switch to email mode
-    fireEvent.press(getByText('Login with Email'));
+    fireEvent.press(getByTestId('email-login-btn'));
 
     fireEvent.changeText(getByPlaceholderText('name@example.com'), 'user@test.com');
     fireEvent.press(getByText('auth.login'));
@@ -157,12 +157,13 @@ describe('Login Screen', () => {
       googleLogin: mockGoogleLogin,
       facebookLogin: mockFacebookLogin,
       user: customerUser,
+      isLoading: false,
     });
 
-    const { getByText, getByPlaceholderText } = render(<Login />);
+    const { getByText, getByPlaceholderText, getByTestId } = render(<Login />);
     
     // Switch to email mode
-    fireEvent.press(getByText('Login with Email'));
+    fireEvent.press(getByTestId('email-login-btn'));
 
     fireEvent.changeText(getByPlaceholderText('name@example.com'), 'c@test.com');
     fireEvent.changeText(getByPlaceholderText('••••••••'), 'Password1!');
@@ -182,12 +183,13 @@ describe('Login Screen', () => {
       googleLogin: mockGoogleLogin,
       facebookLogin: mockFacebookLogin,
       user: companyUser,
+      isLoading: false,
     });
 
-    const { getByText, getByPlaceholderText } = render(<Login />);
+    const { getByText, getByPlaceholderText, getByTestId } = render(<Login />);
     
     // Switch to email mode
-    fireEvent.press(getByText('Login with Email'));
+    fireEvent.press(getByTestId('email-login-btn'));
 
     fireEvent.changeText(getByPlaceholderText('name@example.com'), 'biz@test.com');
     fireEvent.changeText(getByPlaceholderText('••••••••'), 'Password1!');
@@ -206,19 +208,20 @@ describe('Login Screen', () => {
       googleLogin: mockGoogleLogin,
       facebookLogin: mockFacebookLogin,
       user: staffUser,
+      isLoading: false,
     });
 
-    const { getByText, getByPlaceholderText } = render(<Login />);
+    const { getByText, getByPlaceholderText, getByTestId } = render(<Login />);
     
     // Switch to email mode
-    fireEvent.press(getByText('Login with Email'));
+    fireEvent.press(getByTestId('email-login-btn'));
 
     fireEvent.changeText(getByPlaceholderText('name@example.com'), 'staff@test.com');
     fireEvent.changeText(getByPlaceholderText('••••••••'), 'Password1!');
     fireEvent.press(getByText('auth.login'));
 
     await waitFor(() => {
-      expect(mockRouterReplace).toHaveBeenCalledWith('/(staff)/(tabs)/dashboard');
+      expect(mockRouterReplace).toHaveBeenCalledWith('/(staff)/(tabs)/today');
     });
   });
 
@@ -227,10 +230,10 @@ describe('Login Screen', () => {
     error.response = { data: { message: 'Invalid email or password' } };
     mockLogin.mockRejectedValueOnce(error);
 
-    const { getByText, getByPlaceholderText } = render(<Login />);
+    const { getByText, getByPlaceholderText, getByTestId } = render(<Login />);
 
     // Switch to email mode
-    fireEvent.press(getByText('Login with Email'));
+    fireEvent.press(getByTestId('email-login-btn'));
 
     fireEvent.changeText(getByPlaceholderText('name@example.com'), 'wrong@test.com');
     fireEvent.changeText(getByPlaceholderText('••••••••'), 'wrongpass');
@@ -242,10 +245,10 @@ describe('Login Screen', () => {
   });
 
   it('navigates to forgot-password page when tapped', () => {
-    const { getByText } = render(<Login />);
+    const { getByText, getByTestId } = render(<Login />);
     
     // Switch to email mode
-    fireEvent.press(getByText('Login with Email'));
+    fireEvent.press(getByTestId('email-login-btn'));
 
     fireEvent.press(getByText('auth.forgotPassword'));
     expect(mockRouterPush).toHaveBeenCalledWith('/(public)/forgot-password');
@@ -265,10 +268,11 @@ describe('Login Screen', () => {
       googleLogin: mockGoogleLogin,
       facebookLogin: mockFacebookLogin,
       user: googleUser,
+      isLoading: false,
     });
 
-    const { getByText } = render(<Login />);
-    fireEvent.press(getByText('auth.continueGoogle'));
+    const { getByTestId } = render(<Login />);
+    fireEvent.press(getByTestId('google-login-btn'));
 
     await waitFor(() => {
       expect(mockGoogleLogin).toHaveBeenCalled();
@@ -283,10 +287,11 @@ describe('Login Screen', () => {
       googleLogin: mockGoogleLogin,
       facebookLogin: mockFacebookLogin,
       user: fbUser,
+      isLoading: false,
     });
 
-    const { getByText } = render(<Login />);
-    fireEvent.press(getByText('auth.continueFacebook'));
+    const { getByTestId } = render(<Login />);
+    fireEvent.press(getByTestId('facebook-login-btn'));
 
     await waitFor(() => {
       expect(mockFacebookLogin).toHaveBeenCalled();

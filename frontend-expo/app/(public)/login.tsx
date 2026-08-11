@@ -367,15 +367,15 @@ export default function Login() {
         {/* Social */}
         {step === "phone" && (
           <View style={s.socialRow}>
-            <TouchableOpacity onPress={() => handleSocialLogin("google")} style={s.socialBtn} activeOpacity={0.7} disabled={isLoading}>
+            <TouchableOpacity testID="google-login-btn" onPress={() => handleSocialLogin("google")} style={s.socialBtn} activeOpacity={0.7} disabled={isLoading}>
               <Image source={{ uri: "https://img.icons8.com/color/48/000000/google-logo.png" }} style={{ width: 26, height: 26 }} />
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => handleSocialLogin("facebook")} style={s.socialBtn} activeOpacity={0.7} disabled={isLoading}>
+            <TouchableOpacity testID="facebook-login-btn" onPress={() => handleSocialLogin("facebook")} style={s.socialBtn} activeOpacity={0.7} disabled={isLoading}>
               <MaterialCommunityIcons name="facebook" size={30} color="#1877F2" />
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => { setStep("email"); setError(""); }} style={s.socialBtn} activeOpacity={0.7}>
+            <TouchableOpacity testID="email-login-btn" onPress={() => { setStep("email"); setError(""); }} style={s.socialBtn} activeOpacity={0.7}>
               <MaterialCommunityIcons name="email-outline" size={28} color={T.text1} />
             </TouchableOpacity>
           </View>

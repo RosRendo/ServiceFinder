@@ -150,7 +150,11 @@ describe('authStore', () => {
 
   describe('checkAuth', () => {
     it('should restore user from valid stored token', async () => {
-      (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce('stored-token');
+      (SecureStore.getItemAsync as jest.Mock).mockImplementation((key: string) => {
+        if (key === 'hasSeenOnboarding') return Promise.resolve('true');
+        if (key === 'authToken') return Promise.resolve('stored-token');
+        return Promise.resolve(null);
+      });
       (api.get as jest.Mock).mockResolvedValueOnce({ data: { data: mockUser } });
 
       await useAuthStore.getState().checkAuth();
@@ -160,7 +164,11 @@ describe('authStore', () => {
     });
 
     it('should clear user and set isLoading=false when no token in storage', async () => {
-      (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(null);
+      (SecureStore.getItemAsync as jest.Mock).mockImplementation((key: string) => {
+        if (key === 'hasSeenOnboarding') return Promise.resolve('true');
+        if (key === 'authToken') return Promise.resolve(null);
+        return Promise.resolve(null);
+      });
 
       await useAuthStore.getState().checkAuth();
 
@@ -169,7 +177,11 @@ describe('authStore', () => {
     });
 
     it('should clear auth on 401 from /api/auth/me', async () => {
-      (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce('expired-token');
+      (SecureStore.getItemAsync as jest.Mock).mockImplementation((key: string) => {
+        if (key === 'hasSeenOnboarding') return Promise.resolve('true');
+        if (key === 'authToken') return Promise.resolve('expired-token');
+        return Promise.resolve(null);
+      });
       const error: any = new Error('Unauthorized');
       error.response = { status: 401 };
       (api.get as jest.Mock).mockRejectedValueOnce(error);
@@ -182,7 +194,11 @@ describe('authStore', () => {
     });
 
     it('should NOT clear user on network error (keep cached state)', async () => {
-      (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce('valid-token');
+      (SecureStore.getItemAsync as jest.Mock).mockImplementation((key: string) => {
+        if (key === 'hasSeenOnboarding') return Promise.resolve('true');
+        if (key === 'authToken') return Promise.resolve('valid-token');
+        return Promise.resolve(null);
+      });
       const networkError = new Error('Network Error');
       // No .response property = network error
       (api.get as jest.Mock).mockRejectedValueOnce(networkError);
