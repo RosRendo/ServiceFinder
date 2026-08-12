@@ -80,7 +80,7 @@ let LocationController = class LocationController {
             throw new common_1.ForbiddenException('Access denied');
         const entry = locationStore.get(bookingId) ?? null;
         const isCustomer = booking.customerId === uid && user.role === 'customer';
-        const showLocation = !isCustomer || ['confirmed', 'arrived', 'in_progress'].includes(booking.status);
+        const showLocation = !isCustomer || ['en_route', 'arrived', 'in_progress'].includes(booking.status);
         const activeEntry = showLocation ? entry : null;
         const stale = activeEntry && Date.now() - activeEntry.updatedAt.getTime() > 60_000;
         return {

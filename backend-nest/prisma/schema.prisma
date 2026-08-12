@@ -801,6 +801,7 @@ enum BookingStatus {
   pending
   assigned
   confirmed
+  en_route
   arrived
   in_progress
   completed

@@ -77,6 +77,11 @@ export declare class BookingsService {
         message: string;
         booking: any;
     }>;
+    enRouteJob(id: bigint, userId: bigint): Promise<{
+        success: boolean;
+        message: string;
+        booking: any;
+    }>;
     rejectAssignment(id: bigint, userId: bigint): Promise<{
         success: boolean;
         message: string;

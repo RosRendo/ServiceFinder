@@ -38,14 +38,19 @@ describe('BookingsService', () => {
     company: {
       findFirst: jest.fn(),
     },
+    companyStaff: {
+      findFirst: jest.fn(),
+    },
     pricingRule: {
       findMany: jest.fn().mockResolvedValue([]),
     },
+    $transaction: jest.fn((cb) => cb(mockPrismaService)),
   };
 
   const mockBookingsGateway = {
     emitToUser: jest.fn(),
     emitBookingUpdate: jest.fn(),
+    broadcastBookingUpdate: jest.fn(),
   };
 
   const mockAdminGateway = {
@@ -80,7 +85,7 @@ describe('BookingsService', () => {
             sendPushNotification: jest.fn(),
             sendInAppNotification: jest.fn(),
             notifyBookingCreated: jest.fn(),
-            notifyBookingStatusChange: jest.fn(),
+            notifyBookingStatusChanged: jest.fn().mockResolvedValue(undefined),
           },
         },
         {
@@ -336,6 +341,80 @@ describe('BookingsService', () => {
       expect(result.pagination.total).toBe(1);
       expect(result.bookings).toHaveLength(1);
       expect(result.bookings[0].id).toBe('1');
+    });
+  });
+
+  // ─── enRouteJob ───────────────────────────────────────────────────────────
+
+  describe('enRouteJob', () => {
+    const mockStaff = { id: 10n, userId: 11n };
+    const mockStaffUser = { id: '11', role: 'staff', email: 'staff@test.com' };
+    const baseBooking = {
+      id: 1n,
+      customerId: 1n,
+      companyId: 2n,
+      serviceId: 3n,
+      assignedStaffId: 10n,
+      status: 'confirmed',
+      customer: { id: 1n, fullName: 'Test User' },
+      company: { id: 2n, name: 'Best Co' },
+      service: { id: 3n, name: 'Haircut' },
+      assignedStaff: { id: 10n, user: { id: 11n, fullName: 'Staff Member' } },
+    };
+
+    it('should transition to en_route successfully if status is confirmed', async () => {
+      mockPrismaService.companyStaff.findFirst.mockResolvedValueOnce(mockStaff);
+      mockPrismaService.booking.findUnique.mockResolvedValueOnce(baseBooking);
+      mockPrismaService.booking.update.mockResolvedValueOnce({
+        ...baseBooking,
+        status: 'en_route',
+      });
+
+      const result = await service.enRouteJob(1n, 11n);
+
+      expect(result.success).toBe(true);
+      expect(result.booking.status).toBe('en_route');
+      expect(mockPrismaService.bookingStatusLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            newStatus: 'en_route',
+            oldStatus: 'confirmed',
+          }),
+        }),
+      );
+    });
+
+    it('should throw ForbiddenException if user is not registered as staff', async () => {
+      mockPrismaService.companyStaff.findFirst.mockResolvedValueOnce(null);
+
+      await expect(service.enRouteJob(1n, 999n)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('should throw BadRequestException if staff is not assigned to this booking', async () => {
+      mockPrismaService.companyStaff.findFirst.mockResolvedValueOnce(mockStaff);
+      mockPrismaService.booking.findUnique.mockResolvedValueOnce({
+        ...baseBooking,
+        assignedStaffId: 999n, // wrong staff ID
+      });
+
+      await expect(service.enRouteJob(1n, 11n)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw BadRequestException for repeated transition rejection', async () => {
+      mockPrismaService.companyStaff.findFirst.mockResolvedValueOnce(mockStaff);
+      mockPrismaService.booking.findUnique.mockResolvedValueOnce({
+        ...baseBooking,
+        status: 'en_route', // already transitioned
+      });
+
+      // confirmed -> en_route is valid, but en_route -> en_route is not.
+      await expect(service.enRouteJob(1n, 11n)).rejects.toThrow(
+        Error,
+      );
     });
   });
 });

@@ -595,6 +595,48 @@ let BookingsService = class BookingsService {
         this.eventEmitter.emit('booking.accepted', new booking_events_1.BookingAcceptedEvent(id, staff.id, booking.companyId, booking.customerId));
         return result;
     }
+    async enRouteJob(id, userId) {
+        const staff = await this.prisma.companyStaff.findFirst({ where: { userId } });
+        if (!staff)
+            throw new common_1.ForbiddenException('You are not registered as staff');
+        const booking = await this.findOrFail(id, true);
+        if (!booking.assignedStaffId ||
+            booking.assignedStaffId.toString() !== staff.id.toString()) {
+            throw new common_1.BadRequestException('You are not assigned to this booking');
+        }
+        (0, status_transitions_util_1.validateTransition)(booking.status, 'en_route');
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const u = await tx.booking.update({
+                where: { id },
+                data: { status: 'en_route' },
+                include: {
+                    customer: true,
+                    company: true,
+                    service: true,
+                    assignedStaff: { include: { user: true } },
+                },
+            });
+            await tx.bookingStatusLog.create({
+                data: {
+                    bookingId: id,
+                    oldStatus: booking.status,
+                    newStatus: 'en_route',
+                    changedBy: userId,
+                },
+            });
+            return u;
+        });
+        await this.notificationsService
+            .notifyBookingStatusChanged(booking.customerId, 'en_route', updated.service.name, id.toString())
+            .catch((e) => console.warn('Notification create failed (en_route):', e?.message));
+        const result = {
+            success: true,
+            message: 'Staff is en route to customer',
+            booking: this.serializeBooking(updated),
+        };
+        this.bookingsGateway.broadcastBookingUpdate(id.toString(), 'en_route', result.booking);
+        return result;
+    }
     async rejectAssignment(id, userId) {
         const staff = await this.prisma.companyStaff.findFirst({
             where: { userId },

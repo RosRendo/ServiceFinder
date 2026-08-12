@@ -87,6 +87,11 @@ export declare class BookingsController {
         message: string;
         booking: any;
     }>;
+    enRouteJob(id: string, req: any): Promise<{
+        success: boolean;
+        message: string;
+        booking: any;
+    }>;
     updateProgress(id: string, dto: UpdateProgressDto, req: any): Promise<{
         success: boolean;
         message: string;

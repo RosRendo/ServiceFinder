@@ -71,6 +71,10 @@ let BookingsController = class BookingsController {
         const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
         return this.bookingsService.arriveJob(BigInt(id), BigInt(user.id));
     }
+    enRouteJob(id, req) {
+        const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+        return this.bookingsService.enRouteJob(BigInt(id), BigInt(user.id));
+    }
     updateProgress(id, dto, req) {
         const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
         return this.bookingsService.updateProgress(BigInt(id), BigInt(user.id), dto.progressPercent, dto.staffNotes, dto.checklist);
@@ -219,6 +223,16 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], BookingsController.prototype, "arriveJob", null);
+__decorate([
+    (0, common_1.Patch)(':id/en-route'),
+    (0, swagger_1.ApiOperation)({ summary: 'Staff marks themselves as en route to job site (Assigned staff only)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Status updated to en_route.' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], BookingsController.prototype, "enRouteJob", null);
 __decorate([
     (0, common_1.Patch)(':id/progress'),
     (0, swagger_1.ApiOperation)({ summary: 'Update job progress (Assigned staff only)' }),
