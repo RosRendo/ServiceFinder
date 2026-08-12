@@ -973,6 +973,18 @@ export class AdminService {
   }
 
   async updatePayoutStatus(id: number, status: string) {
+    // State guard: only allow transitioning from pending status
+    const existing = await this.prisma.payout.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Payout #${id} not found`);
+    }
+    if (existing.status === 'completed') {
+      throw new ConflictException(`Payout #${id} is already completed and cannot be re-processed`);
+    }
+    if (existing.status === 'failed') {
+      throw new ConflictException(`Payout #${id} has failed status — contact support to reprocess`);
+    }
+
     const payout = await this.prisma.payout.update({
       where: { id },
       data: {

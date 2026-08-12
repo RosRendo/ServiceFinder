@@ -21,7 +21,7 @@ export default function CompanyReportsPage() {
     setIsExporting(reportType);
     try {
       let csvContent = "";
-      let filename = `${reportType.replace(/\s+/g, "_")}-${Date.now()}.csv`;
+      const filename = `${reportType.replace(/\s+/g, "_")}-${Date.now()}.csv`;
 
       if (reportType.includes("Ledger") || reportType.includes("Financial")) {
         const res = await api.get("/companies/my-company/revenue");

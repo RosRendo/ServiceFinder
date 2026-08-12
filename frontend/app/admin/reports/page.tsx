@@ -107,7 +107,7 @@ export default function AdminReportsPage() {
     setIsExporting(reportId);
     try {
       let csvContent = "";
-      let filename = `${reportId.replace(/\s+/g, "_")}-${Date.now()}.csv`;
+      const filename = `${reportId.replace(/\s+/g, "_")}-${Date.now()}.csv`;
       
       if (reportId.includes("Ledger") || reportId.includes("Transaction")) {
         const header = "Date,ID,Customer,Company,Amount,Fee,Status\n";

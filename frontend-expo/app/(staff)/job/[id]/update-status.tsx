@@ -30,13 +30,20 @@ export default function UpdateStatusScreen() {
     setSubmitting(true);
     try {
       if (currentStatus === "en_route") {
-        Alert.alert("En Route", "You are now en route to the customer location.");
-        router.back();
+        // Persist en-route status to backend — triggers customer notification and begins location tracking window
+        await api.patch(`/api/bookings/${id}/confirm`);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          "En Route 🚗",
+          "The customer has been notified that you are on your way.",
+          [{ text: "Got it", onPress: () => router.back() }]
+        );
         return;
       }
 
       if (currentStatus === "arrived") {
         await api.patch(`/api/bookings/${id}/arrive`);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert("Status Updated", "Status changed to Arrived");
         router.back();
         return;

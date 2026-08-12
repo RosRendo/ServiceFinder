@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
@@ -22,7 +22,6 @@ export default function PayoutsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  
   const [payouts, setPayouts] = useState<PayoutRow[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -45,30 +44,17 @@ export default function PayoutsPage() {
       const response = await api.get('/admin/payouts?limit=100');
       const payload = response.data.data || response.data;
       const dataList = Array.isArray(payload) ? payload : (payload.data || []);
-      
       const formatted = dataList.map((p: any) => {
         let recipient = "Unknown";
         let type: "company" | "staff" = "company";
-        
-        if (p.staff) {
-          type = "staff";
-          recipient = p.staff.user?.fullName || "Staff Worker";
-        } else if (p.company) {
-          type = "company";
-          recipient = p.company.name || "Company";
-        }
-
+        if (p.staff) { type = "staff"; recipient = p.staff.user?.fullName || "Staff Worker"; }
+        else if (p.company) { type = "company"; recipient = p.company.name || "Company"; }
         let method = "Bank Transfer";
-        if (p.company?.paymentMethods?.length) {
-          method = p.company.paymentMethods[0].provider || method;
-        } else if (p.staff?.paymentMethods?.length) {
-          method = p.staff.paymentMethods[0].provider || method;
-        }
-        
+        if (p.company?.paymentMethods?.length) method = p.company.paymentMethods[0].provider || method;
+        else if (p.staff?.paymentMethods?.length) method = p.staff.paymentMethods[0].provider || method;
         let status = p.status;
         if (status === 'completed') status = 'paid';
         if (status === 'pending') status = 'processing';
-        
         return {
           id: `PAY-${p.id}`,
           recipient,
@@ -80,16 +66,14 @@ export default function PayoutsPage() {
         };
       });
       setPayouts(formatted);
-    } catch (err: any) {
+    } catch {
       toast({ title: "Error", description: "Failed to load payouts", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchPayouts();
-  }, []);
+  useEffect(() => { fetchPayouts(); }, []);
 
   const filtered = payouts.filter((p) => {
     const matchSearch = !search || p.recipient.toLowerCase().includes(search.toLowerCase()) || p.id.toLowerCase().includes(search.toLowerCase());
@@ -106,6 +90,31 @@ export default function PayoutsPage() {
     { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
     { key: "scheduledDate", header: "Date", render: (r) => <span className="text-muted-foreground text-xs">{r.scheduledDate}</span> },
   ];
+
+  const handleProcessPayouts = async () => {
+    // State guard: only process rows that are still pending (shown as "processing")
+    const ineligible = Array.from(selectedIds).filter((id) => {
+      const row = payouts.find((p) => p.id === id);
+      return row && row.status !== "processing";
+    });
+    if (ineligible.length > 0) {
+      toast({ title: "Invalid Selection", description: `${ineligible.length} row(s) are already paid or failed and cannot be re-processed.`, variant: "destructive" });
+      return;
+    }
+    if (!confirm(`Process ${selectedIds.size} pending payout(s)?`)) return;
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          api.patch(`/admin/payouts/${id.replace("PAY-", "")}/process`)
+        )
+      );
+      toast({ title: "Payouts Processed", description: `${selectedIds.size} payout(s) processed successfully.` });
+      setSelectedIds(new Set());
+      fetchPayouts();
+    } catch {
+      toast({ title: "Error", description: "Failed to process one or more payouts.", variant: "destructive" });
+    }
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden relative">
@@ -161,18 +170,7 @@ export default function PayoutsPage() {
 
       <BulkActionBar selectedCount={selectedIds.size} onClear={() => setSelectedIds(new Set())}
         actions={[
-          { icon: RotateCcw, label: "Process Payout", onClick: async () => {
-            if (!confirm(`Mark ${selectedIds.size} payout(s) as completed/processed?`)) return;
-            try {
-              await Promise.all(
-                Array.from(selectedIds).map((id) =>
-                  api.post(`/admin/payouts/${id.replace("PAY-", "")}/approve`)
-                )
-              );
-              toast({ title: "Payouts Processed", description: `${selectedIds.size} payout(s) processed successfully.` });
-              setSelectedIds(new Set()); fetchPayouts();
-            } catch { toast({ title: "Error", description: "Failed to process one or more payouts.", variant: "destructive" }); }
-          }},
+          { icon: RotateCcw, label: "Process Payout", onClick: handleProcessPayouts },
           { icon: Download, label: "Export CSV", onClick: () => {
             const selected = payouts.filter((p) => selectedIds.has(p.id));
             exportCSV(selected.length ? selected : payouts);
