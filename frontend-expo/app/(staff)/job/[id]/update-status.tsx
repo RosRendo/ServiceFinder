@@ -31,7 +31,7 @@ export default function UpdateStatusScreen() {
     try {
       if (currentStatus === "en_route") {
         // Persist en-route status to backend — triggers customer notification and begins location tracking window
-        await api.patch(`/api/bookings/${id}/confirm`);
+        await api.patch(`/api/bookings/${id}/en-route`);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
           "En Route 🚗",

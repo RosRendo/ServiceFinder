@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
@@ -105,7 +105,7 @@ export default function PayoutsPage() {
     try {
       await Promise.all(
         Array.from(selectedIds).map((id) =>
-          api.patch(`/admin/payouts/${id.replace("PAY-", "")}/process`)
+          api.post(`/admin/payouts/${id.replace("PAY-", "")}/approve`)
         )
       );
       toast({ title: "Payouts Processed", description: `${selectedIds.size} payout(s) processed successfully.` });

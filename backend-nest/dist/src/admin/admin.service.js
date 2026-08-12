@@ -857,6 +857,16 @@ let AdminService = class AdminService {
         };
     }
     async updatePayoutStatus(id, status) {
+        const existing = await this.prisma.payout.findUnique({ where: { id } });
+        if (!existing) {
+            throw new common_2.NotFoundException(`Payout #${id} not found`);
+        }
+        if (existing.status === 'completed') {
+            throw new common_2.ConflictException(`Payout #${id} is already completed and cannot be re-processed`);
+        }
+        if (existing.status === 'failed') {
+            throw new common_2.ConflictException(`Payout #${id} has failed status — contact support to reprocess`);
+        }
         const payout = await this.prisma.payout.update({
             where: { id },
             data: {

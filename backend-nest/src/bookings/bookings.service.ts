@@ -767,6 +767,72 @@ export class BookingsService {
     return result;
   }
 
+  async enRouteJob(id: bigint, userId: bigint) {
+    const staff = await this.prisma.companyStaff.findFirst({ where: { userId } });
+    if (!staff) throw new ForbiddenException('You are not registered as staff');
+
+    const booking = await this.findOrFail(id, true);
+
+    if (
+      !booking.assignedStaffId ||
+      booking.assignedStaffId.toString() !== staff.id.toString()
+    ) {
+      throw new BadRequestException('You are not assigned to this booking');
+    }
+
+    validateTransition(booking.status, 'en_route');
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.booking.update({
+        where: { id },
+        data: { status: 'en_route' },
+        include: {
+          customer: true,
+          company: true,
+          service: true,
+          assignedStaff: { include: { user: true } },
+        },
+      });
+
+      await tx.bookingStatusLog.create({
+        data: {
+          bookingId: id,
+          oldStatus: booking.status,
+          newStatus: 'en_route',
+          changedBy: userId,
+        },
+      });
+
+      return u;
+    });
+
+    // Notify customer that staff is on the way
+    await this.notificationsService
+      .notifyBookingStatusChanged(
+        booking.customerId,
+        'en_route',
+        updated.service.name,
+        id.toString(),
+      )
+      .catch((e) =>
+        console.warn('Notification create failed (en_route):', e?.message),
+      );
+
+    const result = {
+      success: true,
+      message: 'Staff is en route to customer',
+      booking: this.serializeBooking(updated),
+    };
+
+    this.bookingsGateway.broadcastBookingUpdate(
+      id.toString(),
+      'en_route',
+      result.booking,
+    );
+
+    return result;
+  }
+
   async rejectAssignment(id: bigint, userId: bigint) {
     const staff = await this.prisma.companyStaff.findFirst({
       where: { userId },

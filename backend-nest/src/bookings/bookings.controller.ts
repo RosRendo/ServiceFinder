@@ -164,6 +164,14 @@ export class BookingsController {
     return this.bookingsService.arriveJob(BigInt(id), BigInt(user.id));
   }
 
+  @Patch(':id/en-route')
+  @ApiOperation({ summary: 'Staff marks themselves as en route to job site (Assigned staff only)' })
+  @ApiResponse({ status: 200, description: 'Status updated to en_route.' })
+  enRouteJob(@Param('id') id: string, @Request() req) {
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+    return this.bookingsService.enRouteJob(BigInt(id), BigInt(user.id));
+  }
+
   @Patch(':id/progress')
   @ApiOperation({ summary: 'Update job progress (Assigned staff only)' })
   @ApiResponse({
