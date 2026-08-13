@@ -40,7 +40,6 @@ export default function CustomerLayout() {
       <Stack.Screen name="booking/failed" />
       <Stack.Screen name="booking/reschedule" />
       <Stack.Screen name="booking/messages" />
-      <Stack.Screen name="booking/track-staff" />
       <Stack.Screen name="booking/[id]" />
       <Stack.Screen name="checkout" />
 
@@ -61,6 +60,13 @@ export default function CustomerLayout() {
       <Stack.Screen name="edit-profile" />
       <Stack.Screen name="change-password" />
       <Stack.Screen name="settings" />
+
+      {/* ── Instant Request Flow ───────────────────── */}
+      <Stack.Screen name="instant-request/index" />
+      <Stack.Screen name="instant-request/matching" />
+      <Stack.Screen name="instant-request/selection" />
+      <Stack.Screen name="instant-request/confirmation" />
+      <Stack.Screen name="instant-request/tracking" />
 
       {/* ── Complete Profile ─────────────────────── */}
       <Stack.Screen name="complete-profile" />

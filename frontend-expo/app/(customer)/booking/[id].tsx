@@ -447,9 +447,9 @@ export default function BookingDetailsScreen() {
             </View>
 
             {/* Track Staff Banner if in_progress */}
-            {booking.status === "in_progress" && (
+            {(booking.status === "confirmed" || booking.status === "in_progress") && (
               <View style={s.progressBox}>
-                {(booking.progressPercent != null || true) && (
+                {booking.status === "in_progress" && (booking.progressPercent != null || true) && (
                   <View style={{ marginBottom: 16 }}>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
                       <Text style={{ fontSize: 13, color: T.text2, fontWeight: "600" }}>Job Progress</Text>
@@ -464,7 +464,7 @@ export default function BookingDetailsScreen() {
                 )}
                 
                 <TouchableOpacity
-                  onPress={() => router.push(`/(customer)/booking/track-staff?bookingId=${id}&serviceName=${encodeURIComponent(booking.service?.name ?? '')}` as any)}
+                  onPress={() => router.push(`/(customer)/instant-request/tracking?bookingId=${id}` as any)}
                   style={s.trackBtn}
                 >
                   <MaterialCommunityIcons name="map-marker-radius" size={18} color="#fff" />

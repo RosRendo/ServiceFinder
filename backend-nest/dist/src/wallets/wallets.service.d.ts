@@ -12,8 +12,8 @@ export declare class WalletsService {
             id: bigint;
             createdAt: Date;
             description: string;
-            category: string;
             ownerId: bigint;
+            category: string;
             bookingId: bigint | null;
             amount: import("@prisma/client/runtime/library").Decimal;
             type: string;

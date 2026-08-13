@@ -37,6 +37,7 @@ export declare class CompaniesController {
             address: string | null;
             city: string | null;
             googleMapUrl: string | null;
+            ownerId: bigint;
             verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
             logoUrl: string | null;
             coverImageUrl: string | null;
@@ -55,10 +56,21 @@ export declare class CompaniesController {
             completionRate: import("@prisma/client/runtime/library").Decimal;
             coverageRadiusKm: number;
             bookingMode: string;
-            ownerId: bigint;
         };
     }>;
     getMyCompany(user: any): Promise<{
+        ratingSummary: {
+            companyId: bigint;
+            averageRating: import("@prisma/client/runtime/library").Decimal | null;
+            totalReviews: number;
+            lastUpdated: Date;
+        } | null;
+        serviceAreas: {
+            id: bigint;
+            companyId: bigint;
+            city: string;
+            coverageRadiusKm: number | null;
+        }[];
         services: {
             id: bigint;
             checklist: import("@prisma/client/runtime/library").JsonValue | null;
@@ -76,18 +88,6 @@ export declare class CompaniesController {
             durationMax: number | null;
             isActive: boolean;
         }[];
-        ratingSummary: {
-            companyId: bigint;
-            averageRating: import("@prisma/client/runtime/library").Decimal | null;
-            totalReviews: number;
-            lastUpdated: Date;
-        } | null;
-        serviceAreas: {
-            id: bigint;
-            companyId: bigint;
-            city: string;
-            coverageRadiusKm: number | null;
-        }[];
     } & {
         id: bigint;
         latitude: import("@prisma/client/runtime/library").Decimal | null;
@@ -103,6 +103,7 @@ export declare class CompaniesController {
         address: string | null;
         city: string | null;
         googleMapUrl: string | null;
+        ownerId: bigint;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         logoUrl: string | null;
         coverImageUrl: string | null;
@@ -121,7 +122,6 @@ export declare class CompaniesController {
         completionRate: import("@prisma/client/runtime/library").Decimal;
         coverageRadiusKm: number;
         bookingMode: string;
-        ownerId: bigint;
     }>;
     updateMyCompany(user: any, body: any): Promise<{
         message: string;
@@ -146,6 +146,7 @@ export declare class CompaniesController {
             address: string | null;
             city: string | null;
             googleMapUrl: string | null;
+            ownerId: bigint;
             verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
             logoUrl: string | null;
             coverImageUrl: string | null;
@@ -164,7 +165,6 @@ export declare class CompaniesController {
             completionRate: import("@prisma/client/runtime/library").Decimal;
             coverageRadiusKm: number;
             bookingMode: string;
-            ownerId: bigint;
         };
     }>;
     getMyCompanyMetrics(user: any): Promise<{
@@ -709,6 +709,22 @@ export declare class CompaniesController {
         staff: {
             id: bigint;
         }[];
+        owner: {
+            id: bigint;
+            fullName: string;
+            email: string | null;
+            phone: string | null;
+        };
+        ratingSummary: {
+            companyId: bigint;
+            averageRating: import("@prisma/client/runtime/library").Decimal | null;
+            totalReviews: number;
+            lastUpdated: Date;
+        } | null;
+        serviceAreas: {
+            city: string;
+            coverageRadiusKm: number | null;
+        }[];
         services: ({
             serviceType: {
                 category: {
@@ -754,22 +770,6 @@ export declare class CompaniesController {
             durationMax: number | null;
             isActive: boolean;
         })[];
-        owner: {
-            id: bigint;
-            fullName: string;
-            email: string | null;
-            phone: string | null;
-        };
-        ratingSummary: {
-            companyId: bigint;
-            averageRating: import("@prisma/client/runtime/library").Decimal | null;
-            totalReviews: number;
-            lastUpdated: Date;
-        } | null;
-        serviceAreas: {
-            city: string;
-            coverageRadiusKm: number | null;
-        }[];
     } & {
         id: bigint;
         latitude: import("@prisma/client/runtime/library").Decimal | null;
@@ -785,6 +785,7 @@ export declare class CompaniesController {
         address: string | null;
         city: string | null;
         googleMapUrl: string | null;
+        ownerId: bigint;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         logoUrl: string | null;
         coverImageUrl: string | null;
@@ -803,7 +804,6 @@ export declare class CompaniesController {
         completionRate: import("@prisma/client/runtime/library").Decimal;
         coverageRadiusKm: number;
         bookingMode: string;
-        ownerId: bigint;
     }>;
     updateCompany(id: string, updateCompanyDto: UpdateCompanyDto, user: any): Promise<{
         message: string;
@@ -828,6 +828,7 @@ export declare class CompaniesController {
             address: string | null;
             city: string | null;
             googleMapUrl: string | null;
+            ownerId: bigint;
             verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
             logoUrl: string | null;
             coverImageUrl: string | null;
@@ -846,7 +847,6 @@ export declare class CompaniesController {
             completionRate: import("@prisma/client/runtime/library").Decimal;
             coverageRadiusKm: number;
             bookingMode: string;
-            ownerId: bigint;
         };
     }>;
     deleteCompany(id: string, user: any): Promise<{

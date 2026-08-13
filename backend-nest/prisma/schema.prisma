@@ -49,6 +49,7 @@ model User {
   supportTicketMessages     SupportTicketMessage[]
   moderationActions         ModerationLog[]
   writtenStaffNotes         StaffNote[]               @relation("NoteAuthor")
+  instantRequests           InstantRequest[]          @relation("CustomerInstantRequests")
 
   @@index([email])
   @@index([role])
@@ -120,6 +121,7 @@ model Company {
   services                Service[]
   pricingRules            PricingRule[]
   complianceReports       ComplianceReport[]
+  instantRequestBids      InstantRequestBid[]
 
   @@index([verificationStatus])
   @@index([subscriptionStatus])
@@ -980,5 +982,43 @@ model SupportTicketMessage {
   @@index([ticketId])
   @@index([senderId])
   @@map("support_ticket_messages")
+}
+
+model InstantRequest {
+  id              BigInt              @id @default(autoincrement())
+  customerId      BigInt              @map("customer_id")
+  serviceCategory String              @map("service_category") @db.VarChar(100)
+  description     String
+  preferredTime   String              @map("preferred_time") @db.VarChar(20)
+  latitude        Decimal             @db.Decimal(10, 7)
+  longitude       Decimal             @db.Decimal(10, 7)
+  status          String              @default("searching") @db.VarChar(20)
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  customer        User                @relation("CustomerInstantRequests", fields: [customerId], references: [id])
+  bids            InstantRequestBid[]
+
+  @@index([customerId])
+  @@index([status])
+  @@map("instant_requests")
+}
+
+model InstantRequestBid {
+  id            BigInt         @id @default(autoincrement())
+  requestId     BigInt         @map("request_id")
+  companyId     BigInt         @map("company_id")
+  priceEstimate Decimal        @map("price_estimate") @db.Decimal(10, 2)
+  etaMinutes    Int            @map("eta_minutes")
+  status        String         @default("pending") @db.VarChar(20)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  request       InstantRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([companyId])
+  @@map("instant_request_bids")
 }
 

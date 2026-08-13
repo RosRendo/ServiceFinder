@@ -45,6 +45,7 @@ import { PricingRulesModule } from './pricing-rules/pricing-rules.module';
 import { SupportModule } from './support/support.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { ComplianceModule } from './compliance/compliance.module';
+import { InstantRequestsModule } from './instant-requests/instant-requests.module';
 
 @Module({
   imports: [
@@ -178,6 +179,7 @@ import { ComplianceModule } from './compliance/compliance.module';
     SupportModule,
     ModerationModule,
     ComplianceModule,
+    InstantRequestsModule,
   ],
   controllers: [AppController],
   providers: [

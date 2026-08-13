@@ -72,7 +72,7 @@ export default function AddService() {
 
       await api.post("/api/services", {
         companyId: companyId,
-        serviceTypeId: BigInt(form.serviceTypeId),
+        serviceTypeId: form.serviceTypeId,
         name: form.name,
         description: form.description,
         basePrice: parseFloat(form.basePrice),

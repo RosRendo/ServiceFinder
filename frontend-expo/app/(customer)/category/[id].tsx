@@ -240,10 +240,10 @@ export default function CategoryScreen() {
       if (!searchQuery.trim()) { loadCategoryData(); return; }
       setIsSearching(true);
       try {
-        const res = await api.get("/api/companies", {
+        const res = await api.get("/api/services", {
           params: { search: searchQuery, categoryId: activeCategory?.id || id },
         });
-        setCompanies(extractArray(res.data));
+        setServices(extractArray(res.data));
       } finally { setIsSearching(false); }
     }, 400);
     return () => clearTimeout(timer);
@@ -340,84 +340,7 @@ export default function CategoryScreen() {
               <CategoryScreenSkeleton />
             ) : (
               <>
-                {/* Top Rated Companies */}
-                <View style={s.section}>
-                  <View style={s.sectionHeader}>
-                    <Text style={s.sectionTitle}>Top Rated Companies</Text>
-                    <TouchableOpacity>
-                      <Text style={s.sectionAction}>View All</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {companies.length === 0 ? (
-                    <View style={s.emptyState}>
-                      <Text style={s.emptyIcon}>🏢</Text>
-                      <Text style={s.emptyBody}>No providers found for this category.</Text>
-                    </View>
-                  ) : (
-                    <View style={{ gap: 12 }}>
-                      {companies.map((company, i) => (
-                        <FadeIn key={company.id} delay={i * 100}>
-                          <PressCard
-                            onPress={() => router.push(`/(customer)/company/${company.id}` as any)}
-                          >
-                            <View style={s.companyCard}>
-                              <View style={{ position: 'relative' }}>
-                                <Image
-                                  source={{ uri: company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}` }}
-                                  style={s.companyImg}
-                                />
-                                <View style={s.catBadgeMini}>
-                                  {activeCategory?.useImageAsBadge && activeCategory?.imageUrl ? (
-                                    <Image source={{ uri: activeCategory.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-                                  ) : (
-                                    <MaterialCommunityIcons name={(activeCategory?.icon as any) || getCategoryIcon(activeCategory?.name || '')} size={13} color="#fff" />
-                                  )}
-                                </View>
-                              </View>
-                              <View style={s.companyInfo}>
-                                <View style={s.companyNameRow}>
-                                  <Text style={s.companyName} numberOfLines={1}>{company.name}</Text>
-                                  {company.verificationStatus === "verified" && (
-                                    <MaterialIcons name="verified" size={14} color={T.accentMid} />
-                                  )}
-                                </View>
-
-                                <View style={s.companyMetaRow}>
-                                  <MaterialIcons name="star" size={13} color={T.gold} />
-                                  <Text style={s.companyRating}>
-                                    {company.ratingSummary ? Number(company.ratingSummary.averageRating).toFixed(1) : "New"}
-                                  </Text>
-                                  <Text style={s.metaDot}>•</Text>
-                                  <Text style={s.companyCity}>{company.city}</Text>
-                                  {company.ratingSummary && (
-                                    <>
-                                      <Text style={s.metaDot}>•</Text>
-                                      <Text style={s.companyReviews}>{company.ratingSummary.totalReviews} reviews</Text>
-                                    </>
-                                  )}
-                                </View>
-
-                                {company.cardHighlights && (
-                                  <View style={s.tagsRow}>
-                                    {(Array.isArray(company.cardHighlights) ? company.cardHighlights : (() => { try { return JSON.parse(company.cardHighlights); } catch { return []; } })())
-                                      .slice(0, 2)
-                                      .map((tag: string, i: number) => (
-                                        <View key={i} style={s.tag}>
-                                          <Text style={s.tagText}>{tag.toUpperCase()}</Text>
-                                        </View>
-                                      ))}
-                                  </View>
-                                )}
-                              </View>
-                              <MaterialIcons name="chevron-right" size={20} color={T.text3} />
-                            </View>
-                          </PressCard>
-                        </FadeIn>
-                      ))}
-                    </View>
-                  )}
-                </View>
+                {/* Services list follows directly below */}
 
                 {/* Featured Service */}
                 {featuredService && (

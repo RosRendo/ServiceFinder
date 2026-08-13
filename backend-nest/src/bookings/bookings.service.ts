@@ -148,6 +148,8 @@ export class BookingsService {
             address: true,
             ownerId: true,
             logoUrl: true,
+            latitude: true,
+            longitude: true,
           },
         },
         service: { include: { serviceType: { include: { category: true } } } },

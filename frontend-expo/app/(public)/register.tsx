@@ -48,8 +48,20 @@ export default function Register() {
     }
   };
 
-  const handleSocialLogin = async (provider: "google" | "facebook") => {
-    if (provider === "google") {
+  const handleSocialLogin = async (provider: "google" | "facebook" | "apple") => {
+    if (provider === "apple") {
+      setIsLoading(true);
+      setError("");
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await useAuthStore.getState().login("customer1@demo.com", "password123");
+        router.replace("/(customer)/(tabs)/home");
+      } catch (err: any) {
+        setError("Failed to simulate Apple Sign-In.");
+      } finally {
+        setIsLoading(false);
+      }
+    } else if (provider === "google") {
       if (isGoogleReady) await promptGoogleAsync();
       else Alert.alert("Google Login Unavailable", "Please add your Google Client IDs to the .env file.");
     } else if (provider === "facebook") {
@@ -158,14 +170,19 @@ export default function Register() {
         </View>
 
         {/* Social */}
-        <TouchableOpacity style={s.btnGoogle} onPress={() => handleSocialLogin("google")} disabled={isLoading} activeOpacity={0.85}>
-          <Image source={{ uri: "https://img.icons8.com/color/48/000000/google-logo.png" }} style={{ width: 22, height: 22 }} />
-          <Text style={s.btnGoogleText}>{t("auth.continueGoogle", "Continue with Google")}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.btnFacebook} onPress={() => handleSocialLogin("facebook")} disabled={isLoading} activeOpacity={0.85}>
-          <MaterialCommunityIcons name="facebook" size={20} color="#fff" />
-          <Text style={s.btnFacebookText}>{t("auth.continueFacebook", "Continue with Facebook")}</Text>
-        </TouchableOpacity>
+        <View style={s.socialRow}>
+          <TouchableOpacity testID="google-register-btn" onPress={() => handleSocialLogin("google")} style={s.socialBtn} activeOpacity={0.7} disabled={isLoading}>
+            <Image source={{ uri: "https://img.icons8.com/color/48/000000/google-logo.png" }} style={{ width: 26, height: 26 }} />
+          </TouchableOpacity>
+
+          <TouchableOpacity testID="apple-register-btn" onPress={() => handleSocialLogin("apple")} style={s.socialBtn} activeOpacity={0.7} disabled={isLoading}>
+            <MaterialCommunityIcons name="apple" size={30} color={T.text1} />
+          </TouchableOpacity>
+
+          <TouchableOpacity testID="facebook-register-btn" onPress={() => handleSocialLogin("facebook")} style={s.socialBtn} activeOpacity={0.7} disabled={isLoading}>
+            <MaterialCommunityIcons name="facebook" size={30} color="#1877F2" />
+          </TouchableOpacity>
+        </View>
 
         {/* Terms */}
         <Text style={s.terms}>
@@ -191,7 +208,7 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   backBtn: { padding: 12, paddingLeft: 16 },
   scroll: { flex: 1 },
-  container: { paddingHorizontal: 24, paddingBottom: 40 },
+  container: { paddingHorizontal: 24, paddingBottom: 40, flexGrow: 1, justifyContent: "center" },
 
   header: { marginBottom: 32, marginTop: 8 },
   title: { fontSize: 30, fontWeight: "700", color: T.text1, letterSpacing: -0.5, marginBottom: 8 },
@@ -217,10 +234,17 @@ const s = StyleSheet.create({
   dividerLine: { flex: 1, height: 1, backgroundColor: T.border },
   dividerText: { marginHorizontal: 14, fontSize: 11, fontWeight: "600", color: T.text3, letterSpacing: 1 },
 
-  btnGoogle: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: T.border, borderRadius: 14, paddingVertical: 15, marginBottom: 12 },
-  btnGoogleText: { fontSize: 15, fontWeight: "600", color: T.text1 },
-  btnFacebook: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, backgroundColor: "#1877F2", borderRadius: 14, paddingVertical: 15 },
-  btnFacebookText: { fontSize: 15, fontWeight: "600", color: "#fff" },
+  socialRow: { flexDirection: "row", justifyContent: "center", gap: 16, marginTop: 12 },
+  socialBtn: {
+    width: 60, height: 60, borderRadius: 16,
+    backgroundColor: T.surface,
+    borderWidth: 1, borderColor: T.border,
+    alignItems: "center", justifyContent: "center",
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+      android: { elevation: 2 },
+    })
+  },
 
   terms: { fontSize: 12, color: T.text3, textAlign: "center", marginTop: 24, lineHeight: 18 },
   termsLink: { color: T.accent, fontWeight: "600" },

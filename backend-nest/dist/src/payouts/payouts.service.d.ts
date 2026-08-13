@@ -17,6 +17,7 @@ export declare class PayoutsService {
         address: string | null;
         city: string | null;
         googleMapUrl: string | null;
+        ownerId: bigint;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         logoUrl: string | null;
         coverImageUrl: string | null;
@@ -35,7 +36,6 @@ export declare class PayoutsService {
         completionRate: import("@prisma/client/runtime/library").Decimal;
         coverageRadiusKm: number;
         bookingMode: string;
-        ownerId: bigint;
     } | null>;
     getPayouts(companyId: bigint): Promise<{
         payouts: {

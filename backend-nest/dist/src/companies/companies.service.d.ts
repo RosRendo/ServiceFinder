@@ -171,6 +171,22 @@ export declare class CompaniesService {
         staff: {
             id: bigint;
         }[];
+        owner: {
+            id: bigint;
+            fullName: string;
+            email: string | null;
+            phone: string | null;
+        };
+        ratingSummary: {
+            companyId: bigint;
+            averageRating: import("@prisma/client/runtime/library").Decimal | null;
+            totalReviews: number;
+            lastUpdated: Date;
+        } | null;
+        serviceAreas: {
+            city: string;
+            coverageRadiusKm: number | null;
+        }[];
         services: ({
             serviceType: {
                 category: {
@@ -216,22 +232,6 @@ export declare class CompaniesService {
             durationMax: number | null;
             isActive: boolean;
         })[];
-        owner: {
-            id: bigint;
-            fullName: string;
-            email: string | null;
-            phone: string | null;
-        };
-        ratingSummary: {
-            companyId: bigint;
-            averageRating: import("@prisma/client/runtime/library").Decimal | null;
-            totalReviews: number;
-            lastUpdated: Date;
-        } | null;
-        serviceAreas: {
-            city: string;
-            coverageRadiusKm: number | null;
-        }[];
     } & {
         id: bigint;
         latitude: import("@prisma/client/runtime/library").Decimal | null;
@@ -247,6 +247,7 @@ export declare class CompaniesService {
         address: string | null;
         city: string | null;
         googleMapUrl: string | null;
+        ownerId: bigint;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         logoUrl: string | null;
         coverImageUrl: string | null;
@@ -265,7 +266,6 @@ export declare class CompaniesService {
         completionRate: import("@prisma/client/runtime/library").Decimal;
         coverageRadiusKm: number;
         bookingMode: string;
-        ownerId: bigint;
     }>;
     createCompany(userId: bigint, dto: CreateCompanyDto): Promise<{
         message: string;
@@ -290,6 +290,7 @@ export declare class CompaniesService {
             address: string | null;
             city: string | null;
             googleMapUrl: string | null;
+            ownerId: bigint;
             verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
             logoUrl: string | null;
             coverImageUrl: string | null;
@@ -308,7 +309,6 @@ export declare class CompaniesService {
             completionRate: import("@prisma/client/runtime/library").Decimal;
             coverageRadiusKm: number;
             bookingMode: string;
-            ownerId: bigint;
         };
     }>;
     updateCompany(id: bigint, userId: bigint, role: string, updates: UpdateCompanyDto): Promise<{
@@ -334,6 +334,7 @@ export declare class CompaniesService {
             address: string | null;
             city: string | null;
             googleMapUrl: string | null;
+            ownerId: bigint;
             verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
             logoUrl: string | null;
             coverImageUrl: string | null;
@@ -352,13 +353,24 @@ export declare class CompaniesService {
             completionRate: import("@prisma/client/runtime/library").Decimal;
             coverageRadiusKm: number;
             bookingMode: string;
-            ownerId: bigint;
         };
     }>;
     deleteCompany(id: bigint, userId: bigint, role: string): Promise<{
         message: string;
     }>;
     getMyCompany(userId: bigint): Promise<{
+        ratingSummary: {
+            companyId: bigint;
+            averageRating: import("@prisma/client/runtime/library").Decimal | null;
+            totalReviews: number;
+            lastUpdated: Date;
+        } | null;
+        serviceAreas: {
+            id: bigint;
+            companyId: bigint;
+            city: string;
+            coverageRadiusKm: number | null;
+        }[];
         services: {
             id: bigint;
             checklist: import("@prisma/client/runtime/library").JsonValue | null;
@@ -376,18 +388,6 @@ export declare class CompaniesService {
             durationMax: number | null;
             isActive: boolean;
         }[];
-        ratingSummary: {
-            companyId: bigint;
-            averageRating: import("@prisma/client/runtime/library").Decimal | null;
-            totalReviews: number;
-            lastUpdated: Date;
-        } | null;
-        serviceAreas: {
-            id: bigint;
-            companyId: bigint;
-            city: string;
-            coverageRadiusKm: number | null;
-        }[];
     } & {
         id: bigint;
         latitude: import("@prisma/client/runtime/library").Decimal | null;
@@ -403,6 +403,7 @@ export declare class CompaniesService {
         address: string | null;
         city: string | null;
         googleMapUrl: string | null;
+        ownerId: bigint;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         logoUrl: string | null;
         coverImageUrl: string | null;
@@ -421,7 +422,6 @@ export declare class CompaniesService {
         completionRate: import("@prisma/client/runtime/library").Decimal;
         coverageRadiusKm: number;
         bookingMode: string;
-        ownerId: bigint;
     }>;
     getMyCompanyMetrics(userId: bigint): Promise<{
         revenue: number;

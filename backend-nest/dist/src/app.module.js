@@ -87,6 +87,7 @@ const pricing_rules_module_1 = require("./pricing-rules/pricing-rules.module");
 const support_module_1 = require("./support/support.module");
 const moderation_module_1 = require("./moderation/moderation.module");
 const compliance_module_1 = require("./compliance/compliance.module");
+const instant_requests_module_1 = require("./instant-requests/instant-requests.module");
 let AppModule = class AppModule {
     configure(consumer) {
         consumer.apply(logger_middleware_1.LoggerMiddleware).forRoutes('*');
@@ -217,6 +218,7 @@ exports.AppModule = AppModule = __decorate([
             support_module_1.SupportModule,
             moderation_module_1.ModerationModule,
             compliance_module_1.ComplianceModule,
+            instant_requests_module_1.InstantRequestsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

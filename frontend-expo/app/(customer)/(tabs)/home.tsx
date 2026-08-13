@@ -291,6 +291,86 @@ export default function Home() {
               </PressCard>
             </View>
 
+            {/* ─── INSTANT REQUEST & EXPLORE PATHS ─────────────────── */}
+            <View style={{ paddingHorizontal: 24, marginTop: 20 }}>
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                {/* Instant Request Option */}
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    backgroundColor: T.accentLight,
+                    borderRadius: 20,
+                    padding: 18,
+                    borderWidth: 1,
+                    borderColor: T.accent + "15",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.04,
+                    shadowRadius: 10,
+                    elevation: 2,
+                    position: "relative",
+                    overflow: "hidden"
+                  }}
+                  onPress={() => router.push("/(customer)/instant-request" as any)}
+                >
+                  <View style={{
+                    position: "absolute",
+                    top: -10,
+                    right: -10,
+                    backgroundColor: T.warning + "15",
+                    width: 60,
+                    height: 60,
+                    borderRadius: 30,
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}>
+                    <MaterialCommunityIcons name="flash" size={32} color={T.warning} style={{ opacity: 0.3, transform: [{ rotate: "15deg" }] }} />
+                  </View>
+
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <Text style={{ fontSize: 10, fontWeight: "900", color: T.warning, letterSpacing: 1, backgroundColor: "#FFF", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: T.warning + "20" }}>
+                      POPULAR
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 18, fontWeight: "800", color: T.accent, fontFamily: "System" }}>Need Help Now?</Text>
+                  <Text style={{ fontSize: 12, color: T.text2, marginTop: 4, lineHeight: 16 }}>Find nearby available service pros instantly.</Text>
+                </TouchableOpacity>
+
+                {/* Explore Services Option */}
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    backgroundColor: "#FFF",
+                    borderRadius: 20,
+                    padding: 18,
+                    borderWidth: 1,
+                    borderColor: T.border,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.04,
+                    shadowRadius: 10,
+                    elevation: 2
+                  }}
+                  onPress={() => router.push("/(customer)/(tabs)/explore" as any)}
+                >
+                  <View style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    backgroundColor: T.accent + "10",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: 10
+                  }}>
+                    <MaterialCommunityIcons name="map-search-outline" size={18} color={T.accent} />
+                  </View>
+                  <Text style={{ fontSize: 18, fontWeight: "800", color: T.text1 }}>Explore Catalog</Text>
+                  <Text style={{ fontSize: 12, color: T.text2, marginTop: 4, lineHeight: 16 }}>Browse categories, services, & top companies.</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+
             {/* ─── ACTIVE BOOKING DOMINANCE (ANXIETY MODE) ──────────── */}
             {activeBooking && (
               <View style={{ paddingHorizontal: 24, marginTop: 24 }}>

@@ -30,13 +30,14 @@ export default function CheckoutScreen() {
   const { user } = useAuthStore();
   
   // Accept EITHER an existing bookingId OR temp params from BottomSheet
-  const { bookingId, serviceId, date, time, price, companyId } = useLocalSearchParams<{ 
+  const { bookingId, serviceId, date, time, price, companyId, isInstant } = useLocalSearchParams<{ 
     bookingId?: string; 
     serviceId?: string; 
     date?: string; 
     time?: string; 
     price?: string;
     companyId?: string; 
+    isInstant?: string;
   }>();
 
   const { processAbaPayment } = usePayments();
@@ -232,6 +233,8 @@ export default function CheckoutScreen() {
   const displayDate = booking?.bookingDate ? new Date(booking.bookingDate).toLocaleDateString() : (date || "Today");
   const displayTime = booking?.startTime || (time || "ASAP");
   const displayAddress = booking?.serviceAddress || (user as any)?.city || "Local Address";
+  const displayLat = booking?.latitude ? parseFloat(booking.latitude.toString()) : 11.5564;
+  const displayLng = booking?.longitude ? parseFloat(booking.longitude.toString()) : 104.9282;
   
   // Tax & Fees Math
   const subtotal = Number(displayPrice);
@@ -257,21 +260,22 @@ export default function CheckoutScreen() {
             <MapView
               provider={PROVIDER_GOOGLE}
               style={s.map}
+              key={`${displayLat}-${displayLng}`}
               initialRegion={{
-                latitude: 11.5564, longitude: 104.9282, // Phnom Penh
-                latitudeDelta: 0.02, longitudeDelta: 0.02,
+                latitude: displayLat, longitude: displayLng,
+                latitudeDelta: 0.015, longitudeDelta: 0.015,
               }}
               scrollEnabled={false}
               zoomEnabled={false}
             >
-              <Marker coordinate={{ latitude: 11.5564, longitude: 104.9282 }} />
+              <Marker coordinate={{ latitude: displayLat, longitude: displayLng }} />
             </MapView>
             <View style={s.mapOverlay}>
               <View style={s.addressRow}>
                 <View style={s.iconBox}><MaterialIcons name="location-on" size={20} color="#FFF" /></View>
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={s.addressLabel}>Service Location</Text>
-                  <Text style={s.addressText}>{displayAddress}</Text>
+                  <Text style={s.addressText} numberOfLines={1}>{displayAddress}</Text>
                 </View>
               </View>
             </View>
@@ -449,7 +453,14 @@ export default function CheckoutScreen() {
         visible={showSuccess} 
         onFinish={() => {
           setShowSuccess(false);
-          router.replace("/(customer)/(tabs)/home" as any);
+          if (isInstant === "true") {
+            router.replace({
+              pathname: "/(customer)/instant-request/confirmation" as any,
+              params: { bookingId }
+            });
+          } else {
+            router.replace("/(customer)/(tabs)/home" as any);
+          }
         }} 
       />
     </SafeAreaView>

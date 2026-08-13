@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
 
@@ -72,6 +72,43 @@ export function EditCompanyModal({ open, onClose, company, onSuccess }: EditComp
       setActiveTab("general");
     }
   }, [open, company]);
+
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [uploadingTemp, setUploadingTemp] = useState(false);
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>, index: number | null) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fd = new FormData();
+    fd.append("file", file);
+
+    if (index !== null) {
+      setUploadingIndex(index);
+    } else {
+      setUploadingTemp(true);
+    }
+
+    try {
+      const res = await api.post("/upload", fd, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      const url = res.data?.url;
+      if (url) {
+        if (index !== null) {
+          updateServiceField(index, "image", url);
+        } else {
+          setTempService(prev => ({ ...prev, image: url }));
+        }
+        toast({ title: "Success", description: "Image uploaded successfully." });
+      }
+    } catch (err) {
+      toast({ title: "Upload Failed", description: "Failed to upload image.", variant: "destructive" });
+    } finally {
+      setUploadingIndex(null);
+      setUploadingTemp(false);
+    }
+  };
 
   const handleAddService = () => {
     if (!tempService.name || !tempService.typeId) {
@@ -248,12 +285,51 @@ export function EditCompanyModal({ open, onClose, company, onSuccess }: EditComp
                           />
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">min</span>
                         </div>
-                        <Input 
-                          value={svc.image || ""} 
-                          onChange={e => updateServiceField(i, 'image', e.target.value)} 
-                          placeholder="Image URL" 
-                          className="h-8 text-sm"
-                        />
+                        <div className="flex gap-1">
+                          <Input 
+                            value={svc.image || ""} 
+                            onChange={e => updateServiceField(i, 'image', e.target.value)} 
+                            placeholder="Image URL" 
+                            className="h-8 text-sm flex-1"
+                          />
+                          <div className="relative shrink-0">
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 px-2 flex items-center gap-1.5"
+                              onClick={() => {
+                                document.getElementById(`file-upload-${i}`)?.click();
+                              }}
+                            >
+                              <Upload className="w-3.5 h-3.5 text-muted-foreground" />
+                            </Button>
+                            <input 
+                              id={`file-upload-${i}`}
+                              type="file" 
+                              accept="image/*" 
+                              className="hidden" 
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const fd = new FormData();
+                                fd.append("file", file);
+                                try {
+                                  toast({ title: "Uploading...", description: "Please wait while we upload the image." });
+                                  const res = await api.post("/upload", fd, {
+                                    headers: { "Content-Type": "multipart/form-data" }
+                                  });
+                                  if (res.data?.url) {
+                                    updateServiceField(i, "image", res.data.url);
+                                    toast({ title: "Success", description: "Image uploaded successfully." });
+                                  }
+                                } catch (err) {
+                                  toast({ title: "Upload Failed", description: "Could not upload image.", variant: "destructive" });
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
                       </div>
                       
                       <button 
@@ -294,7 +370,51 @@ export function EditCompanyModal({ open, onClose, company, onSuccess }: EditComp
                     <Input type="number" placeholder="Duration" value={tempService.durationMin} onChange={e => setTempService({...tempService, durationMin: e.target.value})} className="h-8 pr-10 text-sm" />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">min</span>
                   </div>
-                  <Input placeholder="Image URL" value={tempService.image} onChange={e => setTempService({...tempService, image: e.target.value})} className="h-8 text-sm" />
+                  <div className="flex gap-1">
+                    <Input 
+                      placeholder="Image URL" 
+                      value={tempService.image} 
+                      onChange={e => setTempService({...tempService, image: e.target.value})} 
+                      className="h-8 text-sm flex-1" 
+                    />
+                    <div className="relative shrink-0">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 px-2 flex items-center gap-1.5"
+                        onClick={() => {
+                          document.getElementById('file-upload-temp')?.click();
+                        }}
+                      >
+                        <Upload className="w-3.5 h-3.5 text-muted-foreground" />
+                      </Button>
+                      <input 
+                        id="file-upload-temp"
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const fd = new FormData();
+                          fd.append("file", file);
+                          try {
+                            toast({ title: "Uploading...", description: "Please wait while we upload the image." });
+                            const res = await api.post("/upload", fd, {
+                              headers: { "Content-Type": "multipart/form-data" }
+                            });
+                            if (res.data?.url) {
+                              setTempService(prev => ({ ...prev, image: res.data.url }));
+                              toast({ title: "Success", description: "Image uploaded successfully." });
+                            }
+                          } catch (err) {
+                            toast({ title: "Upload Failed", description: "Could not upload image.", variant: "destructive" });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
                 <Button type="button" variant="outline" size="sm" onClick={handleAddService} className="w-full h-8 text-xs font-bold border-dashed border-primary text-primary hover:bg-primary/5">
                   <Plus className="w-3.5 h-3.5 mr-1" /> Add to List
