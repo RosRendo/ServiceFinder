@@ -11,6 +11,35 @@ import { EditCompanyModal } from "@/components/admin/EditCompanyModal";
 import { Search, Download, Building2, Star, Loader2, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
+import { cn } from "@/lib/utils";
+
+function CompanyLogo({ src, name, className }: { src?: string; name: string; className?: string }) {
+  const [error, setError] = useState(false);
+  const initials = name?.[0]?.toUpperCase() || "C";
+
+  if (!src || error) {
+    return (
+      <div className={cn("bg-violet-600 text-white flex items-center justify-center font-bold text-xs uppercase", className)}>
+        {initials}
+      </div>
+    );
+  }
+
+  let imageUrl = src;
+  if (src.startsWith("/")) {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5000";
+    imageUrl = `${backendUrl}${src}`;
+  }
+
+  return (
+    <img 
+      src={imageUrl} 
+      alt={name} 
+      className={cn("object-cover", className)} 
+      onError={() => setError(true)} 
+    />
+  );
+}
 
 export default function CompaniesPage() {
   const router = useRouter();
@@ -110,12 +139,8 @@ export default function CompaniesPage() {
       key: "name", header: "Company", sortable: true,
       render: (r) => (
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0 overflow-hidden">
-            {r.logoUrl ? (
-              <img src={r.logoUrl} alt={r.name} className="w-full h-full object-cover" />
-            ) : (
-              <Building2 className="w-3.5 h-3.5 text-white" />
-            )}
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 overflow-hidden border border-border bg-muted">
+            <CompanyLogo src={r.logoUrl} name={r.name} className="w-full h-full" />
           </div>
           <span className="font-medium text-foreground">{r.name}</span>
         </div>
