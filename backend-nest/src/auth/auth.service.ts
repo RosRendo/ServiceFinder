@@ -21,6 +21,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { FacebookLoginDto } from './dto/facebook-login.dto';
 import * as admin from 'firebase-admin';
+import { Twilio } from 'twilio';
 
 import { MfaService } from './mfa.service';
 import { AnalyticsService } from '../analytics/analytics.service';
@@ -338,29 +339,49 @@ export class AuthService {
       throw new BadRequestException('Phone number is required');
     }
 
-    // Invalidate previous OTPs for this phone
+    // Invalidate previous OTPs locally
     await this.prisma.otpCode.updateMany({
       where: { phone, used: false },
       data: { used: true },
     });
 
-    // In a real app, you would integrate Twilio here.
-    // For now, we just generate a simple random code or use 123456
-    const code = '123456'; // Hardcoded for testing
+    const accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
+    const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
+    const verifyServiceSid = this.configService.get<string>('TWILIO_VERIFY_SERVICE_SID');
 
-    await this.prisma.otpCode.create({
-      data: {
-        phone,
-        code,
-        expiresAt: new Date(Date.now() + 10 * 60000), // 10 minutes expiry
-      },
-    });
+    let success = false;
+    let fallbackCode = '123456';
 
-    console.log(`[SMS MOCK] OTP for ${phone} is: ${code}`);
+    if (accountSid && authToken && verifyServiceSid) {
+      try {
+        const client = new Twilio(accountSid, authToken);
+        await client.verify.v2.services(verifyServiceSid)
+          .verifications
+          .create({ to: phone, channel: 'sms' });
+        success = true;
+        console.log(`[Twilio Verify] Verification sent to ${phone}`);
+      } catch (err: any) {
+        console.error('Failed to send verification via Twilio Verify:', err.message || err);
+      }
+    }
+
+    if (!success) {
+      fallbackCode = this.generateCode();
+      await this.prisma.otpCode.create({
+        data: {
+          phone,
+          code: fallbackCode,
+          expiresAt: new Date(Date.now() + 10 * 60000),
+        },
+      });
+      console.log(`[SMS MOCK FALLBACK] OTP for ${phone} is: ${fallbackCode}`);
+    }
 
     return {
       success: true,
-      message: 'OTP sent successfully (Use 123456 for testing)',
+      message: success
+        ? 'OTP sent successfully'
+        : 'OTP sent successfully (Sandbox Mock Mode)',
     };
   }
 
@@ -369,19 +390,56 @@ export class AuthService {
       throw new BadRequestException('Phone and code are required');
     }
 
-    const otp = await this.prisma.otpCode.findFirst({
-      where: { phone, code, used: false },
-      orderBy: { createdAt: 'desc' },
-    });
+    const accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
+    const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
+    const verifyServiceSid = this.configService.get<string>('TWILIO_VERIFY_SERVICE_SID');
 
-    if (!otp || otp.expiresAt < new Date()) {
-      throw new BadRequestException('Invalid or expired OTP');
+    if (accountSid && authToken && verifyServiceSid) {
+      try {
+        const client = new Twilio(accountSid, authToken);
+        const check = await client.verify.v2.services(verifyServiceSid)
+          .verificationChecks
+          .create({ to: phone, code });
+
+        if (check.status !== 'approved') {
+          throw new BadRequestException('Invalid or expired OTP');
+        }
+      } catch (err: any) {
+        console.error('Failed to verify OTP via Twilio Verify:', err.message || err);
+        // Fallback for development if Twilio fails
+        const localOtp = await this.prisma.otpCode.findFirst({
+          where: { phone, code, used: false },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (!localOtp || localOtp.expiresAt < new Date()) {
+          throw new BadRequestException('Invalid or expired OTP (Local fallback)');
+        }
+        await this.prisma.otpCode.update({
+          where: { id: localOtp.id },
+          data: { used: true },
+        });
+      }
+    } else {
+      // Local fallback if Twilio is not configured
+      const otp = await this.prisma.otpCode.findFirst({
+        where: { phone, code, used: false },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!otp || otp.expiresAt < new Date()) {
+        // Allow static code '123456' for local testing if no code in DB and Twilio is off
+        if (code === '123456') {
+          // Proceed
+        } else {
+          throw new BadRequestException('Invalid or expired OTP');
+        }
+      } else {
+        await this.prisma.otpCode.update({
+          where: { id: otp.id },
+          data: { used: true },
+        });
+      }
     }
-
-    await this.prisma.otpCode.update({
-      where: { id: otp.id },
-      data: { used: true },
-    });
 
     // Find user or create new one
     let user = await this.prisma.user.findUnique({
@@ -485,7 +543,26 @@ export class AuthService {
         user.fullName,
       );
     } else if (phone && user.phone === phone) {
-      // In production, integrate Twilio or another SMS gateway
+      const accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
+      const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
+      const fromPhone = this.configService.get<string>('TWILIO_PHONE_NUMBER');
+
+      if (accountSid && authToken && fromPhone) {
+        try {
+          const client = new Twilio(accountSid, authToken);
+          await client.messages.create({
+            body: `Your Service Finder password reset code is: ${code}. Valid for 15 minutes.`,
+            from: fromPhone,
+            to: phone,
+          });
+          console.log(`[Twilio] Password reset SMS sent to ${phone}`);
+        } catch (err: any) {
+          console.error('Failed to send Password Reset SMS via Twilio:', err.message || err);
+          console.log(`[SMS MOCK FALLBACK] Password reset code for ${phone} is: ${code}`);
+        }
+      } else {
+        console.log(`[SMS MOCK - Twilio keys missing] Password Reset code for ${phone} is: ${code}`);
+      }
     }
     return { message: 'If the account exists, a reset code has been sent' };
   }

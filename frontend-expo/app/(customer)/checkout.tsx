@@ -14,6 +14,7 @@ import SuccessOverlay from "@/components/SuccessOverlay";
 import QRCode from "react-native-qrcode-svg";
 import { Theme } from "@/constants/theme";
 import MapView, { Marker } from 'react-native-maps';
+import { MAP_PROVIDER } from "@/utils/mapHelper";
 import FadeIn from "@/components/FadeIn";
 import ScaleButton from "@/components/ScaleButton";
 
@@ -258,6 +259,7 @@ export default function CheckoutScreen() {
         <FadeIn delay={100}>
           <View style={s.mapCard}>
             <MapView
+              provider={MAP_PROVIDER}
               style={s.map}
               key={`${displayLat}-${displayLng}`}
               initialRegion={{
