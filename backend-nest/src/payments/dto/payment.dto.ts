@@ -29,6 +29,11 @@ export class CheckoutSessionDto {
   @IsString()
   @IsNotEmpty()
   bookingId: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['khqr', 'deeplink'])
+  type?: 'khqr' | 'deeplink';
 }
 
 export class CompletePaymentDto {

@@ -433,9 +433,10 @@ export class PaymentsService {
     const key = deriveWingKey(clientId);
     const iv = deriveWingIV(clientId);
 
+    const type = dto.type || 'khqr';
     const amount = Number(booking.totalPrice).toFixed(2);
     const currency = 'USD';
-    const orderRef = `WK${bookingId}T${Math.floor(Date.now() / 1000)}`;
+    const orderRef = `${type === 'deeplink' ? 'WD' : 'WK'}${bookingId}T${Math.floor(Date.now() / 1000)}`;
     const returnUrl = `${frontendUrl}/payment/wing-success?booking_id=${bookingId}`;
     const cancelUrl = `${frontendUrl}/payment/wing-cancel?booking_id=${bookingId}`;
     const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -473,7 +474,10 @@ export class PaymentsService {
 
     try {
       const accessToken = await this.getWingAccessToken();
-      const generateUrl = `${baseUrl}/generate/khqr`;
+      const generateUrl =
+        type === 'deeplink'
+          ? `${baseUrl}/onlinesdk-deeplink/v4/generate/deeplink`
+          : `${baseUrl}/onlinesdk-khqr/v4/generate/khqr`;
 
       const response = await fetch(generateUrl, {
         method: 'POST',
@@ -649,7 +653,9 @@ export class PaymentsService {
       'https://stage-partner-gateway.wingbank.com';
     const accessToken = await this.getWingAccessToken();
 
-    const url = `${baseUrl}/inquiry/khqr/success`;
+    const url = orderRef.startsWith('WD')
+      ? `${baseUrl}/onlinesdk-deeplink/v4/inquiry/deeplink/success`
+      : `${baseUrl}/onlinesdk-khqr/v4/inquiry/khqr/success`;
 
     try {
       const response = await fetch(url, {
