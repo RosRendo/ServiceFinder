@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import { MAP_PROVIDER } from "@/utils/mapHelper";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { api } from "@/store/authStore";
@@ -293,10 +294,10 @@ export default function MapViewScreen() {
         ) : (
           <>
             <View style={StyleSheet.absoluteFill} pointerEvents={viewMode === "list" ? "none" : "auto"}>
-              {process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ? (
+              {Platform.OS === 'ios' || (process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY && process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY !== 'AIza_placeholder_for_maps') ? (
                 <MapView
                   ref={mapViewRef}
-                  provider={PROVIDER_DEFAULT}
+                  provider={MAP_PROVIDER}
                   style={{ flex: 1 }}
                   showsUserLocation
                   showsMyLocationButton={false}

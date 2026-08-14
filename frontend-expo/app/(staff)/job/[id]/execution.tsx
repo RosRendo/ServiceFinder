@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as ExpoLocation from "expo-location";
 import MapView, { Marker, Polyline, AnimatedRegion } from "react-native-maps";
+import { MAP_PROVIDER } from "@/utils/mapHelper";
 import Reanimated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withDelay, Easing } from "react-native-reanimated";
 import { api } from "@/store/authStore";
 import SwipeToComplete from "@/components/SwipeToComplete";
@@ -414,6 +415,7 @@ export default function JobExecutionScreen() {
     <View style={s.root}>
       {/* ── Full Screen Map ── */}
       <MapView
+        provider={MAP_PROVIDER}
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
         onPanDrag={() => setAutoFollow(false)}

@@ -12,6 +12,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { api } from "@/store/authStore";
 import * as Location from "expo-location";
 import MapView, { Marker } from "react-native-maps";
+import { MAP_PROVIDER } from "@/utils/mapHelper";
 import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
@@ -205,6 +206,7 @@ export default function AddressFormScreen() {
               <Text style={s.inputLabel}>EXACT LOCATION</Text>
               <View style={s.mapWrapper}>
                 <MapView
+                  provider={MAP_PROVIDER}
                   style={s.map}
                   initialRegion={{
                     latitude,

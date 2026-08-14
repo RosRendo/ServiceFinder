@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker } from "react-native-maps";
+import { MAP_PROVIDER } from "@/utils/mapHelper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api } from "@/store/authStore";
@@ -149,6 +150,7 @@ export default function InstantRequestFlow() {
         {/* Map (Occupies background/top portion) */}
         <View style={s.mapContainer}>
           <MapView
+            provider={MAP_PROVIDER}
             style={StyleSheet.absoluteFillObject}
             initialRegion={{
               latitude: CUSTOMER_LOC.latitude,

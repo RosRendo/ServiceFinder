@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicator, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker, Polyline } from "react-native-maps";
+import { MAP_PROVIDER } from "@/utils/mapHelper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { io, Socket } from "socket.io-client";
@@ -180,6 +181,7 @@ export default function InstantRequestTracking() {
       {/* Map View */}
       <View style={s.mapContainer}>
         <MapView
+          provider={MAP_PROVIDER}
           style={StyleSheet.absoluteFillObject}
           initialRegion={{
             latitude: (CUSTOMER_LOC.latitude + startLat) / 2,

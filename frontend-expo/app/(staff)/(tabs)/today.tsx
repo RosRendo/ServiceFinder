@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator, Animated, Platform, Alert, Linking, ScrollView, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import MapView, { Marker, Polyline } from 'react-native-maps';
+import { MAP_PROVIDER } from '../../../utils/mapHelper';
 import MapViewDirections from 'react-native-maps-directions';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -530,6 +531,7 @@ export default function TodayScreen() {
         </ScrollView>
       ) : (
         <MapView
+          provider={MAP_PROVIDER}
           ref={mapRef}
           style={StyleSheet.absoluteFillObject}
           showsUserLocation={true}

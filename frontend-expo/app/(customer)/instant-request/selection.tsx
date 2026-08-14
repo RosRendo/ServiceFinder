@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker } from "react-native-maps";
+import { MAP_PROVIDER } from "@/utils/mapHelper";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Theme } from "@/constants/theme";
@@ -177,6 +178,7 @@ export default function InstantRequestSelection() {
         ) : (
           <>
             <MapView
+              provider={MAP_PROVIDER}
               ref={mapViewRef}
               style={StyleSheet.absoluteFillObject}
               initialRegion={{

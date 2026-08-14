@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { View, Text, StyleSheet, Animated, Platform, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker } from "react-native-maps";
+import { MAP_PROVIDER } from "@/utils/mapHelper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { io, Socket } from "socket.io-client";
@@ -98,6 +99,7 @@ export default function InstantRequestMatching() {
       {/* Map Background */}
       <View style={s.mapContainer}>
         <MapView
+          provider={MAP_PROVIDER}
           style={StyleSheet.absoluteFillObject}
           initialRegion={{
             latitude: lat,

@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import MapView, { Marker, Polyline } from "react-native-maps";
+import { MAP_PROVIDER } from "@/utils/mapHelper";
 import MapViewDirections from 'react-native-maps-directions';
 import * as Location from 'expo-location';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withDelay, Easing } from "react-native-reanimated";
@@ -359,6 +360,7 @@ export default function JobDetailScreen() {
           
           <View style={s.mapContainer}>
             <MapView
+              provider={MAP_PROVIDER}
               ref={mapRef}
               style={s.map}
               onMapReady={fitMapToRoute}
