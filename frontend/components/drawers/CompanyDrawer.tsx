@@ -41,6 +41,16 @@ interface CompanyDrawerProps {
   onSuccess?: () => void;
 }
 
+function getFullLogoUrl(src?: string, name?: string) {
+  if (!src) {
+    return name ? `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}` : undefined;
+  }
+  if (src.startsWith("http://") || src.startsWith("https://")) return src;
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5000";
+  const slash = src.startsWith("/") ? "" : "/";
+  return `${backendUrl}${slash}${src}`;
+}
+
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
   active: { bg: "bg-emerald-500/10", border: "border-emerald-500/20", text: "text-emerald-500" },
   suspended: { bg: "bg-rose-500/10", border: "border-rose-500/20", text: "text-rose-500" },
@@ -91,8 +101,8 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
           {/* Identity & Status */}
           <div className="flex items-center gap-4 bg-muted/10 border border-border rounded-xl p-4">
             <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-sm border border-primary/20 overflow-hidden">
-              {company.logoUrl ? (
-                <img src={company.logoUrl} alt={company.name} className="w-full h-full object-cover" />
+              {getFullLogoUrl(company.logoUrl, company.name) ? (
+                <img src={getFullLogoUrl(company.logoUrl, company.name)} alt={company.name} className="w-full h-full object-cover" />
               ) : (
                 <Building2 className="w-6 h-6" />
               )}

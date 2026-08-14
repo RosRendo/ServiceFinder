@@ -22,11 +22,14 @@ import { cn } from "@/lib/utils";
 import api from "@/lib/api/client";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
-function getFullLogoUrl(src?: string) {
-  if (!src) return undefined;
+function getFullLogoUrl(src?: string, name?: string) {
+  if (!src) {
+    return name ? `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}` : undefined;
+  }
   if (src.startsWith("http://") || src.startsWith("https://")) return src;
   const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5000";
-  return `${backendUrl}${src}`;
+  const slash = src.startsWith("/") ? "" : "/";
+  return `${backendUrl}${slash}${src}`;
 }
 
 export default function AdminCompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -142,7 +145,7 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                             </Link>
                             <div className="flex items-start gap-5">
                                 <Avatar className="h-16 w-16 rounded-xl shadow-sm border border-border bg-violet-500/10 text-violet-600">
-                                    {company.logoUrl && <AvatarImage src={getFullLogoUrl(company.logoUrl)} className="object-cover" />}
+                                    <AvatarImage src={getFullLogoUrl(company.logoUrl, company.name)} className="object-cover" />
                                     <AvatarFallback className="text-xl font-black bg-violet-600 text-white">
                                         {company.name?.[0] || <Building2 className="w-8 h-8" />}
                                     </AvatarFallback>

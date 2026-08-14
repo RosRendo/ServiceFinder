@@ -15,20 +15,14 @@ import { cn } from "@/lib/utils";
 
 function CompanyLogo({ src, name, className }: { src?: string; name: string; className?: string }) {
   const [error, setError] = useState(false);
-  const initials = name?.[0]?.toUpperCase() || "C";
-
-  if (!src || error) {
-    return (
-      <div className={cn("bg-violet-600 text-white flex items-center justify-center font-bold text-xs uppercase", className)}>
-        {initials}
-      </div>
-    );
-  }
 
   let imageUrl = src;
-  if (src.startsWith("/")) {
+  if (!imageUrl || error) {
+    imageUrl = `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}`;
+  } else if (!imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5000";
-    imageUrl = `${backendUrl}${src}`;
+    const slash = imageUrl.startsWith("/") ? "" : "/";
+    imageUrl = `${backendUrl}${slash}${imageUrl}`;
   }
 
   return (
