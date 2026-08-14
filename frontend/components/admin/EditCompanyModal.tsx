@@ -75,16 +75,19 @@ export function EditCompanyModal({ open, onClose, company, onSuccess }: EditComp
 
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [uploadingTemp, setUploadingTemp] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>, index: number | null) => {
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>, target: number | null | 'logo') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const fd = new FormData();
     fd.append("file", file);
 
-    if (index !== null) {
-      setUploadingIndex(index);
+    if (target === 'logo') {
+      setUploadingLogo(true);
+    } else if (target !== null) {
+      setUploadingIndex(target);
     } else {
       setUploadingTemp(true);
     }
@@ -95,8 +98,10 @@ export function EditCompanyModal({ open, onClose, company, onSuccess }: EditComp
       });
       const url = res.data?.url;
       if (url) {
-        if (index !== null) {
-          updateServiceField(index, "image", url);
+        if (target === 'logo') {
+          setFormData(prev => ({ ...prev, logoUrl: url }));
+        } else if (target !== null) {
+          updateServiceField(target, "image", url);
         } else {
           setTempService(prev => ({ ...prev, image: url }));
         }
@@ -105,6 +110,7 @@ export function EditCompanyModal({ open, onClose, company, onSuccess }: EditComp
     } catch (err) {
       toast({ title: "Upload Failed", description: "Failed to upload image.", variant: "destructive" });
     } finally {
+      setUploadingLogo(false);
       setUploadingIndex(null);
       setUploadingTemp(false);
     }
@@ -199,7 +205,37 @@ export function EditCompanyModal({ open, onClose, company, onSuccess }: EditComp
               
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-muted-foreground uppercase">Logo URL</Label>
-                <Input value={formData.logoUrl} onChange={e => setFormData({ ...formData, logoUrl: e.target.value })} placeholder="https://example.com/logo.png" className="h-9 font-medium" />
+                <div className="flex gap-1">
+                  <Input 
+                    value={formData.logoUrl} 
+                    onChange={e => setFormData({ ...formData, logoUrl: e.target.value })} 
+                    placeholder="https://example.com/logo.png" 
+                    className="h-9 font-medium flex-1" 
+                  />
+                  <div className="relative shrink-0">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="h-9 px-3 flex items-center gap-1.5"
+                      onClick={() => {
+                        document.getElementById('logo-upload-input')?.click();
+                      }}
+                    >
+                      {uploadingLogo ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      ) : (
+                        <Upload className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                    <input 
+                      id="logo-upload-input"
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={e => handleUploadImage(e, 'logo')}
+                    />
+                  </div>
+                </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
