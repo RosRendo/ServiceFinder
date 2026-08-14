@@ -62,13 +62,24 @@ export default function BookingDetails() {
 
 
 
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>("");
+  const [assigning, setAssigning] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+
   const loadBooking = useCallback(async (isRefresh = false) => {
     if (!id) return;
     if (isRefresh) { setRefreshing(true); } else { setLoading(true); }
     try {
       const response = await api.get(`/api/bookings/${id}`);
       const data = response.data?.data ?? response.data;
-      setBooking(data?.booking || null);
+      const b = data?.booking || data || null;
+      setBooking(b);
+
+      // If booking is unassigned, load staff list
+      if (b && !b.assignedStaffId) {
+        fetchStaff();
+      }
     } catch (error) {
       console.error("Failed to load booking details", error);
     } finally {
@@ -77,9 +88,53 @@ export default function BookingDetails() {
     }
   }, [id]);
 
+  const fetchStaff = async () => {
+    try {
+      const res = await api.get("/api/companies/my-company/staff");
+      let data = res.data;
+      if (data && data.success) data = data.data;
+      if (data && data.data) data = data.data;
+      const list = Array.isArray(data) ? data : [];
+      setStaffList(list);
+      if (list.length > 0) {
+        setSelectedStaffId(list[0].id.toString());
+      }
+    } catch (err) {
+      console.error("Failed to load staff list:", err);
+    }
+  };
+
+  const handleAssignStaff = async () => {
+    if (!selectedStaffId || !booking) return;
+    setAssigning(true);
+    try {
+      await api.patch(`/api/bookings/${booking.id}/assign-staff`, { staffId: selectedStaffId });
+      Alert.alert("Success 🎉", "Staff member assigned!");
+      loadBooking();
+    } catch (err: any) {
+      Alert.alert("Error", err.response?.data?.message || "Failed to assign staff");
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const handleStatusUpdate = async (endpoint: string, successMsg: string) => {
+    if (!booking) return;
+    setUpdatingStatus(true);
+    try {
+      await api.patch(`/api/bookings/${booking.id}/${endpoint}`);
+      Alert.alert("Success", successMsg);
+      loadBooking();
+    } catch (err: any) {
+      Alert.alert("Error", err.response?.data?.message || `Failed to perform transition ${endpoint}`);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   useFocusEffect(useCallback(() => { loadBooking(); }, [loadBooking]));
 
-  // Listen to live staff location when booking is in progress
+  // 1. Listen to live staff location when booking is in progress
   React.useEffect(() => {
     if (!booking || booking.status !== "in_progress") return;
 
@@ -114,6 +169,49 @@ export default function BookingDetails() {
 
     return () => {
       isActive = false;
+      if (socket) {
+        socket.emit("leave_booking", String(booking.id));
+        socket.disconnect();
+      }
+    };
+  }, [booking?.status, booking?.id]);
+
+  // 2. Emit simulated GPS coordinates when job is en_route
+  React.useEffect(() => {
+    if (!booking || booking.status !== "en_route") return;
+
+    let socket: Socket | null = null;
+    let mockInterval: any = null;
+
+    try {
+      socket = io(API_URL, { transports: ["websocket"] });
+      socket.on("connect", () => {
+        socket?.emit("join_booking", String(booking.id));
+      });
+
+      let currentLat = Number(booking.company?.latitude) || 11.5615;
+      let currentLng = Number(booking.company?.longitude) || 104.9310;
+      const targetLat = Number(booking.latitude) || 11.5564;
+      const targetLng = Number(booking.longitude) || 104.9282;
+
+      mockInterval = setInterval(() => {
+        // Move 15% closer to customer on each tick
+        currentLat += (targetLat - currentLat) * 0.15;
+        currentLng += (targetLng - currentLng) * 0.15;
+
+        // Emit staff location update over WebSocket
+        socket?.emit("staff_location_update", {
+          bookingId: String(booking.id),
+          latitude: currentLat,
+          longitude: currentLng
+        });
+      }, 3000);
+    } catch (e) {
+      console.warn("Failed to connect staff socket updates:", e);
+    }
+
+    return () => {
+      if (mockInterval) clearInterval(mockInterval);
       if (socket) {
         socket.emit("leave_booking", String(booking.id));
         socket.disconnect();
@@ -303,12 +401,50 @@ export default function BookingDetails() {
               )}
             </View>
           ) : (
-            <View style={s.unassignedRow}>
-              <Text style={s.unassignedText}>No staff assigned yet</Text>
-              {booking.status === "pending" && (
-                <View style={{ gap: 8, alignItems: 'flex-end' }}>
+            <View>
+              <View style={s.unassignedRow}>
+                <Text style={s.unassignedText}>No staff assigned yet</Text>
+                {booking.status === "pending" && (
                   <TouchableOpacity style={[s.assignBtn, { backgroundColor: "#FEE2E2" }]} onPress={() => setRejectModalOpen(true)}>
                     <Text style={[s.assignBtnText, { color: "#991B1B" }]}>Decline</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              {/* Staff Assignment chip list */}
+              {staffList.length > 0 && (
+                <View style={{ gap: 8, marginTop: 12 }}>
+                  <Text style={{ fontSize: 11, fontWeight: "800", color: T.text3, textTransform: "uppercase", letterSpacing: 0.5 }}>Select Staff to Assign:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+                    {staffList.map((sMember) => {
+                      const isSel = selectedStaffId === sMember.id.toString();
+                      return (
+                        <TouchableOpacity
+                          key={sMember.id}
+                          onPress={() => setSelectedStaffId(sMember.id.toString())}
+                          style={[
+                            s.staffChip,
+                            isSel && s.staffChipActive
+                          ]}
+                        >
+                          <Text style={[s.staffChipText, isSel && s.staffChipTextActive]}>
+                            {sMember.user?.fullName || "Staff"}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                  
+                  <TouchableOpacity
+                    style={[s.assignBtn, { marginTop: 8, alignItems: 'center', backgroundColor: T.accent }]}
+                    onPress={handleAssignStaff}
+                    disabled={assigning || !selectedStaffId}
+                  >
+                    {assigning ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={[s.assignBtnText, { color: '#fff' }]}>Assign Selected Staff</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               )}
@@ -339,9 +475,51 @@ export default function BookingDetails() {
           </View>
         </View>
 
+        {/* Action Controls for Staff Execution */}
+        {booking.assignedStaff && (
+          <View style={{ gap: 12, marginTop: 8 }}>
+            {(booking.status === "assigned" || booking.status === "confirmed") && (
+              <TouchableOpacity
+                style={[s.primaryActionBtn, { backgroundColor: T.accent }]}
+                onPress={() => handleStatusUpdate("en-route", "You are now en route to the location!")}
+                disabled={updatingStatus}
+              >
+                {updatingStatus ? <ActivityIndicator color="#fff" /> : <Text style={s.primaryActionText}>Start Travel (Dispatch)</Text>}
+              </TouchableOpacity>
+            )}
+
+            {booking.status === "en_route" && (
+              <TouchableOpacity
+                style={[s.primaryActionBtn, { backgroundColor: T.success }]}
+                onPress={() => handleStatusUpdate("arrive", "You have arrived at the customer's location!")}
+                disabled={updatingStatus}
+              >
+                {updatingStatus ? <ActivityIndicator color="#fff" /> : <Text style={s.primaryActionText}>Mark as Arrived</Text>}
+              </TouchableOpacity>
+            )}
+
+            {booking.status === "arrived" && (
+              <TouchableOpacity
+                style={[s.primaryActionBtn, { backgroundColor: T.accentMid }]}
+                onPress={() => handleStatusUpdate("start", "Service is now in progress!")}
+                disabled={updatingStatus}
+              >
+                {updatingStatus ? <ActivityIndicator color="#fff" /> : <Text style={s.primaryActionText}>Start Service Work</Text>}
+              </TouchableOpacity>
+            )}
+
+            {booking.status === "in_progress" && (
+              <TouchableOpacity
+                style={[s.primaryActionBtn, { backgroundColor: T.success }]}
+                onPress={() => handleStatusUpdate("complete", "Job successfully completed!")}
+                disabled={updatingStatus}
+              >
+                {updatingStatus ? <ActivityIndicator color="#fff" /> : <Text style={s.primaryActionText}>Complete Service</Text>}
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </ScrollView>
-
-
 
       {/* Reject Modal */}
       <Modal visible={rejectModalOpen} animationType="slide" transparent>
@@ -453,4 +631,13 @@ const s = StyleSheet.create({
   // Skeleton
   skeletonBadge: { height: 24, backgroundColor: T.border, borderRadius: 12 },
   skeletonCard: { backgroundColor: T.surface, borderRadius: 16, borderWidth: 1, borderColor: T.border },
+
+  // Custom Controls
+  staffChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: T.surface, borderOpacity: 0.1, borderWidth: 1, borderColor: T.border },
+  staffChipActive: { backgroundColor: T.accentMid, borderColor: T.accentMid },
+  staffChipText: { fontSize: 13, fontWeight: "600", color: T.text2 },
+  staffChipTextActive: { color: "#fff", fontWeight: "700" },
+
+  primaryActionBtn: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  primaryActionText: { color: '#fff', fontSize: 15, fontWeight: '800' }
 });

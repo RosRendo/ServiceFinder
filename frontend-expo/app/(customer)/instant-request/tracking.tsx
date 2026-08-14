@@ -27,7 +27,7 @@ export default function InstantRequestTracking() {
 
   const stepCount = useRef(0);
 
-  // 1. Fetch booking details
+  // 1. Fetch & Poll booking details
   useEffect(() => {
     async function loadBooking() {
       if (!bookingId) return;
@@ -48,7 +48,28 @@ export default function InstantRequestTracking() {
       }
     }
     loadBooking();
+
+    // Poll status from DB every 5 seconds to sync with staff acceptance/travel steps
+    const pollInterval = setInterval(loadBooking, 5000);
+    return () => clearInterval(pollInterval);
   }, [bookingId]);
+
+  // 1.5. Synchronize local status state with database status
+  useEffect(() => {
+    if (!booking) return;
+    const dbStatus = booking.status;
+    if (dbStatus === "en_route") {
+      setStatus("on_the_way");
+    } else if (dbStatus === "arrived") {
+      setStatus("arrived");
+      setEtaVal("Arrived");
+    } else if (dbStatus === "in_progress") {
+      setStatus("in_progress");
+      setEtaVal("In Progress");
+    } else if (dbStatus === "confirmed" || dbStatus === "assigned") {
+      setStatus("confirmed");
+    }
+  }, [booking?.status]);
 
   // 2. WebSocket live updates connection
   useEffect(() => {
