@@ -13,7 +13,7 @@ import { usePayments } from "@/hooks/usePayments";
 import SuccessOverlay from "@/components/SuccessOverlay";
 import QRCode from "react-native-qrcode-svg";
 import { Theme } from "@/constants/theme";
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import FadeIn from "@/components/FadeIn";
 import ScaleButton from "@/components/ScaleButton";
 
@@ -258,7 +258,6 @@ export default function CheckoutScreen() {
         <FadeIn delay={100}>
           <View style={s.mapCard}>
             <MapView
-              provider={PROVIDER_GOOGLE}
               style={s.map}
               key={`${displayLat}-${displayLng}`}
               initialRegion={{
