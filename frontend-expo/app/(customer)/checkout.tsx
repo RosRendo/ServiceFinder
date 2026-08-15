@@ -167,44 +167,31 @@ export default function CheckoutScreen() {
       return;
     }
 
-    // ABA PayWay
+    // ABA PayWay (QR / Deeplink)
     const result = await processAbaPayment(activeBookingId as string);
     if (result?.success && result?.data) {
-      const html = `
-        <html>
-          <body onload="document.forms[0].submit()">
-            <form method="POST" action="${result.data.url}">
-              <input type="hidden" name="req_time" value="${result.data.req_time}" />
-              <input type="hidden" name="merchant_id" value="${result.data.merchant_id}" />
-              <input type="hidden" name="tran_id" value="${result.data.tran_id}" />
-              <input type="hidden" name="amount" value="${result.data.amount}" />
-              <input type="hidden" name="items" value='${result.data.items}' />
-              <input type="hidden" name="hash" value="${result.data.hash}" />
-              <input type="hidden" name="firstname" value="${result.data.firstname}" />
-              <input type="hidden" name="lastname" value="${result.data.lastname}" />
-              <input type="hidden" name="email" value="${result.data.email}" />
-              <input type="hidden" name="phone" value="${result.data.phone}" />
-              <input type="hidden" name="return_url" value="${result.data.return_url}" />
-              <input type="hidden" name="continue_success_url" value="${result.data.continue_success_url}" />
-            </form>
-          </body>
-        </html>
-      `;
-      setAbaHtml(html);
-      setIsProcessing(false);
+      const abaData = result.data;
+      if (abaData.success && abaData.qrString) {
+        // Use the same KHQR modal for ABA QR
+        setKhqrString(abaData.qrString);
+        setKhqrAmount(abaData.amount);
+        
+        // If we have a deeplink, we could theoretically open it, but for now we just show QR
+        if (abaData.abapay_deeplink && Platform.OS !== 'web') {
+           // We'll just show the QR, but we can store the deeplink if we want a button for it later
+        }
+
+        if (!bookingId) {
+          setBooking({ id: activeBookingId });
+        }
+        setIsProcessing(false);
+      } else {
+        setPayError(abaData.message || "Failed to generate ABA QR.");
+        setIsProcessing(false);
+      }
     } else {
       setPayError((result as any)?.message || "Payment initiation failed");
       setIsProcessing(false);
-    }
-  };
-
-  const onAbaNavStateChange = (navState: any) => {
-    if (navState.url.includes("success")) {
-      setAbaHtml(null);
-      setShowSuccess(true);
-    } else if (navState.url.includes("fail") || navState.url.includes("cancel")) {
-      setAbaHtml(null);
-      setPayError("Payment was cancelled or failed.");
     }
   };
 

@@ -35,6 +35,7 @@ export interface ExploreService {
     };
   };
   bookingCount?: number;
+  distanceKm?: number | null;
 }
 
 export interface ExploreCompany {

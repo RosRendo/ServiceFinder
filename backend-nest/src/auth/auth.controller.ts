@@ -26,6 +26,7 @@ import { VerifyResetDto } from './dto/verify-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { FacebookLoginDto } from './dto/facebook-login.dto';
+import { AppleLoginDto } from './dto/apple-login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -235,6 +236,24 @@ export class AuthController {
   ) {
     const { message, user, accessToken, refreshToken } =
       await this.authService.facebookLogin(facebookLoginDto);
+    this.setAuthCookies(res, accessToken, refreshToken);
+    return { message, user, token: accessToken };
+  }
+
+  @Post('apple')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Apple OAuth login' })
+  @ApiResponse({
+    status: 200,
+    description: 'User successfully logged in via Apple',
+  })
+  @ApiResponse({ status: 401, description: 'Invalid Apple token' })
+  async appleLogin(
+    @Body() appleLoginDto: AppleLoginDto,
+    @Res({ passthrough: true }) res: express.Response,
+  ) {
+    const { message, user, accessToken, refreshToken } =
+      await this.authService.appleLogin(appleLoginDto);
     this.setAuthCookies(res, accessToken, refreshToken);
     return { message, user, token: accessToken };
   }

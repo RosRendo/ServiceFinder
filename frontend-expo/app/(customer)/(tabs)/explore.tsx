@@ -287,6 +287,13 @@ function ServiceRow({ service, onPress }: { service: ExploreService; onPress: ()
               <MaterialIcons name="schedule" size={11} color={T.text2} />
               <Text style={s.metaChipText}>{service.durationMin} {t('home.min')}</Text>
             </View>
+            {/* Distance chip */}
+            {service.distanceKm !== undefined && service.distanceKm !== null && (
+              <View style={[s.metaChip, { backgroundColor: T.accentLight }]}>
+                <MaterialIcons name="location-on" size={11} color={T.accent} />
+                <Text style={[s.metaChipText, { color: T.accent }]}>{service.distanceKm} km</Text>
+              </View>
+            )}
             {/* Verified chip */}
             {service.company.verified && (
               <View style={[s.metaChip, { backgroundColor: "#ECFDF5" }]}>
@@ -404,9 +411,12 @@ export default function Explore() {
 
   // Debounced search — 400ms after last keystroke
   useEffect(() => {
-    const timer = setTimeout(() => { searchServices(searchInput); }, 400);
+    const filters = location
+      ? { lat: location.coords.latitude, lng: location.coords.longitude }
+      : {};
+    const timer = setTimeout(() => { searchServices(searchInput, filters); }, 400);
     return () => clearTimeout(timer);
-  }, [searchInput]);
+  }, [searchInput, location]);
 
   const filteredServices = activeCategory
     ? services.filter((s) => s.serviceType?.category?.slug === activeCategory)

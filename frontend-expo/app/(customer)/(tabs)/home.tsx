@@ -25,6 +25,7 @@ import NotificationBell from "@/components/NotificationBell";
 import FadeIn from "@/components/FadeIn";
 import ScaleButton from "@/components/ScaleButton";
 import { Theme } from "@/constants/theme";
+import * as Location from "expo-location";
 
 const { width } = Dimensions.get("window");
 
@@ -143,13 +144,52 @@ export default function Home() {
     sponsoredCompanies,
   } = useCustomerHomeStore();
 
-  useEffect(() => { fetchHomeData(); }, []);
-  const onRefresh = useCallback(() => { fetchHomeData(); }, []);
+  const fetchLocationAndData = useCallback(async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        await fetchHomeData(loc.coords.latitude, loc.coords.longitude);
+      } else {
+        await fetchHomeData();
+      }
+    } catch (e) {
+      console.warn("Failed to get location: ", e);
+      await fetchHomeData();
+    }
+  }, [fetchHomeData]);
+
+  useEffect(() => {
+    fetchLocationAndData();
+  }, [fetchLocationAndData]);
+
+  const onRefresh = useCallback(() => {
+    fetchLocationAndData();
+  }, [fetchLocationAndData]);
 
   const firstName = user?.name?.split(" ")[0] || "there";
   const locationLabel = (user as any)?.city
     ? `${(user as any).city}${(user as any).state ? ", " + (user as any).state : ""}`
-    : "Nearby Services";
+    : "Phnom Penh";
+
+  const [selectedPopularCategory, setSelectedPopularCategory] = React.useState("All");
+
+  const popularFilterChips = useMemo(() => {
+    const base = ["All"];
+    categories.slice(0, 4).forEach(c => base.push(c.name));
+    return base;
+  }, [categories]);
+
+  const filteredPopularServices = useMemo(() => {
+    if (selectedPopularCategory === "All") return trendingServices;
+    return trendingServices.filter((st) => {
+      const catName = (st.serviceType?.category?.name || "").toLowerCase();
+      const typeName = (st.serviceType?.name || "").toLowerCase();
+      const serviceName = (st.name || "").toLowerCase();
+      const target = selectedPopularCategory.toLowerCase();
+      return catName.includes(target) || typeName.includes(target) || serviceName.includes(target);
+    });
+  }, [selectedPopularCategory, trendingServices]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -477,6 +517,115 @@ export default function Home() {
                 </ScrollView>
               </View>
             )}
+            {/* ─── POPULAR NEAR YOU ──────────────────────────────────── */}
+            <View style={{ marginTop: 32 }}>
+              <View style={s.sectionHeader}>
+                <View>
+                  <Text style={s.sectionTitle}>Popular Near You</Text>
+                  <Text style={{ fontSize: 12, color: T.text3, marginTop: 4 }}>
+                    Services customers around {locationLabel} are booking
+                  </Text>
+                </View>
+              </View>
+
+              {/* Category Filters */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 24, marginVertical: 12, gap: 8 }}
+              >
+                {popularFilterChips.map((chip) => {
+                  const active = selectedPopularCategory === chip;
+                  return (
+                    <TouchableOpacity
+                      key={chip}
+                      onPress={() => setSelectedPopularCategory(chip)}
+                      style={[
+                        {
+                          paddingHorizontal: 14,
+                          paddingVertical: 8,
+                          borderRadius: 100,
+                          backgroundColor: "#F3F4F6",
+                          borderWidth: 1,
+                          borderColor: "#E5E7EB",
+                        },
+                        active && {
+                          backgroundColor: T.text1,
+                          borderColor: T.text1,
+                        },
+                      ]}
+                    >
+                      <Text style={{ fontSize: 13, color: active ? "#FFF" : T.text2, fontWeight: "600" }}>
+                        {chip}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {isLoading && trendingServices.length === 0 ? (
+                <View style={{ marginTop: 16 }}><ServiceCardSkeleton /></View>
+              ) : filteredPopularServices.length === 0 ? (
+                <Text style={{ fontSize: 14, color: T.text3, paddingHorizontal: 24, paddingVertical: 12 }}>
+                  No services found in this category.
+                </Text>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, gap: 12, paddingBottom: 4 }}
+                >
+                  {filteredPopularServices.map((st, i) => (
+                    <FadeIn key={st.id} delay={i * 100}>
+                      <PressCard onPress={() => router.push(`/(customer)/service/${st.id}` as any)}>
+                        <View style={s.serviceCard}>
+                          <View style={s.serviceImgBox}>
+                            {st.image ? (
+                              <Image source={{ uri: st.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                            ) : (
+                              <View style={[StyleSheet.absoluteFillObject, { alignItems: "center", justifyContent: "center", backgroundColor: T.accentLight }]}>
+                                <MaterialCommunityIcons name={getCategoryIcon(st.serviceType?.name || st.name)} size={36} color={T.accentMid} />
+                              </View>
+                            )}
+                            <View style={s.priceBadge}>
+                              <Text style={s.priceBadgeText}>${st.basePrice}</Text>
+                            </View>
+                            <View style={s.catBadge}>
+                              {st.serviceType?.category?.useImageAsBadge && st.serviceType?.category?.imageUrl ? (
+                                <Image source={{ uri: st.serviceType.category.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                              ) : (
+                                <MaterialCommunityIcons name={(st.serviceType?.category?.icon as any) || getCategoryIcon(st.serviceType?.category?.name || st.serviceType?.name || st.name)} size={18} color="#fff" />
+                              )}
+                            </View>
+                            {(st.company as any)?.ratingSummary && (
+                              <View style={s.ratingBadge}>
+                                <MaterialIcons name="star" size={10} color={T.gold} />
+                                <Text style={s.ratingBadgeText}>
+                                  {Number((st.company as any).ratingSummary.averageRating).toFixed(1)}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                          <View style={s.serviceCardBody}>
+                            <Text style={s.serviceCardTitle} numberOfLines={2}>{st.name}</Text>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                              <Text style={[s.serviceCardProvider, { flex: 1, marginTop: 0 }]} numberOfLines={1}>
+                                {st.company?.name || 'Verified Provider'}
+                              </Text>
+                              {(st as any).distanceKm !== undefined && (st as any).distanceKm !== null && (
+                                <Text style={{ fontSize: 11, color: T.accent, fontWeight: '700', marginLeft: 4 }}>
+                                  {(st as any).distanceKm} km
+                                </Text>
+                              )}
+                            </View>
+                          </View>
+                        </View>
+                      </PressCard>
+                    </FadeIn>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
 
             {/* ─── TRENDING SERVICE TYPES ───────────────────────────── */}
             <View style={{ marginTop: 32 }}>

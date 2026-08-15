@@ -16,6 +16,9 @@ model User {
   phone                     String?                   @unique @db.VarChar(20)
   avatar                    String?
   passwordHash              String?                   @map("password_hash") @db.VarChar(255)
+  googleId                  String?                   @unique @map("google_id") @db.VarChar(255)
+  appleId                   String?                   @unique @map("apple_id") @db.VarChar(255)
+  facebookId                String?                   @unique @map("facebook_id") @db.VarChar(255)
   role                      UserRole
   status                    UserStatus                @default(active)
   workingStatus             String                    @default("offline") @map("working_status")

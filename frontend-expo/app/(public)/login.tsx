@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthStore, api } from "@/store/authStore";
 import { useSocialAuth } from "@/hooks/useSocialAuth";
 import { useTranslation } from "react-i18next";
+import Toast from "react-native-toast-message";
 import { Theme } from "@/constants/theme";
 import { COUNTRIES } from "@/constants/countries";
 
@@ -23,7 +24,7 @@ export default function Login() {
   const params = useLocalSearchParams();
   const { t } = useTranslation();
   const verifyOtp = useAuthStore((s) => s.verifyOtp);
-  const { promptGoogleAsync, promptFacebookAsync, isGoogleReady, isFacebookReady } = useSocialAuth();
+  const { promptGoogleAsync, promptFacebookAsync, promptAppleAsync, isGoogleReady, isFacebookReady, isAppleReady } = useSocialAuth();
 
   const [step, setStep] = useState<"phone" | "otp" | "email" | "mfa">("phone");
   const [confirm, setConfirm] = useState<any>(null);
@@ -144,19 +145,9 @@ export default function Login() {
 
   const handleSocialLogin = async (provider: "google" | "facebook" | "apple") => {
     if (provider === "apple") {
-      setIsLoading(true);
-      setError("");
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        await useAuthStore.getState().login("customer1@demo.com", "password123");
-        const user = useAuthStore.getState().user;
-        if (!user) return setError("Login failed: No user data.");
-        navigateUser(user);
-      } catch (err: any) {
-        setError("Failed to simulate Apple Sign-In.");
-      } finally {
-        setIsLoading(false);
-      }
+      if (isAppleReady) await promptAppleAsync();
+      else if (Platform.OS !== 'ios') Toast.show({ type: 'info', text1: 'Apple Sign-In is only available on iOS.' });
+      else Alert.alert("Apple Login Unavailable", "Please ensure Apple Sign-In is configured.");
     } else if (provider === "google") {
       if (isGoogleReady) await promptGoogleAsync();
       else Alert.alert("Google Login Unavailable", "Please add your Google Client IDs to the .env file.");

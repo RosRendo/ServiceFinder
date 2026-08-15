@@ -108,6 +108,9 @@ export declare class ReviewsService {
                     phone: string | null;
                     avatar: string | null;
                     passwordHash: string | null;
+                    googleId: string | null;
+                    appleId: string | null;
+                    facebookId: string | null;
                     workingStatus: string;
                     lastSeen: Date | null;
                     lastLoginAt: Date | null;
@@ -281,6 +284,9 @@ export declare class ReviewsService {
                     phone: string | null;
                     avatar: string | null;
                     passwordHash: string | null;
+                    googleId: string | null;
+                    appleId: string | null;
+                    facebookId: string | null;
                     workingStatus: string;
                     lastSeen: Date | null;
                     lastLoginAt: Date | null;
@@ -409,6 +415,9 @@ export declare class ReviewsService {
                     phone: string | null;
                     avatar: string | null;
                     passwordHash: string | null;
+                    googleId: string | null;
+                    appleId: string | null;
+                    facebookId: string | null;
                     workingStatus: string;
                     lastSeen: Date | null;
                     lastLoginAt: Date | null;
@@ -537,6 +546,9 @@ export declare class ReviewsService {
                     phone: string | null;
                     avatar: string | null;
                     passwordHash: string | null;
+                    googleId: string | null;
+                    appleId: string | null;
+                    facebookId: string | null;
                     workingStatus: string;
                     lastSeen: Date | null;
                     lastLoginAt: Date | null;

@@ -20,11 +20,14 @@ export declare class ServicesService {
             isActive: boolean;
             image: string | null;
             checklist: import("@prisma/client/runtime/library").JsonValue;
+            distanceKm: number | null;
             company: {
                 id: string;
                 name: string;
                 city: string | null;
                 verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+                latitude: number | null;
+                longitude: number | null;
             };
             serviceType: {
                 id: string;

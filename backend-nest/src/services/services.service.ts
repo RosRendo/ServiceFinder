@@ -9,6 +9,24 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { SearchService } from '../search/search.service';
 
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    ;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c; // Distance in km
+  return d;
+}
+
+function deg2rad(deg: number): number {
+  return deg * (Math.PI / 180);
+}
+
 @Injectable()
 export class ServicesService {
   constructor(
@@ -28,6 +46,8 @@ export class ServicesService {
       rating,
       page = 1,
       limit = 10,
+      lat,
+      lng,
     } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
@@ -94,6 +114,8 @@ export class ServicesService {
               name: true,
               city: true,
               verificationStatus: true,
+              latitude: true,
+              longitude: true,
             },
           },
           serviceType: {
@@ -105,41 +127,72 @@ export class ServicesService {
       this.prisma.service.count({ where }),
     ]);
 
-    const formattedServices = services.map((service) => ({
-      id: service.id.toString(),
-      companyId: service.companyId.toString(),
-      serviceTypeId: service.serviceTypeId.toString(),
-      name: service.name,
-      description: service.description,
-      basePrice: Number(service.basePrice),
-      platformFee: Number(service.basePrice) * 0.1,
-      durationMin: service.durationMin,
-      durationMax: service.durationMax,
-      isActive: service.isActive,
-      image: service.image,
-      checklist: service.checklist,
-      company: {
-        id: service.company.id.toString(),
-        name: service.company.name,
-        city: service.company.city,
-        verificationStatus: service.company.verificationStatus,
-      },
-      serviceType: {
-        id: service.serviceType.id.toString(),
-        name: service.serviceType.name,
-        slug: service.serviceType.slug,
-        category: {
-          id: service.serviceType.category.id.toString(),
-          name: service.serviceType.category.name,
-          slug: service.serviceType.category.slug,
-          icon: service.serviceType.category.icon,
-          imageUrl: service.serviceType.category.imageUrl,
-          useImageAsBadge: service.serviceType.category.useImageAsBadge,
+    const formattedServices = services.map((service) => {
+      let distanceKm: number | null = null;
+      const userLat = lat ? parseFloat(lat) : NaN;
+      const userLng = lng ? parseFloat(lng) : NaN;
+      if (!isNaN(userLat) && !isNaN(userLng) && service.company.latitude && service.company.longitude) {
+        distanceKm = Number(
+          getDistanceKm(
+            userLat,
+            userLng,
+            Number(service.company.latitude),
+            Number(service.company.longitude),
+          ).toFixed(1)
+        );
+      }
+
+      return {
+        id: service.id.toString(),
+        companyId: service.companyId.toString(),
+        serviceTypeId: service.serviceTypeId.toString(),
+        name: service.name,
+        description: service.description,
+        basePrice: Number(service.basePrice),
+        platformFee: Number(service.basePrice) * 0.1,
+        durationMin: service.durationMin,
+        durationMax: service.durationMax,
+        isActive: service.isActive,
+        image: service.image,
+        checklist: service.checklist,
+        distanceKm,
+        company: {
+          id: service.company.id.toString(),
+          name: service.company.name,
+          city: service.company.city,
+          verificationStatus: service.company.verificationStatus,
+          latitude: service.company.latitude ? Number(service.company.latitude) : null,
+          longitude: service.company.longitude ? Number(service.company.longitude) : null,
         },
-      },
-      createdAt: service.createdAt,
-      updatedAt: service.updatedAt,
-    }));
+        serviceType: {
+          id: service.serviceType.id.toString(),
+          name: service.serviceType.name,
+          slug: service.serviceType.slug,
+          category: {
+            id: service.serviceType.category.id.toString(),
+            name: service.serviceType.category.name,
+            slug: service.serviceType.category.slug,
+            icon: service.serviceType.category.icon,
+            imageUrl: service.serviceType.category.imageUrl,
+            useImageAsBadge: service.serviceType.category.useImageAsBadge,
+          },
+        },
+        createdAt: service.createdAt,
+        updatedAt: service.updatedAt,
+      };
+    });
+
+    if (lat && lng) {
+      const userLat = parseFloat(lat);
+      const userLng = parseFloat(lng);
+      if (!isNaN(userLat) && !isNaN(userLng)) {
+        formattedServices.sort((a, b) => {
+          if (a.distanceKm === null) return 1;
+          if (b.distanceKm === null) return -1;
+          return a.distanceKm - b.distanceKm;
+        });
+      }
+    }
 
     return {
       data: formattedServices,

@@ -87,6 +87,7 @@ export default function MapViewScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
   const [minRating, setMinRating] = useState(0);
+  const [isRemoteFallback, setIsRemoteFallback] = useState(false);
   const webviewRef = useRef<WebView>(null);
   const mapViewRef = useRef<MapView>(null);
 
@@ -163,6 +164,21 @@ export default function MapViewScreen() {
     }
     if (showVerifiedOnly) out = out.filter(c => c.verified);
     if (minRating > 0) out = out.filter(c => c.rating >= minRating);
+
+    // Apply radius filtering (50km) if user location is resolved
+    if (userLoc) {
+      const local = out.filter(c => haversine(userLoc.lat, userLoc.lng, c.lat, c.lng) <= 50);
+      if (local.length > 0) {
+        out = local;
+        setIsRemoteFallback(false);
+      } else {
+        // Fallback to showing remote providers so list is not blank in sandbox sandbox
+        setIsRemoteFallback(true);
+      }
+    } else {
+      setIsRemoteFallback(false);
+    }
+
     out.sort((a, b) => {
       if (sortMode === "rating") return b.rating - a.rating;
       if (sortMode === "reviews") return b.reviewCount - a.reviewCount;
@@ -336,7 +352,20 @@ export default function MapViewScreen() {
                   <View style={[s.pill, CARD_SHADOW]}>
                     <MaterialCommunityIcons name="map-marker-multiple" size={14} color={T.accent} />
                     <Text style={s.pillText}>{filtered.length} provider{filtered.length !== 1 ? "s" : ""}</Text>
-                    {userLoc && <><View style={s.pillDivider} /><MaterialCommunityIcons name="crosshairs-gps" size={13} color="#3B82F6" /><Text style={[s.pillText, { color: "#3B82F6" }]}>Located</Text></>}
+                    {userLoc && (
+                      <>
+                        <View style={s.pillDivider} />
+                        <MaterialCommunityIcons name="crosshairs-gps" size={13} color="#3B82F6" />
+                        <Text style={[s.pillText, { color: "#3B82F6" }]}>Located</Text>
+                      </>
+                    )}
+                    {isRemoteFallback && (
+                      <>
+                        <View style={s.pillDivider} />
+                        <MaterialCommunityIcons name="alert-circle-outline" size={13} color="#F59E0B" />
+                        <Text style={[s.pillText, { color: "#F59E0B" }]}>Sandbox (Remote)</Text>
+                      </>
+                    )}
                   </View>
                 </Animated.View>
               )}
@@ -430,40 +459,54 @@ function ListProviderCard({ company, index, userLoc, onPress, onNavigate }: {
     Animated.timing(anim, { toValue: 1, duration: 350, delay: index * 55, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
   }, []);
   const dist = userLoc ? haversine(userLoc.lat, userLoc.lng, company.lat, company.lng) : null;
-  const rc = ratingColor(company.rating);
+
+  const metaParts: string[] = [];
+  if (dist !== null) {
+    metaParts.push(dist < 1 ? `${Math.round(dist * 1000)}m away` : `${dist.toFixed(1)} km away`);
+  }
+  if (company.city) {
+    metaParts.push(company.city);
+  }
+
   return (
     <Animated.View style={{ opacity: anim, transform: [{ translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }}>
-      <Pressable onPress={onPress} style={({ pressed }) => [s.listCard, CARD_SHADOW, pressed && { opacity: 0.85 }]}>
+      <Pressable onPress={() => onNavigate(company.id)} style={({ pressed }) => [s.listCard, CARD_SHADOW, pressed && { opacity: 0.95 }]}>
         <View style={s.listLogo}>
           {company.logoUrl ? (
             <Image source={{ uri: company.logoUrl }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
           ) : (
             <Text style={s.listLogoFallback}>{company.name.charAt(0)}</Text>
           )}
-          {company.verified && (
-            <View style={s.listVerifiedBadge}><MaterialCommunityIcons name="shield-check" size={10} color="#fff" /></View>
-          )}
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={s.listName} numberOfLines={1}>{company.name}</Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
-            <View style={[s.ratingBubble, { backgroundColor: rc + "20" }]}>
-              <MaterialCommunityIcons name="star" size={11} color={rc} />
-              <Text style={[s.ratingBubbleText, { color: rc }]}>{company.rating > 0 ? company.rating.toFixed(1) : "New"}</Text>
-            </View>
-            {company.reviewCount > 0 && <Text style={s.listMeta}>({company.reviewCount} reviews)</Text>}
-            {company.city && <Text style={s.listMeta}>· {company.city}</Text>}
+        <View style={{ flex: 1, paddingLeft: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <Text style={s.listName} numberOfLines={1}>{company.name}</Text>
+            {company.verified && (
+              <MaterialCommunityIcons name="shield-check" size={15} color={T.success} />
+            )}
           </View>
-          {dist !== null && (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
-              <MaterialCommunityIcons name="map-marker-distance" size={12} color={T.text3} />
-              <Text style={s.listMeta}>{dist < 1 ? (dist * 1000).toFixed(0) + "m away" : dist.toFixed(1) + " km away"}</Text>
-            </View>
+          
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+            {company.rating > 0 ? (
+              <>
+                <MaterialCommunityIcons name="star" size={14} color={T.gold} />
+                <Text style={s.listRatingText}>{company.rating.toFixed(1)}</Text>
+                {company.reviewCount > 0 && <Text style={s.listMeta}>({company.reviewCount} reviews)</Text>}
+              </>
+            ) : (
+              <Text style={s.listRatingText}>New provider</Text>
+            )}
+          </View>
+
+          {metaParts.length > 0 && (
+            <Text style={s.listMeta} numberOfLines={1}>
+              {metaParts.join(" · ")}
+            </Text>
           )}
         </View>
-        <TouchableOpacity onPress={() => onNavigate(company.id)} style={s.listViewBtn} activeOpacity={0.85}>
-          <Text style={s.listViewBtnText}>View</Text>
-        </TouchableOpacity>
+        <View style={s.listChevron}>
+          <MaterialIcons name="chevron-right" size={20} color={T.text3} />
+        </View>
       </Pressable>
     </Animated.View>
   );
@@ -482,10 +525,8 @@ function SelectedCard({ company, userLoc, onClose, onNavigate }: {
     ]).start();
   }, [company.id]);
   const dist = userLoc ? haversine(userLoc.lat, userLoc.lng, company.lat, company.lng) : null;
-  const rc = ratingColor(company.rating);
   return (
     <Animated.View style={[s.selectedCard, HEAVY_SHADOW, { transform: [{ translateY: slideAnim }, { scale: scaleAnim }] }]}>
-      <View style={s.dragHandle} />
       <TouchableOpacity onPress={onClose} style={s.closeBtn} activeOpacity={0.75}>
         <MaterialIcons name="close" size={16} color={T.text2} />
       </TouchableOpacity>
@@ -497,45 +538,37 @@ function SelectedCard({ company, userLoc, onClose, onNavigate }: {
             <Text style={s.selectedLogoFallback}>{company.name.charAt(0)}</Text>
           )}
         </View>
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <View style={{ flex: 1, paddingLeft: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <Text style={s.selectedName} numberOfLines={1}>{company.name}</Text>
-            {company.verified && <MaterialCommunityIcons name="shield-check" size={16} color="#10B981" />}
-          </View>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-            <View style={[s.ratingBubble, { backgroundColor: rc + "20" }]}>
-              <MaterialCommunityIcons name="star" size={12} color={rc} />
-              <Text style={[s.ratingBubbleText, { color: rc }]}>{company.rating > 0 ? company.rating.toFixed(1) : "New"}</Text>
-            </View>
-            {company.reviewCount > 0 && (
-              <View style={s.metaChip}>
-                <MaterialCommunityIcons name="comment-text" size={11} color={T.text3} />
-                <Text style={s.metaChipText}>{company.reviewCount} reviews</Text>
-              </View>
+            {company.verified && (
+              <MaterialCommunityIcons name="shield-check" size={15} color={T.success} />
             )}
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 5, flexWrap: "wrap", marginTop: 4 }}>
+            {company.rating > 0 ? (
+              <>
+                <MaterialCommunityIcons name="star" size={14} color={T.gold} />
+                <Text style={s.selectedRatingText}>{company.rating.toFixed(1)}</Text>
+                {company.reviewCount > 0 && (
+                  <Text style={s.selectedMeta}>· ({company.reviewCount} reviews)</Text>
+                )}
+              </>
+            ) : (
+              <Text style={s.selectedRatingText}>New provider</Text>
+            )}
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
             {dist !== null && (
-              <View style={s.metaChip}>
-                <MaterialCommunityIcons name="map-marker-distance" size={11} color={T.text3} />
-                <Text style={s.metaChipText}>{dist < 1 ? (dist * 1000).toFixed(0) + "m" : dist.toFixed(1) + "km"}</Text>
-              </View>
+              <Text style={s.selectedMeta}>📍 {dist < 1 ? (dist * 1000).toFixed(0) + "m" : dist.toFixed(1) + " km"} away</Text>
             )}
-            {company.city && (
-              <View style={s.metaChip}>
-                <MaterialCommunityIcons name="map-marker" size={11} color={T.text3} />
-                <Text style={s.metaChipText}>{company.city}</Text>
-              </View>
-            )}
+            {company.city && <Text style={s.selectedMeta}>· {company.city}</Text>}
           </View>
-          {company.description && <Text style={s.selectedDesc} numberOfLines={2}>{company.description}</Text>}
         </View>
       </View>
       <View style={s.actionRow}>
         <TouchableOpacity onPress={() => onNavigate(company.id)} style={s.viewBtn} activeOpacity={0.85}>
-          <MaterialCommunityIcons name="store" size={17} color="#fff" />
-          <Text style={s.viewBtnText}>View Profile</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onClose} style={s.dismissBtn} activeOpacity={0.85}>
-          <Text style={s.dismissText}>Dismiss</Text>
+          <Text style={s.viewBtnText}>View Profile →</Text>
         </TouchableOpacity>
       </View>
     </Animated.View>
@@ -577,29 +610,77 @@ const s = StyleSheet.create({
   nativePinRating: { position: "absolute", bottom: -18, backgroundColor: "rgba(255,255,255,0.95)", borderRadius: 6, paddingHorizontal: 4, paddingVertical: 1 },
   nativePinRatingText: { fontSize: 9, fontWeight: "800", color: "#1E293B" },
   nativePinVerified: { position: "absolute", top: -4, right: -4, width: 12, height: 12, borderRadius: 6, backgroundColor: "#10B981", borderWidth: 1.5, borderColor: "#fff" },
-  listCard: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: T.surface, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: T.border },
-  listLogo: { width: 56, height: 56, borderRadius: 14, backgroundColor: T.accentLight, alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative" },
-  listLogoFallback: { fontSize: 22, fontWeight: "900", color: T.accent },
-  listVerifiedBadge: { position: "absolute", bottom: 0, right: 0, width: 18, height: 18, borderRadius: 9, backgroundColor: "#10B981", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: T.surface },
-  listName: { fontSize: 15, fontWeight: "800", color: T.text1 },
-  listMeta: { fontSize: 12, color: T.text3, fontWeight: "400" },
-  listViewBtn: { backgroundColor: T.accentLight, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
-  listViewBtnText: { fontSize: 13, fontWeight: "700", color: T.accent },
-  ratingBubble: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  ratingBubbleText: { fontSize: 12, fontWeight: "800" },
-  selectedCard: { position: "absolute", bottom: 20, left: 14, right: 14, zIndex: 30, backgroundColor: T.surface, borderRadius: 26, padding: 20, borderWidth: 1, borderColor: T.border },
-  dragHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: T.border, alignSelf: "center", marginBottom: 16 },
-  closeBtn: { position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: 15, backgroundColor: T.bg, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: T.border, zIndex: 40 },
+  
+  // List card styling
+  listCard: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: T.surface, 
+    borderRadius: 16, 
+    padding: 12,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  listLogo: { 
+    width: 64, 
+    height: 64, 
+    borderRadius: 12, 
+    backgroundColor: T.accentLight, 
+    alignItems: "center", 
+    justifyContent: "center", 
+    overflow: "hidden", 
+    position: "relative",
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  listLogoFallback: { fontSize: 24, fontWeight: "900", color: T.accent },
+  listName: { fontSize: 15, fontWeight: "800", color: T.text1, flexShrink: 1 },
+  listRatingText: { fontSize: 13, fontWeight: "700", color: T.text1 },
+  listMeta: { fontSize: 12, color: T.text2, marginTop: 4, fontWeight: "500" },
+  listChevron: { 
+    width: 24, 
+    height: 24, 
+    alignItems: "center", 
+    justifyContent: "center" 
+  },
+
+  // Selected card (Map overlay card) styling
+  selectedCard: { 
+    position: "absolute", 
+    bottom: 20, 
+    left: 14, 
+    right: 14, 
+    zIndex: 30, 
+    backgroundColor: T.surface, 
+    borderRadius: 20, 
+    padding: 16,
+    borderWidth: 1,
+    borderColor: T.border
+  },
+  closeBtn: { 
+    position: "absolute", 
+    top: 12, 
+    right: 12, 
+    width: 28, 
+    height: 28, 
+    borderRadius: 14, 
+    backgroundColor: T.bg, 
+    alignItems: "center", 
+    justifyContent: "center", 
+    borderWidth: 1, 
+    borderColor: T.border, 
+    zIndex: 40 
+  },
   selectedBody: { flexDirection: "row", gap: 14, marginBottom: 16 },
   selectedLogo: { width: 70, height: 70, borderRadius: 18, backgroundColor: T.accentLight, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   selectedLogoFallback: { fontSize: 26, fontWeight: "900", color: T.accent },
   selectedName: { fontSize: 17, fontWeight: "900", color: T.text1, flexShrink: 1 },
+  selectedRatingText: { fontSize: 13, fontWeight: "700", color: T.text1 },
+  selectedMeta: { fontSize: 12, color: T.text2, fontWeight: "500" },
   selectedDesc: { fontSize: 13, color: T.text2, marginTop: 10, lineHeight: 19 },
-  metaChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#F8FAFC", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: T.border },
-  metaChipText: { fontSize: 11, color: T.text3, fontWeight: "600" },
   actionRow: { flexDirection: "row", gap: 12 },
   viewBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: T.accent, borderRadius: 14, height: 48 },
   viewBtnText: { fontSize: 15, fontWeight: "800", color: "#fff" },
-  dismissBtn: { backgroundColor: T.bg, borderRadius: 14, height: 48, paddingHorizontal: 20, alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: T.border },
+  dismissBtn: { backgroundColor: "transparent", borderRadius: 14, height: 48, paddingHorizontal: 20, alignItems: "center", justifyContent: "center" },
   dismissText: { fontSize: 14, fontWeight: "700", color: T.text2 },
 });

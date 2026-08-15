@@ -10,6 +10,7 @@ import { VerifyResetDto } from './dto/verify-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { FacebookLoginDto } from './dto/facebook-login.dto';
+import { AppleLoginDto } from './dto/apple-login.dto';
 import { MfaService } from './mfa.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 export declare class AuthService {
@@ -81,6 +82,9 @@ export declare class AuthService {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            googleId: string | null;
+            appleId: string | null;
+            facebookId: string | null;
             workingStatus: string;
             lastSeen: Date | null;
             lastLoginAt: Date | null;
@@ -123,6 +127,9 @@ export declare class AuthService {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            googleId: string | null;
+            appleId: string | null;
+            facebookId: string | null;
             workingStatus: string;
             lastSeen: Date | null;
             lastLoginAt: Date | null;
@@ -219,6 +226,9 @@ export declare class AuthService {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            googleId: string | null;
+            appleId: string | null;
+            facebookId: string | null;
             workingStatus: string;
             lastSeen: Date | null;
             lastLoginAt: Date | null;
@@ -270,6 +280,9 @@ export declare class AuthService {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            googleId: string | null;
+            appleId: string | null;
+            facebookId: string | null;
             workingStatus: string;
             lastSeen: Date | null;
             lastLoginAt: Date | null;
@@ -310,6 +323,52 @@ export declare class AuthService {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            googleId: string | null;
+            appleId: string | null;
+            facebookId: string | null;
+            workingStatus: string;
+            lastSeen: Date | null;
+            lastLoginAt: Date | null;
+            pushToken: string | null;
+            mfaEnabled: boolean;
+            mfaSecret: string | null;
+            emailNotificationsEnabled: boolean;
+            pushNotificationsEnabled: boolean;
+        };
+        accessToken: string;
+        refreshToken: string;
+    }>;
+    appleLogin(dto: AppleLoginDto): Promise<{
+        message: string;
+        user: {
+            staffProfile: ({
+                company: {
+                    id: bigint;
+                    name: string;
+                };
+            } & {
+                id: bigint;
+                status: import(".prisma/client").$Enums.StaffStatus;
+                createdAt: Date;
+                companyId: bigint;
+                userId: bigint;
+                role: import(".prisma/client").$Enums.StaffRole;
+                creditLimit: import("@prisma/client/runtime/library").Decimal;
+                walletBalance: import("@prisma/client/runtime/library").Decimal;
+                splitPercent: import("@prisma/client/runtime/library").Decimal | null;
+            }) | null;
+            id: bigint;
+            status: import(".prisma/client").$Enums.UserStatus;
+            createdAt: Date;
+            updatedAt: Date;
+            role: import(".prisma/client").$Enums.UserRole;
+            fullName: string;
+            email: string | null;
+            phone: string | null;
+            avatar: string | null;
+            googleId: string | null;
+            appleId: string | null;
+            facebookId: string | null;
             workingStatus: string;
             lastSeen: Date | null;
             lastLoginAt: Date | null;

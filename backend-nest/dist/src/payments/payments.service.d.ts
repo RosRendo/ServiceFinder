@@ -28,22 +28,32 @@ export declare class PaymentsService {
         payment: any;
     }>;
     createAbaCheckout(dto: CheckoutSessionDto, user: any): Promise<{
-        url: any;
-        method: string;
-        body: {
-            hash: string;
-            req_time: string;
-            merchant_id: any;
-            tran_id: string;
-            amount: string;
-            firstname: string;
-            lastname: string;
-            email: string;
-            phone: string;
-            type: string;
-            payment_option: string;
-            return_url: string;
-        };
+        success: boolean;
+        qrString: any;
+        qrImage: any;
+        abapay_deeplink: any;
+        amount: any;
+        currency: any;
+        message?: undefined;
+        rawData?: undefined;
+    } | {
+        success: boolean;
+        message: string;
+        rawData: any;
+        qrString?: undefined;
+        qrImage?: undefined;
+        abapay_deeplink?: undefined;
+        amount?: undefined;
+        currency?: undefined;
+    } | {
+        success: boolean;
+        message: string;
+        qrString?: undefined;
+        qrImage?: undefined;
+        abapay_deeplink?: undefined;
+        amount?: undefined;
+        currency?: undefined;
+        rawData?: undefined;
     }>;
     generateKhqr(dto: CheckoutSessionDto, user: any): Promise<{
         message: string;
@@ -83,6 +93,34 @@ export declare class PaymentsService {
     handleKhqrWebhook(body: any, headers: any): Promise<{
         status: string;
         message: string;
+    }>;
+    generateAbaQR(bookingId: string): Promise<{
+        success: boolean;
+        qrString: any;
+        qrImage: any;
+        abapay_deeplink: any;
+        amount: any;
+        currency: any;
+        message?: undefined;
+        rawData?: undefined;
+    } | {
+        success: boolean;
+        message: string;
+        rawData: any;
+        qrString?: undefined;
+        qrImage?: undefined;
+        abapay_deeplink?: undefined;
+        amount?: undefined;
+        currency?: undefined;
+    } | {
+        success: boolean;
+        message: string;
+        qrString?: undefined;
+        qrImage?: undefined;
+        abapay_deeplink?: undefined;
+        amount?: undefined;
+        currency?: undefined;
+        rawData?: undefined;
     }>;
     handleAbaWebhook(body: any): Promise<{
         received: boolean;

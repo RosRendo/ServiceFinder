@@ -63,14 +63,27 @@ export default {
       "expo-secure-store",
       "@react-native-community/datetimepicker",
       "expo-localization",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-apple-authentication",
+      "@react-native-google-signin/google-signin",
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || "YOUR_FB_APP_ID",
+          "clientToken": process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN || "YOUR_FB_CLIENT_TOKEN",
+          "displayName": "Service Finder",
+          "scheme": process.env.EXPO_PUBLIC_FACEBOOK_SCHEME || "fbYOUR_FB_APP_ID",
+          "advertiserIDCollectionEnabled": false,
+          "autoLogAppEventsEnabled": false,
+          "isAutoInitEnabled": true,
+          "iosUserTrackingPermission": "This identifier will be used to deliver personalized ads to you."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/02f2b95a-56cb-42fe-b2a0-cf2e1d6acbfe"
     },

@@ -13,6 +13,20 @@ exports.ServicesService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const search_service_1 = require("../search/search.service");
+function getDistanceKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c;
+    return d;
+}
+function deg2rad(deg) {
+    return deg * (Math.PI / 180);
+}
 let ServicesService = class ServicesService {
     prisma;
     searchService;
@@ -21,7 +35,7 @@ let ServicesService = class ServicesService {
         this.searchService = searchService;
     }
     async getAllServices(query) {
-        const { companyId, serviceTypeId, categoryId, isActive, search, minPrice, maxPrice, rating, page = 1, limit = 10, } = query;
+        const { companyId, serviceTypeId, categoryId, isActive, search, minPrice, maxPrice, rating, page = 1, limit = 10, lat, lng, } = query;
         const skip = (Number(page) - 1) * Number(limit);
         const where = {};
         if (companyId)
@@ -84,6 +98,8 @@ let ServicesService = class ServicesService {
                             name: true,
                             city: true,
                             verificationStatus: true,
+                            latitude: true,
+                            longitude: true,
                         },
                     },
                     serviceType: {
@@ -94,41 +110,65 @@ let ServicesService = class ServicesService {
             }),
             this.prisma.service.count({ where }),
         ]);
-        const formattedServices = services.map((service) => ({
-            id: service.id.toString(),
-            companyId: service.companyId.toString(),
-            serviceTypeId: service.serviceTypeId.toString(),
-            name: service.name,
-            description: service.description,
-            basePrice: Number(service.basePrice),
-            platformFee: Number(service.basePrice) * 0.1,
-            durationMin: service.durationMin,
-            durationMax: service.durationMax,
-            isActive: service.isActive,
-            image: service.image,
-            checklist: service.checklist,
-            company: {
-                id: service.company.id.toString(),
-                name: service.company.name,
-                city: service.company.city,
-                verificationStatus: service.company.verificationStatus,
-            },
-            serviceType: {
-                id: service.serviceType.id.toString(),
-                name: service.serviceType.name,
-                slug: service.serviceType.slug,
-                category: {
-                    id: service.serviceType.category.id.toString(),
-                    name: service.serviceType.category.name,
-                    slug: service.serviceType.category.slug,
-                    icon: service.serviceType.category.icon,
-                    imageUrl: service.serviceType.category.imageUrl,
-                    useImageAsBadge: service.serviceType.category.useImageAsBadge,
+        const formattedServices = services.map((service) => {
+            let distanceKm = null;
+            const userLat = lat ? parseFloat(lat) : NaN;
+            const userLng = lng ? parseFloat(lng) : NaN;
+            if (!isNaN(userLat) && !isNaN(userLng) && service.company.latitude && service.company.longitude) {
+                distanceKm = Number(getDistanceKm(userLat, userLng, Number(service.company.latitude), Number(service.company.longitude)).toFixed(1));
+            }
+            return {
+                id: service.id.toString(),
+                companyId: service.companyId.toString(),
+                serviceTypeId: service.serviceTypeId.toString(),
+                name: service.name,
+                description: service.description,
+                basePrice: Number(service.basePrice),
+                platformFee: Number(service.basePrice) * 0.1,
+                durationMin: service.durationMin,
+                durationMax: service.durationMax,
+                isActive: service.isActive,
+                image: service.image,
+                checklist: service.checklist,
+                distanceKm,
+                company: {
+                    id: service.company.id.toString(),
+                    name: service.company.name,
+                    city: service.company.city,
+                    verificationStatus: service.company.verificationStatus,
+                    latitude: service.company.latitude ? Number(service.company.latitude) : null,
+                    longitude: service.company.longitude ? Number(service.company.longitude) : null,
                 },
-            },
-            createdAt: service.createdAt,
-            updatedAt: service.updatedAt,
-        }));
+                serviceType: {
+                    id: service.serviceType.id.toString(),
+                    name: service.serviceType.name,
+                    slug: service.serviceType.slug,
+                    category: {
+                        id: service.serviceType.category.id.toString(),
+                        name: service.serviceType.category.name,
+                        slug: service.serviceType.category.slug,
+                        icon: service.serviceType.category.icon,
+                        imageUrl: service.serviceType.category.imageUrl,
+                        useImageAsBadge: service.serviceType.category.useImageAsBadge,
+                    },
+                },
+                createdAt: service.createdAt,
+                updatedAt: service.updatedAt,
+            };
+        });
+        if (lat && lng) {
+            const userLat = parseFloat(lat);
+            const userLng = parseFloat(lng);
+            if (!isNaN(userLat) && !isNaN(userLng)) {
+                formattedServices.sort((a, b) => {
+                    if (a.distanceKm === null)
+                        return 1;
+                    if (b.distanceKm === null)
+                        return -1;
+                    return a.distanceKm - b.distanceKm;
+                });
+            }
+        }
         return {
             data: formattedServices,
             pagination: {

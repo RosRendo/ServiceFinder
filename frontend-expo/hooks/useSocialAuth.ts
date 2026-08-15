@@ -1,96 +1,108 @@
-import { useEffect } from 'react';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
-import * as Facebook from 'expo-auth-session/providers/facebook';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import api from '@/utils/api';
 import Toast from 'react-native-toast-message';
-
-// WebBrowser must be configured for AuthSession to work
-WebBrowser.maybeCompleteAuthSession();
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
+import { Platform } from 'react-native';
 
 export function useSocialAuth() {
-  const { checkAuth } = useAuthStore();
+  const { checkAuth, googleLogin, facebookLogin, appleLogin } = useAuthStore();
+  const [isAppleReady, setIsAppleReady] = useState(false);
 
-  // Google Provider
-  const [googleRequest, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || 'YOUR_WEB_CLIENT_ID',
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || 'YOUR_IOS_CLIENT_ID',
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || 'YOUR_ANDROID_CLIENT_ID',
-  });
-
-  // Facebook Provider
-  const [facebookRequest, facebookResponse, promptFacebookAsync] = Facebook.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || 'YOUR_FACEBOOK_APP_ID',
-  });
-
-  // Handle Google Auth Response
   useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      const { authentication } = googleResponse;
-      if (authentication?.idToken) {
-        handleBackendLogin('google', authentication.idToken);
-      } else if (authentication?.accessToken) {
-        // Fallback for access token if idToken is unavailable
-        handleBackendLogin('google', authentication.accessToken);
-      }
-    } else if (googleResponse?.type === 'error') {
-      Toast.show({
-        type: 'error',
-        text1: 'Google Login Failed',
-        text2: googleResponse.error?.message || 'An unknown error occurred.',
-      });
-    }
-  }, [googleResponse]);
+    // Configure Google Sign-In
+    GoogleSignin.configure({
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '', // From Google Console
+      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '',
+      offlineAccess: true,
+      scopes: ['profile', 'email'],
+    });
 
-  // Handle Facebook Auth Response
-  useEffect(() => {
-    if (facebookResponse?.type === 'success') {
-      const { authentication } = facebookResponse;
-      if (authentication?.accessToken) {
-        handleBackendLogin('facebook', authentication.accessToken);
+    // Check Apple Sign-In availability
+    const checkApple = async () => {
+      if (Platform.OS === 'ios') {
+        const available = await AppleAuthentication.isAvailableAsync();
+        setIsAppleReady(available);
       }
-    } else if (facebookResponse?.type === 'error') {
-      Toast.show({
-        type: 'error',
-        text1: 'Facebook Login Failed',
-        text2: facebookResponse.error?.message || 'An unknown error occurred.',
-      });
-    }
-  }, [facebookResponse]);
+    };
+    checkApple();
+  }, []);
 
-  const handleBackendLogin = async (provider: 'google' | 'facebook', token: string) => {
+  const promptGoogleAsync = async () => {
     try {
-      // Choose endpoint
-      const endpoint = provider === 'google' ? '/api/auth/google' : '/api/auth/facebook';
-      
-      const res = await api.post(endpoint, { token });
-      
-      // If backend returns a token, we successfully authenticated
-      if (res.data?.token) {
-        Toast.show({
-          type: 'success',
-          text1: 'Welcome!',
-          text2: 'Successfully logged in with ' + (provider === 'google' ? 'Google' : 'Facebook'),
-        });
-        
-        // This will fetch user/me and update the Zustand auth store
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const tokens = await GoogleSignin.getTokens();
+      if (tokens.idToken) {
+        await googleLogin(tokens.idToken);
+        Toast.show({ type: 'success', text1: 'Welcome!', text2: 'Successfully logged in with Google' });
         await checkAuth();
       }
     } catch (error: any) {
-      console.error(`${provider} backend login error:`, error);
-      Toast.show({
-        type: 'error',
-        text1: 'Login Failed',
-        text2: error.response?.data?.message || `Failed to authenticate with ${provider}`,
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // User cancelled the login flow
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        // Operation already in progress
+      } else {
+        Toast.show({ type: 'error', text1: 'Google Login Failed', text2: error.message || 'An error occurred' });
+      }
+    }
+  };
+
+  const promptFacebookAsync = async () => {
+    try {
+      const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
+      if (result.isCancelled) {
+        // User cancelled
+      } else {
+        const data = await AccessToken.getCurrentAccessToken();
+        if (data && data.accessToken) {
+          await facebookLogin(data.accessToken.toString());
+          Toast.show({ type: 'success', text1: 'Welcome!', text2: 'Successfully logged in with Facebook' });
+          await checkAuth();
+        }
+      }
+    } catch (error: any) {
+      Toast.show({ type: 'error', text1: 'Facebook Login Failed', text2: error.message || 'An error occurred' });
+    }
+  };
+
+  const promptAppleAsync = async () => {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
       });
+      
+      if (credential.identityToken) {
+        await appleLogin(
+          credential.identityToken, 
+          credential.fullName ? { 
+            givenName: credential.fullName.givenName || undefined, 
+            familyName: credential.fullName.familyName || undefined 
+          } : undefined
+        );
+        Toast.show({ type: 'success', text1: 'Welcome!', text2: 'Successfully logged in with Apple' });
+        await checkAuth();
+      }
+    } catch (e: any) {
+      if (e.code === 'ERR_REQUEST_CANCELED') {
+        // User cancelled
+      } else {
+        Toast.show({ type: 'error', text1: 'Apple Login Failed', text2: e.message || 'An error occurred' });
+      }
     }
   };
 
   return {
     promptGoogleAsync,
-    isGoogleReady: !!googleRequest,
+    isGoogleReady: true, // Native SDK is generally always ready, though Play Services check handles Android
     promptFacebookAsync,
-    isFacebookReady: !!facebookRequest,
+    isFacebookReady: true,
+    promptAppleAsync,
+    isAppleReady,
   };
 }

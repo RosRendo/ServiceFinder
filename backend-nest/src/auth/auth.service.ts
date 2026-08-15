@@ -20,7 +20,9 @@ import { VerifyResetDto } from './dto/verify-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { FacebookLoginDto } from './dto/facebook-login.dto';
+import { AppleLoginDto } from './dto/apple-login.dto';
 import * as admin from 'firebase-admin';
+import appleSigninAuth from 'apple-signin-auth';
 import { Twilio } from 'twilio';
 
 import { MfaService } from './mfa.service';
@@ -686,7 +688,13 @@ export class AuthService {
           passwordHash,
           role: role as any,
           status: 'active',
+          googleId,
         },
+      });
+    } else if (!user.googleId) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { googleId },
       });
     }
 
@@ -757,7 +765,13 @@ export class AuthService {
             passwordHash,
             role: role as any,
             status: 'active',
+            facebookId,
           },
+        });
+      } else if (!user.facebookId) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: { facebookId },
         });
       }
 
@@ -794,6 +808,88 @@ export class AuthService {
     } catch (err: any) {
       throw new BadRequestException(
         err.message || 'Facebook authentication failed',
+      );
+    }
+  }
+
+  async appleLogin(dto: AppleLoginDto) {
+    const { identityToken, fullName, role = 'customer' } = dto;
+
+    try {
+      // Verify token with Apple (validates signature, exp, aud, iss)
+      const appleIdTokenClaims = await appleSigninAuth.verifyIdToken(identityToken, {
+        audience: this.configService.get<string>('APPLE_CLIENT_ID') || '',
+        ignoreExpiration: false,
+      });
+
+      const { email, sub: appleId } = appleIdTokenClaims;
+      if (!email) {
+        throw new BadRequestException('Email not provided from Apple. Users may have hidden it.');
+      }
+
+      let user = await this.prisma.user.findUnique({ where: { email } });
+
+      if (!user) {
+        const randomPassword =
+          Math.random().toString(36).slice(-10) +
+          Math.random().toString(36).slice(-10);
+        const passwordHash = await bcrypt.hash(randomPassword, 10);
+
+        // Name is only sent by Apple on the VERY FIRST login
+        const extractedName = fullName
+          ? `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim()
+          : 'User';
+
+        user = await this.prisma.user.create({
+          data: {
+            fullName: extractedName || 'User',
+            email,
+            passwordHash,
+            role: role as any,
+            status: 'active',
+            appleId,
+          },
+        });
+      } else if (!user.appleId) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: { appleId },
+        });
+      }
+
+      if (user.status !== 'active') {
+        throw new UnauthorizedException('Account is suspended');
+      }
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+
+      const accessToken = this.generateToken(user.id);
+      const refreshToken = await this.generateRefreshToken(user.id);
+      const { passwordHash, ...userWithoutPassword } = user;
+
+      const fullUser = await this.prisma.user.findUnique({
+        where: { id: user.id },
+        include: {
+          staffMemberships: {
+            include: { company: { select: { id: true, name: true } } },
+          },
+        },
+      });
+
+      const staffProfile = fullUser?.staffMemberships?.[0] || null;
+
+      return {
+        message: 'Apple login successful',
+        user: { ...userWithoutPassword, staffProfile },
+        accessToken,
+        refreshToken,
+      };
+    } catch (err: any) {
+      throw new BadRequestException(
+        err.message || 'Apple authentication failed',
       );
     }
   }

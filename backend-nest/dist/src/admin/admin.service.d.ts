@@ -98,6 +98,9 @@ export declare class AdminService {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            googleId: string | null;
+            appleId: string | null;
+            facebookId: string | null;
             workingStatus: string;
             lastSeen: Date | null;
             lastLoginAt: Date | null;
@@ -120,6 +123,9 @@ export declare class AdminService {
             email: string | null;
             phone: string | null;
             avatar: string | null;
+            googleId: string | null;
+            appleId: string | null;
+            facebookId: string | null;
             workingStatus: string;
             lastSeen: Date | null;
             lastLoginAt: Date | null;
@@ -562,6 +568,9 @@ export declare class AdminService {
                     phone: string | null;
                     avatar: string | null;
                     passwordHash: string | null;
+                    googleId: string | null;
+                    appleId: string | null;
+                    facebookId: string | null;
                     workingStatus: string;
                     lastSeen: Date | null;
                     lastLoginAt: Date | null;

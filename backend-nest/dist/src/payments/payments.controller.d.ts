@@ -31,22 +31,32 @@ export declare class PaymentsController {
         payment: any;
     }>;
     createAbaCheckout(dto: CheckoutSessionDto, req: any): Promise<{
-        url: any;
-        method: string;
-        body: {
-            hash: string;
-            req_time: string;
-            merchant_id: any;
-            tran_id: string;
-            amount: string;
-            firstname: string;
-            lastname: string;
-            email: string;
-            phone: string;
-            type: string;
-            payment_option: string;
-            return_url: string;
-        };
+        success: boolean;
+        qrString: any;
+        qrImage: any;
+        abapay_deeplink: any;
+        amount: any;
+        currency: any;
+        message?: undefined;
+        rawData?: undefined;
+    } | {
+        success: boolean;
+        message: string;
+        rawData: any;
+        qrString?: undefined;
+        qrImage?: undefined;
+        abapay_deeplink?: undefined;
+        amount?: undefined;
+        currency?: undefined;
+    } | {
+        success: boolean;
+        message: string;
+        qrString?: undefined;
+        qrImage?: undefined;
+        abapay_deeplink?: undefined;
+        amount?: undefined;
+        currency?: undefined;
+        rawData?: undefined;
     }>;
     generateKhqr(dto: CheckoutSessionDto, req: any): Promise<{
         message: string;

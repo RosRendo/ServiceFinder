@@ -27,6 +27,7 @@ export interface Service {
   image?: string;
   serviceType?: any;
   companyId: string;
+  distanceKm?: number | null;
   company?: {
     name: string;
     logoUrl?: string;
@@ -65,7 +66,7 @@ interface CustomerHomeStore {
   page: number;
   hasMore: boolean;
 
-  fetchHomeData: () => Promise<void>;
+  fetchHomeData: (latitude?: number, longitude?: number) => Promise<void>;
   loadMoreServices: () => Promise<void>;
 }
 
@@ -104,9 +105,10 @@ export const useCustomerHomeStore = create<CustomerHomeStore>((set, get) => ({
   hasMore: true,
   error: null,
 
-  fetchHomeData: async () => {
+  fetchHomeData: async (latitude?: number, longitude?: number) => {
     set({ isLoading: true, error: null, page: 1, hasMore: true });
     try {
+      const servicesParams = latitude && longitude ? { lat: latitude, lng: longitude } : {};
       // Execute all API requests in parallel
       const [
         categoriesRes,
@@ -118,7 +120,7 @@ export const useCustomerHomeStore = create<CustomerHomeStore>((set, get) => ({
       ] = await Promise.all([
         api.get('/api/categories'),
         api.get('/api/service-types'),
-        api.get('/api/services'),
+        api.get('/api/services', { params: servicesParams }),
         api.get('/api/bookings').catch(() => ({ data: [] })), // Graceful fallback
         api.get('/api/companies'),
         api.get('/api/companies/sponsored').catch(() => ({ data: [] })), // Graceful fallback

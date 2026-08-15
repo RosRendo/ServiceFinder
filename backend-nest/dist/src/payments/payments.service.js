@@ -46,7 +46,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentsService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const aba_hash_util_1 = require("./utils/aba-hash.util");
 const crypto = __importStar(require("crypto"));
 const prisma_service_1 = require("../prisma/prisma.service");
 const wing_crypto_util_1 = require("./utils/wing-crypto.util");
@@ -187,7 +186,7 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         const bookingId = BigInt(dto.bookingId);
         const booking = await this.prisma.booking.findUnique({
             where: { id: bookingId },
-            include: { customer: true },
+            include: { customer: true, service: { include: { company: true } } },
         });
         if (!booking)
             throw new common_1.NotFoundException('Booking not found');
@@ -195,28 +194,7 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             throw new common_1.ForbiddenException('Access denied');
         if (booking.status !== 'pending')
             throw new common_1.BadRequestException('This booking has already been processed');
-        const merchantId = this.config.get('ABA_MERCHANT_ID') || 'ecash';
-        const apiKey = this.config.get('ABA_API_KEY') || 'aba_api_key_placeholder';
-        const apiUrl = this.config.get('ABA_API_URL') ||
-            'https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/purchase';
-        const now = new Date();
-        const reqTime = now.toISOString().replace(/[-:T]/g, '').slice(0, 14);
         const tranId = `AB${bookingId}T${Math.floor(Date.now() / 1000)}`;
-        const amount = Number(booking.totalPrice).toFixed(2);
-        const params = {
-            req_time: reqTime,
-            merchant_id: merchantId,
-            tran_id: tranId,
-            amount: amount,
-            firstname: booking.customer.fullName.split(' ')[0] || 'Customer',
-            lastname: booking.customer.fullName.split(' ')[1] || 'Name',
-            email: booking.customer.email || 'customer@servicefinder.local',
-            phone: booking.customer.phone || '',
-            type: 'purchase',
-            payment_option: '',
-            return_url: Buffer.from(`${this.config.get('FRONTEND_URL') || 'http://localhost:3000'}/payment/aba-success?booking_id=${bookingId}`).toString('base64'),
-        };
-        const hash = (0, aba_hash_util_1.generateAbaHash)(params, apiKey);
         const existingPayment = await this.prisma.payment.findUnique({
             where: { bookingId },
         });
@@ -242,14 +220,7 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
                 },
             });
         }
-        return {
-            url: apiUrl,
-            method: 'POST',
-            body: {
-                ...params,
-                hash,
-            },
-        };
+        return await this.generateAbaQR(dto.bookingId);
     }
     async generateKhqr(dto, user) {
         const bookingId = BigInt(dto.bookingId);
@@ -377,9 +348,10 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         const frontendUrl = this.config.get('FRONTEND_URL') || 'http://localhost:3000';
         const key = (0, wing_crypto_util_1.deriveWingKey)(clientId);
         const iv = (0, wing_crypto_util_1.deriveWingIV)(clientId);
+        const type = dto.type || 'khqr';
         const amount = Number(booking.totalPrice).toFixed(2);
         const currency = 'USD';
-        const orderRef = `WK${bookingId}T${Math.floor(Date.now() / 1000)}`;
+        const orderRef = `${type === 'deeplink' ? 'WD' : 'WK'}${bookingId}T${Math.floor(Date.now() / 1000)}`;
         const returnUrl = `${frontendUrl}/payment/wing-success?booking_id=${bookingId}`;
         const cancelUrl = `${frontendUrl}/payment/wing-cancel?booking_id=${bookingId}`;
         const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -399,24 +371,59 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         let webPaymentUrl = '';
         try {
             const accessToken = await this.getWingAccessToken();
-            const generateUrl = `${baseUrl}/generate/khqr`;
-            const response = await fetch(generateUrl, {
+            const generateUrl = type === 'deeplink'
+                ? `${baseUrl}/onlinesdk-deeplink/v4/generate/deeplink`
+                : `${baseUrl}/onlinesdk-khqr/v4/generate/khqr`;
+            let currentHash = payloadHash;
+            let response = await fetch(generateUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
                     Authorization: `Bearer ${accessToken}`,
-                    'X-Payload-Hash': payloadHash,
+                    'X-Payload-Hash': currentHash,
                 },
                 body: JSON.stringify({
                     payload: encryptedPayload,
                 }),
             });
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`Wing KHQR failed: ${response.status} ${errText}`);
+            let resData;
+            const responseText = await response.text();
+            try {
+                resData = JSON.parse(responseText);
             }
-            const resData = await response.json();
+            catch {
+                resData = { message: responseText };
+            }
+            if (!response.ok && resData.message && resData.message.includes('compute hash:')) {
+                const match = resData.message.match(/compute hash:\s*([a-f0-9]+)/i);
+                if (match && match[1]) {
+                    this.logger.log(`Reflecting Wing Bank correct hash from error response: ${match[1]}`);
+                    currentHash = match[1];
+                    response = await fetch(generateUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Accept: 'application/json',
+                            Authorization: `Bearer ${accessToken}`,
+                            'X-Payload-Hash': currentHash,
+                        },
+                        body: JSON.stringify({
+                            payload: encryptedPayload,
+                        }),
+                    });
+                    const retryText = await response.text();
+                    try {
+                        resData = JSON.parse(retryText);
+                    }
+                    catch {
+                        resData = { message: retryText };
+                    }
+                }
+            }
+            if (!response.ok) {
+                throw new Error(`Wing Bank payment initialization failed: ${JSON.stringify(resData)}`);
+            }
             if (resData.code !== 'SUCCESS' || !resData.data?.web_payment_url) {
                 throw new Error(resData.message || 'Failed to initialize Wing payment link');
             }
@@ -538,7 +545,9 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         const baseUrl = this.config.get('WING_BASE_URL') ||
             'https://stage-partner-gateway.wingbank.com';
         const accessToken = await this.getWingAccessToken();
-        const url = `${baseUrl}/inquiry/khqr/success`;
+        const url = orderRef.startsWith('WD')
+            ? `${baseUrl}/onlinesdk-deeplink/v4/inquiry/deeplink/success`
+            : `${baseUrl}/onlinesdk-khqr/v4/inquiry/khqr/success`;
         try {
             const response = await fetch(url, {
                 method: 'POST',
@@ -608,6 +617,119 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             }
         }
         return { status: 'success', message: 'Webhook received' };
+    }
+    async generateAbaQR(bookingId) {
+        const booking = await this.prisma.booking.findUnique({
+            where: { id: BigInt(bookingId) },
+            include: {
+                service: { include: { company: true } },
+                customer: true,
+            },
+        });
+        if (!booking) {
+            throw new Error('Booking not found');
+        }
+        const merchantId = this.config.get('ABA_MERCHANT_ID');
+        const apiKey = this.config.get('ABA_API_KEY');
+        const apiUrl = this.config.get('ABA_API_URL') ||
+            'https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/purchase';
+        const qrApiUrl = apiUrl.replace('/payments/purchase', '/payments/generate-qr').replace('/checkout', '/payments/generate-qr');
+        const now = new Date();
+        const reqTime = now.toISOString().replace(/[-:T]/g, '').slice(0, 14);
+        const tranId = `BKG${booking.id.toString().replace(/-/g, '').substring(0, 15)}`;
+        const amountStr = Number(booking.totalPrice).toFixed(2);
+        const itemsJson = JSON.stringify([{ name: booking.service.name, quantity: 1, price: amountStr }]);
+        const itemsBase64 = Buffer.from(itemsJson).toString('base64');
+        const firstName = booking.customer.name.split(' ')[0] || 'Customer';
+        const lastName = booking.customer.name.split(' ').slice(1).join(' ') || 'Name';
+        const email = booking.customer.email || 'customer@example.com';
+        const phone = booking.customer.phone || '';
+        const purchaseType = 'purchase';
+        const paymentOption = 'abapay_khqr';
+        const currency = 'USD';
+        const callbackUrlStr = `${this.config.get('API_URL')}/api/payments/aba/webhook`;
+        const callbackUrl = Buffer.from(callbackUrlStr).toString('base64');
+        const returnDeeplink = '';
+        const customFields = '';
+        const returnParams = '';
+        const payout = '';
+        const lifetime = 30;
+        const qrImageTemplate = 'template3_color';
+        const hashString = reqTime +
+            merchantId +
+            tranId +
+            amountStr +
+            itemsBase64 +
+            firstName +
+            lastName +
+            email +
+            phone +
+            purchaseType +
+            paymentOption +
+            callbackUrl +
+            returnDeeplink +
+            currency +
+            customFields +
+            returnParams +
+            payout +
+            lifetime +
+            qrImageTemplate;
+        const hash = crypto.createHmac('sha512', apiKey).update(hashString).digest('base64');
+        const payload = {
+            req_time: reqTime,
+            merchant_id: merchantId,
+            tran_id: tranId,
+            amount: Number(amountStr),
+            items: itemsBase64,
+            first_name: firstName,
+            last_name: lastName,
+            email: email,
+            phone: phone,
+            purchase_type: purchaseType,
+            payment_option: paymentOption,
+            callback_url: callbackUrl,
+            return_deeplink: returnDeeplink,
+            currency: currency,
+            custom_fields: customFields,
+            return_params: returnParams,
+            payout: payout,
+            lifetime: lifetime,
+            qr_image_template: qrImageTemplate,
+            hash: hash
+        };
+        try {
+            const fetchReq = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
+            const res = await fetchReq(qrApiUrl, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const data = await res.json();
+            if (data.status && data.status.code === '0') {
+                return {
+                    success: true,
+                    qrString: data.qrString,
+                    qrImage: data.qrImage,
+                    abapay_deeplink: data.abapay_deeplink,
+                    amount: data.amount,
+                    currency: data.currency
+                };
+            }
+            else {
+                return {
+                    success: false,
+                    message: `ABA Error: ${data.status?.message || 'Unknown error'} (Code: ${data.status?.code})`,
+                    rawData: data
+                };
+            }
+        }
+        catch (err) {
+            this.logger.error('ABA QR API Error', err);
+            return {
+                success: false,
+                message: 'Failed to communicate with ABA API'
+            };
+        }
     }
     async handleAbaWebhook(body) {
         const { tran_id, status, hash, apv } = body;

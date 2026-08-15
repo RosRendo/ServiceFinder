@@ -9,6 +9,7 @@ export declare class UpdatePaymentDto {
 }
 export declare class CheckoutSessionDto {
     bookingId: string;
+    type?: 'khqr' | 'deeplink';
 }
 export declare class CompletePaymentDto {
     bookingId: string;

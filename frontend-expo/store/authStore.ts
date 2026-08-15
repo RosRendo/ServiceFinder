@@ -163,6 +163,7 @@ interface AuthStore {
   register: (name: string, email: string, password: string, role?: string) => Promise<void>;
   googleLogin: (token: string, role?: string) => Promise<void>;
   facebookLogin: (token: string, role?: string) => Promise<void>;
+  appleLogin: (token: string, fullName?: { givenName?: string; familyName?: string }, role?: string) => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
 }
@@ -349,6 +350,22 @@ export const useAuthStore = create<AuthStore>((set) => ({
   facebookLogin: async (token: string, role = 'customer') => {
     try {
       const response = await api.post('/api/auth/facebook', { token, role });
+      const user = response.data?.user || response.data?.data?.user;
+      const accessToken = response.data?.token || response.data?.accessToken || response.data?.data?.token || response.data?.data?.accessToken;
+      const refreshToken = response.data?.refreshToken || response.data?.data?.refreshToken;
+      
+      if (accessToken) await SecureStore.setItemAsync('authToken', accessToken);
+      if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
+      if (accessToken) api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+      set({ user, isGuest: false });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  appleLogin: async (token: string, fullName?: { givenName?: string; familyName?: string }, role = 'customer') => {
+    try {
+      const response = await api.post('/api/auth/apple', { identityToken: token, fullName, role });
       const user = response.data?.user || response.data?.data?.user;
       const accessToken = response.data?.token || response.data?.accessToken || response.data?.data?.token || response.data?.data?.accessToken;
       const refreshToken = response.data?.refreshToken || response.data?.data?.refreshToken;

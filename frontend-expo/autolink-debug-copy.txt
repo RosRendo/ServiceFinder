@@ -1,0 +1,119 @@
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.197Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\expo\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\expo\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.202Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-fbsdk-next\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-fbsdk-next\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.210Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-maps\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-maps\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.211Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\@react-native-community\netinfo\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\@react-native-community\netinfo\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.216Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\@react-native-google-signin\google-signin\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\@react-native-google-signin\google-signin\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.218Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\@react-native-community\datetimepicker\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\@react-native-community\datetimepicker\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.224Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-webview\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-webview\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.226Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-svg\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-svg\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.228Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-safe-area-context\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-safe-area-context\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.229Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\lottie-react-native\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\lottie-react-native\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.231Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\@react-native-async-storage\async-storage\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\@react-native-async-storage\async-storage\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.241Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\@sentry\react-native\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\@sentry\react-native\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.308Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-worklets\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-worklets\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.311Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-screens\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-screens\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.319Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-gesture-handler\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-gesture-handler\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.331Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-reanimated\android\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\node_modules\react-native-reanimated\android\src\main\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+
+[PID 24152] parsePackageNameAsync called at 2026-08-14T17:01:57.543Z
+  cwd: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo
+  gradlePath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\android\app\build.gradle
+  manifestPath: D:\FOR RENDO (ONLY )\Personal Project\Service_Finder\frontend-expo\android\app\src\debugOptimized\AndroidManifest.xml
+  env EXPO_USE_COMMUNITY_AUTOLINKING: undefined
+  env EXPO_PUBLIC_API_URL: http://192.168.100.171:5000
+

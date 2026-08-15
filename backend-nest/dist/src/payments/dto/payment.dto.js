@@ -57,8 +57,9 @@ __decorate([
 ], UpdatePaymentDto.prototype, "transactionRef", void 0);
 class CheckoutSessionDto {
     bookingId;
+    type;
     static _OPENAPI_METADATA_FACTORY() {
-        return { bookingId: { required: true, type: () => String } };
+        return { bookingId: { required: true, type: () => String }, type: { required: false, enum: ["khqr", "deeplink"], enum: ['khqr', 'deeplink'] } };
     }
 }
 exports.CheckoutSessionDto = CheckoutSessionDto;
@@ -67,6 +68,12 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], CheckoutSessionDto.prototype, "bookingId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsIn)(['khqr', 'deeplink']),
+    __metadata("design:type", String)
+], CheckoutSessionDto.prototype, "type", void 0);
 class CompletePaymentDto {
     bookingId;
     method;

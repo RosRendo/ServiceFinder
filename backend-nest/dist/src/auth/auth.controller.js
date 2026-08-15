@@ -59,6 +59,7 @@ const verify_reset_dto_1 = require("./dto/verify-reset.dto");
 const reset_password_dto_1 = require("./dto/reset-password.dto");
 const google_login_dto_1 = require("./dto/google-login.dto");
 const facebook_login_dto_1 = require("./dto/facebook-login.dto");
+const apple_login_dto_1 = require("./dto/apple-login.dto");
 const verify_otp_dto_1 = require("./dto/verify-otp.dto");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
 const current_user_decorator_1 = require("./decorators/current-user.decorator");
@@ -152,6 +153,11 @@ let AuthController = class AuthController {
     }
     async facebookLogin(facebookLoginDto, res) {
         const { message, user, accessToken, refreshToken } = await this.authService.facebookLogin(facebookLoginDto);
+        this.setAuthCookies(res, accessToken, refreshToken);
+        return { message, user, token: accessToken };
+    }
+    async appleLogin(appleLoginDto, res) {
+        const { message, user, accessToken, refreshToken } = await this.authService.appleLogin(appleLoginDto);
         this.setAuthCookies(res, accessToken, refreshToken);
         return { message, user, token: accessToken };
     }
@@ -314,6 +320,21 @@ __decorate([
     __metadata("design:paramtypes", [facebook_login_dto_1.FacebookLoginDto, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "facebookLogin", null);
+__decorate([
+    (0, common_1.Post)('apple'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Apple OAuth login' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'User successfully logged in via Apple',
+    }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Invalid Apple token' }),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Res)({ passthrough: true })),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [apple_login_dto_1.AppleLoginDto, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "appleLogin", null);
 __decorate([
     (0, common_1.Get)('me'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
