@@ -9,6 +9,7 @@ import * as bcrypt from 'bcryptjs';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { MfaService } from './mfa.service';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { SMS_PROVIDER } from '../common/sms/sms.provider';
 
 jest.mock('bcryptjs', () => ({
   hash: jest.fn(),
@@ -35,6 +36,7 @@ describe('AuthService', () => {
       findFirst: jest.fn(),
       count: jest.fn().mockResolvedValue(0),
       create: jest.fn().mockResolvedValue({}),
+      update: jest.fn().mockResolvedValue({}),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
   };
@@ -59,6 +61,11 @@ describe('AuthService', () => {
     log: jest.fn(),
   };
 
+  const mockSmsProvider = {
+    name: 'mock',
+    send: jest.fn().mockResolvedValue(false),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -70,6 +77,7 @@ describe('AuthService', () => {
         { provide: AuditLogsService, useValue: mockAuditLogsService },
         { provide: MfaService, useValue: {} },
         { provide: AnalyticsService, useValue: { captureEvent: jest.fn() } },
+        { provide: SMS_PROVIDER, useValue: mockSmsProvider },
       ],
     }).compile();
 
@@ -208,6 +216,51 @@ describe('AuthService', () => {
       expect(mockPrismaService.otpCode.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ phone: '+85512345678' }),
+        }),
+      );
+      expect(mockSmsProvider.send).toHaveBeenCalledWith(
+        '+85512345678',
+        expect.stringContaining('OTP'),
+      );
+    });
+  });
+
+  describe('verifyOtpToken', () => {
+    it('rejects an invalid phone number', async () => {
+      await expect(service.verifyOtpToken('garbage', '123456')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('rejects a wrong code', async () => {
+      mockPrismaService.otpCode.findFirst.mockResolvedValueOnce(null);
+      await expect(
+        service.verifyOtpToken('012345678', '000000'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('verifies a valid OTP, marks it used, and logs the user in', async () => {
+      mockPrismaService.otpCode.findFirst.mockResolvedValueOnce({
+        id: 1n,
+        phone: '+85512345678',
+        code: '654321',
+        expiresAt: new Date(Date.now() + 600000),
+      });
+      mockPrismaService.otpCode.update.mockResolvedValueOnce({});
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        id: 1n,
+        phone: '+85512345678',
+        role: 'customer',
+        status: 'active',
+      });
+      mockPrismaService.user.update.mockResolvedValueOnce({});
+
+      const result = await service.verifyOtpToken('012345678', '654321');
+
+      expect(result.accessToken).toBe('mock.jwt.token');
+      expect(mockPrismaService.otpCode.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ used: true }),
         }),
       );
     });

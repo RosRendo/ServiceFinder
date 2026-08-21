@@ -47,9 +47,17 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [focusedOtp, setFocusedOtp] = useState(false);
+  // Resend cooldown (seconds) — mirrors the backend's 60s OTP cooldown.
+  const [resendCountdown, setResendCountdown] = useState(0);
 
   const otpRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    if (resendCountdown <= 0) return;
+    const id = setTimeout(() => setResendCountdown((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendCountdown]);
 
   useEffect(() => {
     if (params.method === "google") handleSocialLogin("google");
@@ -76,12 +84,18 @@ export default function Login() {
   const handleSendOtp = async () => {
     Keyboard.dismiss();
     const cleanPhone = phone.trim();
-    if (!cleanPhone || cleanPhone.length < 6) return setError("Please enter a valid phone number");
+    // Client-side validation mirroring the backend: digits only, 7-14 digits
+    // after removing separators (local Khmer numbers are 8-10 digits).
+    const digits = cleanPhone.replace(/[\s\-().]/g, "");
+    if (!/^\d{7,14}$/.test(digits))
+      return setError("Please enter a valid phone number");
     setError(""); setIsLoading(true);
     try {
       const res = await api.post("/api/auth/request-otp", { phone: getFullPhone() });
       if (res.data?.success) {
         setStep("otp");
+        setOtpCode("");
+        setResendCountdown(60);
       }
     } catch (err: any) {
       console.error(err);
@@ -302,6 +316,18 @@ export default function Login() {
             <TouchableOpacity style={[s.btnPrimary, isLoading && { opacity: 0.7 }]} onPress={handleVerifyOtp} disabled={isLoading} activeOpacity={0.85}>
               {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnPrimaryText}>Verify & Login</Text>}
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.btnResend, (isLoading || resendCountdown > 0) && { opacity: 0.5 }]}
+              onPress={handleSendOtp}
+              disabled={isLoading || resendCountdown > 0}
+              activeOpacity={0.8}
+            >
+              <Text style={s.btnResendText}>
+                {resendCountdown > 0
+                  ? `Resend code in ${resendCountdown}s`
+                  : "Resend code"}
+              </Text>
+            </TouchableOpacity>
           </>
         )}
 
@@ -487,6 +513,8 @@ const s = StyleSheet.create({
   otpText: { fontSize: 26, fontWeight: "600", color: T.text1 },
 
   btnPrimary: { backgroundColor: T.accent, borderRadius: 14, paddingVertical: 17, alignItems: "center", marginTop: 4 },
+  btnResend: { alignItems: "center", paddingVertical: 12, marginTop: 2 },
+  btnResendText: { color: T.accent, fontWeight: "600", fontSize: 15 },
   btnPrimaryText: { fontSize: 16, fontWeight: "600", color: "#fff" },
 
   socialRow: { flexDirection: "row", justifyContent: "center", gap: 16, marginTop: 32 },

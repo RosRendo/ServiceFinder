@@ -7,6 +7,7 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
+import { SMS_PROVIDER, smsProviderFactory } from '../common/sms/sms.provider';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { AuditLogsModule } from '../audit-logs/audit-logs.module';
     AuditLogsModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, MfaService],
+  providers: [AuthService, JwtStrategy, MfaService, smsProviderFactory],
   exports: [AuthService, JwtStrategy, PassportModule, MfaService],
 })
 export class AuthModule {}
