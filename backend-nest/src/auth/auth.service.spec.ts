@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { MailService } from '../mail/mail.service';
 import { ConfigService } from '@nestjs/config';
-import { UnauthorizedException, ConflictException } from '@nestjs/common';
+import { UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { MfaService } from './mfa.service';
@@ -30,6 +30,12 @@ describe('AuthService', () => {
       create: jest.fn().mockResolvedValue({}),
       findFirst: jest.fn(),
       delete: jest.fn(),
+    },
+    otpCode: {
+      findFirst: jest.fn(),
+      count: jest.fn().mockResolvedValue(0),
+      create: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
   };
 
@@ -153,6 +159,57 @@ describe('AuthService', () => {
       expect(result.accessToken).toBe('mock.jwt.token');
       expect(result.user).not.toHaveProperty('passwordHash');
       expect(mockPrismaService.user.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('requestOtp', () => {
+    it('rejects an invalid phone number BEFORE any SMS is sent', async () => {
+      await expect(service.requestOtp('garbage')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.requestOtp('123')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.requestOtp('')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockPrismaService.otpCode.create).not.toHaveBeenCalled();
+    });
+
+    it('blocks a resend within the 60s cooldown window', async () => {
+      mockPrismaService.otpCode.findFirst.mockResolvedValueOnce({
+        createdAt: new Date(Date.now() - 10_000), // 10s ago
+      });
+
+      await expect(service.requestOtp('012345678')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockPrismaService.otpCode.create).not.toHaveBeenCalled();
+    });
+
+    it('blocks when the daily per-number cap is reached', async () => {
+      mockPrismaService.otpCode.findFirst.mockResolvedValueOnce(null);
+      mockPrismaService.otpCode.count.mockResolvedValueOnce(6);
+
+      await expect(service.requestOtp('012345678')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockPrismaService.otpCode.create).not.toHaveBeenCalled();
+    });
+
+    it('normalizes the phone and writes a ledger row on success', async () => {
+      mockPrismaService.otpCode.findFirst.mockResolvedValueOnce(null);
+      mockPrismaService.otpCode.count.mockResolvedValueOnce(0);
+      mockPrismaService.otpCode.create.mockResolvedValueOnce({});
+
+      const result = await service.requestOtp('012 345 678');
+
+      expect(result.success).toBe(true);
+      expect(mockPrismaService.otpCode.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ phone: '+85512345678' }),
+        }),
+      );
     });
   });
 });

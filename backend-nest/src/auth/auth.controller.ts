@@ -28,7 +28,9 @@ import { GoogleLoginDto } from './dto/google-login.dto';
 import { FacebookLoginDto } from './dto/facebook-login.dto';
 import { AppleLoginDto } from './dto/apple-login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { RequestOtpDto } from './dto/request-otp.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { OtpThrottlerGuard } from './guards/otp-throttler.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -157,17 +159,20 @@ export class AuthController {
 
   @Post('request-otp')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @UseGuards(OtpThrottlerGuard)
+  // Per-PHONE limit (not per-IP): 3 requests per 10 minutes per number.
+  // Each request = a paid Twilio verification attempt, so cap the spend.
+  @Throttle({ requestOtp: { limit: 3, ttl: 600000 } })
   @ApiOperation({ summary: 'Request OTP for login/register' })
-  async requestOtp(@Body() body: { phone: string }) {
-    return this.authService.requestOtp(body.phone);
+  async requestOtp(@Body() dto: RequestOtpDto) {
+    return this.authService.requestOtp(dto.phone);
   }
 
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @UseGuards(OtpThrottlerGuard)
+  // Per-PHONE brute-force guard: 5 verification attempts per 10 minutes.
+  @Throttle({ verifyOtp: { limit: 5, ttl: 600000 } })
   @ApiOperation({ summary: 'Verify OTP and login/register' })
   async verifyOtp(
     @Body() verifyOtpDto: VerifyOtpDto,

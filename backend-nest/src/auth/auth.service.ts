@@ -21,6 +21,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { FacebookLoginDto } from './dto/facebook-login.dto';
 import { AppleLoginDto } from './dto/apple-login.dto';
+import { normalizePhone } from '../common/utils/phone.util';
 import * as admin from 'firebase-admin';
 import appleSigninAuth from 'apple-signin-auth';
 import { Twilio } from 'twilio';
@@ -345,9 +346,41 @@ export class AuthService {
     };
   }
 
-  async requestOtp(phone: string) {
+  async requestOtp(rawPhone: string) {
+    // Normalize + validate FIRST — every invalid number that reaches Twilio
+    // still costs money (charged per attempt, even for failures).
+    const phone = normalizePhone(rawPhone);
     if (!phone) {
-      throw new BadRequestException('Phone number is required');
+      throw new BadRequestException(
+        'Invalid phone number. Use international format, e.g. +85512345678',
+      );
+    }
+
+    // 60s cooldown between sends to the same number (blocks double-tap spam).
+    const lastOtp = await this.prisma.otpCode.findFirst({
+      where: { phone },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (lastOtp) {
+      const elapsed = Date.now() - lastOtp.createdAt.getTime();
+      if (elapsed < 60_000) {
+        const wait = Math.ceil((60_000 - elapsed) / 1000);
+        throw new BadRequestException(
+          `Please wait ${wait}s before requesting another code`,
+        );
+      }
+    }
+
+    // Daily cap per number: max 6 requests per day (hard cost ceiling).
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const todayCount = await this.prisma.otpCode.count({
+      where: { phone, createdAt: { gte: startOfDay } },
+    });
+    if (todayCount >= 6) {
+      throw new BadRequestException(
+        'Daily OTP limit reached for this number. Try again tomorrow.',
+      );
     }
 
     // Invalidate previous OTPs locally
@@ -363,7 +396,15 @@ export class AuthService {
     );
 
     let success = false;
-    let fallbackCode = '123456';
+    // Ledger row is ALWAYS written (rate-limit bookkeeping + audit + mock-mode delivery).
+    const fallbackCode = this.generateCode();
+    await this.prisma.otpCode.create({
+      data: {
+        phone,
+        code: fallbackCode,
+        expiresAt: new Date(Date.now() + 10 * 60000),
+      },
+    });
 
     if (accountSid && authToken && verifyServiceSid) {
       try {
@@ -382,14 +423,6 @@ export class AuthService {
     }
 
     if (!success) {
-      fallbackCode = this.generateCode();
-      await this.prisma.otpCode.create({
-        data: {
-          phone,
-          code: fallbackCode,
-          expiresAt: new Date(Date.now() + 10 * 60000),
-        },
-      });
       console.log(`[SMS MOCK FALLBACK] OTP for ${phone} is: ${fallbackCode}`);
     }
 
