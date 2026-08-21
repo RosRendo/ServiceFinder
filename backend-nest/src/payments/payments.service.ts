@@ -23,6 +23,7 @@ import {
   deriveWingKey,
   deriveWingIV,
   encryptAES256GCM,
+  decryptAES256GCM,
   generatePayloadHash,
 } from './utils/wing-crypto.util';
 
@@ -317,20 +318,30 @@ export class PaymentsService {
   private wingToken: string | null = null;
   private wingTokenExpiry: number = 0;
 
+  /**
+   * Load Wing Bank credentials from config and fail fast if any are missing.
+   * Never falls back to hardcoded/literal values — those were real credentials
+   * and made forged requests possible.
+   */
+  private getWingConfig() {
+    const clientId = this.config.get<string>('WING_CLIENT_ID');
+    const clientSecret = this.config.get<string>('WING_CLIENT_SECRET');
+    const baseUrl = this.config.get<string>('WING_BASE_URL');
+    if (!clientId || !clientSecret || !baseUrl) {
+      throw new InternalServerErrorException(
+        'Wing Bank credentials are not configured (WING_CLIENT_ID, WING_CLIENT_SECRET, WING_BASE_URL).',
+      );
+    }
+    return { clientId, clientSecret, baseUrl };
+  }
+
   async getWingAccessToken(): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     if (this.wingToken && this.wingTokenExpiry > now + 300) {
       return this.wingToken;
     }
 
-    const clientId =
-      this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
-    const clientSecret =
-      this.config.get('WING_CLIENT_SECRET') ||
-      'h02F_zaRmn6PhFjIolbFcb16BgWGMrcfX93frd13Id8a';
-    const baseUrl =
-      this.config.get('WING_BASE_URL') ||
-      'https://stage-partner-gateway.wingbank.com';
+    const { clientId, clientSecret, baseUrl } = this.getWingConfig();
 
     const url = `${baseUrl}/idp/v1/token`;
 
@@ -382,14 +393,7 @@ export class PaymentsService {
     if (booking.status !== 'pending')
       throw new BadRequestException('This booking has already been processed');
 
-    const clientId =
-      this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
-    const cipherKeyStr =
-      this.config.get('WING_CIPHER_KEY') ||
-      'pEHt/rl63W4YZUqPRs92DPHHpHWfnkiMLvJdwhxQBb4=';
-    const baseUrl =
-      this.config.get('WING_BASE_URL') ||
-      'https://stage-partner-gateway.wingbank.com';
+    const { clientId, baseUrl } = this.getWingConfig();
     const frontendUrl =
       this.config.get('FRONTEND_URL') || 'http://localhost:3000';
 
@@ -465,10 +469,16 @@ export class PaymentsService {
       }
 
       // If the signature hash fails check, attempt to reflect the correct computed hash from Wing error response message
-      if (!response.ok && resData.message && resData.message.includes('compute hash:')) {
+      if (
+        !response.ok &&
+        resData.message &&
+        resData.message.includes('compute hash:')
+      ) {
         const match = resData.message.match(/compute hash:\s*([a-f0-9]+)/i);
         if (match && match[1]) {
-          this.logger.log(`Reflecting Wing Bank correct hash from error response: ${match[1]}`);
+          this.logger.log(
+            `Reflecting Wing Bank correct hash from error response: ${match[1]}`,
+          );
           currentHash = match[1];
 
           // Retry with the server's expected hash
@@ -495,7 +505,9 @@ export class PaymentsService {
       }
 
       if (!response.ok) {
-        throw new Error(`Wing Bank payment initialization failed: ${JSON.stringify(resData)}`);
+        throw new Error(
+          `Wing Bank payment initialization failed: ${JSON.stringify(resData)}`,
+        );
       }
 
       if (resData.code !== 'SUCCESS' || !resData.data?.web_payment_url) {
@@ -554,11 +566,122 @@ export class PaymentsService {
     };
   }
 
+  /**
+   * Query Wing's server-side inquiry API for a transaction's real status.
+   * This is the source of truth — webhook payloads are never trusted alone.
+   */
+  private async wingInquiry(orderRef: string): Promise<{
+    verified: boolean;
+    amount?: string;
+    transactionId?: string;
+  }> {
+    const { baseUrl } = this.getWingConfig();
+    const accessToken = await this.getWingAccessToken();
+
+    const url = orderRef.startsWith('WD')
+      ? `${baseUrl}/onlinesdk-deeplink/v4/inquiry/deeplink/success`
+      : `${baseUrl}/onlinesdk-khqr/v4/inquiry/khqr/success`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ order_reference_no: orderRef }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return { verified: false };
+        }
+        throw new Error(`Inquiry failed with status: ${response.status}`);
+      }
+
+      const resData: any = await response.json();
+      if (resData.data && resData.data.amount) {
+        return {
+          verified: true,
+          amount: String(resData.data.amount),
+          transactionId: resData.data.transaction_id,
+        };
+      }
+      return { verified: false };
+    } catch (err: any) {
+      this.logger.error(`Wing inquiry failed for ${orderRef}: ${err.message}`);
+      return { verified: false };
+    }
+  }
+
+  /**
+   * Credit a Wing payment that has ALREADY been verified server-side.
+   * Payment paid + booking confirmed + company credit all in one transaction.
+   */
+  private async creditWingPayment(payment: any, amount: string, transactionId?: string) {
+    const orderRef = payment.transactionRef;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: 'paid' as any,
+          paidAt: new Date(),
+          transactionRef: transactionId ? `${orderRef}-${transactionId}` : orderRef,
+        },
+      });
+
+      const booking = await tx.booking.update({
+        where: { id: payment.bookingId },
+        data: { status: 'confirmed' },
+      });
+
+      await this.notify(
+        tx,
+        payment.userId,
+        'Payment Completed Successfully',
+        `Your payment of $${Number(amount).toFixed(2)} for booking #${booking.id} was processed via Wing KHQR.`,
+      );
+
+      const totalAmount = Number(payment.amount);
+      const companyShare = totalAmount * 0.9; // matches 10% commission model
+
+      await tx.transaction.create({
+        data: {
+          ownerType: 'company',
+          ownerId: booking.companyId,
+          amount: companyShare,
+          type: 'credit',
+          category: 'booking_revenue',
+          description: `Revenue from booking #${booking.id} via Wing Bank KHQR (after 10% commission)`,
+          bookingId: booking.id,
+        },
+      });
+    });
+
+    return { code: '200', message: 'Push callback is successfully received.' };
+  }
+
   async handleWingWebhook(payload: any) {
-    this.logger.log(`Received Wing Webhook: ${JSON.stringify(payload)}`);
-    const orderRef = payload.order_reference_no;
-    const amount = payload.amount;
-    const transactionId = payload.transaction_id;
+    // Never log full webhook bodies (PII + signature replay risk) — log refs only.
+    let parsed = payload;
+
+    // Wing v4 push callbacks may deliver the payload AES-256-GCM encrypted.
+    if (payload && typeof payload.payload === 'string') {
+      try {
+        const { clientId } = this.getWingConfig();
+        const key = deriveWingKey(clientId);
+        const iv = deriveWingIV(clientId);
+        const decrypted = decryptAES256GCM(payload.payload, key, iv);
+        parsed = JSON.parse(decrypted);
+      } catch (err: any) {
+        this.logger.warn(`Wing webhook: could not decrypt payload: ${err.message}`);
+        throw new BadRequestException('Invalid Wing webhook payload');
+      }
+    }
+
+    const orderRef = parsed?.order_reference_no;
+    const transactionId = parsed?.transaction_id;
+    this.logger.log(`Received Wing webhook for order reference: ${orderRef}`);
 
     if (!orderRef) {
       throw new BadRequestException('Missing order_reference_no');
@@ -581,54 +704,31 @@ export class PaymentsService {
       };
     }
 
-    const expectedAmount = Number(payment.amount);
-    const receivedAmount = Number(amount);
-    if (receivedAmount < expectedAmount) {
+    // FAIL CLOSED: only Wing's own inquiry API (token-authenticated, server-side)
+    // can confirm a transaction. A forged webhook body cannot pass this.
+    const inquiry = await this.wingInquiry(orderRef);
+    if (!inquiry.verified) {
       this.logger.warn(
-        `Wing payment amount mismatch. Expected >= ${expectedAmount}, received: ${receivedAmount}`,
+        `Wing webhook rejected: server-side inquiry did not confirm ${orderRef}`,
+      );
+      throw new BadRequestException('Wing transaction could not be verified');
+    }
+
+    // Exact amount match (cents) — the inquiry response is the source of truth.
+    const expectedCents = Math.round(Number(payment.amount) * 100);
+    const receivedCents = Math.round(Number(inquiry.amount) * 100);
+    if (receivedCents !== expectedCents) {
+      this.logger.warn(
+        `Wing payment amount mismatch. Expected ${expectedCents / 100}, received: ${receivedCents / 100}`,
       );
       throw new BadRequestException('Invalid transaction amount');
     }
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: 'paid' as any,
-          paidAt: new Date(),
-          transactionRef: `${orderRef}-${transactionId}`,
-        },
-      });
-
-      const booking = await tx.booking.update({
-        where: { id: payment.bookingId },
-        data: { status: 'confirmed' },
-      });
-
-      await this.notify(
-        tx,
-        payment.userId,
-        'Payment Completed Successfully',
-        `Your payment of $${receivedAmount} for booking #${booking.id} was processed via Wing KHQR.`,
-      );
-
-      const totalAmount = Number(payment.amount);
-      const companyShare = totalAmount * 0.9; // matches 10% commission model
-
-      await tx.transaction.create({
-        data: {
-          ownerType: 'company',
-          ownerId: booking.companyId,
-          amount: companyShare,
-          type: 'credit',
-          category: 'booking_revenue',
-          description: `Revenue from booking #${booking.id} via Wing Bank KHQR (after 10% commission)`,
-          bookingId: booking.id,
-        },
-      });
-    });
-
-    return { code: '200', message: 'Push callback is successfully received.' };
+    return this.creditWingPayment(
+      payment,
+      inquiry.amount!,
+      transactionId || inquiry.transactionId,
+    );
   }
 
   async checkWingStatus(bookingId: bigint) {
@@ -646,105 +746,131 @@ export class PaymentsService {
       throw new BadRequestException('Not a Wing transaction');
     }
 
-    const clientId =
-      this.config.get('WING_CLIENT_ID') || 'Nt1fvXDfJO9nLfwvEhHyBMG_Nh4a';
-    const baseUrl =
-      this.config.get('WING_BASE_URL') ||
-      'https://stage-partner-gateway.wingbank.com';
-    const accessToken = await this.getWingAccessToken();
-
-    const url = orderRef.startsWith('WD')
-      ? `${baseUrl}/onlinesdk-deeplink/v4/inquiry/deeplink/success`
-      : `${baseUrl}/onlinesdk-khqr/v4/inquiry/khqr/success`;
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          order_reference_no: orderRef,
-        }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          return {
-            success: false,
-            status: 'pending',
-            message: 'Payment pending or not found',
-          };
-        }
-        throw new Error(`Inquiry failed with status: ${response.status}`);
-      }
-
-      const resData: any = await response.json();
-      if (resData.data && resData.data.amount) {
-        const amount = resData.data.amount;
-        const transactionId = resData.data.transaction_id;
-
-        await this.handleWingWebhook({
-          order_reference_no: orderRef,
-          amount,
-          transaction_id: transactionId,
-        });
-
-        return {
-          success: true,
-          status: 'paid',
-          message: 'Payment successfully verified',
-        };
-      }
-
-      return { success: false, status: 'pending' };
-    } catch (err: any) {
-      this.logger.error('Failed to query Wing payment status', err);
-      return { success: false, status: 'pending', error: err.message };
+    const inquiry = await this.wingInquiry(orderRef);
+    if (inquiry.verified) {
+      await this.creditWingPayment(payment, inquiry.amount!, inquiry.transactionId);
+      return {
+        success: true,
+        status: 'paid',
+        message: 'Payment successfully verified',
+      };
     }
+
+    return { success: false, status: 'pending' };
   }
 
   async handleKhqrWebhook(body: any, headers: any) {
-    this.logger.log(`Received KHQR Webhook: ${JSON.stringify(body)}`);
+    const billNumber = body?.billNumber || body?.bill_number || body?.tran_id;
+    // Never log full webhook bodies (PII + replay risk) — log the bill number only.
+    this.logger.log(`Received KHQR webhook for bill number: ${billNumber}`);
 
-    const billNumber = body.billNumber || body.bill_number || body.tran_id;
-    const amount = body.amount;
-
-    if (billNumber) {
-      // Extract bookingId from billNumber (e.g. "BK-123" -> 123)
-      const bookingIdStr = billNumber.replace('BK-', '').replace('KHQR-', '');
-      const bookingId = BigInt(bookingIdStr);
-
-      const payment = await this.prisma.payment.findUnique({
-        where: { bookingId },
-      });
-
-      if (payment) {
-        await this.prisma.$transaction(async (tx) => {
-          await tx.payment.update({
-            where: { id: payment.id },
-            data: { status: 'paid' as any, paidAt: new Date() },
-          });
-
-          await tx.booking.update({
-            where: { id: bookingId },
-            data: { status: 'confirmed' },
-          });
-
-          await this.notify(
-            tx,
-            payment.userId,
-            '💰 Payment Confirmed',
-            `Your KHQR payment of $${amount || Number(payment.amount).toFixed(2)} has been successfully confirmed.`,
-          );
-        });
-
-        return { status: 'success', message: 'Payment successfully applied' };
+    // Optional shared-secret enforcement: when KHQR_WEBHOOK_SECRET is configured,
+    // callbacks MUST present it (fail closed). When unset, log a warning that
+    // the endpoint is unauthenticated — configure it at the gateway level.
+    const webhookSecret = this.config.get<string>('KHQR_WEBHOOK_SECRET');
+    if (webhookSecret) {
+      const presented = headers?.['x-webhook-secret'] || headers?.['x-khqr-secret'];
+      const ok =
+        typeof presented === 'string' &&
+        presented.length === webhookSecret.length &&
+        crypto.timingSafeEqual(
+          Buffer.from(presented),
+          Buffer.from(webhookSecret),
+        );
+      if (!ok) {
+        this.logger.warn('KHQR webhook rejected: invalid webhook secret');
+        throw new BadRequestException('Invalid webhook secret');
       }
+    } else {
+      this.logger.warn(
+        'KHQR webhook has no KHQR_WEBHOOK_SECRET configured — callbacks are unauthenticated. Set it to require a shared secret.',
+      );
     }
 
-    return { status: 'success', message: 'Webhook received' };
+    if (!billNumber) {
+      return { status: 'success', message: 'Webhook received' };
+    }
+
+    // Extract bookingId from billNumber (e.g. "BK-123" / "KHQR-123" -> 123).
+    // Strictly numeric — BigInt() on garbage would throw.
+    const bookingIdStr = String(billNumber)
+      .replace('BK-', '')
+      .replace('KHQR-', '');
+    if (!/^\d+$/.test(bookingIdStr)) {
+      return { status: 'success', message: 'Webhook received' };
+    }
+    const bookingId = BigInt(bookingIdStr);
+
+    const payment = await this.prisma.payment.findUnique({
+      where: { bookingId },
+    });
+
+    if (!payment) {
+      return { status: 'success', message: 'Webhook received' };
+    }
+
+    // Idempotency guard
+    if (payment.status === 'paid') {
+      return { status: 'success', message: 'Already processed' };
+    }
+
+    // Exact amount verification (cents) — a callback claiming a different
+    // amount than the stored payment is rejected outright.
+    const receivedCents = Math.round(Number(body?.amount) * 100);
+    const expectedCents = Math.round(Number(payment.amount) * 100);
+    if (!Number.isFinite(receivedCents) || receivedCents !== expectedCents) {
+      this.logger.warn(
+        `KHQR payment amount mismatch. Expected ${expectedCents / 100}, received: ${
+          Number.isFinite(receivedCents) ? receivedCents / 100 : 'invalid'
+        }`,
+      );
+      throw new BadRequestException('Invalid transaction amount');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: { status: 'paid' as any, paidAt: new Date() },
+      });
+
+      const booking = await tx.booking.update({
+        where: { id: bookingId },
+        data: { status: 'confirmed' },
+      });
+
+      // Audit trail
+      await tx.bookingStatusLog.create({
+        data: {
+          bookingId,
+          oldStatus: 'pending',
+          newStatus: 'confirmed',
+          changedBy: payment.userId,
+        },
+      });
+
+      // Credit company wallet (10% platform commission)
+      const companyShare = Number(payment.amount) * 0.9;
+      await tx.transaction.create({
+        data: {
+          ownerType: 'company',
+          ownerId: booking.companyId,
+          amount: companyShare,
+          type: 'credit',
+          category: 'booking_revenue',
+          description: `Revenue from booking #${booking.id} via KHQR (after 10% commission)`,
+          bookingId: booking.id,
+        },
+      });
+
+      await this.notify(
+        tx,
+        payment.userId,
+        '💰 Payment Confirmed',
+        `Your KHQR payment of $${Number(payment.amount).toFixed(2)} has been successfully confirmed.`,
+      );
+    });
+
+    return { status: 'success', message: 'Payment successfully applied' };
   }
 
   async generateAbaQR(bookingId: string) {
@@ -765,40 +891,39 @@ export class PaymentsService {
     const apiUrl =
       this.config.get('ABA_API_URL') ||
       'https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/purchase';
-      
+
     // The generate QR URL is based on the checkout URL but with a different path
-    const qrApiUrl = apiUrl.replace(
-      '/payments/purchase',
-      '/payments/generate-qr'
-    ).replace(
-      '/checkout', // In case the env variable has /checkout
-      '/payments/generate-qr'
-    );
+    const qrApiUrl = apiUrl
+      .replace(/\/payments\/purchase\/?$/, '/payments/generate-qr')
+      .replace(/\/checkout\/?$/, '/payments/generate-qr');
 
     const now = new Date();
     const reqTime = now.toISOString().replace(/[-:T]/g, '').slice(0, 14);
     const tranId = `BKG${booking.id.toString().replace(/-/g, '').substring(0, 15)}`;
-    
+
     // Ensure amount is formatted as "10.00" string but for QR API the doc says "number", so we will parse it.
     // However, the hash concatenation uses the string representation.
     const amountStr = Number(booking.totalPrice).toFixed(2);
-    
+
     // Base64 encode items
-    const itemsJson = JSON.stringify([{ name: booking.service.name, quantity: 1, price: amountStr }]);
+    const itemsJson = JSON.stringify([
+      { name: booking.service.name, quantity: 1, price: amountStr },
+    ]);
     const itemsBase64 = Buffer.from(itemsJson).toString('base64');
 
-    const firstName = booking.customer.name.split(' ')[0] || 'Customer';
-    const lastName = booking.customer.name.split(' ').slice(1).join(' ') || 'Name';
+    const firstName = booking.customer.fullName?.split(' ')[0] || 'Customer';
+    const lastName =
+      booking.customer.fullName?.split(' ').slice(1).join(' ') || 'Name';
     const email = booking.customer.email || 'customer@example.com';
     const phone = booking.customer.phone || '';
-    
+
     const purchaseType = 'purchase';
     const paymentOption = 'abapay_khqr';
     const currency = 'USD'; // Assuming USD, could be configured
-    
+
     const callbackUrlStr = `${this.config.get('API_URL')}/api/payments/aba/webhook`;
     const callbackUrl = Buffer.from(callbackUrlStr).toString('base64');
-    
+
     const returnDeeplink = '';
     const customFields = '';
     const returnParams = '';
@@ -807,34 +932,37 @@ export class PaymentsService {
     const qrImageTemplate = 'template3_color';
 
     // b4hash = req_time . merchant_id . tran_id . amount . items . first_name . last_name . email . phone . purchase_type . payment_option . callback_url . return_deeplink . currency . custom_fields . return_params . payout . lifetime . qr_image_template
-    const hashString = 
-      reqTime + 
-      merchantId + 
-      tranId + 
-      amountStr + 
-      itemsBase64 + 
-      firstName + 
-      lastName + 
-      email + 
-      phone + 
-      purchaseType + 
-      paymentOption + 
-      callbackUrl + 
-      returnDeeplink + 
-      currency + 
-      customFields + 
-      returnParams + 
-      payout + 
-      lifetime + 
+    const hashString =
+      reqTime +
+      merchantId +
+      tranId +
+      amountStr +
+      itemsBase64 +
+      firstName +
+      lastName +
+      email +
+      phone +
+      purchaseType +
+      paymentOption +
+      callbackUrl +
+      returnDeeplink +
+      currency +
+      customFields +
+      returnParams +
+      payout +
+      lifetime +
       qrImageTemplate;
 
-    const hash = crypto.createHmac('sha512', apiKey).update(hashString).digest('base64');
+    const hash = crypto
+      .createHmac('sha512', apiKey)
+      .update(hashString)
+      .digest('base64');
 
     const payload = {
       req_time: reqTime,
       merchant_id: merchantId,
       tran_id: tranId,
-      amount: Number(amountStr),
+      amount: amountStr,
       items: itemsBase64,
       first_name: firstName,
       last_name: lastName,
@@ -850,47 +978,52 @@ export class PaymentsService {
       payout: payout,
       lifetime: lifetime,
       qr_image_template: qrImageTemplate,
-      hash: hash
+      hash: hash,
     };
 
     try {
-      // Import dynamic fetch or use native fetch
-      const fetchReq = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
-      const res = await fetchReq(qrApiUrl, {
-        method: 'POST',
-        body: JSON.stringify(payload),
+      const axios = require('axios');
+      const res = await axios.post(qrApiUrl, payload, {
         headers: { 'Content-Type': 'application/json' },
+        validateStatus: () => true,
       });
-      const data = await res.json();
-      
+      const data = res.data;
+
       if (data.status && data.status.code === '0') {
-         return {
-           success: true,
-           qrString: data.qrString,
-           qrImage: data.qrImage,
-           abapay_deeplink: data.abapay_deeplink,
-           amount: data.amount,
-           currency: data.currency
-         };
+        return {
+          success: true,
+          qrString: data.qrString,
+          qrImage: data.qrImage,
+          abapay_deeplink: data.abapay_deeplink,
+          amount: data.amount,
+          currency: data.currency,
+        };
       } else {
-         return {
-           success: false,
-           message: `ABA Error: ${data.status?.message || 'Unknown error'} (Code: ${data.status?.code})`,
-           rawData: data
-         };
+        return {
+          success: false,
+          message: `ABA Error: ${data.status?.message || 'Unknown error'} (Code: ${data.status?.code})`,
+          rawData: data,
+        };
       }
     } catch (err: any) {
       this.logger.error('ABA QR API Error', err);
       return {
         success: false,
-        message: 'Failed to communicate with ABA API'
+        message: 'Failed to communicate with ABA API',
       };
     }
   }
 
   async handleAbaWebhook(body: any) {
-    const { tran_id, status, hash, apv } = body;
-    const apiKey = this.config.get('ABA_API_KEY') || 'aba_api_key_placeholder';
+    const { tran_id, status, hash } = body;
+
+    // Fail closed: without the real API key there is nothing to verify the
+    // signature against — a placeholder key would let anyone forge hashes.
+    const apiKey = this.config.get<string>('ABA_API_KEY');
+    if (!apiKey) {
+      this.logger.error('ABA webhook rejected: ABA_API_KEY is not configured');
+      throw new InternalServerErrorException('ABA webhook is not configured');
+    }
 
     // The signature check from ABA for webhook callback (usually status + tran_id)
     const expectedHashString = (tran_id || '') + (status || '');
@@ -913,33 +1046,67 @@ export class PaymentsService {
         if (payment.status === 'paid') {
           return { received: true };
         }
-        await this.prisma.payment.update({
-          where: { id: payment.id },
-          data: { status: 'paid' as any, paidAt: new Date() },
-        });
-        await this.prisma.booking.update({
-          where: { id: payment.bookingId },
-          data: { status: 'confirmed' },
-        });
-        await this.prisma.notification.create({
-          data: {
-            userId: payment.userId,
-            title: 'Payment Successful',
-            body: `Your ABA payment for booking #${payment.bookingId} has been confirmed.`,
-            type: 'info',
-            isRead: false,
-          },
+
+        await this.prisma.$transaction(async (tx) => {
+          await tx.payment.update({
+            where: { id: payment.id },
+            data: { status: 'paid' as any, paidAt: new Date() },
+          });
+
+          const booking = await tx.booking.update({
+            where: { id: payment.bookingId },
+            data: { status: 'confirmed' },
+          });
+
+          // Audit trail — matches Wing and completePayment handlers
+          await tx.bookingStatusLog.create({
+            data: {
+              bookingId: payment.bookingId,
+              oldStatus: 'pending',
+              newStatus: 'confirmed',
+              changedBy: payment.userId, // system action on behalf of customer
+            },
+          });
+
+          // Credit company wallet (10% platform commission)
+          const companyShare = Number(payment.amount) * 0.9;
+          await tx.transaction.create({
+            data: {
+              ownerType: 'company',
+              ownerId: booking.companyId,
+              amount: companyShare,
+              type: 'credit',
+              category: 'booking_revenue',
+              description: `Revenue from booking #${booking.id} via ABA PayWay (after 10% commission)`,
+              bookingId: booking.id,
+            },
+          });
+
+          await this.notify(
+            tx,
+            payment.userId,
+            '✅ Payment Successful',
+            `Your ABA payment of $${Number(payment.amount).toFixed(2)} for booking #${payment.bookingId} has been confirmed.`,
+          );
         });
       }
     } else {
       if (payment) {
-        await this.prisma.payment.update({
-          where: { id: payment.id },
-          data: { status: 'failed' as any },
-        });
-        await this.prisma.booking.update({
-          where: { id: payment.bookingId },
-          data: { status: 'cancelled' },
+        await this.prisma.$transaction(async (tx) => {
+          await tx.payment.update({
+            where: { id: payment.id },
+            data: { status: 'failed' as any },
+          });
+          await tx.booking.update({
+            where: { id: payment.bookingId },
+            data: { status: 'cancelled' },
+          });
+          await this.notify(
+            tx,
+            payment.userId,
+            '❌ Payment Failed',
+            `Your ABA payment for booking #${payment.bookingId} could not be processed. The booking has been cancelled.`,
+          );
         });
       }
     }
