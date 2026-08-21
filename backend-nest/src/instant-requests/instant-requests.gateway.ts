@@ -10,7 +10,8 @@ import { Injectable, Logger } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: true, // reflect request origin so credentialed handshakes work
+    credentials: true,
   },
 })
 @Injectable()
@@ -50,7 +51,9 @@ export class InstantRequestsGateway {
     const room = `instant_request_${requestId}`;
     this.server.to(room).emit('bid_received', bid);
     if (process.env.NODE_ENV === 'development') {
-      this.logger.log(`📣 Broadcast bid to room ${room}: ${JSON.stringify(bid)}`);
+      this.logger.log(
+        `📣 Broadcast bid to room ${room}: ${JSON.stringify(bid)}`,
+      );
     }
   }
 

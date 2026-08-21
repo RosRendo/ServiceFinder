@@ -11,7 +11,8 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 @WebSocketGateway({
   cors: {
-    origin: '*', // Allow all origins for dev. For production, restrict to frontend URL
+    origin: true, // reflect request origin so credentialed handshakes work
+    credentials: true, // Allow all origins for dev. For production, restrict to frontend URL
   },
 })
 export class LocationGateway

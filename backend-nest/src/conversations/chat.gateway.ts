@@ -13,7 +13,8 @@ import { ConversationsService } from './conversations.service';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: true, // reflect request origin so credentialed handshakes work
+    credentials: true,
   },
 })
 @Injectable()

@@ -11,7 +11,8 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: true, // reflect request origin so credentialed handshakes work
+    credentials: true,
   },
 })
 export class PresenceGateway
@@ -25,15 +26,23 @@ export class PresenceGateway
   constructor(private prisma: PrismaService) {}
 
   async handleConnection(client: Socket) {
+    // Token sources, in order: socket auth payload -> Authorization header -> httpOnly cookie.
+    const cookieHeader = client.handshake.headers?.cookie || '';
+    const cookieToken = cookieHeader
+      .split(';')
+      .map((c) => c.trim())
+      .find((c) => c.startsWith('token='))
+      ?.slice('token='.length);
     const token =
       client.handshake.auth?.token ||
-      client.handshake.headers?.authorization?.replace('Bearer ', '');
+      client.handshake.headers?.authorization?.replace('Bearer ', '') ||
+      cookieToken;
     if (!token) return;
 
     try {
       const decoded = jwt.decode(token) as any;
-      if (decoded && decoded.sub) {
-        const userId = BigInt(decoded.sub);
+      if (decoded && decoded.userId) {
+        const userId = BigInt(decoded.userId);
         this.userSockets.set(client.id, userId.toString());
 
         await this.prisma.user.update({

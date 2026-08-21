@@ -11,7 +11,8 @@ import { Server, Socket } from 'socket.io';
 import { Injectable, Logger } from '@nestjs/common';
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: true, // reflect request origin so credentialed handshakes work
+    credentials: true,
   },
 })
 @Injectable()

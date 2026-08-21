@@ -47,8 +47,12 @@ export class AuthService {
   }
 
   /** Generate a short-lived access token (15 min) */
-  generateToken(userId: bigint): string {
-    return this.jwtService.sign({ userId: userId.toString() });
+  generateToken(userId: bigint, role?: string): string {
+    return this.jwtService.sign(
+      role
+        ? { userId: userId.toString(), role }
+        : { userId: userId.toString() },
+    );
   }
 
   /** Generate a long-lived refresh token (7 days) and persist it to the DB */
@@ -87,7 +91,12 @@ export class AuthService {
     // Token rotation: delete old, issue new
     await this.prisma.refreshToken.delete({ where: { id: stored.id } });
 
-    const accessToken = this.generateToken(stored.userId);
+    // Re-fetch the role so refreshed access tokens carry it too.
+    const roleUser = await this.prisma.user.findUnique({
+      where: { id: stored.userId },
+      select: { role: true },
+    });
+    const accessToken = this.generateToken(stored.userId, roleUser?.role);
     const newRefreshToken = await this.generateRefreshToken(stored.userId);
 
     return { accessToken, refreshToken: newRefreshToken };
@@ -136,7 +145,7 @@ export class AuthService {
       },
     });
 
-    const accessToken = this.generateToken(user.id);
+    const accessToken = this.generateToken(user.id, (user as any)?.role);
     const refreshToken = await this.generateRefreshToken(user.id);
 
     await this.auditLogs.log({
@@ -195,7 +204,7 @@ export class AuthService {
       data: { lastLoginAt: new Date() },
     });
 
-    const accessToken = this.generateToken(user.id);
+    const accessToken = this.generateToken(user.id, (user as any)?.role);
     const refreshToken = await this.generateRefreshToken(user.id);
     const { passwordHash, ...userWithoutPassword } = user;
 
@@ -252,7 +261,7 @@ export class AuthService {
         data: { lastLoginAt: new Date() },
       });
 
-      const accessToken = this.generateToken(user.id);
+      const accessToken = this.generateToken(user.id, (user as any)?.role);
       const refreshToken = await this.generateRefreshToken(user.id);
       const { passwordHash, ...userWithoutPassword } = user;
 
@@ -349,7 +358,9 @@ export class AuthService {
 
     const accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
     const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
-    const verifyServiceSid = this.configService.get<string>('TWILIO_VERIFY_SERVICE_SID');
+    const verifyServiceSid = this.configService.get<string>(
+      'TWILIO_VERIFY_SERVICE_SID',
+    );
 
     let success = false;
     let fallbackCode = '123456';
@@ -357,13 +368,16 @@ export class AuthService {
     if (accountSid && authToken && verifyServiceSid) {
       try {
         const client = new Twilio(accountSid, authToken);
-        await client.verify.v2.services(verifyServiceSid)
-          .verifications
-          .create({ to: phone, channel: 'sms' });
+        await client.verify.v2
+          .services(verifyServiceSid)
+          .verifications.create({ to: phone, channel: 'sms' });
         success = true;
         console.log(`[Twilio Verify] Verification sent to ${phone}`);
       } catch (err: any) {
-        console.error('Failed to send verification via Twilio Verify:', err.message || err);
+        console.error(
+          'Failed to send verification via Twilio Verify:',
+          err.message || err,
+        );
       }
     }
 
@@ -394,27 +408,34 @@ export class AuthService {
 
     const accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
     const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
-    const verifyServiceSid = this.configService.get<string>('TWILIO_VERIFY_SERVICE_SID');
+    const verifyServiceSid = this.configService.get<string>(
+      'TWILIO_VERIFY_SERVICE_SID',
+    );
 
     if (accountSid && authToken && verifyServiceSid) {
       try {
         const client = new Twilio(accountSid, authToken);
-        const check = await client.verify.v2.services(verifyServiceSid)
-          .verificationChecks
-          .create({ to: phone, code });
+        const check = await client.verify.v2
+          .services(verifyServiceSid)
+          .verificationChecks.create({ to: phone, code });
 
         if (check.status !== 'approved') {
           throw new BadRequestException('Invalid or expired OTP');
         }
       } catch (err: any) {
-        console.error('Failed to verify OTP via Twilio Verify:', err.message || err);
+        console.error(
+          'Failed to verify OTP via Twilio Verify:',
+          err.message || err,
+        );
         // Fallback for development if Twilio fails
         const localOtp = await this.prisma.otpCode.findFirst({
           where: { phone, code, used: false },
           orderBy: { createdAt: 'desc' },
         });
         if (!localOtp || localOtp.expiresAt < new Date()) {
-          throw new BadRequestException('Invalid or expired OTP (Local fallback)');
+          throw new BadRequestException(
+            'Invalid or expired OTP (Local fallback)',
+          );
         }
         await this.prisma.otpCode.update({
           where: { id: localOtp.id },
@@ -470,7 +491,7 @@ export class AuthService {
       data: { lastLoginAt: new Date() },
     });
 
-    const accessToken = this.generateToken(user.id);
+    const accessToken = this.generateToken(user.id, (user as any)?.role);
     const refreshToken = await this.generateRefreshToken(user.id);
 
     // Attach staffProfile for frontend compatibility
@@ -559,11 +580,18 @@ export class AuthService {
           });
           console.log(`[Twilio] Password reset SMS sent to ${phone}`);
         } catch (err: any) {
-          console.error('Failed to send Password Reset SMS via Twilio:', err.message || err);
-          console.log(`[SMS MOCK FALLBACK] Password reset code for ${phone} is: ${code}`);
+          console.error(
+            'Failed to send Password Reset SMS via Twilio:',
+            err.message || err,
+          );
+          console.log(
+            `[SMS MOCK FALLBACK] Password reset code for ${phone} is: ${code}`,
+          );
         }
       } else {
-        console.log(`[SMS MOCK - Twilio keys missing] Password Reset code for ${phone} is: ${code}`);
+        console.log(
+          `[SMS MOCK - Twilio keys missing] Password Reset code for ${phone} is: ${code}`,
+        );
       }
     }
     return { message: 'If the account exists, a reset code has been sent' };
@@ -707,7 +735,7 @@ export class AuthService {
       data: { lastLoginAt: new Date() },
     });
 
-    const accessToken = this.generateToken(user.id);
+    const accessToken = this.generateToken(user.id, (user as any)?.role);
     const refreshToken = await this.generateRefreshToken(user.id);
     const { passwordHash, ...userWithoutPassword } = user;
 
@@ -784,7 +812,7 @@ export class AuthService {
         data: { lastLoginAt: new Date() },
       });
 
-      const accessToken = this.generateToken(user.id);
+      const accessToken = this.generateToken(user.id, (user as any)?.role);
       const refreshToken = await this.generateRefreshToken(user.id);
       const { passwordHash, ...userWithoutPassword } = user;
 
@@ -817,14 +845,19 @@ export class AuthService {
 
     try {
       // Verify token with Apple (validates signature, exp, aud, iss)
-      const appleIdTokenClaims = await appleSigninAuth.verifyIdToken(identityToken, {
-        audience: this.configService.get<string>('APPLE_CLIENT_ID') || '',
-        ignoreExpiration: false,
-      });
+      const appleIdTokenClaims = await appleSigninAuth.verifyIdToken(
+        identityToken,
+        {
+          audience: this.configService.get<string>('APPLE_CLIENT_ID') || '',
+          ignoreExpiration: false,
+        },
+      );
 
       const { email, sub: appleId } = appleIdTokenClaims;
       if (!email) {
-        throw new BadRequestException('Email not provided from Apple. Users may have hidden it.');
+        throw new BadRequestException(
+          'Email not provided from Apple. Users may have hidden it.',
+        );
       }
 
       let user = await this.prisma.user.findUnique({ where: { email } });
@@ -866,7 +899,7 @@ export class AuthService {
         data: { lastLoginAt: new Date() },
       });
 
-      const accessToken = this.generateToken(user.id);
+      const accessToken = this.generateToken(user.id, (user as any)?.role);
       const refreshToken = await this.generateRefreshToken(user.id);
       const { passwordHash, ...userWithoutPassword } = user;
 
