@@ -308,6 +308,9 @@ export class AuthController {
 
   @Post('verify')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(OtpThrottlerGuard)
+  // Brute-force guard on reset codes: 5 attempts per 10 min per phone/IP.
+  @Throttle({ verifyReset: { limit: 5, ttl: 600000 } })
   @ApiOperation({ summary: 'Verify password reset code' })
   @ApiResponse({ status: 200, description: 'Code verified successfully' })
   @ApiResponse({ status: 400, description: 'Invalid or expired code' })

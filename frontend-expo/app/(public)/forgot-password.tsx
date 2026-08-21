@@ -65,26 +65,44 @@ export default function ForgotPassword() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  // Resend cooldown (seconds) — mirrors the backend OTP cooldown.
+  const [resendCountdown, setResendCountdown] = useState(0);
+
+  useEffect(() => {
+    if (resendCountdown <= 0) return;
+    const id = setTimeout(() => setResendCountdown((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendCountdown]);
 
   const handleReset = async () => {
     Keyboard.dismiss();
-    const cleanId = identifier.trim().toLowerCase();
+    const cleanId = identifier.trim();
     if (!cleanId) {
       setError("Please enter your email or phone number");
+      return;
+    }
+    // Client-side validation mirroring the backend: email format, or
+    // 7-14 digits for a phone number (Khmer numbers are 8-10 digits).
+    const isEmail = cleanId.includes("@");
+    if (isEmail) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanId)) {
+        setError("Please enter a valid email address");
+        return;
+      }
+    } else if (!/^\d{7,14}$/.test(cleanId.replace(/[\s\-().]/g, ""))) {
+      setError("Please enter a valid phone number (e.g. 012 345 678)");
       return;
     }
     setError("");
     setIsLoading(true);
 
     try {
-      const isEmail = cleanId.includes("@");
       const payload = isEmail ? { email: cleanId } : { phone: cleanId };
       await api.post("/api/auth/request", payload);
       setSuccess(true);
+      setResendCountdown(60);
     } catch (err: any) {
-      // In a real app, you might not want to reveal if an email exists for security reasons.
-      // But for UX, we show the error.
-      setError(err.response?.data?.message || "Failed to send reset email. Please try again.");
+      setError(err.response?.data?.message || "Failed to send reset code. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -134,7 +152,20 @@ export default function ForgotPassword() {
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[s.btnSecondary, { marginTop: 12 }]}
+              style={[s.btnResend, (isLoading || resendCountdown > 0) && { opacity: 0.5 }]}
+              onPress={handleReset}
+              disabled={isLoading || resendCountdown > 0}
+              activeOpacity={0.8}
+            >
+              <Text style={s.btnResendText}>
+                {resendCountdown > 0
+                  ? `Resend code in ${resendCountdown}s`
+                  : "Resend code"}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[s.btnSecondary, { marginTop: 4 }]}
               onPress={() => { if (router.canGoBack()) router.back(); else router.replace("/"); }}
             >
               <Text style={s.btnSecondaryText}>{t('auth.backToLogin')}</Text>
@@ -211,6 +242,9 @@ const s = StyleSheet.create({
 
   btnPrimary: { width: "100%", backgroundColor: T.accent, borderRadius: 16, paddingVertical: 18, alignItems: "center", ...CARD_SHADOW },
   btnPrimaryText: { fontSize: 16, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
+
+  btnResend: { alignItems: "center", paddingVertical: 14 },
+  btnResendText: { fontSize: 15, fontWeight: "700", color: T.accent },
 
   btnSecondary: { width: "100%", backgroundColor: "transparent", borderRadius: 16, paddingVertical: 18, alignItems: "center" },
   btnSecondaryText: { fontSize: 16, fontWeight: "800", color: T.text2, letterSpacing: 0.5 },

@@ -1,5 +1,5 @@
 "use client";
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,14 +21,24 @@ function ForgotPasswordInner() {
   
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
+  // Resend cooldown (seconds) — mirrors the backend OTP cooldown.
+  const [resendCountdown, setResendCountdown] = useState(0);
+
+  useEffect(() => {
+    if (resendCountdown <= 0) return;
+    const id = setTimeout(() => setResendCountdown((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendCountdown]);
+
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleRequestOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return setError("Please enter your email");
-    
+  const sendResetCode = async () => {
+    // Basic email validation before hitting the API.
+    if (!email.trim()) return setError("Please enter your email");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+      return setError("Please enter a valid email address");
+
     setIsLoading(true);
     setError("");
 
@@ -36,11 +46,11 @@ function ForgotPasswordInner() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: email.trim() }),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.error || "Failed to request reset code");
       }
@@ -50,11 +60,17 @@ function ForgotPasswordInner() {
         description: "If your email is registered, you will receive a 6-digit code.",
       });
       setStep("otp");
+      setResendCountdown(60);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRequestOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await sendResetCode();
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
@@ -234,14 +250,26 @@ function ForgotPasswordInner() {
                     )}
                   </Button>
 
-                  <div className="text-center pt-2">
+                  <div className="text-center pt-2 space-y-2">
                     <button
                       type="button"
-                      onClick={() => { setStep("email"); setOtp(""); setError(""); }}
-                      className="text-sm font-medium text-primary hover:underline"
+                      onClick={sendResetCode}
+                      disabled={isLoading || resendCountdown > 0}
+                      className="text-sm font-medium text-primary hover:underline disabled:opacity-50 disabled:no-underline"
                     >
-                      Use a different email address?
+                      {resendCountdown > 0
+                        ? `Resend code in ${resendCountdown}s`
+                        : "Resend code"}
                     </button>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => { setStep("email"); setOtp(""); setError(""); }}
+                        className="text-sm font-medium text-muted-foreground hover:underline"
+                      >
+                        Use a different email address?
+                      </button>
+                    </div>
                   </div>
                 </motion.form>
               )}
