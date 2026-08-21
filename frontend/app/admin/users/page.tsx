@@ -35,10 +35,9 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const params = new URLSearchParams({ limit: "200" });
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }, credentials: "include",
+        credentials: 'include',
       });
       const data = await res.json();
       if (res.ok) {

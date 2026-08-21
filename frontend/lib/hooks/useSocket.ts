@@ -6,21 +6,13 @@ export const useSocket = () => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Only connect if we have a token (user is authenticated)
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    
-    if (!token) {
-      return;
-    }
-
-    // Get the base API URL and strip any /api suffix to get the root domain where Socket.io lives
+    // Auth flows through the httpOnly session cookie (no localStorage tokens).
+    // withCredentials makes the browser attach the cookie to the handshake.
     const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
     const baseUrl = rawUrl.replace(/\/api\/?$/, '');
 
     const socketInstance = io(baseUrl, {
-      auth: {
-        token: token
-      },
+      withCredentials: true,
       reconnection: true,
       autoConnect: true // Enabled for location tracking
     });

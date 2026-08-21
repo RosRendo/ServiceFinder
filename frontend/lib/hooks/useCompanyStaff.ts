@@ -14,11 +14,9 @@ export interface StaffMember {
 
 // Fetch staff for the current company
 const fetchCompanyStaff = async (companyId: string): Promise<StaffMember[]> => {
-  const token = localStorage.getItem('token');
-  if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/companies/${companyId}/staff`, {
-    headers: { Authorization: `Bearer ${token}` }
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -44,14 +42,11 @@ export function useAddStaffMutation(companyId: string) {
 
   return useMutation({
     mutationFn: async ({ email, role }: { email: string, role: string }) => {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Not authenticated');
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/companies/${companyId}/staff`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ email, role })
       });
@@ -79,13 +74,10 @@ export function useRemoveStaffMutation(companyId: string) {
 
   return useMutation({
     mutationFn: async (staffId: string) => {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Not authenticated');
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/companies/${companyId}/staff/${staffId}`, {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${token}`
         }
       });
 
@@ -118,14 +110,11 @@ export function useUpdateStaffRoleMutation(companyId: string) {
 
   return useMutation({
     mutationFn: async ({ staffId, role }: { staffId: string, role: string }) => {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Not authenticated');
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/companies/${companyId}/staff/${staffId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ role })
       });

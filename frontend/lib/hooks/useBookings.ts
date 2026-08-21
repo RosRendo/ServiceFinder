@@ -41,12 +41,6 @@ export function useBookings(options: UseBookingsOptions = {}) {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Authentication required - please log in");
-        return;
-      }
-
       const params = new URLSearchParams();
       if (status) params.append("status", status);
       if (companyId) params.append("companyId", companyId);
@@ -58,9 +52,8 @@ export function useBookings(options: UseBookingsOptions = {}) {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/bookings?${params}`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
           method: "GET",
-          credentials: "include",
         },
       );
 
@@ -84,16 +77,10 @@ export function useBookings(options: UseBookingsOptions = {}) {
   const getBookingById = async (id: string) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        return { success: false, error: "Authentication required" };
-      }
-
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/bookings/${id}`,
         {
-          headers: { Authorization: `Bearer ${token}` },
-          credentials: "include",
+          credentials: 'include',
         },
       );
 
@@ -119,20 +106,11 @@ export function useBookings(options: UseBookingsOptions = {}) {
   const createBooking = async (bookingData: any) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        return {
-          success: false,
-          error: "Authentication required - please log in",
-        };
-      }
-
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/bookings`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",
@@ -181,17 +159,11 @@ export function useBookings(options: UseBookingsOptions = {}) {
   const updateBookingStatus = async (id: string, status: string) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        return { success: false, error: "Authentication required" };
-      }
-
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/bookings/${id}/status`,
         {
           method: "PATCH",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",
@@ -220,17 +192,11 @@ export function useBookings(options: UseBookingsOptions = {}) {
   const cancelBooking = async (id: string, reason: string) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        return { success: false, error: "Authentication required" };
-      }
-
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/bookings/${id}`,
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",
@@ -260,13 +226,11 @@ export function useBookings(options: UseBookingsOptions = {}) {
   const assignStaff = async (bookingId: string, staffId: string) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/bookings/${bookingId}/assign-staff`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",
@@ -298,7 +262,6 @@ export function useBookings(options: UseBookingsOptions = {}) {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
       const params = new URLSearchParams();
       if (statusFilter) params.append("status", statusFilter);
       params.append("page", page.toString());
@@ -307,8 +270,7 @@ export function useBookings(options: UseBookingsOptions = {}) {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/bookings/staff/assigned?${params}`,
         {
-          headers: { Authorization: `Bearer ${token}` },
-          credentials: "include",
+          credentials: 'include',
         },
       );
 
@@ -337,13 +299,11 @@ export function useBookings(options: UseBookingsOptions = {}) {
   const startJob = async (bookingId: string) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/bookings/${bookingId}/start`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",
@@ -377,13 +337,11 @@ export function useBookings(options: UseBookingsOptions = {}) {
   ) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/bookings/${bookingId}/progress`,
         {
           method: "PATCH",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",
@@ -414,13 +372,11 @@ export function useBookings(options: UseBookingsOptions = {}) {
   const completeJob = async (bookingId: string) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/bookings/${bookingId}/complete`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",

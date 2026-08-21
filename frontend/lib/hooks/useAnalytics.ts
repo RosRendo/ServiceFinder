@@ -28,11 +28,9 @@ export interface AnalyticsData {
 }
 
 const fetchCompanyAnalytics = async (timeframe: Timeframe): Promise<AnalyticsData> => {
-  const token = localStorage.getItem('token');
-  if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/company/analytics?timeframe=${timeframe}`, {
-    headers: { Authorization: `Bearer ${token}` }
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -54,11 +52,9 @@ export function useCompanyAnalyticsQuery(timeframe: Timeframe = '30d') {
 }
 
 const fetchAdminAnalytics = async (timeframe: Timeframe): Promise<any> => {
-  const token = localStorage.getItem('token');
-  if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/analytics?timeframe=${timeframe}`, {
-    headers: { Authorization: `Bearer ${token}` }
+    credentials: 'include',
   });
 
   if (!response.ok) {

@@ -205,7 +205,6 @@ export function useCreateServiceType() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(serviceTypeData)
       });
@@ -264,7 +263,6 @@ export function useUpdateServiceType() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(updates)
       });
@@ -308,7 +306,6 @@ export function useDeleteServiceType() {
       const response = await fetch(`${API_BASE_URL}/service-types/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
         }
       });
 

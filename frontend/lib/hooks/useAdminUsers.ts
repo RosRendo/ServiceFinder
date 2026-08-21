@@ -21,8 +21,6 @@ interface FetchUsersParams {
 
 // Fetch users for admin panel
 const fetchAdminUsers = async (params: FetchUsersParams): Promise<{ data: AdminUser[], total: number, pages: number }> => {
-  const token = localStorage.getItem('token');
-  if (!token) throw new Error('Not authenticated');
 
   const queryParams = new URLSearchParams();
   if (params.page) queryParams.append('page', params.page.toString());
@@ -32,7 +30,7 @@ const fetchAdminUsers = async (params: FetchUsersParams): Promise<{ data: AdminU
   if (params.status) queryParams.append('status', params.status);
 
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users?${queryParams.toString()}`, {
-    headers: { Authorization: `Bearer ${token}` }
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -62,14 +60,11 @@ export function useUpdateUserStatusMutation() {
 
   return useMutation({
     mutationFn: async ({ userId, status, reason }: { userId: string, status: 'active' | 'suspended' | 'banned', reason?: string }) => {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Not authenticated');
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users/${userId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ status, reason })
       });

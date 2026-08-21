@@ -61,13 +61,11 @@ export function useStaffAvailability(options: UseStaffAvailabilityOptions = {}) 
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/staff/availability/me`,
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         }
@@ -95,13 +93,11 @@ export function useStaffAvailability(options: UseStaffAvailabilityOptions = {}) 
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/staff/availability`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",
@@ -133,13 +129,11 @@ export function useStaffAvailability(options: UseStaffAvailabilityOptions = {}) 
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/staff/availability/${id}`,
         {
           method: "PATCH",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",
@@ -168,13 +162,11 @@ export function useStaffAvailability(options: UseStaffAvailabilityOptions = {}) 
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/staff/availability/${id}`,
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         }
@@ -332,13 +324,11 @@ export function useStaffServiceRequests(
   const approveService = async (id: string | number) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/staff/services/${id}/approve`,
         {
           method: "PATCH",
           headers: {
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         }
@@ -364,13 +354,11 @@ export function useStaffServiceRequests(
   const rejectService = async (id: string | number, reason?: string) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/staff/services/${id}/reject`,
         {
           method: "PATCH",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",

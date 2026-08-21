@@ -32,13 +32,11 @@ export function useReviews(options: UseReviewsOptions = {}) {
     setLoading(true)
     setError(null)
     try {
-      const token = localStorage.getItem('token')
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reviews/my`, {
         method: 'GET',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
       });
 
@@ -91,11 +89,9 @@ export function useReviews(options: UseReviewsOptions = {}) {
   }) => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reviews`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         credentials: 'include',
@@ -127,11 +123,9 @@ export function useReviews(options: UseReviewsOptions = {}) {
   }) => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reviews/${id}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(reviewData)
@@ -153,10 +147,9 @@ export function useReviews(options: UseReviewsOptions = {}) {
   const deleteReview = async (id: string) => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reviews/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        credentials: 'include',
       })
 
       if (response.ok) {

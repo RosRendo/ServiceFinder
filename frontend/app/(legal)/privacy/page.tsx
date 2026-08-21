@@ -37,15 +37,11 @@ We do NOT sell your personal data to third parties.`,
     body: `All payments are processed securely by our certified payment processors. Data is transmitted directly via an encrypted connection. ServiceFinder receives only a tokenised reference for display purposes.`,
   },
   {
-    title: "5. Cryptocurrency Payments (Cryptmus)",
-    body: `For crypto payments, we integrate with Cryptmus. Your public wallet address is used to process the transaction. Blockchain transactions are immutable and publicly visible by nature. We store the transaction hash and amount for accounting purposes. Cryptmus's privacy policy governs the payment processing layer.`,
-  },
-  {
-    title: "6. Location Data",
+    title: "5. Location Data",
     body: `Location is used solely to: (a) display relevant providers near you on the map, and (b) route service providers to your address during a booking. Location data is NOT shared with third-party advertisers. GPS access on mobile is opt-in and can be revoked at any time in your device settings.`,
   },
   {
-    title: "7. Data Sharing",
+    title: "6. Data Sharing",
     body: `We share data only with:
 • The service provider company you book with (name, address, booking details).
 • Payment processing partners.
@@ -54,11 +50,11 @@ We do NOT sell your personal data to third parties.`,
 • Legal authorities when required by law.`,
   },
   {
-    title: "8. Data Retention",
+    title: "7. Data Retention",
     body: `We retain account data for as long as your account is active. After deletion, we may retain booking records for up to 7 years for tax and legal compliance. Payment records are retained as required by financial regulations. You may request deletion of all other personal data.`,
   },
   {
-    title: "9. Your Rights",
+    title: "8. Your Rights",
     body: `You have the right to:
 • Access a copy of your personal data.
 • Correct inaccurate data.
@@ -68,15 +64,15 @@ We do NOT sell your personal data to third parties.`,
 To exercise these rights, email: privacy@servicefinder.app`,
   },
   {
-    title: "10. Cookies",
+    title: "9. Cookies",
     body: `We use essential cookies to maintain your session and authentication. We use analytics cookies (anonymised) to understand feature usage. You can disable non-essential cookies in your browser settings. We do not use advertising or tracking cookies.`,
   },
   {
-    title: "11. Children's Privacy",
+    title: "10. Children's Privacy",
     body: `The Platform is not intended for users under 18 years of age. We do not knowingly collect data from minors. If you believe a minor has created an account, contact privacy@servicefinder.app.`,
   },
   {
-    title: "12. Changes to This Policy",
+    title: "11. Changes to This Policy",
     body: `We may update this Privacy Policy periodically. We will notify registered users via email for material changes. Continued use of the Platform after changes constitutes acceptance of the updated policy. Last updated: April 14, 2026.`,
   },
 ];
@@ -99,7 +95,7 @@ export default function PrivacyPage() {
           <p className="text-slate-600 text-lg leading-relaxed mb-12">
             Your privacy matters to us. This policy explains exactly what data we collect,
             why we collect it, and how it is protected — including how we handle payments
-            credit card data, Cryptmus wallet information, and your device location.
+            credit card data, wallet information, and your device location.
           </p>
 
           <div className="space-y-10">

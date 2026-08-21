@@ -47,23 +47,12 @@ export function usePayments(options: UsePaymentsOptions = {}) {
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   /**
-   * Get auth token from localStorage
-   */
-  const getAuthToken = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("token");
-    }
-    return null;
-  };
-
-  /**
    * Fetch all payments with pagination
    */
   const fetchPayments = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const token = getAuthToken();
       const params = new URLSearchParams();
       if (status) params.append("status", status);
       params.append("page", page.toString());
@@ -72,7 +61,6 @@ export function usePayments(options: UsePaymentsOptions = {}) {
       const response = await fetch(`${API_URL}/api/payments?${params}`, {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         credentials: "include",
@@ -108,10 +96,8 @@ export function usePayments(options: UsePaymentsOptions = {}) {
       setLoading(true);
       setError(null);
       try {
-        const token = getAuthToken();
         const response = await fetch(`${API_URL}/api/payments/${id}`, {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",
@@ -144,13 +130,11 @@ export function usePayments(options: UsePaymentsOptions = {}) {
       setLoading(true);
       setError(null);
       try {
-        const token = getAuthToken();
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/payments`,
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
             credentials: "include",
@@ -194,21 +178,12 @@ export function usePayments(options: UsePaymentsOptions = {}) {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          return {
-            success: false,
-            error: "Authentication required. Please log in.",
-          };
-        }
 
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/payments/complete`,
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
             credentials: "include",
@@ -250,13 +225,11 @@ export function usePayments(options: UsePaymentsOptions = {}) {
       setLoading(true);
       setError(null);
       try {
-        const token = getAuthToken();
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/payments/${id}`,
           {
             method: "PATCH",
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
             credentials: "include",
@@ -293,14 +266,12 @@ export function usePayments(options: UsePaymentsOptions = {}) {
     setLoading(true);
     setError(null);
     try {
-      const token = getAuthToken();
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/payments/paypal/order`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
           body: JSON.stringify({ bookingId }),
@@ -328,14 +299,12 @@ export function usePayments(options: UsePaymentsOptions = {}) {
       setLoading(true);
       setError(null);
       try {
-        const token = getAuthToken();
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/payments/paypal/capture`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
             },
             credentials: "include",
             body: JSON.stringify({ orderID, bookingId }),
@@ -358,46 +327,6 @@ export function usePayments(options: UsePaymentsOptions = {}) {
   );
 
 
-  /**
-   * Create Cryptmus Payment
-   */
-  const createCryptmusPayment = useCallback(async (bookingId: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = getAuthToken();
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/payments/cryptmus/init`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-          body: JSON.stringify({ bookingId }),
-        },
-      );
-
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error || "Failed to create Cryptmus payment");
-
-      return {
-        success: true,
-        paymentUrl: data.paymentUrl,
-        paymentId: data.paymentId,
-        amount: data.amount,
-        currency: data.currency,
-      };
-    } catch (err: any) {
-      console.error("Cryptmus create payment error:", err);
-      return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   return {
     payments,
     loading,
@@ -410,6 +339,5 @@ export function usePayments(options: UsePaymentsOptions = {}) {
     updatePayment,
     createPaypalOrder,
     capturePaypalOrder,
-    createCryptmusPayment,
   };
 }

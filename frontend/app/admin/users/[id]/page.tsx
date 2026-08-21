@@ -133,9 +133,7 @@ export default function UserDetailPage() {
       if (!id) return;
       setLoading(true); setError(null);
       try {
-        const token = localStorage.getItem("token");
-        const headers: any = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}`, { headers });
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}`, { credentials: 'include' });
         if (!res.ok) throw new Error("User not found");
         const data = await res.json();
         setUser(data.data?.user || data.data || data);
@@ -151,10 +149,9 @@ export default function UserDetailPage() {
   const handleStatusChange = async (newStatus: string) => {
     if (!user) return;
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" }, credentials: 'include',
         body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) setUser({ ...user, status: newStatus });

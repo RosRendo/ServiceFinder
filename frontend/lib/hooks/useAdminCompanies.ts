@@ -26,8 +26,6 @@ interface FetchCompaniesParams {
 
 // Fetch companies for admin panel
 const fetchAdminCompanies = async (params: FetchCompaniesParams): Promise<{ data: AdminCompany[], total: number, pages: number }> => {
-  const token = localStorage.getItem('token');
-  if (!token) throw new Error('Not authenticated');
 
   const queryParams = new URLSearchParams();
   if (params.page) queryParams.append('page', params.page.toString());
@@ -36,7 +34,7 @@ const fetchAdminCompanies = async (params: FetchCompaniesParams): Promise<{ data
   if (params.status) queryParams.append('status', params.status);
 
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies?${queryParams.toString()}`, {
-    headers: { Authorization: `Bearer ${token}` }
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -62,11 +60,9 @@ export function useAdminCompaniesQuery(params: FetchCompaniesParams) {
 
 // Fetch single company details for admin
 const fetchAdminCompanyDetail = async (id: string): Promise<AdminCompany> => {
-  const token = localStorage.getItem('token');
-  if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies/${id}`, {
-    headers: { Authorization: `Bearer ${token}` }
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -92,14 +88,11 @@ export function useVerifyCompanyMutation() {
 
   return useMutation({
     mutationFn: async ({ companyId, status, notes }: { companyId: string, status: 'verified' | 'rejected' | 'suspended', notes?: string }) => {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Not authenticated');
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies/${companyId}/verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ status, notes })
       });

@@ -37,6 +37,7 @@
     "framer-motion": "^12.23.26",
     "input-otp": "^1.4.2",
     "install": "^0.13.0",
+    "jose": "^6.2.9",
     "leaflet": "^1.9.4",
     "leaflet-geosearch": "^4.4.0",
     "lucide-react": "^0.562.0",

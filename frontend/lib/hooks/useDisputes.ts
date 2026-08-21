@@ -25,13 +25,11 @@ export interface Dispute {
 
 // Fetch all disputes (Admin view or specific role view based on token)
 const fetchDisputes = async (role: 'admin' | 'company' | 'customer'): Promise<Dispute[]> => {
-  const token = localStorage.getItem('token');
-  if (!token) throw new Error('Not authenticated');
 
   const endpoint = '/api/disputes';
 
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
-    headers: { Authorization: `Bearer ${token}` }
+    credentials: 'include',
   });
 
   if (!response.ok) throw new Error('Failed to fetch disputes');
@@ -46,13 +44,11 @@ const fetchDisputes = async (role: 'admin' | 'company' | 'customer'): Promise<Di
 
 // Fetch single dispute details
 const fetchDisputeDetail = async (id: string, role: 'admin' | 'company' | 'customer'): Promise<Dispute> => {
-  const token = localStorage.getItem('token');
-  if (!token) throw new Error('Not authenticated');
 
   const endpoint = `/api/disputes/${id}`;
 
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
-    headers: { Authorization: `Bearer ${token}` }
+    credentials: 'include',
   });
 
   if (!response.ok) throw new Error('Failed to fetch dispute details');
@@ -91,14 +87,11 @@ export function useResolveDisputeMutation() {
       notes: string,
       refundAmount?: number 
     }) => {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Not authenticated');
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/disputes/${id}/resolve`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ decision, notes, refundAmount })
       });
@@ -132,14 +125,11 @@ export function useRespondToDisputeMutation() {
       message: string, 
       evidence?: string[] 
     }) => {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Not authenticated');
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/company/disputes/${id}/response`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ message, evidence })
       });

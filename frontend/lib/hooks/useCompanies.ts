@@ -366,12 +366,10 @@ export function useCompanies(options: UseCompaniesOptions = {}) {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/companies/staff/${staffId}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },
@@ -397,13 +395,11 @@ export function useCompanies(options: UseCompaniesOptions = {}) {
 
   const updateStaffMember = async (staffId: string, updates: any) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/companies/staff/${staffId}`,
         {
           method: "PUT",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",
@@ -427,13 +423,11 @@ export function useCompanies(options: UseCompaniesOptions = {}) {
 
   const removeStaffMember = async (staffId: string) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/companies/staff/${staffId}`,
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },
@@ -455,13 +449,11 @@ export function useCompanies(options: UseCompaniesOptions = {}) {
 
   const reactivateStaffMember = async (staffId: string) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/companies/staff/${staffId}/reactivate`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
           },
           credentials: "include",
         },
@@ -516,12 +508,9 @@ export function useCompanyMe(options: { autoFetch?: boolean } = {}) {
     setLoading(true);
     setError(null);
     try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/companies/me`,
         {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
           credentials: "include",
         },
       );

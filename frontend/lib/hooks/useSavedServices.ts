@@ -23,12 +23,9 @@ export interface SavedService {
 
 // Fetcher function
 const fetchSavedServices = async (): Promise<SavedService[]> => {
-  const token = localStorage.getItem('token');
-  if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/customers/saved-services`, {
     headers: {
-      Authorization: `Bearer ${token}`
     }
   });
 
@@ -61,8 +58,6 @@ export function useToggleSavedService() {
 
   return useMutation({
     mutationFn: async ({ serviceId, isCurrentlySaved }: { serviceId: string, isCurrentlySaved: boolean }) => {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Not authenticated');
 
       const method = isCurrentlySaved ? 'DELETE' : 'POST';
       const url = `${process.env.NEXT_PUBLIC_API_URL}/api/customers/saved-services/${serviceId}`;
@@ -70,7 +65,6 @@ export function useToggleSavedService() {
       const response = await fetch(url, {
         method,
         headers: {
-          Authorization: `Bearer ${token}`
         }
       });
 

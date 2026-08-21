@@ -32,8 +32,7 @@ const AdminMessagesInner = () => {
   useEffect(() => {
     const fetchUserInfo = async (id: string) => {
       try {
-        const token = localStorage.getItem("token") || "";
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}`, { credentials: 'include', });
         if (res.ok) {
           const data = await res.json();
           const userData = data.data?.user || data.data || data;

@@ -24,9 +24,8 @@ export default function VerificationPage() {
   const fetchPendingCompanies = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies?status=pending&limit=50`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       const data = await res.json();
       let list = [];
@@ -41,10 +40,9 @@ export default function VerificationPage() {
 
   const fetchTodayStats = async () => {
     try {
-      const token = localStorage.getItem("token");
       const [verRes, rejRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies?status=verified&limit=100`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies?status=rejected&limit=100`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies?status=verified&limit=100`, { credentials: 'include', }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies?status=rejected&limit=100`, { credentials: 'include', }),
       ]);
       const verData = await verRes.json();
       const rejData = await rejRes.json();
@@ -69,9 +67,8 @@ export default function VerificationPage() {
     if (!confirm("Verify this company?")) return;
     setVerifying(true);
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies/${companyId}/verify`, {
-        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" }, credentials: 'include',
       });
       if (res.ok) { toast.success("Company verified"); setVerifiedToday((v) => v + 1); fetchPendingCompanies(); setSelectedCompany(null); }
       else toast.error("Failed to verify");
@@ -83,9 +80,8 @@ export default function VerificationPage() {
     if (!selectedCompany || !rejectReason.trim()) { toast.error("Provide a rejection reason"); return; }
     setVerifying(true);
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies/${selectedCompany.id}/reject`, {
-        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" }, credentials: 'include',
         body: JSON.stringify({ reason: rejectReason }),
       });
       if (res.ok) {
@@ -154,12 +150,11 @@ export default function VerificationPage() {
   const handleBulkApprove = async () => {
     if (!window.confirm(`Approve ${selectedIds.size} company application(s)?`)) return;
     try {
-      const token = localStorage.getItem("token");
       await Promise.all(
         Array.from(selectedIds).map((id) =>
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies/${id}/accept`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
+            credentials: 'include',
           })
         )
       );
@@ -174,12 +169,11 @@ export default function VerificationPage() {
   const handleBulkReject = async () => {
     if (!window.confirm(`Reject ${selectedIds.size} company application(s)? This cannot be undone.`)) return;
     try {
-      const token = localStorage.getItem("token");
       await Promise.all(
         Array.from(selectedIds).map((id) =>
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies/${id}/reject`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json" }, credentials: 'include',
             body: JSON.stringify({ reason: "Bulk rejection by admin." }),
           })
         )

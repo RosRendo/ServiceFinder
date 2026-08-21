@@ -65,12 +65,10 @@ export function useConversations(): UseConversationsResult {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/conversations`,
         {
           credentials: "include",
-          headers: { Authorization: `Bearer ${token}` },
         },
       );
       if (!res.ok) {
@@ -108,12 +106,10 @@ export function useMessages(conversationId?: string): UseMessagesResult {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/conversations/${id}/messages`,
         {
           credentials: "include",
-          headers: { Authorization: `Bearer ${token}` },
         },
       );
       if (!res.ok) {
@@ -165,10 +161,8 @@ export function useMessages(conversationId?: string): UseMessagesResult {
       bookingId?: string;
     }) => {
       try {
-        const token = localStorage.getItem("token");
         const headers = {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         };
 
         // Step 1: get or create conversation

@@ -15,11 +15,9 @@ export interface PaymentMethod {
 
 // Fetch payment methods for current user (customer or company)
 const fetchPaymentMethods = async (): Promise<PaymentMethod[]> => {
-  const token = localStorage.getItem('token');
-  if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/methods`, {
-    headers: { Authorization: `Bearer ${token}` }
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -44,14 +42,11 @@ export function useAddPaymentMethodMutation() {
 
   return useMutation({
     mutationFn: async (paymentMethodId: string) => {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Not authenticated');
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/methods`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ paymentMethodId }) // Payment method ID
       });
@@ -79,13 +74,10 @@ export function useDeletePaymentMethodMutation() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Not authenticated');
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/methods/${id}`, {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${token}`
         }
       });
 
@@ -118,13 +110,10 @@ export function useSetDefaultPaymentMethodMutation() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Not authenticated');
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/methods/${id}/default`, {
         method: 'PATCH',
         headers: {
-          Authorization: `Bearer ${token}`
         }
       });
 
