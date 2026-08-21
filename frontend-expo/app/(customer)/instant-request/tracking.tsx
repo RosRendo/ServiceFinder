@@ -8,22 +8,24 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { io, Socket } from "socket.io-client";
 import { Theme } from "@/constants/theme";
 import { api } from "@/store/authStore";
+import { useCurrentLocation } from "@/hooks/useCurrentLocation";
+import { SOCKET_URL as API_URL } from "@/lib/apiConfig";
 
 const T = Theme.colors;
 
-const CUSTOMER_LOC = { latitude: 11.5564, longitude: 104.9282 };
-const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || (Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000');
+
 
 export default function InstantRequestTracking() {
   const router = useRouter();
-  const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
+  const { bookingId, isSimulation } = useLocalSearchParams<{ bookingId: string, isSimulation?: string }>();
+  const { location: fallbackLoc } = useCurrentLocation(true);
 
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const [providerLoc, setProviderLoc] = useState({ latitude: 11.5615, longitude: 104.9310 });
   const [etaVal, setEtaVal] = useState<number | string>("Assigning...");
-  const [status, setStatus] = useState<"confirmed" | "on_the_way" | "arrived" | "in_progress">("confirmed");
+  const [status, setStatus] = useState<"confirmed" | "on_the_way" | "arrived" | "in_progress" | "completed">("confirmed");
   const [isLive, setIsLive] = useState(false);
 
   const stepCount = useRef(0);
@@ -31,6 +33,29 @@ export default function InstantRequestTracking() {
   // 1. Fetch & Poll booking details
   useEffect(() => {
     async function loadBooking() {
+      if (isSimulation === "true") {
+        const b = {
+          id: bookingId || "mock-booking",
+          status: "confirmed",
+          totalPrice: "25.00",
+          customerNotes: "Test simulation notes",
+          company: { 
+            name: "ABC Repair (Simulated)", 
+            latitude: String(fallbackLoc.latitude + 0.006), 
+            longitude: String(fallbackLoc.longitude + 0.006) 
+          },
+          service: { name: "AC Cleaning" },
+          latitude: fallbackLoc.latitude,
+          longitude: fallbackLoc.longitude,
+        };
+        setBooking(b);
+        setProviderLoc({
+          latitude: fallbackLoc.latitude + 0.006,
+          longitude: fallbackLoc.longitude + 0.006
+        });
+        setLoading(false);
+        return;
+      }
       if (!bookingId) return;
       try {
         const res = await api.get(`/api/bookings/${bookingId}`);
@@ -50,13 +75,16 @@ export default function InstantRequestTracking() {
     }
     loadBooking();
 
+    if (isSimulation === "true") return;
+
     // Poll status from DB every 5 seconds to sync with staff acceptance/travel steps
     const pollInterval = setInterval(loadBooking, 5000);
     return () => clearInterval(pollInterval);
-  }, [bookingId]);
+  }, [bookingId, isSimulation, fallbackLoc]);
 
   // 1.5. Synchronize local status state with database status
   useEffect(() => {
+    if (isSimulation === "true") return;
     if (!booking) return;
     const dbStatus = booking.status;
     if (dbStatus === "en_route") {
@@ -70,10 +98,11 @@ export default function InstantRequestTracking() {
     } else if (dbStatus === "confirmed" || dbStatus === "assigned") {
       setStatus("confirmed");
     }
-  }, [booking?.status]);
+  }, [booking?.status, isSimulation]);
 
   // 2. WebSocket live updates connection
   useEffect(() => {
+    if (isSimulation === "true") return;
     if (loading || !booking || !bookingId) return;
 
     let socket: Socket | null = null;
@@ -88,8 +117,10 @@ export default function InstantRequestTracking() {
         setProviderLoc({ latitude: data.latitude, longitude: data.longitude });
         
         // Derive status from the live coordinates/eta
-        const latDiff = Math.abs(CUSTOMER_LOC.latitude - data.latitude);
-        const lngDiff = Math.abs(CUSTOMER_LOC.longitude - data.longitude);
+        const cLat = booking?.latitude ? parseFloat(booking.latitude) : 11.5564;
+        const cLng = booking?.longitude ? parseFloat(booking.longitude) : 104.9282;
+        const latDiff = Math.abs(cLat - data.latitude);
+        const lngDiff = Math.abs(cLng - data.longitude);
         if (latDiff < 0.001 && lngDiff < 0.001) {
           setStatus("arrived");
           setEtaVal("Arrived");
@@ -132,8 +163,10 @@ export default function InstantRequestTracking() {
         setStatus("on_the_way");
         // Interpolate coordinates closer
         setProviderLoc((prev) => {
-          const nextLat = prev.latitude + (CUSTOMER_LOC.latitude - prev.latitude) * 0.22;
-          const nextLng = prev.longitude + (CUSTOMER_LOC.longitude - prev.longitude) * 0.22;
+          const cLat = booking?.latitude ? parseFloat(booking.latitude) : 11.5564;
+          const cLng = booking?.longitude ? parseFloat(booking.longitude) : 104.9282;
+          const nextLat = prev.latitude + (cLat - prev.latitude) * 0.22;
+          const nextLng = prev.longitude + (cLng - prev.longitude) * 0.22;
           return { latitude: nextLat, longitude: nextLng };
         });
         const remainingSteps = 6 - step;
@@ -141,18 +174,25 @@ export default function InstantRequestTracking() {
       } else if (step >= 6 && step < 9) {
         // Arrived state (12 - 18 seconds)
         setStatus("arrived");
-        setProviderLoc(CUSTOMER_LOC);
+        setProviderLoc({
+          latitude: booking?.latitude ? parseFloat(booking.latitude) : 11.5564,
+          longitude: booking?.longitude ? parseFloat(booking.longitude) : 104.9282
+        });
         setEtaVal("Arrived");
-      } else if (step >= 9) {
-        // In Progress & Completed state (18+ seconds)
+      } else if (step >= 9 && step < 12) {
+        // In Progress state (18 - 24 seconds)
         setStatus("in_progress");
         setEtaVal("In Progress");
+      } else if (step >= 12) {
+        // Completed state (24+ seconds)
+        setStatus("completed");
+        setEtaVal("Completed");
         clearInterval(interval);
       }
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [loading, booking, isLive]);
+  }, [loading, booking, isLive, isSimulation]);
 
   if (loading) {
     return (
@@ -166,6 +206,10 @@ export default function InstantRequestTracking() {
   const serviceName = booking?.service?.name || "Service";
   const startLat = booking?.company?.latitude ? parseFloat(booking.company.latitude) : 11.5615;
   const startLng = booking?.company?.longitude ? parseFloat(booking.company.longitude) : 104.9310;
+  const customerLoc = {
+    latitude: booking?.latitude ? parseFloat(booking.latitude) : 11.5564,
+    longitude: booking?.longitude ? parseFloat(booking.longitude) : 104.9282
+  };
 
   return (
     <SafeAreaView style={s.root}>
@@ -184,14 +228,14 @@ export default function InstantRequestTracking() {
           provider={MAP_PROVIDER}
           style={StyleSheet.absoluteFillObject}
           initialRegion={{
-            latitude: (CUSTOMER_LOC.latitude + startLat) / 2,
-            longitude: (CUSTOMER_LOC.longitude + startLng) / 2,
+            latitude: (customerLoc.latitude + startLat) / 2,
+            longitude: (customerLoc.longitude + startLng) / 2,
             latitudeDelta: 0.015,
             longitudeDelta: 0.015,
           }}
         >
           {/* Customer Location Pin */}
-          <Marker coordinate={CUSTOMER_LOC} title="You">
+          <Marker coordinate={customerLoc} title="You">
             <View style={s.customerMarker}>
               <MaterialCommunityIcons name="home" size={20} color="#FFF" />
             </View>
@@ -206,7 +250,7 @@ export default function InstantRequestTracking() {
 
           {/* Route Line */}
           <Polyline
-            coordinates={[providerLoc, CUSTOMER_LOC]}
+            coordinates={[providerLoc, customerLoc]}
             strokeColor={T.accent}
             strokeWidth={4}
             lineDashPattern={[6, 3]}
@@ -234,20 +278,23 @@ export default function InstantRequestTracking() {
           <TouchableOpacity style={s.contactIconBtn}>
             <MaterialCommunityIcons name="phone" size={20} color={T.accent} />
           </TouchableOpacity>
-        </View>
-
-        <View style={s.statusBanner}>
-          <View style={[s.pulseDot, status === "arrived" && { backgroundColor: T.success }, status === "in_progress" && { backgroundColor: T.accent }]} />
+        </View>        <View style={s.statusBanner}>
+          <View style={[
+            s.pulseDot, 
+            (status === "arrived" || status === "completed") && { backgroundColor: T.success }, 
+            status === "in_progress" && { backgroundColor: T.accent }
+          ]} />
           <Text style={s.statusText}>
             {status === "confirmed" && "Booking confirmed. Assigning staff..."}
             {status === "on_the_way" && "Staff Member 1 is en route to you"}
             {status === "arrived" && "Staff has arrived at your location"}
             {status === "in_progress" && "Service is in progress..."}
+            {status === "completed" && "Service completed successfully! Thank you."}
           </Text>
         </View>
 
         <View style={s.buttonRow}>
-          {status === "in_progress" ? (
+          {(status === "in_progress" || status === "completed") ? (
             <TouchableOpacity
               style={s.paymentBtn}
               onPress={() => {

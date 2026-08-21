@@ -18,9 +18,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ||
-  (Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000');
+import { API_URL } from '@/lib/apiConfig';
 
 // Map socket event names → human-readable notification content
 const EVENT_MAP: Record<string, { title: string; getBody: (data: any) => string; type: NotificationType }> = {

@@ -15,8 +15,9 @@ import { api } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
 import Toast from "react-native-toast-message";
 import * as Haptics from "expo-haptics";
+import { useCurrentLocation } from "@/hooks/useCurrentLocation";
+import { API_URL } from "@/lib/apiConfig";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000');
 
 const T = Theme.colors;
 
@@ -44,6 +45,7 @@ export default function BookingDetails() {
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { location: currentLoc } = useCurrentLocation(true);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
@@ -65,7 +67,6 @@ export default function BookingDetails() {
   const [staffList, setStaffList] = useState<any[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState<string>("");
   const [assigning, setAssigning] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const loadBooking = useCallback(async (isRefresh = false) => {
     if (!id) return;
@@ -115,20 +116,6 @@ export default function BookingDetails() {
       Alert.alert("Error", err.response?.data?.message || "Failed to assign staff");
     } finally {
       setAssigning(false);
-    }
-  };
-
-  const handleStatusUpdate = async (endpoint: string, successMsg: string) => {
-    if (!booking) return;
-    setUpdatingStatus(true);
-    try {
-      await api.patch(`/api/bookings/${booking.id}/${endpoint}`);
-      Alert.alert("Success", successMsg);
-      loadBooking();
-    } catch (err: any) {
-      Alert.alert("Error", err.response?.data?.message || `Failed to perform transition ${endpoint}`);
-    } finally {
-      setUpdatingStatus(false);
     }
   };
 
@@ -189,10 +176,10 @@ export default function BookingDetails() {
         socket?.emit("join_booking", String(booking.id));
       });
 
-      let currentLat = Number(booking.company?.latitude) || 11.5615;
-      let currentLng = Number(booking.company?.longitude) || 104.9310;
-      const targetLat = Number(booking.latitude) || 11.5564;
-      const targetLng = Number(booking.longitude) || 104.9282;
+      let currentLat = Number(booking.company?.latitude) || currentLoc.latitude;
+      let currentLng = Number(booking.company?.longitude) || currentLoc.longitude;
+      const targetLat = Number(booking.latitude) || currentLoc.latitude;
+      const targetLng = Number(booking.longitude) || currentLoc.longitude;
 
       mockInterval = setInterval(() => {
         // Move 15% closer to customer on each tick
@@ -475,50 +462,6 @@ export default function BookingDetails() {
           </View>
         </View>
 
-        {/* Action Controls for Staff Execution */}
-        {booking.assignedStaff && (
-          <View style={{ gap: 12, marginTop: 8 }}>
-            {(booking.status === "assigned" || booking.status === "confirmed") && (
-              <TouchableOpacity
-                style={[s.primaryActionBtn, { backgroundColor: T.accent }]}
-                onPress={() => handleStatusUpdate("en-route", "You are now en route to the location!")}
-                disabled={updatingStatus}
-              >
-                {updatingStatus ? <ActivityIndicator color="#fff" /> : <Text style={s.primaryActionText}>Start Travel (Dispatch)</Text>}
-              </TouchableOpacity>
-            )}
-
-            {booking.status === "en_route" && (
-              <TouchableOpacity
-                style={[s.primaryActionBtn, { backgroundColor: T.success }]}
-                onPress={() => handleStatusUpdate("arrive", "You have arrived at the customer's location!")}
-                disabled={updatingStatus}
-              >
-                {updatingStatus ? <ActivityIndicator color="#fff" /> : <Text style={s.primaryActionText}>Mark as Arrived</Text>}
-              </TouchableOpacity>
-            )}
-
-            {booking.status === "arrived" && (
-              <TouchableOpacity
-                style={[s.primaryActionBtn, { backgroundColor: T.accentMid }]}
-                onPress={() => handleStatusUpdate("start", "Service is now in progress!")}
-                disabled={updatingStatus}
-              >
-                {updatingStatus ? <ActivityIndicator color="#fff" /> : <Text style={s.primaryActionText}>Start Service Work</Text>}
-              </TouchableOpacity>
-            )}
-
-            {booking.status === "in_progress" && (
-              <TouchableOpacity
-                style={[s.primaryActionBtn, { backgroundColor: T.success }]}
-                onPress={() => handleStatusUpdate("complete", "Job successfully completed!")}
-                disabled={updatingStatus}
-              >
-                {updatingStatus ? <ActivityIndicator color="#fff" /> : <Text style={s.primaryActionText}>Complete Service</Text>}
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
       </ScrollView>
 
       {/* Reject Modal */}
@@ -633,11 +576,8 @@ const s = StyleSheet.create({
   skeletonCard: { backgroundColor: T.surface, borderRadius: 16, borderWidth: 1, borderColor: T.border },
 
   // Custom Controls
-  staffChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: T.surface, borderOpacity: 0.1, borderWidth: 1, borderColor: T.border },
+  staffChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
   staffChipActive: { backgroundColor: T.accentMid, borderColor: T.accentMid },
   staffChipText: { fontSize: 13, fontWeight: "600", color: T.text2 },
-  staffChipTextActive: { color: "#fff", fontWeight: "700" },
-
-  primaryActionBtn: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  primaryActionText: { color: '#fff', fontSize: 15, fontWeight: '800' }
+  staffChipTextActive: { color: "#fff", fontWeight: "700" }
 });

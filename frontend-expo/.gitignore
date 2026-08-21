@@ -41,3 +41,7 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Firebase/Google client config (regenerable — do not commit)
+GoogleService-Info.plist
+google-services.json

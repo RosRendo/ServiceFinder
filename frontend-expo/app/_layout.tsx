@@ -43,7 +43,7 @@ if (!(TextInput as any).defaultProps) (TextInput as any).defaultProps = {};
 (TextInput as any).defaultProps.style = { fontFamily: 'KantumruyPro-Regular' };
 
 Sentry.init({
-  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || "https://688d3cbe50b27f2509ee7fd9ac59b6bf@o4511473384030208.ingest.us.sentry.io/4511473386651649",
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   debug: false,
 });
 
@@ -91,9 +91,8 @@ function RootLayout() {
         if (hasSeenOnboarding) {
           // Default to Guest Mode on startup (like Grab/Wownow)
           useAuthStore.getState().setGuestMode(true);
-        } else {
-          router.replace("/");
         }
+        router.replace("/");
       }
     }
   }, [user, isGuest, appReady, isLoading, segments, hasSeenOnboarding]);

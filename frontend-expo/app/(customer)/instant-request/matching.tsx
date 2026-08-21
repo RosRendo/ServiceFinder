@@ -8,16 +8,18 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { io, Socket } from "socket.io-client";
 import { Theme } from "@/constants/theme";
 
+import { useCurrentLocation } from "@/hooks/useCurrentLocation";
+import { API_URL } from "@/lib/apiConfig";
+
 const T = Theme.colors;
-const API_URL = process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000');
-const DEFAULT_LOC = { latitude: 11.5564, longitude: 104.9282 };
 
 export default function InstantRequestMatching() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { location: fallbackLoc } = useCurrentLocation(true);
   const requestId = params.requestId as string;
-  const lat = Number(params.lat || DEFAULT_LOC.latitude);
-  const lng = Number(params.lng || DEFAULT_LOC.longitude);
+  const lat = Number(params.lat || fallbackLoc.latitude);
+  const lng = Number(params.lng || fallbackLoc.longitude);
 
   const [statusText, setStatusText] = useState("Checking 3km radius...");
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -41,47 +43,70 @@ export default function InstantRequestMatching() {
 
     let socket: Socket | null = null;
     let transitionTimer: any = null;
+    let timers: any[] = [];
+    let fallbackTimer: any = null;
 
-    // Connect socket for real-time bid updates
-    socket = io(API_URL, { transports: ["websocket"] });
-    socket.on("connect", () => {
-      socket?.emit("join_instant_request", { requestId });
-    });
+    if (params.isSimulation === "true") {
+      // Simulation flow
+      const searchStages = [
+        { time: 0, text: "Checking 3km radius..." },
+        { time: 1500, text: "Expanding search to 5km..." },
+        { time: 3000, text: "Offers received! Preparing bids..." }
+      ];
+      timers = searchStages.map(stage => 
+        setTimeout(() => {
+          setStatusText(stage.text);
+        }, stage.time)
+      );
 
-    socket.on("bid_received", (data: any) => {
-      setStatusText(`Offer received from ${data.companyName || 'provider'}!`);
-      
-      // Auto transition after 1.8 seconds to selection view
-      if (!transitionTimer) {
-        transitionTimer = setTimeout(() => {
-          router.push({
-            pathname: "/(customer)/instant-request/selection" as any,
-            params
-          });
-        }, 1800);
-      }
-    });
-
-    // Progressive search status text updates
-    const searchStages = [
-      { time: 0, text: "Checking 3km radius..." },
-      { time: 4000, text: "Expanding search to 5km..." },
-      { time: 8000, text: "Looking up to 10km away..." }
-    ];
-
-    const timers = searchStages.map(stage => 
-      setTimeout(() => {
-        setStatusText(stage.text);
-      }, stage.time)
-    );
-
-    // Fallback timeout: if no bids arrive in 12 seconds, push forward to selection anyway
-    const fallbackTimer = setTimeout(() => {
-      router.push({
-        pathname: "/(customer)/instant-request/selection" as any,
-        params
+      fallbackTimer = setTimeout(() => {
+        router.push({
+          pathname: "/(customer)/instant-request/selection" as any,
+          params
+        });
+      }, 4500);
+    } else {
+      // Connect socket for real-time bid updates
+      socket = io(API_URL, { transports: ["websocket"] });
+      socket.on("connect", () => {
+        socket?.emit("join_instant_request", { requestId });
       });
-    }, 12000);
+
+      socket.on("bid_received", (data: any) => {
+        setStatusText(`Offer received from ${data.companyName || 'provider'}!`);
+        
+        // Auto transition after 1.8 seconds to selection view
+        if (!transitionTimer) {
+          transitionTimer = setTimeout(() => {
+            router.push({
+              pathname: "/(customer)/instant-request/selection" as any,
+              params
+            });
+          }, 1800);
+        }
+      });
+
+      // Progressive search status text updates
+      const searchStages = [
+        { time: 0, text: "Checking 3km radius..." },
+        { time: 4000, text: "Expanding search to 5km..." },
+        { time: 8000, text: "Looking up to 10km away..." }
+      ];
+
+      timers = searchStages.map(stage => 
+        setTimeout(() => {
+          setStatusText(stage.text);
+        }, stage.time)
+      );
+
+      // Fallback timeout: if no bids arrive in 12 seconds, push forward to selection anyway
+      fallbackTimer = setTimeout(() => {
+        router.push({
+          pathname: "/(customer)/instant-request/selection" as any,
+          params
+        });
+      }, 12000);
+    }
 
     return () => {
       if (socket) {

@@ -11,11 +11,12 @@ import { api } from "@/store/authStore";
 import { io, Socket } from "socket.io-client";
 import { ActivityIndicator, Alert, Platform } from "react-native";
 
+import { useCurrentLocation } from "@/hooks/useCurrentLocation";
+import { API_URL } from "@/lib/apiConfig";
+
 const T = Theme.colors;
 const { width } = Dimensions.get("window");
 
-const DEFAULT_LOC = { latitude: 11.5564, longitude: 104.9282 };
-const API_URL = process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000');
 
 interface Bid {
   id: string;
@@ -31,9 +32,10 @@ interface Bid {
 export default function InstantRequestSelection() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { location: fallbackLoc } = useCurrentLocation(true);
   const requestId = params.requestId as string;
-  const lat = Number(params.lat || DEFAULT_LOC.latitude);
-  const lng = Number(params.lng || DEFAULT_LOC.longitude);
+  const lat = Number(params.lat || fallbackLoc.latitude);
+  const lng = Number(params.lng || fallbackLoc.longitude);
 
   const [bids, setBids] = useState<Bid[]>([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -71,6 +73,18 @@ export default function InstantRequestSelection() {
 
   // Load bids initially and connect socket listener
   useEffect(() => {
+    if (params.isSimulation === "true") {
+      setLoading(true);
+      const mockBids: Bid[] = [
+        { id: "mock-bid-1", companyName: "ABC Repair (Simulated)", rating: 4.8, priceEstimate: "$25.00", eta: "5 min", distance: "1.2 km", lat: lat + 0.0051, lng: lng + 0.0028 },
+        { id: "mock-bid-2", companyName: "QuickFix (Simulated)", rating: 4.5, priceEstimate: "$30.00", eta: "8 min", distance: "2.1 km", lat: lat - 0.0054, lng: lng + 0.0098 },
+        { id: "mock-bid-3", companyName: "Expert Services (Simulated)", rating: 4.9, priceEstimate: "$45.00", eta: "10 min", distance: "3.5 km", lat: lat + 0.0116, lng: lng - 0.0102 }
+      ];
+      setBids(mockBids);
+      setLoading(false);
+      return;
+    }
+
     let socket: Socket | null = null;
 
     const fetchBids = async () => {
@@ -125,6 +139,25 @@ export default function InstantRequestSelection() {
     if (bids.length === 0) return;
     const selected = bids[selectedIdx];
     const targetCoords = getProviderCoordinate(selectedIdx);
+
+    if (params.isSimulation === "true") {
+      setSubmitting(true);
+      setTimeout(() => {
+        setSubmitting(false);
+        router.push({
+          pathname: "/(customer)/checkout" as any,
+          params: {
+            bookingId: `mock-booking-${Date.now()}`,
+            isInstant: "true",
+            isSimulation: "true",
+            price: selected.priceEstimate.replace("$", ""),
+            companyName: selected.companyName,
+            serviceName: params.serviceName || "Urgent Service",
+          }
+        });
+      }, 600);
+      return;
+    }
 
     try {
       setSubmitting(true);
