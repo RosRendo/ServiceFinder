@@ -101,6 +101,7 @@ model Company {
   createdAt               DateTime               @default(now()) @map("created_at")
   updatedAt               DateTime               @updatedAt @map("updated_at")
   walletBalance           Decimal                @default(0) @map("wallet_balance") @db.Decimal(10, 2)
+  khqrImageUrl            String?                @map("khqr_image_url") @db.Text
   pendingBalance          Decimal                @default(0) @map("pending_balance") @db.Decimal(10, 2)
   availableBalance        Decimal                @default(0) @map("available_balance") @db.Decimal(10, 2)
   platformFeePercent      Decimal?               @map("platform_fee_percent") @db.Decimal(5, 2)
@@ -141,6 +142,7 @@ model CompanyStaff {
   createdAt          DateTime             @default(now())
   creditLimit        Decimal              @default(-50) @map("credit_limit") @db.Decimal(10, 2)
   walletBalance      Decimal              @default(0) @map("wallet_balance") @db.Decimal(10, 2)
+  khqrImageUrl       String?              @map("khqr_image_url") @db.Text
   splitPercent       Decimal?             @map("split_percent") @db.Decimal(5, 2)
   availabilitySlots  AvailabilitySlot[]
   assignedBookings   Booking[]            @relation("AssignedBookings")
