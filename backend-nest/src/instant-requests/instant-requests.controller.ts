@@ -25,10 +25,7 @@ export class InstantRequestsController {
 
   @Post()
   @ApiOperation({ summary: 'Customer creates an on-demand Instant Request' })
-  create(
-    @Body() dto: CreateInstantRequestDto,
-    @CurrentUser() user: any,
-  ) {
+  create(@Body() dto: CreateInstantRequestDto, @CurrentUser() user: any) {
     return this.instantRequestsService.create(BigInt(user.id), dto);
   }
 

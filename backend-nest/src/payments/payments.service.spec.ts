@@ -316,10 +316,7 @@ describe('PaymentsService', () => {
       );
 
       await expect(
-        service.handleKhqrWebhook(
-          { billNumber: 'BK-1', amount: '1.00' },
-          {},
-        ),
+        service.handleKhqrWebhook({ billNumber: 'BK-1', amount: '1.00' }, {}),
       ).rejects.toThrow(BadRequestException);
       expect(mockPrismaService.payment.update).not.toHaveBeenCalled();
       expect(mockPrismaService.transaction.create).not.toHaveBeenCalled();
@@ -336,23 +333,18 @@ describe('PaymentsService', () => {
     });
 
     it('requires the shared secret when KHQR_WEBHOOK_SECRET is configured', async () => {
-      (mockConfigService.get as jest.Mock).mockImplementation(
-        (key: string) =>
-          key === 'KHQR_WEBHOOK_SECRET' ? 'super-secret' : null,
+      (mockConfigService.get as jest.Mock).mockImplementation((key: string) =>
+        key === 'KHQR_WEBHOOK_SECRET' ? 'super-secret' : null,
       );
 
       await expect(
-        service.handleKhqrWebhook(
-          { billNumber: 'BK-1', amount: '50.00' },
-          {},
-        ),
+        service.handleKhqrWebhook({ billNumber: 'BK-1', amount: '50.00' }, {}),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('accepts the shared secret when present', async () => {
-      (mockConfigService.get as jest.Mock).mockImplementation(
-        (key: string) =>
-          key === 'KHQR_WEBHOOK_SECRET' ? 'super-secret' : null,
+      (mockConfigService.get as jest.Mock).mockImplementation((key: string) =>
+        key === 'KHQR_WEBHOOK_SECRET' ? 'super-secret' : null,
       );
       mockPrismaService.payment.findUnique.mockResolvedValueOnce(
         pendingPayment,
@@ -407,7 +399,11 @@ describe('PaymentsService', () => {
 
     it('rejects an invalid signature', async () => {
       await expect(
-        service.handleAbaWebhook({ tran_id: 'T1', status: '0', hash: 'forged' }),
+        service.handleAbaWebhook({
+          tran_id: 'T1',
+          status: '0',
+          hash: 'forged',
+        }),
       ).rejects.toThrow(BadRequestException);
     });
 

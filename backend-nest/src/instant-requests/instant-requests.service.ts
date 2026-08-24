@@ -88,20 +88,22 @@ export class InstantRequestsService {
 
     // Auto-generate mock bids for testing/demo purposes if companies were found
     if (matchedCompanies.length > 0) {
-      setTimeout(async () => {
-        for (let i = 0; i < Math.min(3, matchedCompanies.length); i++) {
-          const c = matchedCompanies[i];
-          try {
-            await this.submitBid(c.id, request.id, {
-              priceEstimate: 20 + i * 5,
-              etaMinutes: 10 + i * 3,
-            });
-          } catch (e) {
-            console.error('Mock bid failed:', e);
+      setTimeout(() => {
+        void (async () => {
+          for (let i = 0; i < Math.min(3, matchedCompanies.length); i++) {
+            const c = matchedCompanies[i];
+            try {
+              await this.submitBid(c.id, request.id, {
+                priceEstimate: 20 + i * 5,
+                etaMinutes: 10 + i * 3,
+              });
+            } catch (e) {
+              console.error('Mock bid failed:', e);
+            }
+            // Delay between incoming bids to simulate real-world behavior
+            await new Promise((resolve) => setTimeout(resolve, 1500));
           }
-          // Delay between incoming bids to simulate real-world behavior
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-        }
+        })();
       }, 2500); // Wait 2.5 seconds before starting mock bids
     }
 

@@ -120,6 +120,7 @@ export class WalletsService {
 
     return {
       ...walletData,
+      khqrImageUrl: company.khqrImageUrl,
       payouts: payouts.map((p) => ({
         ...p,
         id: p.id.toString(),
@@ -127,6 +128,24 @@ export class WalletsService {
         amount: Number(p.amount),
         requestedAt: p.createdAt,
       })),
+    };
+  }
+
+  async updateCompanyKhqr(userId: bigint, khqrImageUrl: string) {
+    const company = await this.prisma.company.findFirst({
+      where: { ownerId: userId },
+    });
+    if (!company) throw new NotFoundException('Company not found');
+
+    await this.prisma.company.update({
+      where: { id: company.id },
+      data: { khqrImageUrl },
+    });
+
+    return {
+      success: true,
+      message: 'Company KHQR updated successfully',
+      khqrImageUrl,
     };
   }
 
@@ -402,6 +421,32 @@ export class WalletsService {
       }),
     ]);
 
+    const enrichedPayouts = await Promise.all(
+      payouts.map(async (p) => {
+        let khqrImageUrl: string | null = null;
+        if (p.ownerType === 'company') {
+          const company = await this.prisma.company.findUnique({
+            where: { id: p.ownerId },
+            select: { khqrImageUrl: true },
+          });
+          khqrImageUrl = company?.khqrImageUrl ?? null;
+        } else if (p.ownerType === 'staff') {
+          const staff = await this.prisma.companyStaff.findUnique({
+            where: { id: p.ownerId },
+            select: { khqrImageUrl: true },
+          });
+          khqrImageUrl = staff?.khqrImageUrl ?? null;
+        }
+        return {
+          ...p,
+          id: p.id.toString(),
+          ownerId: p.ownerId.toString(),
+          amount: Number(p.amount),
+          khqrImageUrl,
+        };
+      }),
+    );
+
     return {
       deposits: deposits.map((d) => ({
         ...d,
@@ -409,12 +454,7 @@ export class WalletsService {
         ownerId: d.ownerId.toString(),
         amount: Number(d.amount),
       })),
-      payouts: payouts.map((p) => ({
-        ...p,
-        id: p.id.toString(),
-        ownerId: p.ownerId.toString(),
-        amount: Number(p.amount),
-      })),
+      payouts: enrichedPayouts,
     };
   }
 

@@ -27,6 +27,18 @@ export class WalletsController {
     return this.walletsService.getMyCompanyWallet(BigInt(req.user.id));
   }
 
+  @Post('my-company/khqr')
+  @Roles('company_admin')
+  async updateMyCompanyKhqr(
+    @Request() req: any,
+    @Body() body: { khqrImageUrl: string },
+  ) {
+    return this.walletsService.updateCompanyKhqr(
+      BigInt(req.user.id),
+      body.khqrImageUrl,
+    );
+  }
+
   @Post('my-company/payout')
   @Roles('company_admin')
   async requestMyCompanyPayout(

@@ -157,7 +157,9 @@ export class BookingsController {
   }
 
   @Patch(':id/arrive')
-  @ApiOperation({ summary: 'Staff reports arrival at job location (Assigned staff only)' })
+  @ApiOperation({
+    summary: 'Staff reports arrival at job location (Assigned staff only)',
+  })
   @ApiResponse({ status: 200, description: 'Staff successfully arrived.' })
   arriveJob(@Param('id') id: string, @Request() req) {
     const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
@@ -165,7 +167,10 @@ export class BookingsController {
   }
 
   @Patch(':id/en-route')
-  @ApiOperation({ summary: 'Staff marks themselves as en route to job site (Assigned staff only)' })
+  @ApiOperation({
+    summary:
+      'Staff marks themselves as en route to job site (Assigned staff only)',
+  })
   @ApiResponse({ status: 200, description: 'Status updated to en_route.' })
   enRouteJob(@Param('id') id: string, @Request() req) {
     const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
@@ -226,7 +231,7 @@ export class BookingsController {
   async uploadBookingPhoto(
     @UploadedFile() file: Express.Multer.File,
     @Body('bookingId') bookingIdStr: string,
-    @Body('photoType') photoType: 'before' | 'after',
+    @Body('photoType') photoType: 'before' | 'during' | 'after',
     @Request() req,
   ) {
     const bookingId = BigInt(bookingIdStr);

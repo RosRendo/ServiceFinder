@@ -17,7 +17,11 @@ export class PayoutsService {
   async getPayouts(companyId: bigint) {
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
-      select: { availableBalance: true, pendingBalance: true },
+      select: {
+        availableBalance: true,
+        pendingBalance: true,
+        khqrImageUrl: true,
+      },
     });
     if (!company) throw new NotFoundException('Company not found');
 
@@ -30,6 +34,7 @@ export class PayoutsService {
       payouts,
       availableBalance: Number(company.availableBalance),
       pendingBalance: Number(company.pendingBalance),
+      khqrImageUrl: company.khqrImageUrl,
     };
   }
 
@@ -50,14 +55,34 @@ export class PayoutsService {
       );
     }
 
-    const payout = await this.prisma.payout.create({
-      data: {
-        companyId,
-        amount,
-        method,
-        status: 'pending',
-        payoutType: 'company',
-      },
+    const payout = await this.prisma.$transaction(async (tx) => {
+      const p = await tx.payout.create({
+        data: {
+          companyId,
+          amount,
+          method,
+          status: 'pending',
+          payoutType: 'company',
+        },
+      });
+
+      await tx.company.update({
+        where: { id: companyId },
+        data: { availableBalance: { decrement: amount } },
+      });
+
+      await tx.transaction.create({
+        data: {
+          ownerType: 'company',
+          ownerId: companyId,
+          amount: -amount,
+          type: 'debit',
+          category: 'payout',
+          description: `Payout request via ${method}`,
+        },
+      });
+
+      return p;
     });
 
     return { message: 'Payout request submitted', payout };

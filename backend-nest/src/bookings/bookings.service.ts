@@ -643,39 +643,48 @@ export class BookingsService {
       );
     }
 
-    // 5. Booking must be pending and unassigned
-    if (booking.status !== 'pending') {
-      throw new BadRequestException('Only pending bookings can be claimed');
-    }
-    if (booking.assignedStaffId) {
-      throw new ConflictException(
-        'This booking has already been claimed by another staff member',
-      );
-    }
-
-    // 6. Assign and confirm in a transaction
+    // 5. Assign and confirm atomically inside a transaction using conditional update
     const updated = await this.prisma.$transaction(async (tx) => {
-      const u = await tx.booking.update({
-        where: { id: bookingId },
-        data: { assignedStaffId: staff.id, status: 'confirmed' },
-        include: {
-          customer: true,
-          company: true,
-          service: true,
-          assignedStaff: { include: { user: true } },
-        },
-      });
+      try {
+        const u = await tx.booking.update({
+          where: {
+            id: bookingId,
+            assignedStaffId: null, // Atomic check: only claim if currently unassigned
+            status: 'pending', // Atomic check: only claim if currently pending
+          },
+          data: { assignedStaffId: staff.id, status: 'confirmed' },
+          include: {
+            customer: true,
+            company: true,
+            service: true,
+            assignedStaff: { include: { user: true } },
+          },
+        });
 
-      await tx.bookingStatusLog.create({
-        data: {
-          bookingId,
-          oldStatus: booking.status,
-          newStatus: 'confirmed',
-          changedBy: userId,
-        },
-      });
+        await tx.bookingStatusLog.create({
+          data: {
+            bookingId,
+            oldStatus: 'pending',
+            newStatus: 'confirmed',
+            changedBy: userId,
+          },
+        });
 
-      return u;
+        return u;
+      } catch (error) {
+        // Prisma error P2025 means Record to update not found (meaning already claimed or not pending)
+        if (
+          error.code === 'P2025' ||
+          (error.meta &&
+            error.meta.cause &&
+            error.meta.cause.includes('Record to update not found'))
+        ) {
+          throw new ConflictException(
+            'This booking has already been claimed by another staff member or is no longer pending',
+          );
+        }
+        throw error;
+      }
     });
 
     const result = {
@@ -770,16 +779,33 @@ export class BookingsService {
   }
 
   async enRouteJob(id: bigint, userId: bigint) {
-    const staff = await this.prisma.companyStaff.findFirst({ where: { userId } });
-    if (!staff) throw new ForbiddenException('You are not registered as staff');
-
     const booking = await this.findOrFail(id, true);
 
-    if (
-      !booking.assignedStaffId ||
-      booking.assignedStaffId.toString() !== staff.id.toString()
-    ) {
-      throw new BadRequestException('You are not assigned to this booking');
+    const isCompanyOwner = await this.prisma.company.findFirst({
+      where: { id: booking.companyId, ownerId: userId },
+    });
+
+    let staff: any = null;
+    if (isCompanyOwner) {
+      if (!booking.assignedStaffId) {
+        throw new BadRequestException('No staff assigned to this booking');
+      }
+      staff = await this.prisma.companyStaff.findUnique({
+        where: { id: booking.assignedStaffId },
+      });
+    } else {
+      staff = await this.prisma.companyStaff.findFirst({ where: { userId } });
+      if (!staff) {
+        throw new ForbiddenException(
+          'Not authorized. Must be staff or company owner',
+        );
+      }
+      if (
+        !booking.assignedStaffId ||
+        booking.assignedStaffId.toString() !== staff.id.toString()
+      ) {
+        throw new BadRequestException('You are not assigned to this booking');
+      }
     }
 
     validateTransition(booking.status, 'en_route');
@@ -836,18 +862,33 @@ export class BookingsService {
   }
 
   async rejectAssignment(id: bigint, userId: bigint) {
-    const staff = await this.prisma.companyStaff.findFirst({
-      where: { userId },
-    });
-    if (!staff) throw new ForbiddenException('You are not registered as staff');
-
     const booking = await this.findOrFail(id, true);
 
-    if (
-      !booking.assignedStaffId ||
-      booking.assignedStaffId.toString() !== staff.id.toString()
-    ) {
-      throw new BadRequestException('You are not assigned to this booking');
+    const isCompanyOwner = await this.prisma.company.findFirst({
+      where: { id: booking.companyId, ownerId: userId },
+    });
+
+    let staff: any = null;
+    if (isCompanyOwner) {
+      if (!booking.assignedStaffId) {
+        throw new BadRequestException('No staff assigned to this booking');
+      }
+      staff = await this.prisma.companyStaff.findUnique({
+        where: { id: booking.assignedStaffId },
+      });
+    } else {
+      staff = await this.prisma.companyStaff.findFirst({ where: { userId } });
+      if (!staff) {
+        throw new ForbiddenException(
+          'Not authorized. Must be staff or company owner',
+        );
+      }
+      if (
+        !booking.assignedStaffId ||
+        booking.assignedStaffId.toString() !== staff.id.toString()
+      ) {
+        throw new BadRequestException('You are not assigned to this booking');
+      }
     }
 
     validateTransition(booking.status, 'pending');
@@ -910,18 +951,33 @@ export class BookingsService {
     staffStartLat?: number,
     staffStartLng?: number,
   ) {
-    const staff = await this.prisma.companyStaff.findFirst({
-      where: { userId },
-    });
-    if (!staff) throw new ForbiddenException('You are not registered as staff');
-
     const booking = await this.findOrFail(id, true);
 
-    if (
-      !booking.assignedStaffId ||
-      booking.assignedStaffId.toString() !== staff.id.toString()
-    ) {
-      throw new BadRequestException('You are not assigned to this booking');
+    const isCompanyOwner = await this.prisma.company.findFirst({
+      where: { id: booking.companyId, ownerId: userId },
+    });
+
+    let staff: any = null;
+    if (isCompanyOwner) {
+      if (!booking.assignedStaffId) {
+        throw new BadRequestException('No staff assigned to this booking');
+      }
+      staff = await this.prisma.companyStaff.findUnique({
+        where: { id: booking.assignedStaffId },
+      });
+    } else {
+      staff = await this.prisma.companyStaff.findFirst({ where: { userId } });
+      if (!staff) {
+        throw new ForbiddenException(
+          'Not authorized. Must be staff or company owner',
+        );
+      }
+      if (
+        !booking.assignedStaffId ||
+        booking.assignedStaffId.toString() !== staff.id.toString()
+      ) {
+        throw new BadRequestException('You are not assigned to this booking');
+      }
     }
 
     validateTransition(booking.status, 'in_progress');
@@ -992,18 +1048,33 @@ export class BookingsService {
   }
 
   async arriveJob(id: bigint, userId: bigint) {
-    const staff = await this.prisma.companyStaff.findFirst({
-      where: { userId },
-    });
-    if (!staff) throw new ForbiddenException('You are not registered as staff');
-
     const booking = await this.findOrFail(id, true);
 
-    if (
-      !booking.assignedStaffId ||
-      booking.assignedStaffId.toString() !== staff.id.toString()
-    ) {
-      throw new BadRequestException('You are not assigned to this booking');
+    const isCompanyOwner = await this.prisma.company.findFirst({
+      where: { id: booking.companyId, ownerId: userId },
+    });
+
+    let staff: any = null;
+    if (isCompanyOwner) {
+      if (!booking.assignedStaffId) {
+        throw new BadRequestException('No staff assigned to this booking');
+      }
+      staff = await this.prisma.companyStaff.findUnique({
+        where: { id: booking.assignedStaffId },
+      });
+    } else {
+      staff = await this.prisma.companyStaff.findFirst({ where: { userId } });
+      if (!staff) {
+        throw new ForbiddenException(
+          'Not authorized. Must be staff or company owner',
+        );
+      }
+      if (
+        !booking.assignedStaffId ||
+        booking.assignedStaffId.toString() !== staff.id.toString()
+      ) {
+        throw new BadRequestException('You are not assigned to this booking');
+      }
     }
 
     validateTransition(booking.status, 'arrived');
@@ -1079,18 +1150,33 @@ export class BookingsService {
       );
     }
 
-    const staff = await this.prisma.companyStaff.findFirst({
-      where: { userId },
-    });
-    if (!staff) throw new ForbiddenException('You are not registered as staff');
-
     const booking = await this.findOrFail(id, true);
 
-    if (
-      !booking.assignedStaffId ||
-      booking.assignedStaffId.toString() !== staff.id.toString()
-    ) {
-      throw new BadRequestException('You are not assigned to this booking');
+    const isCompanyOwner = await this.prisma.company.findFirst({
+      where: { id: booking.companyId, ownerId: userId },
+    });
+
+    let staff: any = null;
+    if (isCompanyOwner) {
+      if (!booking.assignedStaffId) {
+        throw new BadRequestException('No staff assigned to this booking');
+      }
+      staff = await this.prisma.companyStaff.findUnique({
+        where: { id: booking.assignedStaffId },
+      });
+    } else {
+      staff = await this.prisma.companyStaff.findFirst({ where: { userId } });
+      if (!staff) {
+        throw new ForbiddenException(
+          'Not authorized. Must be staff or company owner',
+        );
+      }
+      if (
+        !booking.assignedStaffId ||
+        booking.assignedStaffId.toString() !== staff.id.toString()
+      ) {
+        throw new BadRequestException('You are not assigned to this booking');
+      }
     }
 
     if (booking.status !== 'in_progress') {
@@ -1139,18 +1225,33 @@ export class BookingsService {
   }
 
   async completeJob(id: bigint, userId: bigint, proofOfWorkPhoto?: string) {
-    const staff = await this.prisma.companyStaff.findFirst({
-      where: { userId },
-    });
-    if (!staff) throw new ForbiddenException('You are not registered as staff');
-
     const booking = await this.findOrFail(id, true);
 
-    if (
-      !booking.assignedStaffId ||
-      booking.assignedStaffId.toString() !== staff.id.toString()
-    ) {
-      throw new BadRequestException('You are not assigned to this booking');
+    const isCompanyOwner = await this.prisma.company.findFirst({
+      where: { id: booking.companyId, ownerId: userId },
+    });
+
+    let staff: any = null;
+    if (isCompanyOwner) {
+      if (!booking.assignedStaffId) {
+        throw new BadRequestException('No staff assigned to this booking');
+      }
+      staff = await this.prisma.companyStaff.findUnique({
+        where: { id: booking.assignedStaffId },
+      });
+    } else {
+      staff = await this.prisma.companyStaff.findFirst({ where: { userId } });
+      if (!staff) {
+        throw new ForbiddenException(
+          'Not authorized. Must be staff or company owner',
+        );
+      }
+      if (
+        !booking.assignedStaffId ||
+        booking.assignedStaffId.toString() !== staff.id.toString()
+      ) {
+        throw new BadRequestException('You are not assigned to this booking');
+      }
     }
 
     validateTransition(booking.status, 'completed');
@@ -1239,7 +1340,7 @@ export class BookingsService {
 
     const isCustomer = booking.customerId === BigInt(user.id);
     const isAdmin = user.role === 'admin';
-    
+
     let isCompanyOwner = false;
     if (user.role === 'company_admin') {
       const company = await this.prisma.company.findFirst({
@@ -1429,7 +1530,23 @@ export class BookingsService {
     }
 
     const platformFee = Number(u.platformFee || 0);
-    const companyEarnings = Number(u.companyEarnings || 0);
+    const rawCompanyEarnings = Number(u.companyEarnings || 0);
+
+    // Calculate staff split (default to 50%)
+    const split = staff.splitPercent ? Number(staff.splitPercent) : 50;
+    const staffEarnings = Number(
+      (Number(u.totalPrice) * (split / 100)).toFixed(2),
+    );
+    const companyEarnings = Math.max(0, rawCompanyEarnings - staffEarnings);
+
+    // Update booking row with actual splits
+    await tx.booking.update({
+      where: { id },
+      data: {
+        staffEarnings,
+        companyEarnings,
+      },
+    });
 
     // ─── Platform Wallet Flow ───────────────────────────────────────────────
     // Customer pays → Platform takes fee → Company pendingBalance
@@ -1487,6 +1604,25 @@ export class BookingsService {
           data: { pendingBalance: { increment: companyEarnings } },
         });
       }
+    }
+
+    // ─── Staff personal wallet credit ─────────────────────────────────────────
+    if (staffEarnings > 0) {
+      const currentStaffBal = Number(staff.walletBalance || 0);
+      await tx.companyStaff.update({
+        where: { id: staff.id },
+        data: { walletBalance: currentStaffBal + staffEarnings },
+      });
+
+      await tx.walletTransaction.create({
+        data: {
+          staffId: staff.id,
+          amount: staffEarnings,
+          type: 'CREDIT',
+          description: `Earnings for booking #${id}`,
+          bookingId: id,
+        },
+      });
     }
   }
 
@@ -1605,7 +1741,7 @@ export class BookingsService {
   async uploadBookingPhoto(
     bookingId: bigint,
     file: any,
-    photoType: 'before' | 'after',
+    photoType: 'before' | 'during' | 'after',
     user: any,
   ) {
     if (!file) {

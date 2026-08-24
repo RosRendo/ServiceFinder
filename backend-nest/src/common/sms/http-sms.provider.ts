@@ -29,9 +29,7 @@ export class HttpSmsProvider implements SmsProvider {
     const senderId = this.config.get<string>('SMS_HTTP_SENDER_ID');
 
     if (!url || !apiKey) {
-      console.warn(
-        '[SMS:http] SMS_HTTP_URL / SMS_HTTP_API_KEY not configured',
-      );
+      console.warn('[SMS:http] SMS_HTTP_URL / SMS_HTTP_API_KEY not configured');
       return false;
     }
 

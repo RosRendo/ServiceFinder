@@ -385,6 +385,7 @@ describe('BookingsService', () => {
     });
 
     it('should throw ForbiddenException if user is not registered as staff', async () => {
+      mockPrismaService.booking.findUnique.mockResolvedValueOnce(baseBooking);
       mockPrismaService.companyStaff.findFirst.mockResolvedValueOnce(null);
 
       await expect(service.enRouteJob(1n, 999n)).rejects.toThrow(
@@ -412,9 +413,7 @@ describe('BookingsService', () => {
       });
 
       // confirmed -> en_route is valid, but en_route -> en_route is not.
-      await expect(service.enRouteJob(1n, 11n)).rejects.toThrow(
-        Error,
-      );
+      await expect(service.enRouteJob(1n, 11n)).rejects.toThrow(Error);
     });
   });
 });

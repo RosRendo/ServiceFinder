@@ -755,7 +755,8 @@ export class CompaniesService {
       updateData.latitude = updates.latitude !== null ? updates.latitude : null;
     }
     if (updates.longitude !== undefined) {
-      updateData.longitude = updates.longitude !== null ? updates.longitude : null;
+      updateData.longitude =
+        updates.longitude !== null ? updates.longitude : null;
     }
     if (updates.establishedYear !== undefined) {
       updateData.establishedYear = updates.establishedYear
@@ -1969,10 +1970,7 @@ export class CompaniesService {
       where: {
         status: 'active',
         startDate: { lte: now },
-        OR: [
-          { endDate: null },
-          { endDate: { gte: now } },
-        ],
+        OR: [{ endDate: null }, { endDate: { gte: now } }],
       },
       include: {
         company: {

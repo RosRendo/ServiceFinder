@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Put,
+  Post,
   Body,
   Param,
   Query,
@@ -38,6 +39,15 @@ export class StaffPerformanceController {
   @ApiOperation({ summary: 'Get own wallet balance and transactions' })
   getMyWallet(@Request() req: any) {
     return this.staffPerformanceService.getWallet(BigInt(req.user.id));
+  }
+
+  @Post('wallet/khqr')
+  @ApiOperation({ summary: 'Update KHQR Image URL' })
+  updateMyKhqr(@Request() req: any, @Body() body: { khqrImageUrl: string }) {
+    return this.staffPerformanceService.updateKhqr(
+      BigInt(req.user.id),
+      body.khqrImageUrl,
+    );
   }
 
   @Get(':id/performance')

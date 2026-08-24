@@ -564,7 +564,8 @@ export class AdminService {
       dataToUpdate.establishedYear = dto.establishedYear;
     if (dto.latitude !== undefined) dataToUpdate.latitude = dto.latitude;
     if (dto.longitude !== undefined) dataToUpdate.longitude = dto.longitude;
-    if (dto.googleMapUrl !== undefined) dataToUpdate.googleMapUrl = dto.googleMapUrl;
+    if (dto.googleMapUrl !== undefined)
+      dataToUpdate.googleMapUrl = dto.googleMapUrl;
     if (dto.cardHighlights !== undefined)
       dataToUpdate.cardHighlights = dto.cardHighlights;
     if (dto.detailHighlights !== undefined)
@@ -979,20 +980,63 @@ export class AdminService {
       throw new NotFoundException(`Payout #${id} not found`);
     }
     if (existing.status === 'completed') {
-      throw new ConflictException(`Payout #${id} is already completed and cannot be re-processed`);
+      throw new ConflictException(
+        `Payout #${id} is already completed and cannot be re-processed`,
+      );
     }
     if (existing.status === 'failed') {
-      throw new ConflictException(`Payout #${id} has failed status — contact support to reprocess`);
+      throw new ConflictException(
+        `Payout #${id} has failed status — contact support to reprocess`,
+      );
     }
 
-    const payout = await this.prisma.payout.update({
-      where: { id },
-      data: {
-        status,
-        processedAt:
-          status === 'completed' || status === 'failed' ? new Date() : null,
-      },
+    const payout = await this.prisma.$transaction(async (tx) => {
+      const updatedPayout = await tx.payout.update({
+        where: { id },
+        data: {
+          status,
+          processedAt:
+            status === 'completed' || status === 'failed' ? new Date() : null,
+        },
+      });
+
+      if (status === 'failed') {
+        if (existing.payoutType === 'company' && existing.companyId) {
+          await tx.company.update({
+            where: { id: existing.companyId },
+            data: { availableBalance: { increment: existing.amount } },
+          });
+
+          await tx.transaction.create({
+            data: {
+              ownerType: 'company',
+              ownerId: existing.companyId,
+              amount: existing.amount,
+              type: 'credit',
+              category: 'refund',
+              description: `Refund for rejected payout request #${existing.id}`,
+            },
+          });
+        } else if (existing.payoutType === 'staff' && existing.staffId) {
+          await tx.companyStaff.update({
+            where: { id: existing.staffId },
+            data: { walletBalance: { increment: existing.amount } },
+          });
+
+          await tx.walletTransaction.create({
+            data: {
+              staffId: existing.staffId,
+              amount: existing.amount,
+              type: 'credit',
+              description: `Refund for rejected payout request #${existing.id}`,
+            },
+          });
+        }
+      }
+
+      return updatedPayout;
     });
+
     return {
       message: `Payout marked as ${status}`,
       payout: { ...payout, companyId: payout.companyId?.toString() },

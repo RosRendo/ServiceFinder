@@ -18,7 +18,9 @@ export const smsProviderFactory = {
   provide: SMS_PROVIDER,
   inject: [ConfigService],
   useFactory: (config: ConfigService): SmsProvider => {
-    const provider = (config.get<string>('SMS_PROVIDER') || 'twilio').toLowerCase();
+    const provider = (
+      config.get<string>('SMS_PROVIDER') || 'twilio'
+    ).toLowerCase();
     switch (provider) {
       case 'http':
         return new HttpSmsProvider(config);

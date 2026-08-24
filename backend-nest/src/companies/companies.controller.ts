@@ -411,7 +411,9 @@ export class CompaniesController {
   @Get('sponsored')
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(30000)
-  @ApiOperation({ summary: 'Get sponsored companies with active marketing campaigns' })
+  @ApiOperation({
+    summary: 'Get sponsored companies with active marketing campaigns',
+  })
   @ApiResponse({ status: 200, description: 'Return sponsored companies.' })
   getSponsoredCompanies(@Query() query: any) {
     return this.companiesService.getSponsoredCompanies(query);

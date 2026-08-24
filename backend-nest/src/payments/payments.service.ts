@@ -618,7 +618,11 @@ export class PaymentsService {
    * Credit a Wing payment that has ALREADY been verified server-side.
    * Payment paid + booking confirmed + company credit all in one transaction.
    */
-  private async creditWingPayment(payment: any, amount: string, transactionId?: string) {
+  private async creditWingPayment(
+    payment: any,
+    amount: string,
+    transactionId?: string,
+  ) {
     const orderRef = payment.transactionRef;
     await this.prisma.$transaction(async (tx) => {
       await tx.payment.update({
@@ -626,7 +630,9 @@ export class PaymentsService {
         data: {
           status: 'paid' as any,
           paidAt: new Date(),
-          transactionRef: transactionId ? `${orderRef}-${transactionId}` : orderRef,
+          transactionRef: transactionId
+            ? `${orderRef}-${transactionId}`
+            : orderRef,
         },
       });
 
@@ -674,7 +680,9 @@ export class PaymentsService {
         const decrypted = decryptAES256GCM(payload.payload, key, iv);
         parsed = JSON.parse(decrypted);
       } catch (err: any) {
-        this.logger.warn(`Wing webhook: could not decrypt payload: ${err.message}`);
+        this.logger.warn(
+          `Wing webhook: could not decrypt payload: ${err.message}`,
+        );
         throw new BadRequestException('Invalid Wing webhook payload');
       }
     }
@@ -748,7 +756,11 @@ export class PaymentsService {
 
     const inquiry = await this.wingInquiry(orderRef);
     if (inquiry.verified) {
-      await this.creditWingPayment(payment, inquiry.amount!, inquiry.transactionId);
+      await this.creditWingPayment(
+        payment,
+        inquiry.amount!,
+        inquiry.transactionId,
+      );
       return {
         success: true,
         status: 'paid',
@@ -769,7 +781,8 @@ export class PaymentsService {
     // the endpoint is unauthenticated — configure it at the gateway level.
     const webhookSecret = this.config.get<string>('KHQR_WEBHOOK_SECRET');
     if (webhookSecret) {
-      const presented = headers?.['x-webhook-secret'] || headers?.['x-khqr-secret'];
+      const presented =
+        headers?.['x-webhook-secret'] || headers?.['x-khqr-secret'];
       const ok =
         typeof presented === 'string' &&
         presented.length === webhookSecret.length &&

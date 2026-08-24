@@ -111,10 +111,13 @@ export class LocationController {
     const isCustomer = booking.customerId === uid && user.role === 'customer';
     // Location is visible to customer only during active travel states:
     // en_route = staff is travelling, arrived = staff is on site, in_progress = job underway
-    const showLocation = !isCustomer || ['en_route', 'arrived', 'in_progress'].includes(booking.status);
+    const showLocation =
+      !isCustomer ||
+      ['en_route', 'arrived', 'in_progress'].includes(booking.status);
 
     const activeEntry = showLocation ? entry : null;
-    const stale = activeEntry && Date.now() - activeEntry.updatedAt.getTime() > 60_000; // > 1 min = offline
+    const stale =
+      activeEntry && Date.now() - activeEntry.updatedAt.getTime() > 60_000; // > 1 min = offline
 
     return {
       success: true,

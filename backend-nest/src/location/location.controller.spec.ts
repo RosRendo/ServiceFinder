@@ -37,7 +37,7 @@ describe('LocationController', () => {
   describe('getLocation (Customer Privacy Visibility Test)', () => {
     const customerUser = { id: '1', role: 'customer' };
     const adminUser = { id: '99', role: 'admin' };
-    
+
     const baseBooking = {
       customerId: 1n,
       assignedStaff: { userId: 10n },
@@ -104,9 +104,9 @@ describe('LocationController', () => {
 
       const unauthorizedUser = { id: '999', role: 'customer' };
 
-      await expect(controller.getLocation('1', unauthorizedUser)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        controller.getLocation('1', unauthorizedUser),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should always allow admin to view booking info', async () => {

@@ -7,7 +7,9 @@ export class AppleLoginDto {
   @IsNotEmpty()
   identityToken: string;
 
-  @ApiProperty({ description: 'The full name object from Apple (only on first login)' })
+  @ApiProperty({
+    description: 'The full name object from Apple (only on first login)',
+  })
   @IsOptional()
   fullName?: {
     givenName?: string;

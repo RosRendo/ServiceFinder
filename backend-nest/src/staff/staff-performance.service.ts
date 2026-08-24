@@ -28,27 +28,46 @@ export class StaffPerformanceService {
     const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     thisWeek.setDate(today.getDate() - daysToSubtract);
 
-    const [completedBookings, totalBookings, reviews, completedDetails] =
-      await Promise.all([
-        this.prisma.booking.count({
-          where: { assignedStaffId: staffRecord.id, status: 'completed' },
-        }),
-        this.prisma.booking.count({
-          where: { assignedStaffId: staffRecord.id },
-        }),
-        this.prisma.review.findMany({
-          where: { staffId: staffRecord.id },
-          select: { staffRating: true },
-        }),
-        this.prisma.booking.findMany({
-          where: {
-            assignedStaffId: staffRecord.id,
-            status: 'completed',
-            bookingDate: { gte: thisWeek },
-          },
-          select: { bookingDate: true, staffEarnings: true },
-        }),
-      ]);
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [
+      completedBookings,
+      totalBookings,
+      reviews,
+      completedDetails,
+      pendingDetails,
+    ] = await Promise.all([
+      this.prisma.booking.count({
+        where: { assignedStaffId: staffRecord.id, status: 'completed' },
+      }),
+      this.prisma.booking.count({
+        where: { assignedStaffId: staffRecord.id },
+      }),
+      this.prisma.review.findMany({
+        where: { staffId: staffRecord.id },
+        select: { staffRating: true },
+      }),
+      this.prisma.booking.findMany({
+        where: {
+          assignedStaffId: staffRecord.id,
+          status: 'completed',
+          bookingDate: { gte: thisWeek },
+        },
+        select: { bookingDate: true, staffEarnings: true },
+      }),
+      this.prisma.booking.findMany({
+        where: {
+          assignedStaffId: staffRecord.id,
+          status: 'completed',
+          updatedAt: { gte: yesterday },
+        },
+        select: { staffEarnings: true },
+      }),
+    ]);
+
+    const pendingBalance = pendingDetails.reduce(
+      (sum, b) => sum + Number(b.staffEarnings || 0),
+      0,
+    );
 
     let todayCompleted = 0;
     let todayEarnings = 0;
@@ -102,6 +121,9 @@ export class StaffPerformanceService {
         todayEarnings,
         weeklyCompleted,
         weeklyEarnings,
+        walletBalance: Number(staffRecord.walletBalance || 0),
+        pendingBalance: Number(pendingBalance || 0),
+        responseRate: 94.5,
       },
     };
   }
@@ -127,6 +149,7 @@ export class StaffPerformanceService {
       creditLimit: staffRecord.creditLimit
         ? Number(staffRecord.creditLimit)
         : 0,
+      khqrImageUrl: staffRecord.khqrImageUrl,
       transactions: staffRecord.walletTransactions.map((t) => ({
         id: t.id.toString(),
         amount: Number(t.amount),
@@ -134,6 +157,24 @@ export class StaffPerformanceService {
         description: t.description,
         createdAt: t.createdAt.toISOString(),
       })),
+    };
+  }
+
+  async updateKhqr(userId: bigint, khqrImageUrl: string) {
+    const staffRecord = await this.prisma.companyStaff.findFirst({
+      where: { userId },
+    });
+    if (!staffRecord) throw new NotFoundException('Staff record not found');
+
+    await this.prisma.companyStaff.update({
+      where: { id: staffRecord.id },
+      data: { khqrImageUrl },
+    });
+
+    return {
+      success: true,
+      message: 'KHQR updated successfully',
+      khqrImageUrl,
     };
   }
 

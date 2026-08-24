@@ -4,7 +4,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { MailService } from '../mail/mail.service';
 import { ConfigService } from '@nestjs/config';
-import { UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { MfaService } from './mfa.service';
@@ -178,9 +182,7 @@ describe('AuthService', () => {
       await expect(service.requestOtp('123')).rejects.toThrow(
         BadRequestException,
       );
-      await expect(service.requestOtp('')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.requestOtp('')).rejects.toThrow(BadRequestException);
       expect(mockPrismaService.otpCode.create).not.toHaveBeenCalled();
     });
 

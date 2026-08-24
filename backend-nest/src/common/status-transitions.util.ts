@@ -1,7 +1,14 @@
 export const VALID_TRANSITIONS: Record<string, string[]> = {
   pending: ['assigned', 'confirmed', 'arrived', 'in_progress', 'cancelled'],
-  assigned: ['confirmed', 'pending', 'cancelled'],
-  confirmed: ['en_route', 'arrived', 'in_progress', 'cancelled'],
+  assigned: [
+    'confirmed',
+    'pending',
+    'en_route',
+    'arrived',
+    'in_progress',
+    'cancelled',
+  ],
+  confirmed: ['assigned', 'en_route', 'arrived', 'in_progress', 'cancelled'],
   en_route: ['arrived', 'in_progress', 'cancelled'],
   arrived: ['in_progress', 'cancelled'],
   in_progress: ['completed'],
