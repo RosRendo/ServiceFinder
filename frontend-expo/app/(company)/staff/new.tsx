@@ -185,21 +185,21 @@ const s = StyleSheet.create({
     backgroundColor: T.bg, 
   },
   backBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.accent },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.accent },
   sendBtn: { backgroundColor: T.accentMid, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
   sendBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 
   scrollContent: { padding: 24, gap: 24, paddingBottom: 60, paddingTop: 8 },
 
   titleSection: { gap: 8, paddingHorizontal: 4 },
-  pageTitle: { fontSize: 28, fontWeight: "800", color: T.accent },
+  pageTitle: { fontSize: 28, fontWeight: "700", color: T.accent },
   pageDesc: { fontSize: 14, color: T.text2, lineHeight: 22 },
 
   card: {
     backgroundColor: T.surface, borderRadius: 24, padding: 24,
     
   },
-  cardTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  cardTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   cardSubtitle: { fontSize: 13, color: T.text3, marginTop: -16 },
 
   inputGroup: { gap: 8 },
@@ -220,7 +220,7 @@ const s = StyleSheet.create({
   roleIconWrapSelected: { backgroundColor: T.accentMid },
   
   roleInfo: { flex: 1 },
-  roleLabel: { fontSize: 15, fontWeight: "800", color: T.text1, marginBottom: 2 },
+  roleLabel: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 2 },
   roleLabelSelected: { color: T.accentMid },
   roleDesc: { fontSize: 13, color: T.text3 },
   roleDescSelected: { color: T.text2 },

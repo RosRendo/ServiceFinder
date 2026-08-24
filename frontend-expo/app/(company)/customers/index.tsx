@@ -164,7 +164,7 @@ const s = StyleSheet.create({
     backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { padding: 4, marginRight: 12, marginLeft: -4 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   
   searchContainer: {
     flexDirection: "row", alignItems: "center",
@@ -204,7 +204,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   statBox: { flex: 1, alignItems: "center" },
-  statValue: { fontSize: 16, fontWeight: "800", color: T.text1 },
+  statValue: { fontSize: 16, fontWeight: "700", color: T.text1 },
   statLabel: { fontSize: 12, color: T.text2, marginTop: 2 },
   
   actionsRow: { flexDirection: "row", gap: 12 },

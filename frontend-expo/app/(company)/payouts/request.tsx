@@ -212,7 +212,7 @@ const s = StyleSheet.create({
   
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
   headerBtn: { padding: 4, marginRight: 8 },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 20, fontWeight: "700", color: T.text1 },
   
   scrollView: { flex: 1 },
   contentPad: { padding: 16, paddingBottom: 140 },
@@ -220,17 +220,17 @@ const s = StyleSheet.create({
   balanceCardsRow: { flexDirection: "row", gap: 12, marginBottom: 24 },
   balanceCard: { flex: 1, borderRadius: 20, padding: 16, ...CARD_SHADOW },
   balanceLabelLight: { color: "rgba(255,255,255,0.8)", fontSize: 12, textTransform: "uppercase", fontWeight: "700", letterSpacing: 0.5, marginBottom: 6 },
-  balanceValueLight: { color: "#FFF", fontSize: 28, fontWeight: "800", letterSpacing: -0.5 },
+  balanceValueLight: { color: "#FFF", fontSize: 28, fontWeight: "700", letterSpacing: -0.5 },
   balanceLabelDark: { color: T.text3, fontSize: 12, textTransform: "uppercase", fontWeight: "700", letterSpacing: 0.5, marginBottom: 6 },
-  balanceValueDark: { color: T.text1, fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
+  balanceValueDark: { color: T.text1, fontSize: 24, fontWeight: "700", letterSpacing: -0.5 },
 
-  sectionTitle: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: T.text1, marginBottom: 12 },
   
   inputContainer: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 16, borderWidth: 1, borderColor: T.border, paddingHorizontal: 16, height: 60, marginBottom: 8 },
   currencySymbol: { fontSize: 24, color: T.text3, marginRight: 8, fontWeight: "600" },
-  amountInput: { flex: 1, fontSize: 24, fontWeight: "800", color: T.text1 },
+  amountInput: { flex: 1, fontSize: 24, fontWeight: "700", color: T.text1 },
   maxBtn: { backgroundColor: T.accentLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-  maxBtnText: { fontSize: 12, fontWeight: "800", color: T.accent },
+  maxBtnText: { fontSize: 12, fontWeight: "700", color: T.accent },
   
   helperText: { fontSize: 13, color: T.text3, marginBottom: 24, marginLeft: 4, fontWeight: "500" },
 
@@ -240,21 +240,21 @@ const s = StyleSheet.create({
   methodIconWrap: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", marginRight: 12, backgroundColor: T.bg },
   methodIconWrapSelected: { backgroundColor: T.accent },
   methodInfo: { flex: 1 },
-  methodName: { fontSize: 15, fontWeight: "800", color: T.text1, marginBottom: 2 },
+  methodName: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 2 },
   methodNameSelected: { color: T.accent },
   methodDetail: { fontSize: 13, color: T.text3, fontWeight: "500" },
 
   breakdownCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border },
-  breakdownTitle: { fontSize: 15, fontWeight: "800", color: T.text1, marginBottom: 12 },
+  breakdownTitle: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 12 },
   breakdownRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
   breakdownLabel: { fontSize: 14, color: T.text2, fontWeight: "500" },
   breakdownValue: { fontSize: 14, fontWeight: "700", color: T.text1 },
   breakdownDivider: { height: 1, backgroundColor: T.border, marginVertical: 12 },
-  breakdownTotalLabel: { fontSize: 15, fontWeight: "800", color: T.text1 },
-  breakdownTotalValue: { fontSize: 18, fontWeight: "800", color: T.accent },
+  breakdownTotalLabel: { fontSize: 15, fontWeight: "700", color: T.text1 },
+  breakdownTotalValue: { fontSize: 18, fontWeight: "700", color: T.accent },
 
   bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: Platform.OS === 'ios' ? 32 : 16, paddingTop: 16, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border },
   submitBtn: { height: 56, borderRadius: 28, backgroundColor: T.accent, alignItems: "center", justifyContent: "center" },
   submitBtnDisabled: { opacity: 0.5 },
-  submitBtnText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
+  submitBtnText: { color: "#FFF", fontSize: 16, fontWeight: "700" },
 });

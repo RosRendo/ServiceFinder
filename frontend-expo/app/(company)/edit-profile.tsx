@@ -354,7 +354,7 @@ const s = StyleSheet.create({
     backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
 
   scroll: { flex: 1 },
   scrollContent: { padding: 24, paddingBottom: 60 },
@@ -389,12 +389,12 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center", ...CARD_CARD_SHADOW,
   },
   saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { fontSize: 16, fontWeight: "800", color: "#fff" },
+  saveBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
 
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 24 },
   modalContent: { width: "100%", backgroundColor: T.surface, borderRadius: 24, padding: 24, ...CARD_CARD_SHADOW },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  modalTitle: { fontSize: 20, fontWeight: "800", color: T.text1 },
+  modalTitle: { fontSize: 20, fontWeight: "700", color: T.text1 },
   modalCloseBtn: { padding: 4 },
   
   infoBox: { padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "rgba(16,185,129,0.2)" },

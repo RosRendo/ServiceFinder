@@ -320,7 +320,7 @@ const s = StyleSheet.create({
     backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { padding: 8, marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   scroll: { padding: 16 },
 
   trialBanner: {
@@ -336,15 +336,15 @@ const s = StyleSheet.create({
     padding: 20, 
   },
   currentCardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
-  currentLabel: { fontSize: 10, fontWeight: "800", color: T.text3, letterSpacing: 1.2 },
-  currentPlanName: { fontSize: 22, fontWeight: "800", color: T.accent, marginTop: 4 },
+  currentLabel: { fontSize: 10, fontWeight: "700", color: T.text3, letterSpacing: 1.2 },
+  currentPlanName: { fontSize: 22, fontWeight: "700", color: T.accent, marginTop: 4 },
   planBadge: { backgroundColor: T.bg, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: T.border },
   planBadgeHighlighted: { backgroundColor: T.accent, borderColor: T.accent },
   planBadgeText: { fontSize: 14, fontWeight: "700", color: T.text2 },
   planBadgeTextHighlighted: { color: "#fff" },
   divider: { height: 1, backgroundColor: T.border, marginBottom: 12 },
 
-  sectionTitle: { fontSize: 13, fontWeight: "800", color: T.text3, letterSpacing: 1.1, marginBottom: 12 },
+  sectionTitle: { fontSize: 13, fontWeight: "700", color: T.text3, letterSpacing: 1.1, marginBottom: 12 },
 
   planCard: {
     backgroundColor: T.surface, borderRadius: 20, padding: 20,
@@ -357,11 +357,11 @@ const s = StyleSheet.create({
     alignSelf: "flex-start", backgroundColor: T.accent,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginBottom: 12,
   },
-  popularBadgeText: { fontSize: 10, fontWeight: "800", color: "#fff", letterSpacing: 1 },
+  popularBadgeText: { fontSize: 10, fontWeight: "700", color: "#fff", letterSpacing: 1 },
 
   planCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
-  planName: { fontSize: 18, fontWeight: "800", color: T.text1 },
-  planPrice: { fontSize: 24, fontWeight: "800", color: T.text1, marginTop: 4 },
+  planName: { fontSize: 18, fontWeight: "700", color: T.text1 },
+  planPrice: { fontSize: 24, fontWeight: "700", color: T.text1, marginTop: 4 },
   planInterval: { fontSize: 14, fontWeight: "500", color: T.text3 },
 
   activeBadge: {

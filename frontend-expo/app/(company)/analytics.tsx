@@ -67,9 +67,9 @@ function RingMetric({ pct, color, label, value }: { pct: number; color: string; 
           borderBottomColor: pct > 0.5 ? color : "transparent",
           transform: [{ rotate: `${pct * 360}deg` }],
         }} />
-        <Text style={{ fontSize: 13, fontWeight: "800", color: T.text1 }}>{Math.round(pct * 100)}%</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: T.text1 }}>{Math.round(pct * 100)}%</Text>
       </View>
-      <Text style={{ fontSize: 13, fontWeight: "800", color: T.text1 }}>{value}</Text>
+      <Text style={{ fontSize: 13, fontWeight: "700", color: T.text1 }}>{value}</Text>
       <Text style={{ fontSize: 11, fontWeight: "500", color: T.text3, textAlign: "center" }}>{label}</Text>
     </View>
   );
@@ -259,7 +259,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   loadingBox: { flex: 1, alignItems: "center", justifyContent: "center" },
   scrollContent: { padding: 24, gap: 20, paddingBottom: 60 },
 
@@ -272,8 +272,8 @@ const s = StyleSheet.create({
   heroCard: {
     backgroundColor: T.accent, borderRadius: 20, padding: 28, borderWidth: 1, borderColor: T.border,
   },
-  heroLabel: { fontSize: 11, fontWeight: "800", color: "rgba(255,255,255,0.5)", letterSpacing: 1.5, marginBottom: 8 },
-  heroValue: { fontSize: 40, fontWeight: "800", color: "#fff", marginBottom: 8 },
+  heroLabel: { fontSize: 11, fontWeight: "700", color: "rgba(255,255,255,0.5)", letterSpacing: 1.5, marginBottom: 8 },
+  heroValue: { fontSize: 40, fontWeight: "700", color: "#fff", marginBottom: 8 },
   heroGrowthRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   heroGrowthText: { fontSize: 13, fontWeight: "700" },
 
@@ -284,11 +284,11 @@ const s = StyleSheet.create({
   },
   kpiIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 12 },
   kpiLabel: { fontSize: 11, fontWeight: "700", color: T.text3, marginBottom: 4 },
-  kpiValue: { fontSize: 22, fontWeight: "800", color: T.text1 },
+  kpiValue: { fontSize: 22, fontWeight: "700", color: T.text1 },
 
   chartCard: { backgroundColor: T.surface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: T.border },
   chartCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 },
-  chartCardTitle: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 4 },
+  chartCardTitle: { fontSize: 16, fontWeight: "700", color: T.text1, marginBottom: 4 },
   chartCardSub: { fontSize: 12, fontWeight: "500", color: T.text3 },
   legendRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendDot: { width: 10, height: 10, borderRadius: 2 },
@@ -299,7 +299,7 @@ const s = StyleSheet.create({
   serviceRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14 },
   serviceRowBorder: { borderBottomWidth: 1, borderBottomColor: T.border },
   serviceRank: { width: 28, height: 28, borderRadius: 14, backgroundColor: T.bg, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: T.border },
-  serviceRankText: { fontSize: 12, fontWeight: "800", color: T.text2 },
+  serviceRankText: { fontSize: 12, fontWeight: "700", color: T.text2 },
   serviceName: { flex: 1, fontSize: 14, fontWeight: "700", color: T.text1 },
-  serviceRevenue: { fontSize: 14, fontWeight: "800", color: T.accent },
+  serviceRevenue: { fontSize: 14, fontWeight: "700", color: T.accent },
 });

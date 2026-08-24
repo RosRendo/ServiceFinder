@@ -147,7 +147,7 @@ export default function MoreScreen() {
       <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
         {/* Header */}
         <View style={s.header}>
-          <TouchableOpacity onPress={() => setCompanyOpen(true)} style={s.menuBtn}>
+          <TouchableOpacity onPress={() => setCompanyOpen(true)} style={s.menuBtn} accessibilityRole="button" accessibilityLabel="Open menu">
             <MaterialCommunityIcons name="menu" size={28} color={T.accent} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>More</Text>
@@ -165,6 +165,8 @@ export default function MoreScreen() {
                       onPress={() => handlePress(item)}
                       style={s.menuRow}
                       activeOpacity={0.75}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${item.title}. ${item.subtitle}`}
                     >
                       <View style={[
                         s.menuIconBox,
@@ -198,7 +200,7 @@ export default function MoreScreen() {
 
           {/* Logout */}
           <View style={s.menuGroup}>
-            <TouchableOpacity onPress={handleLogout} style={[s.logoutRow]} activeOpacity={0.8}>
+            <TouchableOpacity onPress={handleLogout} style={[s.logoutRow]} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Log out of your account">
               <View style={[s.menuIconBox, { backgroundColor: T.errorBg }]}>
                 <MaterialCommunityIcons name="logout" size={22} color={T.error} />
               </View>
@@ -231,12 +233,12 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: T.border,
   },
   menuBtn: { padding: 8, marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.accent },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.accent },
 
   scrollContent: { padding: 24 },
 
   menuGroup: { marginBottom: 24 },
-  groupLabel: { fontSize: 11, fontWeight: "800", color: T.text3, letterSpacing: 1.2, marginBottom: 10 },
+  groupLabel: { fontSize: 11, fontWeight: "700", color: T.text3, letterSpacing: 1.2, marginBottom: 10 },
   groupCard: {
     backgroundColor: T.surface, borderRadius: 16,
     borderWidth: 1, borderColor: T.border,

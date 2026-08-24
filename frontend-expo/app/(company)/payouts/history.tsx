@@ -1,20 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import api from "@/utils/api";
+import { Theme } from "@/constants/theme";
+
+const T = Theme.colors;
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 type PayoutStatus = "pending" | "approved" | "paid" | "rejected";
 
 const STATUS_CONFIG: Record<PayoutStatus, { label: string; color: string; bg: string; icon: string }> = {
-  pending:  { label: "Pending",  color: "#d97706", bg: "#fef3c7", icon: "clock-outline" },
-  approved: { label: "Approved", color: "#1ba9ed", bg: "#e0f2fe", icon: "check-circle-outline" },
-  paid:     { label: "Paid",     color: "#059669", bg: "#d1fae5", icon: "bank-check" },
-  rejected: { label: "Rejected", color: "#dc2626", bg: "#fee2e2", icon: "close-circle-outline" },
+  pending:  { label: "Pending",  color: T.warning, bg: T.warningBg, icon: "clock-outline" },
+  approved: { label: "Approved", color: T.info, bg: T.blueBg, icon: "check-circle-outline" },
+  paid:     { label: "Paid",     color: T.success, bg: T.successBg, icon: "bank-check" },
+  rejected: { label: "Rejected", color: T.error, bg: T.errorBg, icon: "close-circle-outline" },
 };
-
-// No mock payouts needed
 
 const FILTERS: { id: PayoutStatus | "all"; label: string }[] = [
   { id: "all", label: "All" },
@@ -59,30 +65,30 @@ export default function PayoutHistoryScreen() {
   const renderItem = ({ item }: { item: any }) => {
     const cfg = STATUS_CONFIG[item.status as PayoutStatus] ?? STATUS_CONFIG.pending;
     return (
-      <View className="bg-surface-container-lowest rounded-2xl p-4 mb-3 border border-surface-container">
-        <View className="flex-row justify-between items-start mb-3">
+      <View style={s.card}>
+        <View style={s.cardHeader}>
           <View>
-            <Text className="font-bold text-lg text-on-surface">${item.amount.toFixed(2)}</Text>
-            <Text className="text-xs text-on-surface-variant mt-0.5">via {item.method}</Text>
+            <Text style={s.amountText}>${item.amount.toFixed(2)}</Text>
+            <Text style={s.methodText}>via {item.method}</Text>
           </View>
-          <View className="flex-row items-center px-3 py-1 rounded-full" style={{ backgroundColor: cfg.bg }}>
+          <View style={[s.badge, { backgroundColor: cfg.bg }]}>
             <MaterialCommunityIcons name={cfg.icon as any} size={12} color={cfg.color} />
-            <Text className="text-xs font-bold ml-1" style={{ color: cfg.color }}>{cfg.label}</Text>
+            <Text style={[s.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
           </View>
         </View>
 
-        <View className="flex-row justify-between pt-3 border-t border-outline-variant">
-          <View>
-            <Text className="text-[10px] text-on-surface-variant uppercase tracking-wider">Fee</Text>
-            <Text className="text-sm text-error">-${item.fee.toFixed(2)}</Text>
+        <View style={s.detailsRow}>
+          <View style={s.detailCol}>
+            <Text style={s.detailLabel}>Fee</Text>
+            <Text style={s.feeValue}>-${item.fee.toFixed(2)}</Text>
           </View>
-          <View>
-            <Text className="text-[10px] text-on-surface-variant uppercase tracking-wider">Net Received</Text>
-            <Text className="text-sm font-bold text-primary">${item.net.toFixed(2)}</Text>
+          <View style={s.detailCol}>
+            <Text style={s.detailLabel}>Net Received</Text>
+            <Text style={s.netValue}>${item.net.toFixed(2)}</Text>
           </View>
-          <View>
-            <Text className="text-[10px] text-on-surface-variant uppercase tracking-wider">Date</Text>
-            <Text className="text-sm text-on-surface">
+          <View style={s.detailCol}>
+            <Text style={s.detailLabel}>Date</Text>
+            <Text style={s.dateValue}>
               {new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </Text>
           </View>
@@ -92,57 +98,64 @@ export default function PayoutHistoryScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface">
-      <View className="flex-row items-center px-4 py-3 border-b border-surface-container">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 mr-2">
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#191c1e" />
+    <SafeAreaView style={s.root}>
+      {/* Header */}
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={T.primary} />
         </TouchableOpacity>
-        <Text className="text-xl font-headline font-bold text-on-surface">Payout History</Text>
+        <Text style={s.headerTitle}>Payout History</Text>
       </View>
 
       {/* Summary */}
-      <View className="mx-4 mt-4 mb-2 bg-primary rounded-2xl p-4 flex-row justify-between items-center">
+      <View style={s.summaryCard}>
         <View>
-          <Text className="text-white/80 text-xs uppercase tracking-wider">Total Received</Text>
-          <Text className="text-white text-2xl font-bold mt-1">${totalPaid.toFixed(2)}</Text>
+          <Text style={s.summaryLabel}>Total Received</Text>
+          <Text style={s.summaryValue}>${totalPaid.toFixed(2)}</Text>
         </View>
         <TouchableOpacity
-          className="bg-white/20 px-4 py-2 rounded-full"
+          style={s.requestBtn}
           onPress={() => router.push("/(company)/payouts/request")}
         >
-          <Text className="text-white font-bold text-sm">Request Payout</Text>
+          <Text style={s.requestBtnText}>Request Payout</Text>
         </TouchableOpacity>
       </View>
 
       {/* Filters */}
-      <View className="flex-row px-4 py-3 gap-2">
+      <View style={s.filterRow}>
         {FILTERS.map(f => (
           <TouchableOpacity
             key={f.id}
-            className={`px-4 py-1.5 rounded-full border ${filter === f.id ? "bg-primary border-primary" : "border-outline-variant"}`}
+            style={[
+              s.filterBtn,
+              filter === f.id ? s.filterBtnActive : s.filterBtnInactive
+            ]}
             onPress={() => setFilter(f.id)}
           >
-            <Text className={`text-sm font-bold ${filter === f.id ? "text-white" : "text-on-surface-variant"}`}>{f.label}</Text>
+            <Text style={[
+              s.filterText,
+              filter === f.id ? s.filterTextActive : s.filterTextInactive
+            ]}>{f.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#1ba9ed" />
+        <View style={s.center}>
+          <ActivityIndicator size="large" color={T.primary} />
         </View>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={item => item.id}
           renderItem={renderItem}
-          contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPayouts(); }} colors={["#1ba9ed"]} />}
+          contentContainerStyle={s.listContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPayouts(); }} tintColor={T.primary} />}
           ListEmptyComponent={
-            <View className="items-center justify-center py-20">
-              <MaterialCommunityIcons name="bank-transfer-out" size={64} color="#c4c6cf" />
-              <Text className="font-bold text-on-surface mt-4">No payouts yet</Text>
-              <Text className="text-on-surface-variant text-sm mt-1">Your payout history will appear here.</Text>
+            <View style={s.emptyState}>
+              <MaterialCommunityIcons name="bank-transfer-out" size={64} color={T.text3} />
+              <Text style={s.emptyTitle}>No payouts yet</Text>
+              <Text style={s.emptyDesc}>Your payout history will appear here.</Text>
             </View>
           }
         />
@@ -150,3 +163,186 @@ export default function PayoutHistoryScreen() {
     </SafeAreaView>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: T.bg },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: T.border,
+    backgroundColor: T.surface,
+  },
+  backBtn: {
+    padding: 6,
+    marginRight: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: T.primary,
+  },
+  summaryCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    backgroundColor: T.primary,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    ...CARD_SHADOW,
+  },
+  summaryLabel: {
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  summaryValue: {
+    color: "white",
+    fontSize: 24,
+    fontWeight: "700",
+    marginTop: 4,
+  },
+  requestBtn: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  requestBtnText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  filterRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  filterBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    ...CARD_SHADOW,
+  },
+  filterBtnActive: {
+    backgroundColor: T.primary,
+    borderColor: T.primary,
+  },
+  filterBtnInactive: {
+    backgroundColor: T.surface,
+    borderColor: T.border,
+  },
+  filterText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  filterTextActive: {
+    color: "white",
+  },
+  filterTextInactive: {
+    color: T.text2,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  listContent: {
+    padding: 16,
+    paddingBottom: 60,
+  },
+  card: {
+    backgroundColor: T.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: T.border,
+    ...CARD_SHADOW,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  amountText: {
+    fontWeight: "700",
+    fontSize: 18,
+    color: T.text1,
+  },
+  methodText: {
+    fontSize: 12,
+    color: T.text2,
+    marginTop: 2,
+    fontWeight: "500",
+  },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    marginLeft: 4,
+  },
+  detailsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+  },
+  detailCol: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 10,
+    color: T.text3,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  feeValue: {
+    fontSize: 13,
+    color: T.error,
+    fontWeight: "600",
+  },
+  netValue: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: T.primary,
+  },
+  dateValue: {
+    fontSize: 13,
+    color: T.text1,
+    fontWeight: "600",
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 80,
+  },
+  emptyTitle: {
+    fontWeight: "700",
+    color: T.text1,
+    marginTop: 16,
+    fontSize: 16,
+  },
+  emptyDesc: {
+    color: T.text3,
+    fontSize: 13,
+    marginTop: 4,
+  },
+});

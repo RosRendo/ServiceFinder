@@ -139,11 +139,11 @@ const s = StyleSheet.create({
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginLeft: -8 },
   addBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginRight: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
 
   scrollContent: { padding: 24, paddingBottom: 60 },
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  sectionTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   sectionCount: { fontSize: 13, fontWeight: "600", color: T.text3 },
   loadingBox: { paddingVertical: 60, alignItems: "center" },
 
@@ -158,14 +158,14 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   cardContent: { flex: 1 },
-  cardTitle: { fontSize: 15, fontWeight: "800", color: T.text1, marginBottom: 4 },
+  cardTitle: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 4 },
   cardDesc: { fontSize: 12, fontWeight: "500", color: T.text3, marginBottom: 12, lineHeight: 18 },
   cardFooter: { flexDirection: "row", alignItems: "center", gap: 16 },
   footerItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  priceText: { fontSize: 14, fontWeight: "800", color: T.accent },
+  priceText: { fontSize: 14, fontWeight: "700", color: T.accent },
   durationText: { fontSize: 12, fontWeight: "600", color: T.text2 },
 
   emptyBox: { paddingVertical: 80, alignItems: "center", gap: 8 },
-  emptyTitle: { fontSize: 18, fontWeight: "800", color: T.text1, marginTop: 8 },
+  emptyTitle: { fontSize: 18, fontWeight: "700", color: T.text1, marginTop: 8 },
   emptySubtitle: { fontSize: 14, fontWeight: "500", color: T.text3, textAlign: "center", paddingHorizontal: 20 },
 });

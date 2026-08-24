@@ -401,7 +401,7 @@ export default function BookingDetails() {
               {/* Staff Assignment chip list */}
               {staffList.length > 0 && (
                 <View style={{ gap: 8, marginTop: 12 }}>
-                  <Text style={{ fontSize: 11, fontWeight: "800", color: T.text3, textTransform: "uppercase", letterSpacing: 0.5 }}>Select Staff to Assign:</Text>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: T.text3, textTransform: "uppercase", letterSpacing: 0.5 }}>Select Staff to Assign:</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
                     {staffList.map((sMember) => {
                       const isSel = selectedStaffId === sMember.id.toString();
@@ -509,28 +509,28 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
 
   scrollContent: { padding: 24, paddingBottom: 60, gap: 16 },
 
   statusBox: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
   statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  statusText: { fontSize: 13, fontWeight: "800", letterSpacing: 0.5 },
-  priceText: { fontSize: 24, fontWeight: "800", color: T.accent },
+  statusText: { fontSize: 13, fontWeight: "700", letterSpacing: 0.5 },
+  priceText: { fontSize: 24, fontWeight: "700", color: T.accent },
 
   card: {
     backgroundColor: T.surface, borderRadius: 16, padding: 20,
     borderWidth: 1, borderColor: T.border,
     gap: 14,
   },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: T.accent, marginBottom: 4 },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: T.accent, marginBottom: 4 },
   
   row: { flexDirection: "row", alignItems: "center", gap: 12 },
   rowText: { fontSize: 14, fontWeight: "500", color: T.text1, flex: 1 },
 
   staffRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   staffAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: T.accentMid, alignItems: "center", justifyContent: "center" },
-  staffInitial: { fontSize: 16, fontWeight: "800", color: "#fff" },
+  staffInitial: { fontSize: 16, fontWeight: "700", color: "#fff" },
   staffName: { fontSize: 15, fontWeight: "700", color: T.text1 },
   staffPhone: { fontSize: 13, fontWeight: "500", color: T.text3, marginTop: 2 },
   unassignedText: { fontSize: 14, fontWeight: "600", color: T.text3, fontStyle: "italic" },
@@ -542,8 +542,8 @@ const s = StyleSheet.create({
   payRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   payLabel: { fontSize: 14, fontWeight: "500", color: T.text2 },
   payValue: { fontSize: 14, fontWeight: "600", color: T.text1 },
-  payLabelBold: { fontSize: 15, fontWeight: "800", color: T.accent },
-  payValueBold: { fontSize: 15, fontWeight: "800", color: T.success },
+  payLabelBold: { fontSize: 15, fontWeight: "700", color: T.accent },
+  payValueBold: { fontSize: 15, fontWeight: "700", color: T.success },
   divider: { height: 1, backgroundColor: T.border, marginVertical: 4 },
 
   emptyBox: { flex: 1, alignItems: "center", justifyContent: "center" },
@@ -557,7 +557,7 @@ const s = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   modalContent: { backgroundColor: T.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "85%", minHeight: "55%" },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 24, borderBottomWidth: 1, borderBottomColor: T.border, backgroundColor: T.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
-  modalTitle: { fontSize: 19, fontWeight: "800", color: T.text1 },
+  modalTitle: { fontSize: 19, fontWeight: "700", color: T.text1 },
   modalClose: { padding: 8, backgroundColor: T.bg, borderRadius: 20 },
   modalList: { padding: 24, paddingTop: 16 },
   modalEmpty: { padding: 40, alignItems: "center" },
@@ -565,11 +565,11 @@ const s = StyleSheet.create({
   modalStaffItem: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: T.surface, padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   availDot: { width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: T.surface },
   rolePill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  rolePillText: { fontSize: 12, fontWeight: "800", textTransform: "capitalize" },
+  rolePillText: { fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
   ratingPill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#FEF3C7", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  ratingText: { fontSize: 12, fontWeight: "800", color: "#92400E" },
+  ratingText: { fontSize: 12, fontWeight: "700", color: "#92400E" },
   jobsPill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: T.success + "15", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  jobsText: { fontSize: 12, fontWeight: "800", color: T.success },
+  jobsText: { fontSize: 12, fontWeight: "700", color: T.success },
   
   // Skeleton
   skeletonBadge: { height: 24, backgroundColor: T.border, borderRadius: 12 },

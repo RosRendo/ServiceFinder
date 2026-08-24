@@ -305,7 +305,7 @@ const s = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   saveBtn: { backgroundColor: T.accent, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24 },
   saveBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 
@@ -328,7 +328,7 @@ const s = StyleSheet.create({
   section: { backgroundColor: T.surface, padding: 20, borderRadius: 16, gap: 12,
     ...CARD_SHADOW, borderWidth: 1, borderColor: T.border },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
-  sectionTitle: { fontSize: 16, fontWeight: "800", color: T.text1 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: T.text1 },
 
   inputContainer: { gap: 6 },
   inputLabel: { fontSize: 13, fontWeight: "700", color: T.text2 },
@@ -356,5 +356,5 @@ const s = StyleSheet.create({
   modeTitle: { fontSize: 14, fontWeight: "700", color: T.text1 },
   modeDesc: { fontSize: 12, color: T.text2, marginTop: 4, lineHeight: 18 },
   activeBadge: { backgroundColor: T.accent + "20", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  activeBadgeText: { fontSize: 10, fontWeight: "800", color: T.accent },
+  activeBadgeText: { fontSize: 10, fontWeight: "700", color: T.accent },
 });

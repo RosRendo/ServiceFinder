@@ -194,7 +194,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   saveBtn: { backgroundColor: T.accent, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   saveBtnDisabled: { backgroundColor: T.text3 },
   saveBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },

@@ -240,7 +240,7 @@ const s = StyleSheet.create({
     backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { padding: 4, marginRight: 12, marginLeft: -4 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1, flex: 1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1, flex: 1 },
   addBtn: { padding: 4 },
   
   listContent: { padding: 16, paddingBottom: 40, gap: 12 },
@@ -284,7 +284,7 @@ const s = StyleSheet.create({
     padding: 12,
   },
   statBox: { flex: 1 },
-  statValue: { fontSize: 16, fontWeight: "800", color: T.text1 },
+  statValue: { fontSize: 16, fontWeight: "700", color: T.text1 },
   statLabel: { fontSize: 12, color: T.text2, marginTop: 2 },
   
   centerBox: { flex: 1, alignItems: "center", justifyContent: "center" },
@@ -297,7 +297,7 @@ const s = StyleSheet.create({
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     padding: 20, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border
   },
-  modalTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   modalContent: { padding: 20 },
   
   label: { fontSize: 13, fontWeight: "600", color: T.text2, marginBottom: 6, marginTop: 16 },

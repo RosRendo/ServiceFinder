@@ -295,7 +295,7 @@ export default function CoverageAreas() {
                     <MaterialCommunityIcons name="minus" size={20} color={T.text1} />
                   </TouchableOpacity>
 
-                  <Text style={{ fontSize: 18, fontWeight: "800", color: T.accentMid }}>{coverageRadiusKm} km</Text>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: T.accentMid }}>{coverageRadiusKm} km</Text>
 
                   <TouchableOpacity 
                     onPress={() => setCoverageRadiusKm(prev => Math.min(100, prev + 5))}
@@ -325,7 +325,7 @@ const s = StyleSheet.create({
     backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   saveBtn: { backgroundColor: T.accent, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   saveBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
 
@@ -360,7 +360,7 @@ const s = StyleSheet.create({
   webFallbackDesc: { fontSize: 13, color: T.text3, textAlign: "center" },
 
   card: { backgroundColor: T.surface, borderRadius: 20, padding: 20,  },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 4 },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: T.text1, marginBottom: 4 },
   
   infoIconWrap: { width: 48, height: 48, borderRadius: 24, backgroundColor: T.accentLight, alignItems: "center", justifyContent: "center" },
   infoText: { fontSize: 13, color: T.text2, lineHeight: 20, marginTop: 4 },

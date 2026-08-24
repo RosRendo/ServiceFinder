@@ -310,7 +310,7 @@ const s = StyleSheet.create({
     backgroundColor: T.surface, borderRadius: 16, padding: 20,
     borderWidth: 1, borderColor: T.border,
   },
-  formTitle: { fontSize: 18, fontWeight: "800", color: T.text1, marginBottom: 20 },
+  formTitle: { fontSize: 18, fontWeight: "700", color: T.text1, marginBottom: 20 },
   inputGroup: { marginBottom: 16 },
   label: { fontSize: 13, fontWeight: "600", color: T.text2, marginBottom: 8 },
   input: {

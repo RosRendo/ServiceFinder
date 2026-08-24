@@ -47,7 +47,7 @@ function Avatar({ name, size = 44 }: { name: string; size?: number }) {
   const color = palette[(name ?? "").length % palette.length];
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ fontSize: size * 0.33, fontWeight: "800", color: "#fff" }}>{initials}</Text>
+      <Text style={{ fontSize: size * 0.33, fontWeight: "700", color: "#fff" }}>{initials}</Text>
     </View>
   );
 }
@@ -258,7 +258,7 @@ const s = StyleSheet.create({
     backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
 
   scrollContent: { padding: 20, gap: 20, paddingBottom: 60 },
   loadingBox: { paddingVertical: 80, alignItems: "center" },
@@ -268,7 +268,7 @@ const s = StyleSheet.create({
     flexDirection: "row", gap: 24, borderWidth: 1, borderColor: T.border,
   },
   summaryLeft: { alignItems: "center", justifyContent: "center", gap: 6, minWidth: 80 },
-  avgRatingBig: { fontSize: 48, fontWeight: "800", color: "#fff", lineHeight: 52 },
+  avgRatingBig: { fontSize: 48, fontWeight: "700", color: "#fff", lineHeight: 52 },
   totalReviews: { fontSize: 12, fontWeight: "600", color: "rgba(255,255,255,0.5)", marginTop: 4 },
   summaryRight: { flex: 1, justifyContent: "center", gap: 6 },
   barRow: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -288,7 +288,7 @@ const s = StyleSheet.create({
 
   emptyBox: { paddingVertical: 60, alignItems: "center", gap: 12, backgroundColor: T.surface, borderRadius: 24, borderWidth: 1, borderColor: T.border, marginTop: 20, paddingHorizontal: 20 },
   emptyIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: T.accentLight, alignItems: "center", justifyContent: "center" },
-  emptyTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  emptyTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   emptySubtitle: { fontSize: 14, color: T.text3, textAlign: "center", lineHeight: 22 },
 
   reviewsList: { gap: 16 },
@@ -302,7 +302,7 @@ const s = StyleSheet.create({
   metaDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: T.border },
   reviewDate: { fontSize: 12, fontWeight: "600", color: T.text3 },
   ratingPill: { flexDirection: "row", alignItems: "center", backgroundColor: T.warning + "20", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  ratingPillText: { fontSize: 13, fontWeight: "800", color: "#92400E" },
+  ratingPillText: { fontSize: 13, fontWeight: "700", color: "#92400E" },
   reviewComment: { fontSize: 15, lineHeight: 24, color: T.text2, fontWeight: "500" },
   servicePill: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: T.accentLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, alignSelf: "flex-start" },
   servicePillText: { fontSize: 12, fontWeight: "700", color: T.accentMid },

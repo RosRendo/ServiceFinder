@@ -171,7 +171,7 @@ const s = StyleSheet.create({
     backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   headerSub: { fontSize: 12, color: T.text2, marginTop: 1 },
 
   centerBox: { flex: 1, alignItems: "center", justifyContent: "center" },
@@ -187,7 +187,7 @@ const s = StyleSheet.create({
   serviceWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
   serviceName: { fontSize: 15, fontWeight: "700", color: T.text1 },
   priceBadge: { backgroundColor: T.success + "20", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  priceText: { fontSize: 14, fontWeight: "800", color: T.success },
+  priceText: { fontSize: 14, fontWeight: "700", color: T.success },
 
   detailsRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   detailItem: { flexDirection: "row", alignItems: "center", gap: 4 },
