@@ -23,5 +23,5 @@
       "Scripts: build, format, start, start:dev, start:debug, start:prod, start:migrate, migrate:prod, lint, test, test:watch, test:cov, test:debug, test:e2e"
     ]
   },
-  "updatedAt": "2026-08-24T17:19:42.881629+00:00"
+  "updatedAt": "2026-08-24T17:31:26.180843+00:00"
 }
