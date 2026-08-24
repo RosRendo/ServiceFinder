@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "recipe": {
+    "name": "Node.js app",
+    "kind": "node",
+    "bootstrap": [
+      "npm install"
+    ],
+    "build": [
+      "npm run build"
+    ],
+    "test": [
+      "npm run test",
+      "npm run lint",
+      "npm run format"
+    ],
+    "start": "npm run start",
+    "port": null,
+    "readinessPath": "/",
+    "evidence": [
+      "Detected package.json",
+      "Package manager: npm",
+      "Scripts: build, format, start, start:dev, start:debug, start:prod, start:migrate, migrate:prod, lint, test, test:watch, test:cov, test:debug, test:e2e"
+    ]
+  },
+  "updatedAt": "2026-08-24T16:00:53.604249+00:00"
+}
