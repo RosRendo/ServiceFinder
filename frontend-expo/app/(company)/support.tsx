@@ -5,11 +5,22 @@ import {
   View,
   TouchableOpacity,
   TextInput,
-  Alert
+  Alert,
+  StyleSheet,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { api } from "@/store/authStore";
+import { Theme } from "@/constants/theme";
+
+const T = Theme.colors;
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 export default function Support() {
   const router = useRouter();
@@ -17,20 +28,26 @@ export default function Support() {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!subject || !message) {
       Alert.alert("Missing Fields", "Please provide a subject and message.");
       return;
     }
-    
+
     setSending(true);
-    // Simulate API call for support ticket
-    setTimeout(() => {
-      setSending(false);
+    try {
+      await api.post("/api/support/tickets", { subject, message });
       setSubject("");
       setMessage("");
       Alert.alert("Ticket Submitted", "Our support team will get back to you shortly.");
-    }, 1500);
+    } catch (e: any) {
+      Alert.alert(
+        "Submission Failed",
+        e?.response?.data?.message || "Could not reach support. Please try again."
+      );
+    } finally {
+      setSending(false);
+    }
   };
 
   const faqs = [
@@ -49,67 +66,65 @@ export default function Support() {
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
+    <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       {/* Top App Bar */}
-      <View className="flex-row items-center justify-between px-6 py-4 bg-surface border-b border-outline-variant/10">
-        <View className="flex-row items-center gap-4 flex-1">
-          <TouchableOpacity onPress={() => router.back()} className="active:scale-95 p-2 -ml-2">
-            <MaterialCommunityIcons name="arrow-left" size={28} color="#002045" />
-          </TouchableOpacity>
-          <Text className="text-2xl font-bold text-primary font-headline">
-            Help & Support
-          </Text>
-        </View>
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={28} color={T.primary} />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>
+          Help & Support
+        </Text>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        className="flex-1"
+        style={s.scrollView}
       >
-        <View className="px-6 py-6 gap-8 pb-24">
+        <View style={s.scrollContent}>
           
           {/* Quick Contact Options */}
-          <View className="flex-row gap-4">
-            <TouchableOpacity className="flex-1 bg-primary-container p-4 rounded-xl items-center border border-primary/20 active:scale-95">
-              <MaterialCommunityIcons name="phone" size={24} color="#002045" className="mb-2" />
-              <Text className="text-sm font-bold text-on-primary-container">Call Support</Text>
-              <Text className="text-[10px] font-medium text-on-primary-container/80 mt-1">24/7 Priority Line</Text>
+          <View style={s.contactRow}>
+            <TouchableOpacity style={s.contactCard} activeOpacity={0.9}>
+              <MaterialCommunityIcons name="phone" size={24} color={T.primary} style={s.iconMargin} />
+              <Text style={s.contactTitle}>Call Support</Text>
+              <Text style={s.contactDesc}>24/7 Priority Line</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity className="flex-1 bg-surface-container-low p-4 rounded-xl items-center border border-outline-variant/10 active:scale-95">
-              <MaterialCommunityIcons name="book-open-page-variant" size={24} color="#002045" className="mb-2" />
-              <Text className="text-sm font-bold text-on-surface">Knowledge Base</Text>
-              <Text className="text-[10px] font-medium text-on-surface-variant mt-1">Guides & Tutorials</Text>
+            <TouchableOpacity style={[s.contactCard, { backgroundColor: T.surface }]} activeOpacity={0.9}>
+              <MaterialCommunityIcons name="book-open-page-variant" size={24} color={T.primary} style={s.iconMargin} />
+              <Text style={[s.contactTitle, { color: T.text1 }]}>Knowledge Base</Text>
+              <Text style={s.contactDesc}>Guides & Tutorials</Text>
             </TouchableOpacity>
           </View>
 
           {/* Contact Form */}
-          <View className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/10 shadow-sm">
-            <Text className="text-lg font-bold text-primary font-headline mb-4">Send us a message</Text>
+          <View style={s.formCard}>
+            <Text style={s.formTitle}>Send us a message</Text>
             
-            <View className="gap-4">
+            <View style={s.formGap}>
               <View>
-                <Text className="text-xs font-bold text-on-surface-variant mb-2 ml-1">Subject</Text>
-                <View className="bg-surface-container-low rounded-xl px-4 py-3 border border-outline-variant/10">
+                <Text style={s.fieldLabel}>Subject</Text>
+                <View style={s.inputWrap}>
                   <TextInput
                     value={subject}
                     onChangeText={setSubject}
                     placeholder="Brief description of the issue"
-                    className="text-on-surface text-base"
-                    placeholderTextColor="#74777f"
+                    style={s.textInput}
+                    placeholderTextColor={T.text3}
                   />
                 </View>
               </View>
 
               <View>
-                <Text className="text-xs font-bold text-on-surface-variant mb-2 ml-1">Message</Text>
-                <View className="bg-surface-container-low rounded-xl px-4 py-3 border border-outline-variant/10 min-h-[120px]">
+                <Text style={s.fieldLabel}>Message</Text>
+                <View style={[s.inputWrap, s.textAreaWrap]}>
                   <TextInput
                     value={message}
                     onChangeText={setMessage}
                     placeholder="How can we help you today?"
-                    className="text-on-surface text-base"
-                    placeholderTextColor="#74777f"
+                    style={s.textInput}
+                    placeholderTextColor={T.text3}
                     multiline
                     textAlignVertical="top"
                   />
@@ -119,9 +134,15 @@ export default function Support() {
               <TouchableOpacity 
                 onPress={handleSend}
                 disabled={sending}
-                className={`py-3.5 rounded-xl items-center ${sending ? 'bg-outline-variant/50' : 'bg-primary'} active:scale-95`}
+                style={[
+                  s.submitBtn,
+                  { backgroundColor: sending ? T.border : T.primary }
+                ]}
               >
-                <Text className={`font-bold ${sending ? 'text-on-surface-variant' : 'text-on-primary'}`}>
+                <Text style={[
+                  s.submitBtnText,
+                  { color: sending ? T.text2 : "white" }
+                ]}>
                   {sending ? 'Sending...' : 'Submit Ticket'}
                 </Text>
               </TouchableOpacity>
@@ -130,12 +151,12 @@ export default function Support() {
 
           {/* FAQs */}
           <View>
-            <Text className="text-lg font-bold text-primary font-headline mb-4 ml-1">Frequently Asked Questions</Text>
-            <View className="gap-3">
+            <Text style={s.sectionTitle}>Frequently Asked Questions</Text>
+            <View style={s.faqList}>
               {faqs.map((faq, index) => (
-                <View key={index} className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10">
-                  <Text className="text-sm font-bold text-on-surface mb-2">{faq.q}</Text>
-                  <Text className="text-sm text-on-surface-variant leading-5">{faq.a}</Text>
+                <View key={index} style={s.faqCard}>
+                  <Text style={s.faqQuestion}>{faq.q}</Text>
+                  <Text style={s.faqAnswer}>{faq.a}</Text>
                 </View>
               ))}
             </View>
@@ -146,3 +167,143 @@ export default function Support() {
     </SafeAreaView>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: T.bg },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: T.border,
+    backgroundColor: T.surface,
+    gap: 12,
+  },
+  backBtn: {
+    padding: 6,
+    marginLeft: -6,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: T.primary,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    gap: 24,
+    paddingBottom: 40,
+  },
+  contactRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  contactCard: {
+    flex: 1,
+    backgroundColor: T.accentLight,
+    padding: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: T.border,
+    ...CARD_SHADOW,
+  },
+  iconMargin: {
+    marginBottom: 8,
+  },
+  contactTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: T.primary,
+  },
+  contactDesc: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: T.text3,
+    marginTop: 4,
+  },
+  formCard: {
+    backgroundColor: T.surface,
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: T.border,
+    ...CARD_SHADOW,
+  },
+  formTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: T.primary,
+    marginBottom: 16,
+  },
+  formGap: {
+    gap: 16,
+  },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: T.text3,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  inputWrap: {
+    backgroundColor: T.bg,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  textAreaWrap: {
+    minHeight: 120,
+  },
+  textInput: {
+    fontSize: 15,
+    color: T.text1,
+  },
+  submitBtn: {
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    ...CARD_SHADOW,
+  },
+  submitBtnText: {
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: T.primary,
+    marginBottom: 12,
+    marginLeft: 4,
+  },
+  faqList: {
+    gap: 12,
+  },
+  faqCard: {
+    backgroundColor: T.surface,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: T.border,
+    ...CARD_SHADOW,
+  },
+  faqQuestion: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: T.text1,
+    marginBottom: 8,
+  },
+  faqAnswer: {
+    fontSize: 13,
+    color: T.text2,
+    lineHeight: 18,
+  },
+});
