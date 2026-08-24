@@ -90,7 +90,7 @@ export default function AdminDashboard() {
     { label: "Pending Companies",   count: data?.pendingCompanies ?? 0, route: "/admin/companies",  icon: Building,  color: "text-amber-600 bg-amber-500/10 border-amber-500/20" },
     { label: "Open Disputes",       count: data?.activeDisputes   ?? 0, route: "/admin/disputes",   icon: CreditCard, color: "text-rose-600 bg-rose-500/10 border-rose-500/20" },
     { label: "Open Support Tickets",count: data?.openTickets      ?? 0, route: "/admin/support",    icon: AlertCircle,color: "text-blue-600 bg-blue-500/10 border-blue-500/20" },
-    { label: "Reported Content",    count: data?.activeDisputes   ?? 0, route: "/admin/moderation", icon: Ban,        color: "text-violet-600 bg-violet-500/10 border-violet-500/20" },
+    { label: "Reported Content",    count: data?.reportedContent  ?? 0, route: "/admin/moderation", icon: Ban,        color: "text-violet-600 bg-violet-500/10 border-violet-500/20" },
   ];
 
   // Platform Health — static until we have a /health endpoint

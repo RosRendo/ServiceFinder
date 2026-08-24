@@ -113,7 +113,8 @@ export function AppTopBar({ onCommandPaletteOpen, role }: AppTopBarProps) {
       </button>
 
       {/* Notifications */}
-      <Link href={role === "admin" ? "/admin/notifications" : "/company/notifications"}>
+      {/* Admin has no dedicated notifications page; broadcasts is the comms center */}
+      <Link href={role === "admin" ? "/admin/broadcasts" : "/company/notifications"}>
         <button className="relative w-9 h-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/60 transition-colors">
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
@@ -133,13 +134,14 @@ export function AppTopBar({ onCommandPaletteOpen, role }: AppTopBarProps) {
           </div>
           <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
         </button>
+        {profileOpen && <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />}
         {profileOpen && (
           <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-border bg-popover shadow-elevated z-50 py-1">
-            <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted/50">
-              <User className="w-3.5 h-3.5 text-muted-foreground" /> Profile
-            </button>
-            <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted/50">
-              <Settings className="w-3.5 h-3.5 text-muted-foreground" /> Settings
+            <button
+              onClick={() => { setProfileOpen(false); window.location.href = role === "admin" ? "/admin/settings" : "/company/settings"; }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted/50"
+            >
+              <User className="w-3.5 h-3.5 text-muted-foreground" /> Profile & Settings
             </button>
             <div className="h-px bg-border mx-2 my-1" />
             <button 
