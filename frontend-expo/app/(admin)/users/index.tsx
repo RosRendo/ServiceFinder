@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
 
 const T = Theme.colors;
 
@@ -23,6 +24,7 @@ export default function UsersScreen() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -76,6 +78,9 @@ export default function UsersScreen() {
           <ActivityIndicator size="large" color={T.accent} />
         </View>
       ) : (
+        hasError ? (
+          <ErrorState onRetry={() => fetchUsers()} />
+        ) : (
         <ScrollView style={s.scroll} contentContainerStyle={s.content}>
           {users.map((user) => {
             const statusConfig = getStatusColor(user.status);
@@ -105,7 +110,8 @@ export default function UsersScreen() {
             );
           })}
         </ScrollView>
-      )}
+      ))}
+
     </SafeAreaView>
   );
 }

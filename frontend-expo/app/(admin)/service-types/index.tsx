@@ -12,6 +12,8 @@ import { useRouter } from "expo-router";
 import { useSidebarStore } from "@/store/sidebarStore";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
+import { useTranslation } from "react-i18next";
 
 const T = Theme.colors;
 
@@ -19,9 +21,11 @@ const T = Theme.colors;
 
 export default function ServiceTypes() {
   const router = useRouter();
+  const { t } = useTranslation();
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
   const [serviceTypes, setServiceTypes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchServiceTypes = useCallback(async (isRefresh = false) => {
@@ -34,6 +38,7 @@ export default function ServiceTypes() {
       setServiceTypes(items);
     } catch (error) {
       console.error("Failed to fetch service types:", error);
+      setHasError(true);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -47,7 +52,10 @@ export default function ServiceTypes() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
+          <TouchableOpacity 
+              accessibilityRole="button"
+              accessibilityLabel={t('common.openMenu')}
+              onPress={() => openSidebar(true)} style={s.menuBtn}>
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>Service Types</Text>
@@ -88,12 +96,16 @@ export default function ServiceTypes() {
             </View>
           ))
         ) : (
+          hasError ? (
+            <ErrorState onRetry={() => fetchServiceTypes()} />
+          ) : (
           <View style={s.emptyBox}>
             <MaterialCommunityIcons name="hammer-wrench" size={48} color={T.text3} style={{ marginBottom: 16 }} />
             <Text style={s.emptyText}>No Service Types Found</Text>
             <Text style={s.emptySubText}>Get started by adding a service type.</Text>
           </View>
-        )}
+        ))}
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -108,7 +120,7 @@ const s = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: T.accent, alignItems: "center", justifyContent: "center" },
 
   listContent: { padding: 16, gap: 16, paddingBottom: 60 },
@@ -118,10 +130,10 @@ const s = StyleSheet.create({
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
   iconBox: { width: 48, height: 48, borderRadius: 16, backgroundColor: T.accent + "10", alignItems: "center", justifyContent: "center" },
   cardHeaderInfo: { flex: 1 },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 2 },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: T.text1, marginBottom: 2 },
   cardSubtitle: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase", letterSpacing: 0.5 },
   priceBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: T.accent + "15" },
-  priceText: { fontSize: 14, fontWeight: "800", color: T.accent },
+  priceText: { fontSize: 14, fontWeight: "700", color: T.accent },
   cardDesc: { fontSize: 14, color: T.text2, marginTop: 12, lineHeight: 20 },
 
   emptyBox: { alignItems: "center", paddingVertical: 80, paddingHorizontal: 32 },

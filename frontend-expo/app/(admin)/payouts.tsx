@@ -9,6 +9,8 @@ import { useRouter } from "expo-router";
 import { useSidebarStore } from "@/store/sidebarStore";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
+import { useTranslation } from "react-i18next";
 
 const T = Theme.colors;
 
@@ -16,9 +18,11 @@ type PayoutStatus = "pending" | "completed" | "rejected";
 
 export default function AdminPayoutsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
   const [payouts, setPayouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<PayoutStatus | "all">("all");
@@ -150,7 +154,10 @@ export default function AdminPayoutsScreen() {
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
+          <TouchableOpacity 
+              accessibilityRole="button"
+              accessibilityLabel={t('common.openMenu')}
+              onPress={() => openSidebar(true)} style={s.menuBtn}>
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>Payouts</Text>
@@ -188,6 +195,9 @@ export default function AdminPayoutsScreen() {
       {loading ? (
         <View style={s.centerBox}><ActivityIndicator size="large" color={T.accent} /></View>
       ) : (
+        hasError ? (
+          <ErrorState onRetry={() => fetchPayouts()} />
+        ) : (
         <FlatList
           data={filteredPayouts}
           keyExtractor={item => item.id}
@@ -201,7 +211,8 @@ export default function AdminPayoutsScreen() {
             </View>
           }
         />
-      )}
+      ))}
+
     </SafeAreaView>
   );
 }
@@ -215,7 +226,7 @@ const s = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
 
   filtersContainer: { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
   filtersScroll: { paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: "center" },
@@ -232,10 +243,10 @@ const s = StyleSheet.create({
   card: { backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   typeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  typeBadgeText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
+  typeBadgeText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  statusBadgeText: { fontSize: 11, fontWeight: "800" },
-  amount: { fontSize: 20, fontWeight: "800", color: T.text1 },
+  statusBadgeText: { fontSize: 11, fontWeight: "700" },
+  amount: { fontSize: 20, fontWeight: "700", color: T.text1 },
 
   cardBody: { gap: 4, marginBottom: 16 },
   recipientName: { fontSize: 16, fontWeight: "700", color: T.text1 },

@@ -11,6 +11,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSidebarStore } from "@/store/sidebarStore";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
+import { useTranslation } from "react-i18next";
 
 const T = Theme.colors;
 
@@ -38,10 +40,12 @@ const FILTER_TABS: { id: ActionType; label: string }[] = [
 
 
 export default function AuditLogs() {
+  const { t } = useTranslation();
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
   const [logs, setLogs] = useState<any[]>([]);
   const [filtered, setFiltered] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<ActionType>("all");
   const [search, setSearch] = useState("");
@@ -112,7 +116,10 @@ export default function AuditLogs() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
+          <TouchableOpacity 
+              accessibilityRole="button"
+              accessibilityLabel={t('common.openMenu')}
+              onPress={() => openSidebar(true)} style={s.menuBtn}>
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>Audit Logs</Text>
@@ -165,6 +172,9 @@ export default function AuditLogs() {
           <ActivityIndicator size="large" color={T.accent} />
         </View>
       ) : (
+        hasError ? (
+          <ErrorState onRetry={() => fetchLogs()} />
+        ) : (
         <FlatList
           data={filtered}
           keyExtractor={item => item.id}
@@ -179,7 +189,8 @@ export default function AuditLogs() {
             </View>
           }
         />
-      )}
+      ))}
+
     </SafeAreaView>
   );
 }
@@ -199,7 +210,7 @@ const s = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   eventCountText: { fontSize: 13, color: T.text3, fontWeight: "600" },
 
   searchContainer: { 
@@ -228,7 +239,7 @@ const s = StyleSheet.create({
   cardInfo: { flex: 1 },
   cardHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
   badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
-  badgeText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
+  badgeText: { fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
   timeText: { fontSize: 11, color: T.text3 },
   userName: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 2 },
   userEmail: { fontSize: 13, color: T.text3 },

@@ -11,6 +11,7 @@ import api from "@/utils/api";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
 import { useTranslation } from "react-i18next";
+import ErrorState from "@/components/common/ErrorState";
 import { Theme } from "@/constants/theme";
 const FlashList = ShopifyFlashList as any;
 
@@ -29,6 +30,7 @@ export default function Queue() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const fetchQueue = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -37,8 +39,10 @@ export default function Queue() {
       // Backend returns { success: true, data: [...], pagination: {} }
       const data = response.data?.data ?? [];
       setCompanies(Array.isArray(data) ? data : []);
+      setHasError(false);
     } catch (error) {
       console.error("Failed to fetch queue:", error);
+      setHasError(true);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -79,9 +83,9 @@ export default function Queue() {
   };
 
   const tabs = [
-    { id: "pending", label: "Pending" },
-    { id: "verified", label: "Approved" },
-    { id: "rejected", label: "Rejected" },
+    { id: "pending", labelKey: "pending" },
+    { id: "verified", labelKey: "approved" },
+    { id: "rejected", labelKey: "rejected" },
   ];
 
   return (
@@ -89,10 +93,15 @@ export default function Queue() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
+          <TouchableOpacity
+            onPress={() => openSidebar(true)}
+            style={s.menuBtn}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.openMenu')}
+          >
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>Approvals</Text>
+          <Text style={s.headerTitle}>{t('adminQueue.title')}</Text>
         </View>
         <View style={s.badge}>
           <Text style={s.badgeText}>{activeTab === 'pending' && !isLoading ? companies.length : '-'}</Text>
@@ -104,14 +113,18 @@ export default function Queue() {
         <View style={s.tabContainer}>
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
+            const label = t(`adminQueue.${tab.labelKey}`);
             return (
               <TouchableOpacity
                 key={tab.id}
                 onPress={() => setActiveTab(tab.id)}
                 style={[s.tabButton, isActive && s.tabButtonActive]}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isActive }}
+                accessibilityLabel={label}
               >
-                <Text style={[s.tabText, isActive && s.tabTextActive]}>{tab.label}</Text>
+                <Text style={[s.tabText, isActive && s.tabTextActive]}>{label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -121,6 +134,8 @@ export default function Queue() {
       {/* Queue Items */}
       {isLoading && !refreshing ? (
         <View style={s.loadingBox}><ActivityIndicator size="large" color={T.primary} /></View>
+      ) : hasError && companies.length === 0 ? (
+        <ErrorState onRetry={() => fetchQueue()} />
       ) : (
         <FlashList
           data={companies}
@@ -135,8 +150,8 @@ export default function Queue() {
               <View style={s.emptyIconCircle}>
                 <MaterialCommunityIcons name="check-decagram" size={48} color={T.primary} />
               </View>
-              <Text style={s.emptyText}>All Caught Up</Text>
-              <Text style={s.emptySubText}>No {activeTab} applications found.</Text>
+              <Text style={s.emptyText}>{t('adminQueue.allCaughtUp')}</Text>
+              <Text style={s.emptySubText}>{t('adminQueue.noApplications', { status: activeTab })}</Text>
             </View>
           }
           renderItem={({ item: company, index }: any) => {
@@ -195,15 +210,19 @@ export default function Queue() {
                         style={[s.actionBtn, s.rejectBtn]}
                         onPress={(e) => { e.stopPropagation(); handleReject(company.id); }}
                         activeOpacity={0.8}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${t('adminQueue.reject')}: ${company.name}`}
                       >
-                        <Text style={s.rejectText}>Reject</Text>
+                        <Text style={s.rejectText}>{t('adminQueue.reject')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[s.actionBtn, s.approveBtn]}
                         onPress={(e) => { e.stopPropagation(); handleApprove(company.id); }}
                         activeOpacity={0.8}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${t('adminQueue.verifyBusiness')}: ${company.name}`}
                       >
-                        <Text style={s.approveText}>Verify Business</Text>
+                        <Text style={s.approveText}>{t('adminQueue.verifyBusiness')}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -224,9 +243,9 @@ const s = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 24, fontWeight: "800", color: T.text1, letterSpacing: -0.5 },
+  headerTitle: { fontSize: 24, fontWeight: "700", color: T.text1, letterSpacing: -0.5 },
   badge: { backgroundColor: T.error, minWidth: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
-  badgeText: { color: "#FFFFFF", fontSize: 13, fontWeight: "800" },
+  badgeText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
 
   tabWrapper: { paddingHorizontal: 20, paddingBottom: 16, backgroundColor: T.bg },
   tabContainer: { flexDirection: "row", backgroundColor: T.surface, borderRadius: 12, padding: 4, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
@@ -239,7 +258,7 @@ const s = StyleSheet.create({
   loadingBox: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyBox: { alignItems: "center", paddingVertical: 100 },
   emptyIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(10, 25, 47, 0.05)", alignItems: "center", justifyContent: "center", marginBottom: 20 },
-  emptyText: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 8 },
+  emptyText: { fontSize: 20, fontWeight: "700", color: T.text1, marginBottom: 8 },
   emptySubText: { fontSize: 15, color: T.text2 },
 
   companyCard: { backgroundColor: T.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
@@ -247,10 +266,10 @@ const s = StyleSheet.create({
   logoWrap: { width: 56, height: 56, borderRadius: 16, backgroundColor: T.bg, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 1, borderColor: T.border },
   logo: { width: "100%", height: "100%" },
   cardHeaderInfo: { flex: 1 },
-  companyName: { fontSize: 18, fontWeight: "800", color: T.text1, marginBottom: 4, letterSpacing: -0.3 },
+  companyName: { fontSize: 18, fontWeight: "700", color: T.text1, marginBottom: 4, letterSpacing: -0.3 },
   regNumber: { fontSize: 13, fontWeight: "500", color: T.text3 },
   statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, alignSelf: "flex-start" },
-  statusText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
+  statusText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
   
   cardBody: { backgroundColor: T.bg, borderRadius: 16, padding: 16, gap: 12, marginBottom: 16, borderWidth: 1, borderColor: T.border },
   infoRow: { flexDirection: "row", alignItems: "center", gap: 12 },

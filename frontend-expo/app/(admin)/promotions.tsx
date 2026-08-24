@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { api } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
 
 const T = Theme.colors;
 
@@ -18,6 +19,7 @@ export default function PromotionsScreen() {
   const router = useRouter();
   const [promos, setPromos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -129,6 +131,9 @@ export default function PromotionsScreen() {
           <ActivityIndicator size="large" color={T.accent} />
         </View>
       ) : (
+        hasError ? (
+          <ErrorState onRetry={() => fetchPromos()} />
+        ) : (
         <FlatList
           data={promos}
           keyExtractor={(i) => i.id?.toString()}
@@ -145,7 +150,7 @@ export default function PromotionsScreen() {
             </View>
           }
         />
-      )}
+      ))}
 
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
         <View style={s.modalRoot}>
@@ -209,7 +214,7 @@ const s = StyleSheet.create({
     backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { padding: 4, marginRight: 12, marginLeft: -4 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1, flex: 1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1, flex: 1 },
   addBtn: { padding: 4 },
   
   listContent: { padding: 16, paddingBottom: 40, gap: 12 },
@@ -222,7 +227,7 @@ const s = StyleSheet.create({
   },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   codeWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
-  codeText: { fontSize: 18, fontWeight: "800", color: T.text1, textTransform: "uppercase" },
+  codeText: { fontSize: 18, fontWeight: "700", color: T.text1, textTransform: "uppercase" },
   
   statsRow: {
     flexDirection: "row",
@@ -231,7 +236,7 @@ const s = StyleSheet.create({
     padding: 12,
   },
   statBox: { flex: 1 },
-  statValue: { fontSize: 16, fontWeight: "800", color: T.text1 },
+  statValue: { fontSize: 16, fontWeight: "700", color: T.text1 },
   statLabel: { fontSize: 12, color: T.text2, marginTop: 2 },
   
   centerBox: { flex: 1, alignItems: "center", justifyContent: "center" },
@@ -244,7 +249,7 @@ const s = StyleSheet.create({
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     padding: 20, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border
   },
-  modalTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   modalContent: { padding: 20 },
   
   label: { fontSize: 13, fontWeight: "600", color: T.text2, marginBottom: 6, marginTop: 16 },

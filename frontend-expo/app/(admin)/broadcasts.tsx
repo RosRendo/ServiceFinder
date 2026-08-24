@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Theme } from "@/constants/theme";
 import { api } from "@/store/authStore";
+import ErrorState from "@/components/common/ErrorState";
 
 const T = Theme.colors;
 
@@ -36,6 +37,7 @@ export default function BroadcastsScreen() {
   const [audience, setAudience] = useState<"All Users" | "Companies" | "Customers">("All Users");
   const [history, setHistory] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
 
@@ -171,6 +173,9 @@ export default function BroadcastsScreen() {
               <Text style={s.emptyText}>No broadcasts sent yet.</Text>
             </View>
           ) : (
+            hasError ? (
+              <ErrorState onRetry={() => fetchHistory()} />
+            ) : (
             history.map((item) => (
               <View key={item.id} style={s.historyCard}>
                 <View style={s.historyHeader}>
@@ -193,7 +198,8 @@ export default function BroadcastsScreen() {
                 </View>
               </View>
             ))
-          )}
+          ))}
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -208,7 +214,7 @@ const s = StyleSheet.create({
     backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { padding: 4, marginRight: 12, marginLeft: -4 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
 
   content: { padding: 16, paddingBottom: 40 },
 

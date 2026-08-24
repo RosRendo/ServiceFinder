@@ -14,6 +14,8 @@ import api from "@/utils/api";
 import { useSidebarStore } from "@/store/sidebarStore";
 
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
+import { useTranslation } from "react-i18next";
 
 const T = Theme.colors;
 
@@ -69,9 +71,11 @@ function StatusDot({ color, label, value }: { color: string, label: string, valu
 }
 
 export default function Analytics() {
+  const { t } = useTranslation();
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchAnalytics = useCallback(async (isRefresh = false) => {
@@ -82,6 +86,7 @@ export default function Analytics() {
       setData(analytics);
     } catch (error) {
       console.error("Failed to fetch analytics:", error);
+      setHasError(true);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -102,7 +107,10 @@ export default function Analytics() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
+          <TouchableOpacity 
+              accessibilityRole="button"
+              accessibilityLabel={t('common.openMenu')}
+              onPress={() => openSidebar(true)} style={s.menuBtn}>
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>Analytics</Text>
@@ -118,6 +126,9 @@ export default function Analytics() {
           <Text style={s.loadingText}>Loading analytics…</Text>
         </View>
       ) : (
+        hasError ? (
+          <ErrorState onRetry={() => fetchAnalytics()} />
+        ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.scrollContent}
@@ -293,7 +304,7 @@ export default function Analytics() {
             </View>
           )}
         </ScrollView>
-      )}
+      ))}
     </SafeAreaView>
   );
 }
@@ -307,7 +318,7 @@ const s = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   refreshBtn: { padding: 10, backgroundColor: T.bg, borderRadius: 20 },
 
   loadingBox: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
@@ -319,7 +330,7 @@ const s = StyleSheet.create({
   kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 20 },
   kpiCard: { width: "47.5%", backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border },
   kpiIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  kpiValue: { fontSize: 24, fontWeight: "800", color: T.text1, marginBottom: 2 },
+  kpiValue: { fontSize: 24, fontWeight: "700", color: T.text1, marginBottom: 2 },
   kpiLabel: { fontSize: 12, fontWeight: "700", color: T.text2, marginBottom: 2 },
   kpiSub: { fontSize: 11, color: T.text3, fontWeight: "500" },
 
@@ -331,7 +342,7 @@ const s = StyleSheet.create({
   heroCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 },
   heroCardTitle: { color: "rgba(255,255,255,0.9)", fontSize: 15, fontWeight: "700" },
   heroCardSub: { color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 },
-  heroCardAmount: { color: "#fff", fontSize: 38, fontWeight: "800", letterSpacing: -1 },
+  heroCardAmount: { color: "#fff", fontSize: 38, fontWeight: "700", letterSpacing: -1 },
   growthPill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
   growthPillText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   heroCardDecor1: { position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.05)" },
@@ -340,7 +351,7 @@ const s = StyleSheet.create({
   // Chart sections
   chartSection: { marginBottom: 20 },
   sectionHeader: { marginBottom: 12 },
-  sectionTitle: { fontSize: 17, fontWeight: "800", color: T.text1 },
+  sectionTitle: { fontSize: 17, fontWeight: "700", color: T.text1 },
   sectionSub: { fontSize: 12, color: T.text3, fontWeight: "500", marginTop: 2 },
   chartCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border },
 
@@ -361,7 +372,7 @@ const s = StyleSheet.create({
   statusDotRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   dot: { width: 10, height: 10, borderRadius: 5 },
   statusDotLabel: { flex: 1, fontSize: 13, color: T.text2, fontWeight: "600" },
-  statusDotVal: { fontSize: 13, color: T.text1, fontWeight: "800" },
+  statusDotVal: { fontSize: 13, color: T.text1, fontWeight: "700" },
   statusBarHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6 },
   statusBarLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
   statusBarLabel: { fontSize: 13, color: T.text2, fontWeight: "600" },
@@ -373,13 +384,13 @@ const s = StyleSheet.create({
   metricsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   metricCard: { width: "47.5%", backgroundColor: T.surface, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: T.border },
   metricIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", marginBottom: 10 },
-  metricValue: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 2 },
+  metricValue: { fontSize: 20, fontWeight: "700", color: T.text1, marginBottom: 2 },
   metricLabel: { fontSize: 11, color: T.text3, fontWeight: "600" },
 
   // Top companies
   topCoRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, gap: 12 },
   topCoRank: { width: 28, height: 28, borderRadius: 8, backgroundColor: T.bg, alignItems: "center", justifyContent: "center" },
-  rankText: { fontSize: 12, fontWeight: "800", color: T.text2 },
+  rankText: { fontSize: 12, fontWeight: "700", color: T.text2 },
   topCoInfo: { flex: 1 },
   topCoName: { fontSize: 14, fontWeight: "700", color: T.text1 },
   topCoSub: { fontSize: 12, color: T.text3, marginTop: 2 },

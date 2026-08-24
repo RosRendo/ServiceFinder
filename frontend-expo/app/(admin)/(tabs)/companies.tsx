@@ -15,6 +15,7 @@ import api from "@/utils/api";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
 
 const T = Theme.colors;
 const { width } = Dimensions.get("window");
@@ -35,6 +36,7 @@ export default function CompaniesKanban() {
   const [searchQuery, setSearchQuery] = useState("");
   const [companies, setCompanies] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
@@ -46,8 +48,10 @@ export default function CompaniesKanban() {
       // Backend returns { success: true, data: [...], pagination: {} }
       const data = response.data?.data ?? [];
       setCompanies(Array.isArray(data) ? data : []);
+      setHasError(false);
     } catch (error) {
       console.error("Failed to fetch companies:", error);
+      setHasError(true);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -208,6 +212,9 @@ export default function CompaniesKanban() {
       {isLoading && !refreshing ? (
         <View style={s.loadingBox}><ActivityIndicator size="large" color={T.accent} /></View>
       ) : (
+        hasError ? (
+          <ErrorState onRetry={() => fetchCompanies()} />
+        ) : (
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false} 
@@ -248,7 +255,7 @@ export default function CompaniesKanban() {
             );
           })}
         </ScrollView>
-      )}
+      ))}
     </SafeAreaView>
   );
 }
@@ -268,7 +275,7 @@ const s = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   searchIconBtn: { padding: 4 },
 
   searchWrap: {
@@ -298,9 +305,9 @@ const s = StyleSheet.create({
   },
   colTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   colIconBox: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  colTitle: { fontSize: 15, fontWeight: "800", color: T.text1 },
+  colTitle: { fontSize: 15, fontWeight: "700", color: T.text1 },
   colCountBadge: { backgroundColor: T.bg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: T.border },
-  colCountText: { fontSize: 12, fontWeight: "800", color: T.text2 },
+  colCountText: { fontSize: 12, fontWeight: "700", color: T.text2 },
 
   columnContent: { padding: 12, gap: 12, paddingBottom: 24 },
 
@@ -311,7 +318,7 @@ const s = StyleSheet.create({
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
   logoWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: T.border },
   logo: { width: "100%", height: "100%", borderRadius: 12 },
-  companyName: { fontSize: 15, fontWeight: "800", color: T.text1, marginBottom: 2 },
+  companyName: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 2 },
   companyOwner: { fontSize: 12, fontWeight: "500", color: T.text3 },
   
   cardStats: { flexDirection: "row", gap: 16, marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: T.border },
@@ -320,7 +327,7 @@ const s = StyleSheet.create({
 
   cardActions: { flexDirection: "row", alignItems: "center" },
   btnPrimary: { flex: 1, backgroundColor: T.accent, paddingVertical: 10, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  btnPrimaryText: { color: "#fff", fontSize: 13, fontWeight: "800" },
+  btnPrimaryText: { color: "#fff", fontSize: 13, fontWeight: "700" },
   btnGhost: { paddingVertical: 10, borderRadius: 12, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: T.border },
   btnGhostText: { color: T.text2, fontSize: 13, fontWeight: "700" },
 });

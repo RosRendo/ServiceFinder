@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { api } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
 
 const T = Theme.colors;
 
@@ -29,6 +30,7 @@ export default function DisputeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [dispute, setDispute] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [resolution, setResolution] = useState<Resolution | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
@@ -38,18 +40,10 @@ export default function DisputeDetailScreen() {
     try {
       const res = await api.get(`/api/disputes/${id}`);
       setDispute(res.data?.data ?? res.data);
+      setHasError(false);
     } catch {
-      setDispute({
-        id, status: "open", reason: "Service not completed as described",
-        description: "The cleaner only spent 45 minutes on what was supposed to be a 3-hour deep clean. Multiple areas were left untouched including bathrooms and kitchen.",
-        bookingId: "BK-8902", amount: 150, createdAt: new Date().toISOString(),
-        customer: { fullName: "Sarah Mitchell", email: "sarah@example.com" },
-        company: { name: "CleanPro Services" },
-        messages: [
-          { sender: "customer", text: "The service was not as described. I want a full refund.", time: "2026-05-16T10:00:00Z" },
-          { sender: "provider", text: "We completed the service as per the booking. Photos were taken.", time: "2026-05-16T11:30:00Z" },
-        ],
-      });
+      console.error("Failed to fetch dispute:", id);
+      setHasError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -96,6 +90,14 @@ export default function DisputeDetailScreen() {
     return (
       <SafeAreaView style={s.root}>
         <ActivityIndicator size="large" color={T.accent} style={{ flex: 1 }} />
+      </SafeAreaView>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <SafeAreaView style={s.root}>
+        <ErrorState onRetry={fetchDispute} />
       </SafeAreaView>
     );
   }
@@ -231,22 +233,22 @@ const s = StyleSheet.create({
   },
   backBtn: { padding: 8, marginLeft: -8, marginRight: 8 },
   headerTitleBox: { flex: 1 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   headerSubtitle: { fontSize: 12, color: T.text3, marginTop: 2 },
   statusBadge: { backgroundColor: T.error + "15", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusBadgeText: { color: T.error, fontSize: 10, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
+  statusBadgeText: { color: T.error, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
 
   content: { padding: 16, paddingBottom: 40 },
   
   card: { backgroundColor: T.surface, borderRadius: 16, padding: 16,  },
-  sectionTitle: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: T.text1, marginBottom: 12 },
   
   row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
   rowLabel: { fontSize: 14, color: T.text2 },
   rowValue: { fontSize: 14, fontWeight: "700", color: T.text1 },
   
   divider: { height: 1, backgroundColor: T.border, marginVertical: 12 },
-  reasonTitle: { fontSize: 14, fontWeight: "800", color: T.text1, marginBottom: 4 },
+  reasonTitle: { fontSize: 14, fontWeight: "700", color: T.text1, marginBottom: 4 },
   reasonText: { fontSize: 14, color: T.text2 },
   descText: { fontSize: 14, color: T.text3, marginTop: 8, lineHeight: 20 },
   
@@ -255,7 +257,7 @@ const s = StyleSheet.create({
   msgBubbleCustomer: { backgroundColor: T.surface, borderColor: T.border },
   msgBubbleProvider: { backgroundColor: T.blue + "10", borderColor: T.blue + "20" },
   msgHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
-  msgSender: { fontSize: 12, fontWeight: "800", color: T.text1, textTransform: "capitalize" },
+  msgSender: { fontSize: 12, fontWeight: "700", color: T.text1, textTransform: "capitalize" },
   msgTime: { fontSize: 12, color: T.text3 },
   msgText: { fontSize: 14, color: T.text1, lineHeight: 20 },
 
@@ -278,5 +280,5 @@ const s = StyleSheet.create({
   footer: { padding: 16, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border },
   submitBtn: { backgroundColor: T.accent, borderRadius: 16, height: 56, alignItems: "center", justifyContent: "center" },
   submitBtnDisabled: { opacity: 0.7 },
-  submitBtnText: { fontSize: 16, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
+  submitBtnText: { fontSize: 16, fontWeight: "700", color: "#fff", letterSpacing: 0.5 },
 });

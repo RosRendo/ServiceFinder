@@ -12,6 +12,8 @@ import { useRouter } from "expo-router";
 import { useSidebarStore } from "@/store/sidebarStore";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
+import { useTranslation } from "react-i18next";
 
 const T = Theme.colors;
 
@@ -19,9 +21,11 @@ const T = Theme.colors;
 
 export default function Categories() {
   const router = useRouter();
+  const { t } = useTranslation();
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchCategories = useCallback(async (isRefresh = false) => {
@@ -35,6 +39,7 @@ export default function Categories() {
       setCategories(items);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
+      setHasError(true);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -48,7 +53,10 @@ export default function Categories() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
+          <TouchableOpacity 
+              accessibilityRole="button"
+              accessibilityLabel={t('common.openMenu')}
+              onPress={() => openSidebar(true)} style={s.menuBtn}>
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>Categories</Text>
@@ -74,8 +82,12 @@ export default function Categories() {
                   {category.imageUrl ? (
                     <Image source={{ uri: category.imageUrl }} style={{ width: 24, height: 24 }} resizeMode="contain" />
                   ) : (
+                    hasError ? (
+                      <ErrorState onRetry={() => fetchCategories()} />
+                    ) : (
                     <MaterialCommunityIcons name={category.icon || "shape-outline"} size={24} color={T.accent} />
-                  )}
+                  ))}
+
                 </View>
                 <View style={s.cardHeaderInfo}>
                   <Text style={s.cardTitle}>{category.name}</Text>
@@ -113,7 +125,7 @@ const s = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: T.accent, alignItems: "center", justifyContent: "center" },
 
   listContent: { padding: 16, gap: 16, paddingBottom: 60 },
@@ -123,10 +135,10 @@ const s = StyleSheet.create({
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
   iconBox: { width: 48, height: 48, borderRadius: 16, backgroundColor: T.accent + "10", alignItems: "center", justifyContent: "center" },
   cardHeaderInfo: { flex: 1 },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 2 },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: T.text1, marginBottom: 2 },
   cardSubtitle: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase", letterSpacing: 0.5 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusText: { fontSize: 11, fontWeight: "800" },
+  statusText: { fontSize: 11, fontWeight: "700" },
   cardDesc: { fontSize: 14, color: T.text2, marginTop: 12, lineHeight: 20 },
 
   emptyBox: { alignItems: "center", paddingVertical: 80, paddingHorizontal: 32 },

@@ -210,7 +210,7 @@ const s = StyleSheet.create({
     backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
 
   scroll: { flex: 1 },
   scrollContent: { padding: 24, paddingBottom: 60 },
@@ -240,5 +240,5 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center", ...CARD_SHADOW,
   },
   saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { fontSize: 16, fontWeight: "800", color: "#fff" },
+  saveBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
 });

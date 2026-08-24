@@ -8,6 +8,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
 
 const T = Theme.colors;
 
@@ -17,6 +18,7 @@ export default function NewServiceType() {
   const router = useRouter();
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoadingCats, setIsLoadingCats] = useState(true);
+  const [hasError, setHasError] = useState(false);
   
   const [formData, setFormData] = useState({
     name: "", categoryId: "", description: "", icon: "hammer-wrench", basePrice: "0",
@@ -34,6 +36,7 @@ export default function NewServiceType() {
         }
       } catch (error) {
         console.error("Failed to fetch categories:", error);
+        setHasError(true);
       } finally {
         setIsLoadingCats(false);
       }
@@ -97,6 +100,27 @@ export default function NewServiceType() {
             ) : categories.length === 0 ? (
               <Text style={s.errorText}>No categories found. Create a category first.</Text>
             ) : (
+              hasError ? (
+                <ErrorState onRetry={() => {
+                  setIsLoadingCats(true);
+                  const fetchCategories = async () => {
+                    try {
+                      const response = await api.get('/api/categories');
+                      const cats = response.data.data || response.data || [];
+                      setCategories(cats);
+                      if (cats.length > 0) {
+                        setFormData(prev => ({ ...prev, categoryId: cats[0].id.toString() }));
+                      }
+                    } catch (error) {
+                      console.error("Failed to fetch categories:", error);
+                      setHasError(true);
+                    } finally {
+                      setIsLoadingCats(false);
+                    }
+                  };
+                  fetchCategories();
+                }} />
+              ) : (
               <View style={s.radioGroup}>
                 {categories.map((cat, index) => {
                   const isSelected = formData.categoryId === cat.id.toString();
@@ -116,7 +140,8 @@ export default function NewServiceType() {
                   );
                 })}
               </View>
-            )}
+            ))}
+
           </View>
 
           <View style={s.formGroup}>
@@ -192,12 +217,12 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: T.border,
   },
   backBtn: { padding: 8, marginLeft: -8, marginRight: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   
   content: { padding: 24, paddingBottom: 40 },
   
   formGroup: { marginBottom: 24 },
-  label: { fontSize: 12, fontWeight: "800", color: T.text2, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, marginLeft: 4 },
+  label: { fontSize: 12, fontWeight: "700", color: T.text2, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, marginLeft: 4 },
   inputBox: { 
     flexDirection: "row", alignItems: "center", backgroundColor: T.surface, 
     borderRadius: 16, paddingHorizontal: 16, height: 56, borderWidth: 1, borderColor: T.border, 
@@ -218,6 +243,6 @@ const s = StyleSheet.create({
   footer: { padding: 24, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border },
   submitBtn: { backgroundColor: T.accent, borderRadius: 16, height: 56, alignItems: "center", justifyContent: "center" },
   submitBtnDisabled: { opacity: 0.7 },
-  submitBtnText: { fontSize: 16, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
+  submitBtnText: { fontSize: 16, fontWeight: "700", color: "#fff", letterSpacing: 0.5 },
 });
 

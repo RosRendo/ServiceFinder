@@ -7,11 +7,22 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  StyleSheet,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import api from "@/utils/api";
+import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
+
+const T = Theme.colors;
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 type ModerationStatus = "pending" | "resolved" | "dismissed";
 type ModerationType = "review" | "profile" | "message" | "other";
@@ -32,6 +43,7 @@ export default function ModerationQueue() {
   const router = useRouter();
   const [items, setItems] = useState<FlaggedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<ModerationStatus>("pending");
 
@@ -47,7 +59,6 @@ export default function ModerationQueue() {
       setRefreshing(false);
     }
   };
-
 
   useEffect(() => {
     fetchQueue();
@@ -75,7 +86,6 @@ export default function ModerationQueue() {
     );
   };
 
-
   const getTypeIcon = (type: ModerationType) => {
     switch (type) {
       case "review": return "star-off";
@@ -86,46 +96,46 @@ export default function ModerationQueue() {
   };
 
   const renderItem = ({ item }: { item: FlaggedItem }) => (
-    <View className="bg-surface-container-lowest rounded-2xl p-5 mb-4 border border-surface-container shadow-sm mx-4">
-      <View className="flex-row justify-between items-start mb-3">
-        <View className="flex-row items-center gap-2">
-          <View className="w-8 h-8 rounded-full bg-error-container items-center justify-center">
-            <MaterialCommunityIcons name={getTypeIcon(item.type)} size={16} color="#93000a" />
+    <View style={s.card}>
+      <View style={s.cardHeader}>
+        <View style={s.reportTypeRow}>
+          <View style={s.typeIconBox}>
+            <MaterialCommunityIcons name={getTypeIcon(item.type)} size={18} color={T.error} />
           </View>
           <View>
-            <Text className="text-sm font-bold text-on-surface uppercase tracking-wider">{item.reason}</Text>
-            <Text className="text-[10px] text-on-surface-variant">Reported by {item.reportedBy.name}</Text>
+            <Text style={s.reasonText}>{item.reason}</Text>
+            <Text style={s.reportedByText}>Reported by {item.reportedBy.name}</Text>
           </View>
         </View>
-        <Text className="text-xs text-on-surface-variant font-medium">
+        <Text style={s.dateText}>
           {new Date(item.createdAt).toLocaleDateString()}
         </Text>
       </View>
       
-      <View className="bg-surface-container-low p-3 rounded-xl mb-4">
-        <Text className="text-xs font-bold text-on-surface mb-1">Target: {item.targetName}</Text>
-        <Text className="text-sm text-on-surface-variant italic">"{item.details}"</Text>
+      <View style={s.detailBox}>
+        <Text style={s.targetLabel}>Target: {item.targetName}</Text>
+        <Text style={s.detailsText}>"{item.details}"</Text>
       </View>
 
       {item.status === "pending" && (
-        <View className="flex-row gap-2 border-t border-surface-container pt-3">
+        <View style={s.actionRow}>
           <TouchableOpacity 
             onPress={() => handleAction(item.id, "dismiss")}
-            className="flex-1 py-2 rounded-lg border border-outline-variant items-center"
+            style={s.dismissBtn}
           >
-            <Text className="text-on-surface-variant font-bold text-xs">Dismiss</Text>
+            <Text style={s.dismissText}>Dismiss</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => handleAction(item.id, "resolve")}
-            className="flex-1 py-2 rounded-lg bg-primary items-center"
+            style={s.resolveBtn}
           >
-            <Text className="text-white font-bold text-xs">Remove Content</Text>
+            <Text style={s.resolveText}>Remove Content</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => handleAction(item.id, "ban")}
-            className="flex-1 py-2 rounded-lg bg-error items-center"
+            style={s.banBtn}
           >
-            <Text className="text-white font-bold text-xs">Ban User</Text>
+            <Text style={s.banText}>Ban User</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -133,28 +143,30 @@ export default function ModerationQueue() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
+    <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       {/* Header */}
-      <View className="flex-row items-center px-4 py-4 border-b border-surface-container">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 active:scale-95">
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#002045" />
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={T.primary} />
         </TouchableOpacity>
-        <Text className="text-lg font-bold text-primary ml-2 flex-1 font-headline">Content Moderation</Text>
+        <Text style={s.headerTitle}>Content Moderation</Text>
       </View>
 
       {/* Tabs */}
-      <View className="flex-row px-4 py-3 gap-2">
+      <View style={s.filterRow}>
         {(["pending", "resolved", "dismissed"] as ModerationStatus[]).map(status => (
           <TouchableOpacity
             key={status}
             onPress={() => setFilter(status)}
-            className={`flex-1 py-2 rounded-full items-center ${
-              filter === status ? "bg-[#002045]" : "bg-surface-container"
-            }`}
+            style={[
+              s.filterBtn,
+              filter === status ? s.filterBtnActive : s.filterBtnInactive
+            ]}
           >
-            <Text className={`text-xs font-bold capitalize ${
-              filter === status ? "text-white" : "text-on-surface-variant"
-            }`}>
+            <Text style={[
+              s.filterText,
+              filter === status ? s.filterTextActive : s.filterTextInactive
+            ]}>
               {status}
             </Text>
           </TouchableOpacity>
@@ -163,27 +175,231 @@ export default function ModerationQueue() {
 
       {/* List */}
       {loading ? (
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#002045" />
+        <View style={s.center}>
+          <ActivityIndicator size="large" color={T.primary} />
         </View>
       ) : (
+        hasError ? (
+          <ErrorState onRetry={() => fetchQueue()} />
+        ) : (
         <FlatList
           data={items}
           keyExtractor={item => item.id}
           renderItem={renderItem}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchQueue(true)} />}
-          contentContainerStyle={{ paddingVertical: 8, paddingBottom: 40 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchQueue(true)} tintColor={T.primary} />}
+          contentContainerStyle={s.listContent}
           ListEmptyComponent={
-            <View className="items-center justify-center py-20 px-8">
-              <MaterialCommunityIcons name="shield-check" size={48} color="#9CA3AF" />
-              <Text className="text-on-surface font-bold text-lg mt-4 text-center">All Clear!</Text>
-              <Text className="text-on-surface-variant text-sm text-center mt-2">
+            <View style={s.emptyState}>
+              <MaterialCommunityIcons name="shield-check" size={48} color={T.text3} />
+              <Text style={s.emptyTitle}>All Clear!</Text>
+              <Text style={s.emptyDesc}>
                 No {filter} moderation reports found.
               </Text>
             </View>
           }
         />
-      )}
+      ))}
+
     </SafeAreaView>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: T.bg },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: T.border,
+    backgroundColor: T.surface,
+  },
+  backBtn: {
+    padding: 8,
+    marginRight: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: T.text1,
+  },
+  filterRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  filterBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 20,
+    alignItems: "center",
+    ...CARD_SHADOW,
+  },
+  filterBtnActive: {
+    backgroundColor: T.primary,
+  },
+  filterBtnInactive: {
+    backgroundColor: T.surface,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  filterText: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "capitalize",
+  },
+  filterTextActive: {
+    color: "#FFFFFF",
+  },
+  filterTextInactive: {
+    color: T.text2,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  listContent: {
+    paddingVertical: 8,
+    paddingBottom: 40,
+  },
+  card: {
+    backgroundColor: T.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    marginHorizontal: 16,
+    borderWidth: 1,
+    borderColor: T.border,
+    ...CARD_SHADOW,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  reportTypeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  typeIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: T.errorBg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reasonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: T.text1,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  reportedByText: {
+    fontSize: 11,
+    color: T.text3,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  dateText: {
+    fontSize: 12,
+    color: T.text2,
+    fontWeight: "600",
+  },
+  detailBox: {
+    backgroundColor: T.bg,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  targetLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: T.text1,
+    marginBottom: 4,
+  },
+  detailsText: {
+    fontSize: 13,
+    color: T.text2,
+    fontStyle: "italic",
+    lineHeight: 18,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+    paddingTop: 12,
+  },
+  dismissBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: T.border,
+    alignItems: "center",
+    backgroundColor: T.bg,
+  },
+  dismissText: {
+    color: T.text2,
+    fontWeight: "700",
+    fontSize: 11,
+    textTransform: "uppercase",
+  },
+  resolveBtn: {
+    flex: 1.2,
+    paddingVertical: 9,
+    borderRadius: 8,
+    backgroundColor: T.primary,
+    alignItems: "center",
+    ...CARD_SHADOW,
+  },
+  resolveText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 11,
+    textTransform: "uppercase",
+  },
+  banBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 8,
+    backgroundColor: T.error,
+    alignItems: "center",
+    ...CARD_SHADOW,
+  },
+  banText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 11,
+    textTransform: "uppercase",
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 80,
+    paddingHorizontal: 24,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: T.text1,
+    marginTop: 12,
+  },
+  emptyDesc: {
+    fontSize: 14,
+    color: T.text3,
+    textAlign: "center",
+    marginTop: 6,
+    lineHeight: 20,
+  },
+});

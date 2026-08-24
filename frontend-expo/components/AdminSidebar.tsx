@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
 
@@ -19,28 +20,29 @@ const SIDEBAR_WIDTH = Math.min(width * 0.78, 300);
 const T = Theme.colors;
 
 const NAV_ITEMS = [
-  { name: "Dashboard",      icon: "view-dashboard-outline",    route: "/(admin)/(tabs)/dashboard" },
-  { name: "Analytics",      icon: "chart-line",                route: "/(admin)/(tabs)/analytics" },
-  { name: "Monitoring",     icon: "monitor-dashboard",         route: "/(admin)/monitoring" },
-  { name: "Audit Log",      icon: "clipboard-text-clock",      route: "/(admin)/audit" },
-  { name: "Companies",      icon: "office-building",           route: "/(admin)/(tabs)/companies" },
-  { name: "Users",          icon: "account-group-outline",     route: "/(admin)/(tabs)/users" },
-  { name: "Queue",          icon: "shield-check-outline",      route: "/(admin)/(tabs)/queue" },
-  { name: "Moderation",     icon: "shield-account-outline",    route: "/(admin)/moderation" },
-  { name: "Compliance",     icon: "file-certificate-outline",  route: "/(admin)/compliance" },
-  { name: "Categories",     icon: "shape-outline",             route: "/(admin)/categories" },
-  { name: "Service Types",  icon: "briefcase-outline",         route: "/(admin)/service-types" },
-  { name: "Disputes",       icon: "scale-balance",             route: "/(admin)/disputes" },
-  { name: "Support",        icon: "ticket-confirmation-outline", route: "/(admin)/support" },
-  { name: "Messages",       icon: "message-text-outline",      route: "/(admin)/messages" },
-  { name: "Settings",       icon: "cog-outline",               route: "/(admin)/(tabs)/settings" },
-  { name: "Payouts",        icon: "bank-transfer",             route: "/(admin)/payouts" },
-  { name: "Help",           icon: "help-circle-outline",       route: "/(admin)/help" },
+  { key: "dashboard",     icon: "view-dashboard-outline",    route: "/(admin)/(tabs)/dashboard" },
+  { key: "analytics",     icon: "chart-line",                route: "/(admin)/(tabs)/analytics" },
+  { key: "monitoring",    icon: "monitor-dashboard",         route: "/(admin)/monitoring" },
+  { key: "auditLog",      icon: "clipboard-text-clock",      route: "/(admin)/audit" },
+  { key: "companies",     icon: "office-building",           route: "/(admin)/(tabs)/companies" },
+  { key: "users",         icon: "account-group-outline",     route: "/(admin)/(tabs)/users" },
+  { key: "queue",         icon: "shield-check-outline",      route: "/(admin)/(tabs)/queue" },
+  { key: "moderation",    icon: "shield-account-outline",    route: "/(admin)/moderation" },
+  { key: "compliance",    icon: "file-certificate-outline",  route: "/(admin)/compliance" },
+  { key: "categories",    icon: "shape-outline",             route: "/(admin)/categories" },
+  { key: "serviceTypes",  icon: "briefcase-outline",         route: "/(admin)/service-types" },
+  { key: "disputes",      icon: "scale-balance",             route: "/(admin)/disputes" },
+  { key: "support",       icon: "ticket-confirmation-outline", route: "/(admin)/support" },
+  { key: "messages",      icon: "message-text-outline",      route: "/(admin)/messages" },
+  { key: "settings",      icon: "cog-outline",               route: "/(admin)/(tabs)/settings" },
+  { key: "payouts",       icon: "bank-transfer",             route: "/(admin)/payouts" },
+  { key: "help",          icon: "help-circle-outline",       route: "/(admin)/help" },
 ];
 
 export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useTranslation();
   const { logout, user } = useAuthStore();
 
   const translateX = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
@@ -129,15 +131,19 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             const normalizedRoute = item.route.replace("(tabs)/", "");
             const normalizedPath = pathname.replace("(tabs)/", "");
             const isActive = normalizedPath === normalizedRoute || normalizedPath.startsWith(normalizedRoute + '/');
+            const label = t(`adminSidebar.${item.key}`);
             return (
               <TouchableOpacity
                 key={item.route}
                 onPress={() => navigate(item.route)}
                 style={[s.navItem, isActive && s.navItemActive]}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+                accessibilityState={{ selected: isActive }}
               >
                 <MaterialCommunityIcons name={item.icon as any} size={21} color={isActive ? T.primary : T.text2} />
-                <Text style={[s.navLabel, isActive && s.navLabelActive]}>{item.name}</Text>
+                <Text style={[s.navLabel, isActive && s.navLabelActive]}>{label}</Text>
                 {isActive && <View style={s.activeIndicator} />}
               </TouchableOpacity>
             );
@@ -147,9 +153,15 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         <View style={s.divider} />
 
         {/* Logout */}
-        <TouchableOpacity onPress={handleLogout} style={s.logoutBtn} activeOpacity={0.7}>
+        <TouchableOpacity
+          onPress={handleLogout}
+          style={s.logoutBtn}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.signOut')}
+        >
           <MaterialCommunityIcons name="logout" size={20} color={T.error} />
-          <Text style={s.logoutText}>Sign Out</Text>
+          <Text style={s.logoutText}>{t('common.signOut')}</Text>
         </TouchableOpacity>
       </Animated.View>
     </View>

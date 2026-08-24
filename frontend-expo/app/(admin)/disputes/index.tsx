@@ -9,6 +9,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import api from "@/utils/api";
 import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
 const FlashList = ShopifyFlashList as any;
 
 const T = Theme.colors;
@@ -23,6 +24,7 @@ export default function DisputesList() {
   const [activeTab, setActiveTab] = useState("open");
   const [disputes, setDisputes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchDisputes = useCallback(async (isRefresh = false) => {
@@ -41,6 +43,7 @@ export default function DisputesList() {
       setDisputes(data);
     } catch (error) {
       console.error("Failed to fetch disputes:", error);
+      setHasError(true);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -104,6 +107,9 @@ export default function DisputesList() {
       {isLoading && !refreshing ? (
         <View style={s.loadingBox}><ActivityIndicator size="large" color={T.primary} /></View>
       ) : (
+        hasError ? (
+          <ErrorState onRetry={() => fetchDisputes()} />
+        ) : (
         <FlashList
           data={disputes}
           keyExtractor={(item: any) => item.id.toString()}
@@ -164,7 +170,8 @@ export default function DisputesList() {
             );
           }}
         />
-      )}
+      ))}
+
     </SafeAreaView>
   );
 }

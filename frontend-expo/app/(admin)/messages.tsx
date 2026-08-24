@@ -12,14 +12,18 @@ import { useSidebarStore } from "@/store/sidebarStore";
 import { useRouter } from "expo-router";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
+import { useTranslation } from "react-i18next";
 
 const T = Theme.colors;
 
 export default function Messages() {
   const router = useRouter();
+  const { t } = useTranslation();
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
   const [conversations, setConversations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchConversations = async () => {
@@ -29,6 +33,7 @@ export default function Messages() {
       setConversations(Array.isArray(resData) ? resData : []);
     } catch (error) {
       console.error("Failed to fetch conversations:", error);
+      setHasError(true);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -58,7 +63,10 @@ export default function Messages() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
+          <TouchableOpacity 
+              accessibilityRole="button"
+              accessibilityLabel={t('common.openMenu')}
+              onPress={() => openSidebar(true)} style={s.menuBtn}>
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>System Messages</Text>
@@ -74,6 +82,9 @@ export default function Messages() {
           <ActivityIndicator size="large" color={T.accent} />
         </View>
       ) : (
+        hasError ? (
+          <ErrorState onRetry={() => fetchConversations()} />
+        ) : (
         <ScrollView
           style={{ flex: 1 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={T.accent} />}
@@ -116,7 +127,8 @@ export default function Messages() {
             </View>
           )}
         </ScrollView>
-      )}
+      ))}
+
     </SafeAreaView>
   );
 }
@@ -130,7 +142,7 @@ const s = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   searchBtn: { padding: 10, backgroundColor: T.bg, borderRadius: 20 },
 
   loadingBox: { flex: 1, justifyContent: "center", alignItems: "center" },

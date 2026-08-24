@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
 
 const T = Theme.colors;
 
@@ -24,6 +25,7 @@ export default function CompaniesScreen() {
   const router = useRouter();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -76,6 +78,9 @@ export default function CompaniesScreen() {
           <ActivityIndicator size="large" color={T.accent} />
         </View>
       ) : (
+        hasError ? (
+          <ErrorState onRetry={() => fetchCompanies()} />
+        ) : (
         <ScrollView style={s.scroll} contentContainerStyle={s.content}>
           {companies.map((company) => {
             const statusConfig = getStatusColor(company.verificationStatus);
@@ -110,7 +115,8 @@ export default function CompaniesScreen() {
             );
           })}
         </ScrollView>
-      )}
+      ))}
+
     </SafeAreaView>
   );
 }

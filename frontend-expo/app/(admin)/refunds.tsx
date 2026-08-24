@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Theme } from "@/constants/theme";
 import api from "@/utils/api";
+import ErrorState from "@/components/common/ErrorState";
 import ConfettiCannon from "react-native-confetti-cannon";
 
 const T = Theme.colors;
@@ -24,6 +25,7 @@ export default function RefundsScreen() {
   const router = useRouter();
   const [refundQueue, setRefundQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [activeRefund, setActiveRefund] = useState<any>(null);
   const [refundAmount, setRefundAmount] = useState<string>("");
   const [absorbFee, setAbsorbFee] = useState<boolean>(false);
@@ -157,6 +159,9 @@ export default function RefundsScreen() {
               <Text style={{ color: T.text2, textAlign: 'center', marginTop: 8, fontSize: 13 }}>No pending refunds in queue</Text>
             </View>
           ) : (
+            hasError ? (
+              <ErrorState onRetry={() => fetchRefundQueue()} />
+            ) : (
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.queueList}>
               {refundQueue.map((rf) => {
                 const isActive = activeRefund?.id === rf.id;
@@ -178,7 +183,8 @@ export default function RefundsScreen() {
                 );
               })}
             </ScrollView>
-          )}
+          ))}
+
         </View>
 
         {/* RIGHT PANE: Action Center */}
@@ -254,16 +260,16 @@ export default function RefundsScreen() {
               <View style={s.divider} />
 
               <View style={s.mathRow}>
-                <Text style={[s.mathLabel, { fontWeight: "800", color: T.text1 }]}>Deducted from Company Escrow</Text>
-                <Text style={[s.mathValue, { fontWeight: "800", color: T.error }]}>
+                <Text style={[s.mathLabel, { fontWeight: "700", color: T.text1 }]}>Deducted from Company Escrow</Text>
+                <Text style={[s.mathValue, { fontWeight: "700", color: T.error }]}>
                   ${companyDeduction.toFixed(2)}
                 </Text>
               </View>
               
               {absorbFee && (
                 <View style={[s.mathRow, { marginTop: 8 }]}>
-                  <Text style={[s.mathLabel, { fontWeight: "800", color: T.text1 }]}>Platform Net Loss</Text>
-                  <Text style={[s.mathValue, { fontWeight: "800", color: T.error }]}>
+                  <Text style={[s.mathLabel, { fontWeight: "700", color: T.text1 }]}>Platform Net Loss</Text>
+                  <Text style={[s.mathValue, { fontWeight: "700", color: T.error }]}>
                     ${platformLoss.toFixed(2)}
                   </Text>
                 </View>
@@ -340,26 +346,26 @@ const s = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
   headerBtn: { padding: 4, marginLeft: -8, marginRight: 8 },
   headerTitleBox: { flex: 1 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   headerSubtitle: { fontSize: 12, color: T.text3, marginTop: 2, fontWeight: "500" },
   shieldBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: T.accent + "15", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  shieldText: { fontSize: 12, fontWeight: "800", color: T.accent, textTransform: "uppercase" },
+  shieldText: { fontSize: 12, fontWeight: "700", color: T.accent, textTransform: "uppercase" },
 
   splitLayout: { flex: 1, flexDirection: "row" },
   
   /* Left Pane */
   leftPane: { width: "35%", minWidth: 280, backgroundColor: T.bg, borderRightWidth: 1, borderRightColor: T.border },
   paneHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: T.border },
-  paneTitle: { fontSize: 14, fontWeight: "800", color: T.text2, textTransform: "uppercase" },
+  paneTitle: { fontSize: 14, fontWeight: "700", color: T.text2, textTransform: "uppercase" },
   countBadge: { backgroundColor: T.blue, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
-  countText: { fontSize: 12, fontWeight: "800", color: "#fff" },
+  countText: { fontSize: 12, fontWeight: "700", color: "#fff" },
   
   queueList: { padding: 16, gap: 12 },
   queueItem: { backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   queueItemActive: { backgroundColor: T.accent, borderColor: T.accent },
   queueTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  queueId: { fontSize: 14, fontWeight: "800", color: T.text1 },
-  queueAmount: { fontSize: 16, fontWeight: "800", color: T.error },
+  queueId: { fontSize: 14, fontWeight: "700", color: T.text1 },
+  queueAmount: { fontSize: 16, fontWeight: "700", color: T.error },
   queueCompany: { fontSize: 13, fontWeight: "600", color: T.text2, marginBottom: 2 },
   queueCustomer: { fontSize: 12, color: T.text3 },
 
@@ -369,23 +375,23 @@ const s = StyleSheet.create({
   
   contextCard: { backgroundColor: T.surface, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: T.border },
   contextHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 8 },
-  contextTitle: { fontSize: 16, fontWeight: "800", color: T.text1 },
+  contextTitle: { fontSize: 16, fontWeight: "700", color: T.text1 },
   contextDesc: { fontSize: 14, color: T.text2, lineHeight: 22 },
 
   card: { backgroundColor: T.surface, padding: 24, borderRadius: 24, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 16 },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: T.text1, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 16 },
   
-  inputLabel: { fontSize: 12, fontWeight: "800", color: T.text3, textTransform: "uppercase", marginBottom: 8 },
+  inputLabel: { fontSize: 12, fontWeight: "700", color: T.text3, textTransform: "uppercase", marginBottom: 8 },
   inputWrap: { flexDirection: "row", alignItems: "center", backgroundColor: T.bg, borderWidth: 1, borderColor: T.border, borderRadius: 16, paddingHorizontal: 16, height: 64, marginBottom: 20 },
-  currencySymbol: { fontSize: 24, fontWeight: "800", color: T.text2, marginRight: 8 },
-  amountInput: { flex: 1, fontSize: 32, fontWeight: "800", color: T.text1, height: "100%" },
+  currencySymbol: { fontSize: 24, fontWeight: "700", color: T.text2, marginRight: 8 },
+  amountInput: { flex: 1, fontSize: 32, fontWeight: "700", color: T.text1, height: "100%" },
   fullRefundBadge: { backgroundColor: T.success + "20", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  fullRefundText: { fontSize: 12, fontWeight: "800", color: T.success },
+  fullRefundText: { fontSize: 12, fontWeight: "700", color: T.success },
 
   toggleRow: { flexDirection: "row", alignItems: "flex-start", gap: 12, backgroundColor: T.bg, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: T.border },
   checkbox: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: T.border, alignItems: "center", justifyContent: "center", marginTop: 2 },
   checkboxActive: { backgroundColor: T.accent, borderColor: T.accent },
-  toggleTitle: { fontSize: 15, fontWeight: "800", color: T.text1, marginBottom: 4 },
+  toggleTitle: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 4 },
   toggleDesc: { fontSize: 13, color: T.text3, lineHeight: 18 },
 
   mathCard: { backgroundColor: T.surface, padding: 24, borderRadius: 24, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
@@ -395,19 +401,19 @@ const s = StyleSheet.create({
   divider: { height: 1, backgroundColor: T.border, marginVertical: 12 },
 
   executeBtn: { backgroundColor: T.error, borderRadius: 20, height: 64, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12, ...CARD_SHADOW },
-  executeBtnText: { fontSize: 18, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
+  executeBtnText: { fontSize: 18, fontWeight: "700", color: "#fff", letterSpacing: 0.5 },
 
   /* Modal */
   modalOverlay: { flex: 1, backgroundColor: "rgba(10, 25, 47, 0.7)", justifyContent: "center", alignItems: "center", padding: 24 },
   modalContainer: { width: "100%", maxWidth: 400, backgroundColor: T.surface, borderRadius: 32, padding: 32, alignItems: "center", ...CARD_SHADOW },
   modalIconBox: { width: 64, height: 64, borderRadius: 32, backgroundColor: T.warning + "15", alignItems: "center", justifyContent: "center", marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 12, textAlign: "center" },
+  modalTitle: { fontSize: 20, fontWeight: "700", color: T.text1, marginBottom: 12, textAlign: "center" },
   modalDesc: { fontSize: 14, color: T.text2, lineHeight: 22, textAlign: "center", marginBottom: 24 },
-  pinInput: { width: 160, height: 64, backgroundColor: T.bg, borderRadius: 16, borderWidth: 2, borderColor: T.warning, fontSize: 32, fontWeight: "800", color: T.text1, textAlign: "center", letterSpacing: 8, marginBottom: 32 },
+  pinInput: { width: 160, height: 64, backgroundColor: T.bg, borderRadius: 16, borderWidth: 2, borderColor: T.warning, fontSize: 32, fontWeight: "700", color: T.text1, textAlign: "center", letterSpacing: 8, marginBottom: 32 },
   
   modalActions: { flexDirection: "row", gap: 12, width: "100%" },
   modalBtnSecondary: { flex: 1, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: T.bg },
-  modalBtnSecondaryText: { fontSize: 15, fontWeight: "800", color: T.text2 },
+  modalBtnSecondaryText: { fontSize: 15, fontWeight: "700", color: T.text2 },
   modalBtnPrimary: { flex: 1, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: T.warning },
-  modalBtnPrimaryText: { fontSize: 15, fontWeight: "800", color: "#fff" },
+  modalBtnPrimaryText: { fontSize: 15, fontWeight: "700", color: "#fff" },
 });

@@ -15,6 +15,7 @@ import api from "@/utils/api";
 import MfaSetupModal from "@/components/admin/MfaSetupModal";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
 
 const T = Theme.colors;
 
@@ -30,23 +31,27 @@ export default function Settings() {
   const [twoFactor, setTwoFactor] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [mfaModalVisible, setMfaModalVisible] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await api.get('/api/settings');
+      const data = response.data || {};
+      if (data.darkMode !== undefined) setDarkMode(data.darkMode);
+      
+      // Fetch User Preferences
+      const prefsRes = await api.get('/api/users/me/preferences');
+      const prefsData = prefsRes.data?.data || prefsRes.data;
+      if (prefsData.pushNotificationsEnabled !== undefined) setNotifications(prefsData.pushNotificationsEnabled);
+      if (prefsData.emailNotificationsEnabled !== undefined) setEmailAlerts(prefsData.emailNotificationsEnabled);
+      setHasError(false);
+    } catch (error) {
+      console.error("Failed to fetch settings:", error);
+      setHasError(true);
+    }
+  };
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const response = await api.get('/api/settings');
-        const data = response.data || {};
-        if (data.darkMode !== undefined) setDarkMode(data.darkMode);
-        
-        // Fetch User Preferences
-        const prefsRes = await api.get('/api/users/me/preferences');
-        const prefsData = prefsRes.data?.data || prefsRes.data;
-        if (prefsData.pushNotificationsEnabled !== undefined) setNotifications(prefsData.pushNotificationsEnabled);
-        if (prefsData.emailNotificationsEnabled !== undefined) setEmailAlerts(prefsData.emailNotificationsEnabled);
-      } catch (error) {
-        console.error("Failed to fetch settings:", error);
-      }
-    };
     fetchSettings();
   }, []);
 
@@ -143,13 +148,19 @@ export default function Settings() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
+          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.openMenu')}
+            >
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>{t('adminSettings.title')}</Text>
         </View>
       </View>
 
+      {hasError ? (
+        <ErrorState onRetry={() => { setHasError(false); fetchSettings(); }} />
+      ) : (
       <ScrollView style={s.scrollView} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
         {sections.map((sec, sIdx) => (
           <View key={sIdx} style={s.section}>
@@ -222,6 +233,7 @@ export default function Settings() {
           </View>
         </View>
       </ScrollView>
+      )}
       <MfaSetupModal
         visible={mfaModalVisible}
         onClose={() => setMfaModalVisible(false)}
@@ -244,14 +256,14 @@ const s = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
 
   scrollView: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 60, gap: 24 },
 
   section: { gap: 12 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4 },
-  sectionTitle: { fontSize: 15, fontWeight: "800", color: T.text1 },
+  sectionTitle: { fontSize: 15, fontWeight: "700", color: T.text1 },
 
   card: { backgroundColor: T.surface, borderRadius: 20, borderWidth: 1, borderColor: T.border, overflow: "hidden" },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, backgroundColor: T.surface },

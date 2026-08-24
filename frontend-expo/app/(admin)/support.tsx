@@ -12,6 +12,8 @@ import { useRouter } from "expo-router";
 import { api } from "@/store/authStore";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
+import { useTranslation } from "react-i18next";
 
 const T = Theme.colors;
 
@@ -41,10 +43,12 @@ const TABS: { id: TicketStatus | "all"; label: string }[] = [
 
 export default function AdminSupportTicketsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
   const [activeTab, setActiveTab] = useState<TicketStatus | "all">("open");
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -59,6 +63,7 @@ export default function AdminSupportTicketsScreen() {
       // TransformInterceptor passes through because success: true is present
       const data = res.data?.data ?? [];
       setTickets(Array.isArray(data) ? data : []);
+      setHasError(false);
     } catch (e) {
       console.error("Failed to fetch support tickets", e);
     } finally {
@@ -225,7 +230,10 @@ export default function AdminSupportTicketsScreen() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
+          <TouchableOpacity 
+              accessibilityRole="button"
+              accessibilityLabel={t('common.openMenu')}
+              onPress={() => openSidebar(true)} style={s.menuBtn}>
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>Support Tickets</Text>
@@ -257,6 +265,9 @@ export default function AdminSupportTicketsScreen() {
           <ActivityIndicator size="large" color={T.accent} />
         </View>
       ) : (
+        hasError ? (
+          <ErrorState onRetry={() => fetchTickets()} />
+        ) : (
         <FlatList
           data={tickets}
           keyExtractor={(item) => item.id}
@@ -272,7 +283,8 @@ export default function AdminSupportTicketsScreen() {
             </View>
           }
         />
-      )}
+      ))}
+
     </SafeAreaView>
   );
 }
@@ -286,9 +298,9 @@ const s = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   openCountBadge: { backgroundColor: T.blue, borderRadius: 12, minWidth: 24, height: 24, paddingHorizontal: 6, alignItems: "center", justifyContent: "center" },
-  openCountText: { color: "#fff", fontSize: 12, fontWeight: "800" },
+  openCountText: { color: "#fff", fontSize: 12, fontWeight: "700" },
 
   tabsRow: { flexDirection: "row", backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, paddingHorizontal: 8 },
   tab: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 2, borderBottomColor: "transparent" },
@@ -306,7 +318,7 @@ const s = StyleSheet.create({
   cardSubtitle: { fontSize: 12, color: T.text3, fontWeight: "500" },
 
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  badgeText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
+  badgeText: { fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
   priorityRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   priorityText: { fontSize: 10, fontWeight: "700", textTransform: "capitalize" },
 
@@ -321,13 +333,13 @@ const s = StyleSheet.create({
   },
   replyActions: { flexDirection: "row", gap: 12 },
   replyBtn: { flex: 1, borderRadius: 12, height: 44, alignItems: "center", justifyContent: "center" },
-  replyBtnText: { fontSize: 13, fontWeight: "800" },
+  replyBtnText: { fontSize: 13, fontWeight: "700" },
   closeBtn: { paddingHorizontal: 16, height: 44, borderRadius: 12, borderWidth: 1, borderColor: T.border, alignItems: "center", justifyContent: "center", backgroundColor: T.surface },
   closeBtnText: { fontSize: 13, fontWeight: "700", color: T.text2 },
 
   cardActions: { borderTopWidth: 1, borderTopColor: T.border },
   actionBtn: { paddingVertical: 14, alignItems: "center", justifyContent: "center" },
-  actionBtnText: { fontSize: 14, fontWeight: "800", color: T.accent },
+  actionBtnText: { fontSize: 14, fontWeight: "700", color: T.accent },
 
   emptyBox: { alignItems: "center", paddingVertical: 80, paddingHorizontal: 32 },
   emptyText: { fontSize: 16, fontWeight: "700", color: T.text1 },

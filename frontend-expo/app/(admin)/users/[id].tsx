@@ -2,13 +2,14 @@
  * Admin User Details — Premium Light Bento Redesign
  */
 import React, { useEffect, useState } from "react";
-import { Image } from "expo-image";
 import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Platform, Modal, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { api } from "@/store/authStore";
+import InitialsAvatar from "@/components/common/InitialsAvatar";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
 
 const T = Theme.colors;
 
@@ -43,44 +44,46 @@ export default function UserDetail() {
 
   const [user, setUser] = useState<UserDetailData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [suspendModalVisible, setSuspendModalVisible] = useState(false);
   const [suspendReason, setSuspendReason] = useState("");
 
+  const fetchUser = async () => {
+    if (!id) return;
+    try {
+      const res = await api.get(`/api/users/${id}`);
+      const data = res.data?.data || res.data;
+      const obj = data.user || data;
+      setUser({
+        id: obj.id?.toString(),
+        fullName: obj.fullName || obj.name || "Unknown",
+        email: obj.email || "",
+        phone: obj.phone || "",
+        role: obj.role || "user",
+        status: obj.status || "active",
+        avatar: obj.avatar || obj.avatarUrl || null,
+        createdAt: obj.createdAt ? new Date(obj.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—",
+        lastLoginAt: obj.lastLoginAt ? new Date(obj.lastLoginAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—",
+        ownedCompanies: obj.ownedCompanies || [],
+        staffMemberships: obj.staffMemberships || [],
+        stats: {
+           bookings: obj._count?.bookingsAsCustomer || 0,
+           reviews: obj._count?.reviews || 0,
+        },
+        auditLogs: obj.auditLogs || [],
+        fraudScore: obj.fraudScore ?? (id === '2' ? 92 : Math.floor(Math.random() * 20)),
+      });
+    } catch (err) {
+      console.error("Failed to fetch user:", err);
+      setError("Could not load user details.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchUser = async () => {
-      if (!id) return;
-      try {
-        const res = await api.get(`/api/users/${id}`);
-        const data = res.data?.data || res.data;
-        const obj = data.user || data;
-        setUser({
-          id: obj.id?.toString(),
-          fullName: obj.fullName || obj.name || "Unknown",
-          email: obj.email || "",
-          phone: obj.phone || "",
-          role: obj.role || "user",
-          status: obj.status || "active",
-          avatar: obj.avatar || obj.avatarUrl || null,
-          createdAt: obj.createdAt ? new Date(obj.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—",
-          lastLoginAt: obj.lastLoginAt ? new Date(obj.lastLoginAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—",
-          ownedCompanies: obj.ownedCompanies || [],
-          staffMemberships: obj.staffMemberships || [],
-          stats: {
-             bookings: obj._count?.bookingsAsCustomer || 0,
-             reviews: obj._count?.reviews || 0,
-          },
-          auditLogs: obj.auditLogs || [],
-          fraudScore: obj.fraudScore ?? (id === '2' ? 92 : Math.floor(Math.random() * 20)),
-        });
-      } catch (err) {
-        console.error("Failed to fetch user:", err);
-        setError("Could not load user details.");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchUser();
   }, [id]);
 
@@ -204,11 +207,10 @@ export default function UserDetail() {
   if (error || !user) {
     return (
       <SafeAreaView style={s.centerArea} edges={['top', 'left', 'right']}>
-        <MaterialCommunityIcons name="account-alert" size={48} color={T.error} />
-        <Text style={s.errorText}>{error || "User not found"}</Text>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <Text style={s.backBtnText}>Go Back</Text>
-        </TouchableOpacity>
+        <ErrorState
+          message={error ?? undefined}
+          onRetry={() => { setError(null); fetchUser(); }}
+        />
       </SafeAreaView>
     );
   }
@@ -232,10 +234,7 @@ export default function UserDetail() {
         {/* Main Identity Bento */}
         <View style={s.heroCard}>
           <View style={s.avatarWrap}>
-            <Image
-              source={{ uri: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=0A192F&color=fff` }}
-              style={s.avatar}
-            />
+            <InitialsAvatar name={user.fullName ?? 'User'} size={96} radius={32} />
             <View style={[s.avatarStatusDot, { backgroundColor: statusStyle.bg }]}>
               <MaterialCommunityIcons name={statusStyle.icon as any} size={12} color={statusStyle.color} />
             </View>
@@ -428,7 +427,7 @@ const s = StyleSheet.create({
 
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, backgroundColor: T.bg },
   headerBtn: { padding: 4, marginLeft: -8 },
-  headerTitle: { fontSize: 22, fontWeight: "800", color: T.text1, letterSpacing: -0.5 },
+  headerTitle: { fontSize: 22, fontWeight: "700", color: T.text1, letterSpacing: -0.5 },
 
   content: { padding: 20, gap: 16, paddingBottom: 60 },
 
@@ -436,27 +435,27 @@ const s = StyleSheet.create({
   avatarWrap: { position: "relative", marginBottom: 16 },
   avatar: { width: 100, height: 100, borderRadius: 32, backgroundColor: T.bg, borderWidth: 4, borderColor: T.surface, ...CARD_SHADOW },
   avatarStatusDot: { position: "absolute", bottom: -4, right: -4, width: 28, height: 28, borderRadius: 14, borderWidth: 3, borderColor: T.surface, alignItems: "center", justifyContent: "center" },
-  userName: { fontSize: 26, fontWeight: "800", color: T.text1, marginBottom: 4, textAlign: "center", letterSpacing: -0.5 },
+  userName: { fontSize: 26, fontWeight: "700", color: T.text1, marginBottom: 4, textAlign: "center", letterSpacing: -0.5 },
   userId: { fontSize: 14, fontWeight: "600", color: T.text3, textAlign: "center" },
   
   fraudBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(239, 68, 68, 0.1)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginTop: 12 },
-  fraudText: { fontSize: 12, fontWeight: "800", color: T.error },
+  fraudText: { fontSize: 12, fontWeight: "700", color: T.error },
 
   bentoRow: { flexDirection: "row", gap: 16 },
   bentoGrid: { gap: 16 },
   
   bentoBox: { backgroundColor: T.surface, borderRadius: 20, padding: 16, justifyContent: "center", borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   bentoActionBtn: { alignItems: "center", backgroundColor: T.surface },
-  bentoBoxValue: { fontSize: 18, fontWeight: "800", color: T.text1, marginBottom: 2, textTransform: "capitalize", letterSpacing: -0.5 },
+  bentoBoxValue: { fontSize: 18, fontWeight: "700", color: T.text1, marginBottom: 2, textTransform: "capitalize", letterSpacing: -0.5 },
   bentoBoxLabel: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase" },
 
   bentoBoxFull: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border, gap: 16, ...CARD_SHADOW },
   bentoIconCircle: { width: 48, height: 48, borderRadius: 16, backgroundColor: "rgba(10, 25, 47, 0.05)", alignItems: "center", justifyContent: "center" },
   bentoBoxLabelText: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase", marginBottom: 2 },
-  bentoBoxValueText: { fontSize: 15, fontWeight: "800", color: T.text1 },
+  bentoBoxValueText: { fontSize: 15, fontWeight: "700", color: T.text1 },
 
   bentoCard: { backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 16 },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: T.text1, marginBottom: 16 },
   
   associationRow: { flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 12 },
   
@@ -466,15 +465,15 @@ const s = StyleSheet.create({
   noneText: { fontSize: 14, color: T.text3, fontStyle: "italic" },
 
   dangerCard: { backgroundColor: "rgba(239, 68, 68, 0.05)", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "rgba(239, 68, 68, 0.2)" },
-  dangerTitle: { fontSize: 16, fontWeight: "800", color: T.error, marginBottom: 4 },
+  dangerTitle: { fontSize: 16, fontWeight: "700", color: T.error, marginBottom: 4 },
   dangerDesc: { fontSize: 13, color: T.error, opacity: 0.8, marginBottom: 16 },
   dangerBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 14, borderRadius: 16, gap: 8 },
-  dangerBtnText: { fontSize: 15, fontWeight: "800", color: "#fff" },
+  dangerBtnText: { fontSize: 15, fontWeight: "700", color: "#fff" },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 },
   modalContainer: { backgroundColor: T.surface, borderRadius: 24, padding: 24, ...CARD_SHADOW },
-  modalTitle: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 8 },
+  modalTitle: { fontSize: 20, fontWeight: "700", color: T.text1, marginBottom: 8 },
   modalDesc: { fontSize: 14, color: T.text2, marginBottom: 20, lineHeight: 20 },
   modalInput: { backgroundColor: T.bg, borderRadius: 16, padding: 16, fontSize: 15, color: T.text1, height: 100, textAlignVertical: "top", marginBottom: 20, borderWidth: 1, borderColor: T.border },
   modalActions: { flexDirection: "row", gap: 12 },

@@ -9,6 +9,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/common/ErrorState";
 
 const T = Theme.colors;
 
@@ -22,6 +23,7 @@ export default function CompanyDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [company, setCompany] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchCompany = async () => {
@@ -33,6 +35,7 @@ export default function CompanyDetail() {
       console.error("Failed to fetch company details:", error);
       Alert.alert("Error", "Could not load company details");
       router.back();
+      setHasError(true);
     } finally {
       setIsLoading(false);
     }
@@ -73,6 +76,14 @@ export default function CompanyDetail() {
     return (
       <SafeAreaView style={s.centerArea} edges={['top', 'left', 'right']}>
         <ActivityIndicator size="large" color={T.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <SafeAreaView style={s.centerArea} edges={['top', 'left', 'right']}>
+        <ErrorState onRetry={fetchCompany} />
       </SafeAreaView>
     );
   }
@@ -258,22 +269,22 @@ const s = StyleSheet.create({
   backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255, 255, 255, 0.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.3)" },
   
   statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: T.surface, ...CARD_SHADOW },
-  statusText: { fontSize: 12, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
+  statusText: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
 
   profileHeader: { marginTop: -60, paddingHorizontal: 20, alignItems: "center" },
   logoWrap: { width: 100, height: 100, borderRadius: 32, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 4, borderColor: T.bg, marginBottom: 16, ...CARD_SHADOW },
   logoImg: { width: "100%", height: "100%" },
-  companyName: { fontSize: 26, fontWeight: "800", color: T.text1, marginBottom: 4, textAlign: "center", letterSpacing: -0.5 },
+  companyName: { fontSize: 26, fontWeight: "700", color: T.text1, marginBottom: 4, textAlign: "center", letterSpacing: -0.5 },
   companyReg: { fontSize: 14, color: T.text3, marginBottom: 20, textAlign: "center" },
 
   statsRow: { flexDirection: "row", backgroundColor: T.surface, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 20, width: "100%", justifyContent: "space-around", borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   statBox: { alignItems: "center" },
-  statValue: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 4 },
+  statValue: { fontSize: 20, fontWeight: "700", color: T.text1, marginBottom: 4 },
   statLabel: { fontSize: 12, fontWeight: "600", color: T.text3, textTransform: "uppercase" },
   statDivider: { width: 1, height: "100%", backgroundColor: T.border },
 
   card: { backgroundColor: T.surface, borderRadius: 20, padding: 20, marginHorizontal: 20, marginTop: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 16 },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: T.text1, marginBottom: 16 },
   descText: { fontSize: 15, color: T.text2, lineHeight: 24 },
 
   infoGrid: { gap: 16 },
@@ -294,6 +305,6 @@ const s = StyleSheet.create({
   actionBtn: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 16, borderRadius: 16, borderWidth: 1 },
   rejectBtn: { borderColor: "rgba(239, 68, 68, 0.4)", backgroundColor: "rgba(239, 68, 68, 0.1)" },
   approveBtn: { borderColor: T.primary, backgroundColor: T.primary },
-  rejectText: { fontSize: 16, fontWeight: "800", color: T.error },
-  approveText: { fontSize: 16, fontWeight: "800", color: "#FFFFFF" },
+  rejectText: { fontSize: 16, fontWeight: "700", color: T.error },
+  approveText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
 });
