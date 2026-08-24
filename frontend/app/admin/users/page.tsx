@@ -9,6 +9,7 @@ import { CreateUserDrawer } from "@/components/drawers/CreateUserDrawer";
 import { Search, Loader2, Users, Download, Plus, Trash2, Ban, Eye } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
+import { ErrorState } from "@/components/common/ErrorState";
 
 const ROLE_OPTIONS = [
   { label: "All Roles", value: "all" },
@@ -21,6 +22,7 @@ const ROLE_OPTIONS = [
 export default function UsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -34,17 +36,15 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
-      const params = new URLSearchParams({ limit: "200" });
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users?${params}`, {
-        credentials: 'include',
-      });
-      const data = await res.json();
-      if (res.ok) {
-        const list = data.data?.users || data.users || [];
-        setUsers(list);
-      }
-    } catch (e) { console.error(e); }
+      const res = await api.get("/users", { params: { limit: 200 } });
+      const data = res.data;
+      const list = data.data?.users || data.users || [];
+      setUsers(list);
+    } catch {
+      setFetchError("Could not load users. Check your connection and try again.");
+    }
     finally { setLoading(false); }
   };
 
@@ -180,6 +180,10 @@ export default function UsersPage() {
         {loading ? (
           <div className="absolute inset-0 z-50 bg-background/50 backdrop-blur-sm flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+          </div>
+        ) : fetchError && users.length === 0 ? (
+          <div className="p-6">
+            <ErrorState title="Couldn't load users" message={fetchError} onRetry={fetchUsers} />
           </div>
         ) : (
           <DataGrid

@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { Search, Download, Trash2, Calendar, FileText } from "lucide-react";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { ErrorState } from "@/components/common/ErrorState";
+import api from "@/lib/api/client";
 import { toast } from "sonner";
 
 const ACTION_LABELS: Record<string, { label: string; class: string }> = {
@@ -43,6 +45,7 @@ interface AuditLog {
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -50,9 +53,12 @@ export default function AuditLogsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/audit-logs`, { credentials: "include" });
-        if (res.ok) { const data = await res.json(); setLogs(data.logs || []); }
-      } catch {}
+        const res = await api.get("/admin/audit-logs");
+        setLogs(res.data.logs || []);
+        setFetchError(null);
+      } catch {
+        setFetchError("Could not load audit logs.");
+      }
       finally { setLoading(false); }
     };
     load();
@@ -130,12 +136,7 @@ export default function AuditLogsPage() {
   const handleDeleteLogs = async () => {
     if (!window.confirm(`Permanently delete ${selectedIds.size} audit log(s)? This cannot be undone.`)) return;
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/audit-logs`, {
-        method: "DELETE",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: Array.from(selectedIds) }),
-      });
+      await api.delete("/audit-logs", { data: { ids: Array.from(selectedIds) } });
       setLogs((prev) => prev.filter((l) => !selectedIds.has(l.id)));
       setSelectedIds(new Set());
       toast.success(`${selectedIds.size} log(s) deleted.`);
@@ -194,16 +195,22 @@ export default function AuditLogsPage() {
 
       {/* Full-height DataGrid */}
       <div className="flex-1 overflow-hidden relative">
-        <DataGrid
-          columns={columns}
-          data={filtered}
-          loading={loading}
-          selectedIds={selectedIds}
-          onToggleRow={toggleRow}
-          onToggleAll={toggleAll}
-          emptyIcon={FileText}
-          emptyMessage="No audit logs found matching your criteria."
-        />
+        {fetchError && logs.length === 0 && !loading ? (
+          <div className="p-6">
+            <ErrorState title="Couldn't load audit logs" message={fetchError} onRetry={() => window.location.reload()} />
+          </div>
+        ) : (
+          <DataGrid
+            columns={columns}
+            data={filtered}
+            loading={loading}
+            selectedIds={selectedIds}
+            onToggleRow={toggleRow}
+            onToggleAll={toggleAll}
+            emptyIcon={FileText}
+            emptyMessage="No audit logs found matching your criteria."
+          />
+        )}
       </div>
 
       <BulkActionBar

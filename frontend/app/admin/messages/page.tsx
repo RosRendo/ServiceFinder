@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Send, ArrowLeft, Phone, Video, MoreVertical, ImageIcon, Paperclip, Smile, MessageCircle, Search, Loader2 } from "lucide-react";
 import { useConversations, useMessages } from "@/lib/hooks/useChat";
 import { useAuthContext } from "@/lib/contexts/AuthContext";
+import api from "@/lib/api/client";
 import { toast } from "sonner";
 
 const AdminMessagesInner = () => {
@@ -32,14 +33,10 @@ const AdminMessagesInner = () => {
   useEffect(() => {
     const fetchUserInfo = async (id: string) => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}`, { credentials: 'include', });
-        if (res.ok) {
-          const data = await res.json();
-          const userData = data.data?.user || data.data || data;
-          setNewChatUser({ id: userData.id.toString(), name: userData.fullName, role: userData.role, avatar: userData.avatar });
-        } else {
-          toast.error("User not found");
-        }
+        const res = await api.get(`/users/${id}`);
+        const data = res.data;
+        const userData = data.data?.user || data.data || data;
+        setNewChatUser({ id: userData.id.toString(), name: userData.fullName, role: userData.role, avatar: userData.avatar });
       } catch { toast.error("Failed to load user info"); }
     };
 

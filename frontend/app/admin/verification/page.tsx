@@ -5,11 +5,14 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { ErrorState } from "@/components/common/ErrorState";
+import api from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 
 export default function VerificationPage() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<any | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -23,36 +26,37 @@ export default function VerificationPage() {
 
   const fetchPendingCompanies = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies?status=pending&limit=50`, {
-        credentials: 'include',
-      });
-      const data = await res.json();
+      const res = await api.get("/admin/companies", { params: { status: "pending", limit: 50 } });
+      const data = res.data;
       let list = [];
       if (Array.isArray(data.data?.data)) list = data.data.data;
       else if (Array.isArray(data.data)) list = data.data;
       else if (Array.isArray(data.data?.companies)) list = data.data.companies;
       else if (Array.isArray(data.companies)) list = data.companies;
       setCompanies(list);
-    } catch { toast.error("Failed to load pending companies"); }
+    } catch {
+      setFetchError("Could not load pending companies.");
+    }
     finally { setLoading(false); }
   };
 
   const fetchTodayStats = async () => {
     try {
       const [verRes, rejRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies?status=verified&limit=100`, { credentials: 'include', }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies?status=rejected&limit=100`, { credentials: 'include', }),
+        api.get("/admin/companies", { params: { status: "verified", limit: 100 } }),
+        api.get("/admin/companies", { params: { status: "rejected", limit: 100 } }),
       ]);
-      const verData = await verRes.json();
-      const rejData = await rejRes.json();
+      const verData = verRes.data;
+      const rejData = rejRes.data;
       const today = new Date().toDateString();
       let vArr = [];
       if (Array.isArray(verData.data?.data)) vArr = verData.data.data;
       else if (Array.isArray(verData.data)) vArr = verData.data;
       else if (Array.isArray(verData.data?.companies)) vArr = verData.data.companies;
       else if (Array.isArray(verData.companies)) vArr = verData.companies;
-      
+
       let rArr = [];
       if (Array.isArray(rejData.data?.data)) rArr = rejData.data.data;
       else if (Array.isArray(rejData.data)) rArr = rejData.data;
@@ -67,11 +71,11 @@ export default function VerificationPage() {
     if (!confirm("Verify this company?")) return;
     setVerifying(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies/${companyId}/verify`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, credentials: 'include',
-      });
-      if (res.ok) { toast.success("Company verified"); setVerifiedToday((v) => v + 1); fetchPendingCompanies(); setSelectedCompany(null); }
-      else toast.error("Failed to verify");
+      await api.post(`/admin/companies/${companyId}/verify`);
+      toast.success("Company verified");
+      setVerifiedToday((v) => v + 1);
+      fetchPendingCompanies();
+      setSelectedCompany(null);
     } catch { toast.error("Error verifying"); }
     finally { setVerifying(false); }
   };
@@ -80,14 +84,11 @@ export default function VerificationPage() {
     if (!selectedCompany || !rejectReason.trim()) { toast.error("Provide a rejection reason"); return; }
     setVerifying(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/companies/${selectedCompany.id}/reject`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, credentials: 'include',
-        body: JSON.stringify({ reason: rejectReason }),
-      });
-      if (res.ok) {
-        toast.success("Company rejected"); setRejectedToday((v) => v + 1);
-        fetchPendingCompanies(); setSelectedCompany(null); setShowRejectModal(false); setRejectReason("");
-      } else toast.error("Failed to reject");
+      await api.post(`/admin/companies/${selectedCompany.id}/reject`, { reason: rejectReason });
+      toast.success("Company rejected");
+      setRejectedToday((v) => v + 1);
+      fetchPendingCompanies();
+      setSelectedCompany(null); setShowRejectModal(false); setRejectReason("");
     } catch { toast.error("Error rejecting"); }
     finally { setVerifying(false); }
   };
@@ -229,6 +230,10 @@ export default function VerificationPage() {
         {loading ? (
           <div className="absolute inset-0 z-50 bg-background/50 backdrop-blur-sm flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+          </div>
+        ) : fetchError && companies.length === 0 ? (
+          <div className="p-6">
+            <ErrorState title="Couldn't load verifications" message={fetchError} onRetry={fetchPendingCompanies} />
           </div>
         ) : (
           <DataGrid

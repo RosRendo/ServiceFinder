@@ -34,21 +34,15 @@ function CompanyMessagesPageContent() {
     useEffect(() => {
         const fetchUserInfo = async (id: string) => {
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}`, {
-                    credentials: 'include'
+                const res = await api.get(`/users/${id}`);
+                const data = res.data;
+                const userData = data.data?.user || data.data || data;
+                setNewChatUser({
+                    id: userData.id.toString(),
+                    name: userData.fullName,
+                    role: userData.role,
+                    avatar: userData.avatar
                 });
-                if (res.ok) {
-                    const data = await res.json();
-                    const userData = data.data?.user || data.data || data;
-                    setNewChatUser({
-                        id: userData.id.toString(),
-                        name: userData.fullName,
-                        role: userData.role,
-                        avatar: userData.avatar
-                    });
-                } else {
-                    toast.error("User not found");
-                }
             } catch (e) {
                 console.error("Failed to fetch user info", e);
                 toast.error("Failed to load user info");

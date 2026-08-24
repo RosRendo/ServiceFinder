@@ -17,6 +17,9 @@ import {
   Tooltip as RechartsTooltip, ResponsiveContainer
 } from "recharts";
 import { differenceInDays, format } from "date-fns";
+import { ErrorState } from "@/components/common/ErrorState";
+import api from "@/lib/api/client";
+import { toast } from "sonner";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface CompanyOwned {
@@ -133,9 +136,8 @@ export default function UserDetailPage() {
       if (!id) return;
       setLoading(true); setError(null);
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}`, { credentials: 'include' });
-        if (!res.ok) throw new Error("User not found");
-        const data = await res.json();
+        const res = await api.get(`/users/${id}`);
+        const data = res.data;
         setUser(data.data?.user || data.data || data);
       } catch (err) {
         setError("Failed to load user details");
@@ -149,13 +151,11 @@ export default function UserDetailPage() {
   const handleStatusChange = async (newStatus: string) => {
     if (!user) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" }, credentials: 'include',
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (res.ok) setUser({ ...user, status: newStatus });
-    } catch (err) { console.error(err); }
+      await api.patch(`/users/${id}/status`, { status: newStatus });
+      setUser({ ...user, status: newStatus });
+    } catch (err) {
+      toast.error("Failed to update user status.");
+    }
   };
 
   if (loading) return (
@@ -165,10 +165,11 @@ export default function UserDetailPage() {
   );
   if (error) return (
     <div className="h-full flex items-center justify-center px-4">
-      <div className="bg-rose-500/10 border border-rose-500/20 p-8 flex flex-col items-center gap-4 max-w-md w-full rounded-xl text-center">
-        <AlertCircle className="w-12 h-12 text-rose-500" />
-        <p className="text-rose-500 font-bold text-lg">{error}</p>
-        <Button variant="outline" onClick={() => router.push("/admin/users")}>← Back to Users</Button>
+      <div className="max-w-md w-full">
+        <ErrorState title="Couldn't load user" message={error} onRetry={() => window.location.reload()} />
+        <div className="mt-4 text-center">
+          <Button variant="outline" onClick={() => router.push("/admin/users")}>← Back to Users</Button>
+        </div>
       </div>
     </div>
   );
