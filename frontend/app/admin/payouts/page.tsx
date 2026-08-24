@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { StatusBadge } from "@/components/grid/StatusBadge";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
-import { Search, Download, RotateCcw, Loader2 } from "lucide-react";
+import { Search, Download, RotateCcw, Loader2, QrCode } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
 
@@ -16,6 +17,7 @@ interface PayoutRow {
   method: string;
   status: "paid" | "processing" | "failed";
   scheduledDate: string;
+  khqrImageUrl?: string | null;
 }
 
 export default function PayoutsPage() {
@@ -25,6 +27,9 @@ export default function PayoutsPage() {
   const [payouts, setPayouts] = useState<PayoutRow[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [selectedPayoutForQr, setSelectedPayoutForQr] = useState<PayoutRow | null>(null);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [isSimulatingPayment, setIsSimulatingPayment] = useState(false);
 
   const exportCSV = (rows: PayoutRow[]) => {
     if (!rows.length) { toast({ title: "No data", description: "No payouts to export.", variant: "destructive" }); return; }
@@ -55,6 +60,13 @@ export default function PayoutsPage() {
         let status = p.status;
         if (status === 'completed') status = 'paid';
         if (status === 'pending') status = 'processing';
+        
+        let khqrImageUrl = p.khqrImageUrl || null;
+        if (!khqrImageUrl) {
+          if (p.staff?.khqrImageUrl) khqrImageUrl = p.staff.khqrImageUrl;
+          else if (p.company?.khqrImageUrl) khqrImageUrl = p.company.khqrImageUrl;
+        }
+
         return {
           id: `PAY-${p.id}`,
           recipient,
@@ -63,6 +75,7 @@ export default function PayoutsPage() {
           method,
           status: status as "paid" | "processing" | "failed",
           scheduledDate: new Date(p.requestedAt || Date.now()).toLocaleDateString(),
+          khqrImageUrl,
         };
       });
       setPayouts(formatted);
@@ -89,6 +102,18 @@ export default function PayoutsPage() {
     { key: "method", header: "Method", render: (r) => <span className="text-muted-foreground text-xs">{r.method}</span> },
     { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
     { key: "scheduledDate", header: "Date", render: (r) => <span className="text-muted-foreground text-xs">{r.scheduledDate}</span> },
+    { key: "actions", header: "Action", render: (r) => (
+      r.status === "processing" ? (
+        <button
+          onClick={(e) => { e.stopPropagation(); setSelectedPayoutForQr(r); setIsQrModalOpen(true); }}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 hover:text-emerald-700 border border-emerald-500/20 rounded-lg text-xs font-bold transition-all"
+        >
+          <QrCode className="w-3.5 h-3.5" /> Scan KHQR
+        </button>
+      ) : (
+        <span className="text-muted-foreground text-xs font-semibold">—</span>
+      )
+    )}
   ];
 
   const handleProcessPayouts = async () => {
@@ -117,7 +142,8 @@ export default function PayoutsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden relative">
+    <>
+      <div className="flex flex-col h-full overflow-hidden relative">
       <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -177,5 +203,96 @@ export default function PayoutsPage() {
           }},
         ]} />
     </div>
+
+      {/* KHQR Scan Modal */}
+      <Dialog open={isQrModalOpen} onOpenChange={(open) => !open && setIsQrModalOpen(false)}>
+        <DialogContent className="sm:max-w-md p-6 gap-6 bg-background border-border">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-foreground">Scan Bakong KHQR Payout</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Scan this KHQR using any Cambodia Mobile Banking App to transfer funds.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedPayoutForQr && (
+            <div className="flex flex-col items-center gap-4 py-2">
+              {/* KHQR Container */}
+              <div className="relative border-4 border-emerald-500 rounded-2xl p-4 bg-white shadow-md flex flex-col items-center">
+                <span className="text-[10px] font-black text-emerald-600 tracking-widest uppercase mb-2">User's Uploaded KHQR</span>
+                
+                {selectedPayoutForQr.khqrImageUrl ? (
+                  <img 
+                    src={selectedPayoutForQr.khqrImageUrl}
+                    alt="KHQR Image" 
+                    className="w-48 h-48 rounded-lg object-contain"
+                  />
+                ) : (
+                  <div className="w-48 h-48 rounded-lg bg-muted flex items-center justify-center text-center px-4">
+                    <span className="text-muted-foreground text-xs font-medium">No KHQR Image Uploaded</span>
+                  </div>
+                )}
+                
+                <span className="text-xs font-bold text-slate-800 mt-2">{selectedPayoutForQr.recipient}</span>
+                <span className="text-[10px] text-muted-foreground font-mono mt-0.5">{selectedPayoutForQr.id}</span>
+              </div>
+
+              {/* Payout breakdown */}
+              <div className="w-full bg-muted/30 p-3 rounded-lg border border-border space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Payout Type</span>
+                  <span className="font-semibold text-foreground uppercase">{selectedPayoutForQr.type}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Transfer Amount</span>
+                  <span className="font-bold text-emerald-500">${selectedPayoutForQr.amount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Method / Bank</span>
+                  <span className="font-medium text-foreground">{selectedPayoutForQr.method}</span>
+                </div>
+              </div>
+
+              {/* Simulation triggers */}
+              <button 
+                onClick={async () => {
+                  setIsSimulatingPayment(true);
+                  try {
+                    await api.post(`/admin/payouts/${selectedPayoutForQr.id.replace("PAY-", "")}/approve`);
+                    toast({ 
+                      title: "Marked as Paid", 
+                      description: `Payout for ${selectedPayoutForQr.recipient} marked as paid successfully.` 
+                    });
+                    setIsQrModalOpen(false);
+                    fetchPayouts();
+                  } catch (err) {
+                    toast({ 
+                      title: "Payment Error", 
+                      description: "Failed to mark as paid.", 
+                      variant: "destructive" 
+                    });
+                  } finally {
+                    setIsSimulatingPayment(false);
+                  }
+                }}
+                disabled={isSimulatingPayment}
+                className="w-full flex items-center justify-center gap-2 h-11 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-colors shadow-sm disabled:opacity-50"
+              >
+                {isSimulatingPayment ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <QrCode className="w-4 h-4" />
+                    Mark as Paid
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
