@@ -7,21 +7,17 @@ import { useSavedServices, useIsServiceSaved } from '@/lib/hooks/useSavedService
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+// The hook builds its URL from NEXT_PUBLIC_API_URL; pin it so assertions
+// don't depend on the host environment.
+const API_URL = 'http://test-api';
+process.env.NEXT_PUBLIC_API_URL = API_URL;
+
 describe('useSavedServices Hook', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // localStorage mock
-    Object.defineProperty(window, 'localStorage', {
-      value: {
-        getItem: vi.fn(() => 'mock-token'),
-        setItem: vi.fn(),
-        removeItem: vi.fn(),
-      },
-      writable: true,
-    });
-    
+
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {
@@ -55,11 +51,12 @@ describe('useSavedServices Hook', () => {
 
     expect(result.current.data).toEqual(mockServices);
     expect(mockFetch).toHaveBeenCalledTimes(1);
+    // Auth is cookie-based (httpOnly session cookie) since f4b2454 — no
+    // Authorization header is sent; credentials are included by the caller
+    // environment. Assert the URL contract instead.
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/customers/saved-services'),
-      expect.objectContaining({
-        headers: { Authorization: 'Bearer mock-token' }
-      })
+      `${API_URL}/api/customers/saved-services`,
+      expect.objectContaining({})
     );
   });
 
