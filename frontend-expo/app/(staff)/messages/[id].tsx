@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import {
   View, Text, TouchableOpacity, FlatList,
-  ActivityIndicator, KeyboardAvoidingView, Platform,
+  ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -12,6 +12,9 @@ import { usePresenceStore } from "@/store/presenceStore";
 import { formatDistanceToNow } from "date-fns";
 import { ChatMessage } from "@/components/messages/ChatMessage";
 import { ChatInput } from "@/components/messages/ChatInput";
+import { Theme } from "@/constants/theme";
+
+const T = Theme.colors;
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -72,44 +75,44 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface">
+    <SafeAreaView style={s.root}>
       {/* Header */}
-      <View className="flex-row items-center gap-3 px-4 py-3 border-b border-surface-container bg-white/95">
-        <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 rounded-full items-center justify-center">
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#4C1D95" />
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={T.primary} />
         </TouchableOpacity>
-        <View className="w-10 h-10 rounded-full bg-secondary-fixed items-center justify-center">
-          <Text className="text-base font-black text-primary-500">
+        <View style={s.avatarWrap}>
+          <Text style={s.avatarText}>
             {otherName ? otherName.charAt(0).toUpperCase() : "?"}
           </Text>
         </View>
-        <View className="flex-1">
-          <Text className="font-bold text-primary-500" numberOfLines={1}>{otherName ?? "Conversation"}</Text>
-          <View className="flex-row items-center gap-1">
-            <View className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-green-500" : "bg-gray-400"}`} />
-            <Text className="text-xs text-gray-400">{statusText}</Text>
+        <View style={s.headerInfo}>
+          <Text style={s.headerTitle} numberOfLines={1}>{otherName ?? "Conversation"}</Text>
+          <View style={s.statusRow}>
+            <View style={[s.statusDot, { backgroundColor: isOnline ? T.success : T.grayDot }]} />
+            <Text style={s.statusText}>{statusText}</Text>
           </View>
         </View>
       </View>
 
       {/* Messages */}
       {isLoading && activeMessages.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#4C1D95" />
+        <View style={s.center}>
+          <ActivityIndicator size="large" color={T.primary} />
         </View>
       ) : (
         <FlatList
           ref={flatListRef}
-          style={{ flex: 1 }}
+          style={s.flex1}
           data={activeMessages}
           keyExtractor={item => item.id}
           renderItem={({ item }) => <ChatMessage message={item} isMe={!!item.isMe} />}
-          contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 16 }}
+          contentContainerStyle={s.listContent}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
           ListEmptyComponent={
-            <View className="flex-1 items-center justify-center py-20">
-              <MaterialCommunityIcons name="message-text-outline" size={48} color="#D1D5DB" />
-              <Text className="text-gray-400 mt-2">Send the first message</Text>
+            <View style={s.emptyState}>
+              <MaterialCommunityIcons name="message-text-outline" size={48} color={T.text3} />
+              <Text style={s.emptyText}>Send the first message</Text>
             </View>
           }
         />
@@ -118,9 +121,9 @@ export default function ChatScreen() {
       {/* Input */}
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
         {isArchived ? (
-          <View className="bg-amber-50 border-t border-amber-200 px-4 py-4 flex-row items-center justify-center gap-2">
+          <View style={s.archiveBanner}>
             <MaterialCommunityIcons name="lock-outline" size={16} color="#92400E" />
-            <Text className="text-amber-800 text-xs font-semibold text-center">
+            <Text style={s.archiveText}>
               This job chat is archived because the booking has been completed.
             </Text>
           </View>
@@ -131,3 +134,100 @@ export default function ChatScreen() {
     </SafeAreaView>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: T.bg },
+  flex1: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: T.border,
+    backgroundColor: T.surface,
+    gap: 12,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: T.accentLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: T.primary,
+  },
+  headerInfo: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontWeight: "800",
+    color: T.text1,
+    fontSize: 15,
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 2,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  statusText: {
+    fontSize: 11,
+    color: T.text3,
+    fontWeight: "600",
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  listContent: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 120,
+  },
+  emptyText: {
+    color: T.text3,
+    marginTop: 8,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  archiveBanner: {
+    backgroundColor: "#FEF3C7",
+    borderTopWidth: 1,
+    borderTopColor: "#FDE68A",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  archiveText: {
+    color: "#92400E",
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
+    flex: 1,
+  },
+});

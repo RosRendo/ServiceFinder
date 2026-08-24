@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import api from '../../../utils/api';
@@ -55,7 +56,7 @@ export default function MoneyScreen() {
   const compRate = p.completionRate || 0;
 
   return (
-    <SafeAreaView style={s.root}>
+    <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         
         {/* Header */}
@@ -82,22 +83,35 @@ export default function MoneyScreen() {
         {/* Main Earnings Card */}
         <View style={[s.heroCard, { backgroundColor: T.success }]}>
           <Text style={[s.statLabel, { color: 'rgba(255,255,255,0.8)' }]}>
-            {activeTab === 'today' ? "TODAY'S EARNINGS" : "WEEKLY EARNINGS"}
+            {activeTab === 'today' ? "TODAY'S EARNINGS (GROSS)" : "WEEKLY EARNINGS (GROSS)"}
           </Text>
-          <Text style={[s.statValue, { color: '#fff' }]}>
-            +${activeTab === 'today' ? todayEarn.toFixed(2) : weeklyEarn.toFixed(2)}
+          <Text style={[s.statValue, { color: '#fff', fontSize: 36 }]}>
+            ${activeTab === 'today' ? todayEarn.toFixed(2) : weeklyEarn.toFixed(2)}
           </Text>
-          <Text style={[s.statSub, { color: 'rgba(255,255,255,0.9)' }]}>
+          <Text style={[s.statSub, { color: 'rgba(255,255,255,0.9)', marginBottom: 16 }]}>
             {activeTab === 'today' ? todayJobs : weeklyJobs} Jobs Completed
           </Text>
+
+          {/* Wallet Balance Splits */}
+          <View style={{ flexDirection: 'row', width: '100%', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.2)', paddingTop: 16, gap: 12 }}>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>Pending</Text>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 4 }}>${(p.pendingBalance || 0).toFixed(2)}</Text>
+            </View>
+            <View style={{ width: 1, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>Available</Text>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 4 }}>${(p.walletBalance || 0).toFixed(2)}</Text>
+            </View>
+          </View>
 
           <TouchableOpacity 
             style={s.payoutBtn} 
             onPress={() => router.push('/(staff)/payout')}
             activeOpacity={0.85}
           >
-            <MaterialCommunityIcons name="wallet-giftcard" size={18} color={T.success} style={{ marginRight: 6 }} />
-            <Text style={s.payoutBtnText}>Withdraw Earnings</Text>
+            <MaterialCommunityIcons name="bank-transfer-out" size={20} color={T.success} style={{ marginRight: 6 }} />
+            <Text style={s.payoutBtnText}>Withdraw ${(p.walletBalance || 0).toFixed(2)}</Text>
           </TouchableOpacity>
         </View>
 

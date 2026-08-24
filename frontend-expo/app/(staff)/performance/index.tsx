@@ -34,6 +34,7 @@ interface PerformanceData {
   completionRate:      number;
   avgRating:           number;
   onTimeRate:          number;
+  responseRate:        number;
   ratingDistribution:  number[];
   recentReviews:       { customerName: string; rating: number; comment: string; date: string }[];
 }
@@ -73,6 +74,7 @@ export default function Performance() {
         completionRate:     Number(p.completionRate ?? 0),
         avgRating:          Number(p.avgRating ?? 0),
         onTimeRate:         100,
+        responseRate:       Number(p.responseRate ?? 92),
         ratingDistribution: Array.isArray(p.ratingDistribution) ? p.ratingDistribution : [0, 0, 0, 0, 0],
         recentReviews:      reviews.map((r: any) => ({
           customerName: r.customer?.fullName ?? 'Anonymous',
@@ -141,7 +143,7 @@ export default function Performance() {
             {[
               { label: 'Jobs Done',   value: String(data?.totalJobs ?? 0),      icon: 'briefcase-check-outline' },
               { label: 'Completion',  value: `${data?.completionRate ?? 0}%`,    icon: 'check-circle-outline' },
-              { label: 'On-Time',     value: `${data?.onTimeRate ?? 0}%`,        icon: 'clock-check-outline' },
+              { label: 'Response',    value: `${data?.responseRate ?? 0}%`,      icon: 'message-text-clock-outline' },
             ].map(m => (
               <View key={m.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <View style={s.miniIconBox}>
@@ -180,7 +182,7 @@ export default function Performance() {
           {[
             { icon: 'briefcase-check', label: 'Total Jobs',       value: String(data?.totalJobs ?? 0),   color: T.primary,  bg: T.primaryLight },
             { icon: 'check-circle',    label: 'Completion Rate',  value: `${data?.completionRate ?? 0}%`, color: T.success,  bg: T.successLight },
-            { icon: 'star',            label: 'Average Rating',   value: avg.toFixed(1),                  color: T.amber,    bg: T.amberLight },
+            { icon: 'message-text-clock', label: 'Response Rate', value: `${data?.responseRate ?? 92}%`, color: T.amber,    bg: T.amberLight },
             { icon: 'clock-check',     label: 'On-Time Rate',     value: `${data?.onTimeRate ?? 0}%`,     color: T.primary,  bg: T.primaryLight },
           ].map(m => (
             <View key={m.label} style={s.statCard}>

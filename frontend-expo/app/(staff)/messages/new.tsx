@@ -1,8 +1,11 @@
 import React, { useEffect } from "react";
-import { View, ActivityIndicator, Alert } from "react-native";
+import { View, ActivityIndicator, Alert, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { api } from "@/store/authStore";
+import { Theme } from "@/constants/theme";
+
+const T = Theme.colors;
 
 /**
  * This screen is a redirect-only screen for STAFF.
@@ -42,8 +45,17 @@ export default function StaffNewConversationScreen() {
   }, [companyId]);
 
   return (
-    <SafeAreaView className="flex-1 bg-surface items-center justify-center">
-      <ActivityIndicator size="large" color="#4C1D95" />
+    <SafeAreaView style={s.root}>
+      <ActivityIndicator size="large" color={T.primary} />
     </SafeAreaView>
   );
 }
+
+const s = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: T.bg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});

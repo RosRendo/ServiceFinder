@@ -10,13 +10,25 @@ const T = Theme.colors;
 
 export default function InstantRequestConfirmation() {
   const router = useRouter();
-  const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
+  const { bookingId, isSimulation } = useLocalSearchParams<{ bookingId: string, isSimulation?: string }>();
 
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadBooking() {
+      if (isSimulation === "true") {
+        setBooking({
+          id: bookingId || "mock-booking",
+          status: "confirmed",
+          totalPrice: "25.00",
+          customerNotes: "Test simulation notes",
+          company: { name: "ABC Repair (Simulated)" },
+          service: { name: "AC Cleaning" }
+        });
+        setLoading(false);
+        return;
+      }
       if (!bookingId) return;
       try {
         const res = await api.get(`/api/bookings/${bookingId}`);
@@ -108,7 +120,7 @@ export default function InstantRequestConfirmation() {
           onPress={() => {
             router.push({
               pathname: "/(customer)/instant-request/tracking" as any,
-              params: { bookingId }
+              params: { bookingId, isSimulation }
             });
           }}
         >

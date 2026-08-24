@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../store/authStore';
@@ -10,13 +11,13 @@ export default function MeScreen() {
   const T = { bg: '#F7F8FC', surface: '#FFFFFF', text1: '#0A192F', text2: '#475569', text3: '#94A3B8', accent: '#0A192F', success: '#00A699', border: '#E8EEF4', danger: '#EF4444' };
 
   return (
-    <SafeAreaView style={s.root}>
+    <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         
         {/* Header */}
         <View style={s.profileHeader}>
           <Image 
-            source={{ uri: user?.avatar || 'https://i.pravatar.cc/150?img=11' }} 
+            source={{ uri: user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || 'Staff')}&background=0A192F&color=fff&size=150` }} 
             style={s.avatar}
           />
           <View style={s.profileInfo}>
@@ -25,8 +26,24 @@ export default function MeScreen() {
           </View>
         </View>
 
+        {/* Section: Schedule */}
+        <Text style={s.sectionTitle}>Schedule</Text>
+        <View style={s.card}>
+          <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/availability')}>
+            <MaterialCommunityIcons name="calendar-clock" size={24} color={T.text2} />
+            <Text style={s.rowText}>My Availability</Text>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+          <View style={s.divider} />
+          <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/timeoff')}>
+            <MaterialCommunityIcons name="calendar-remove" size={24} color={T.text2} />
+            <Text style={s.rowText}>Request Time Off</Text>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+        </View>
+
         {/* Section: Activity */}
-        <Text style={s.sectionTitle}>Activity</Text>
+        <Text style={s.sectionTitle}>Activity & Performance</Text>
         <View style={s.card}>
           <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/history')}>
             <MaterialCommunityIcons name="history" size={24} color={T.text2} />
@@ -39,9 +56,13 @@ export default function MeScreen() {
             <Text style={s.rowText}>Wallet & Payouts</Text>
             <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
+          <View style={s.divider} />
+          <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/performance')}>
+            <MaterialCommunityIcons name="chart-line" size={24} color={T.text2} />
+            <Text style={s.rowText}>My Performance</Text>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
         </View>
-
-        {/* Removed Equipment Mockup */}
 
         {/* Section: Support */}
         <Text style={s.sectionTitle}>Support</Text>
@@ -90,11 +111,23 @@ export default function MeScreen() {
         </View>
 
         {/* Section: Account */}
-        <Text style={s.sectionTitle}>Account</Text>
+        <Text style={s.sectionTitle}>Account & Settings</Text>
         <View style={s.card}>
           <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/edit-profile')}>
             <MaterialCommunityIcons name="account-edit-outline" size={24} color={T.text2} />
             <Text style={s.rowText}>Edit Profile</Text>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+          <View style={s.divider} />
+          <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/change-password')}>
+            <MaterialCommunityIcons name="lock-reset" size={24} color={T.text2} />
+            <Text style={s.rowText}>Change Password</Text>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+          <View style={s.divider} />
+          <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/settings')}>
+            <MaterialCommunityIcons name="cog-outline" size={24} color={T.text2} />
+            <Text style={s.rowText}>Settings</Text>
             <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
           <View style={s.divider} />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   ScrollView, Text, View, TouchableOpacity, Alert, ActivityIndicator,
-  StyleSheet, Modal, Platform, Dimensions,
+  StyleSheet, Modal, Platform, Dimensions, Linking
 } from "react-native";
 import { Image } from "expo-image";
 import { WebView } from "react-native-webview";
@@ -17,6 +17,7 @@ import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from "@/utils/mapHelper";
 import FadeIn from "@/components/FadeIn";
 import ScaleButton from "@/components/ScaleButton";
+import { useCurrentLocation } from "@/hooks/useCurrentLocation";
 
 const T = Theme.colors;
 const { width } = Dimensions.get('window');
@@ -29,9 +30,10 @@ const CARD_SHADOW = Platform.select({
 export default function CheckoutScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { location } = useCurrentLocation(true);
   
   // Accept EITHER an existing bookingId OR temp params from BottomSheet
-  const { bookingId, serviceId, date, time, price, companyId, isInstant } = useLocalSearchParams<{ 
+  const { bookingId, serviceId, date, time, price, companyId, isInstant, isSimulation, companyName, serviceName } = useLocalSearchParams<{ 
     bookingId?: string; 
     serviceId?: string; 
     date?: string; 
@@ -39,12 +41,12 @@ export default function CheckoutScreen() {
     price?: string;
     companyId?: string; 
     isInstant?: string;
+    isSimulation?: string;
+    companyName?: string;
+    serviceName?: string;
   }>();
 
   const { processAbaPayment } = usePayments();
-  const [abaHtml, setAbaHtml] = useState<string | null>(null);
-  const [wingUrl, setWingUrl] = useState<string | null>(null);
-  
   // Booking State
   const [booking, setBooking] = useState<any>(null);
   const [service, setService] = useState<any>(null);
@@ -56,11 +58,32 @@ export default function CheckoutScreen() {
   const [payError, setPayError] = useState<string | null>(null);
   
   const [selectedMethod, setSelectedMethod] = useState<'aba' | 'khqr' | 'wing'>('aba');
+  const [pollingActive, setPollingActive] = useState<boolean>(false);
   const [khqrString, setKhqrString] = useState<string | null>(null);
   const [khqrAmount, setKhqrAmount] = useState<string>("0.00");
+  const [abaHtml, setAbaHtml] = useState<string | null>(null);
+  const [abaDeeplink, setAbaDeeplink] = useState<string | null>(null);
 
   useEffect(() => {
     async function init() {
+      if (isSimulation === "true") {
+        setBooking({
+          id: bookingId || "mock-booking",
+          status: "pending",
+          totalPrice: price || "25.00",
+          serviceAddress: "Street 278, BKK1, Phnom Penh",
+          latitude: location?.latitude || 11.5564,
+          longitude: location?.longitude || 104.9282,
+          company: { name: companyName || "ABC Repair (Simulated)" },
+          service: { name: serviceName || "AC Cleaning" }
+        });
+        setService({
+          name: serviceName || "AC Cleaning",
+          basePrice: price || "25.00",
+        });
+        setLoading(false);
+        return;
+      }
       try {
         if (bookingId) {
           const res = await api.get(`/api/bookings/${bookingId}`);
@@ -78,17 +101,17 @@ export default function CheckoutScreen() {
     init();
   }, [bookingId, serviceId]);
 
-  // Poll for payment success when KHQR or Wing is active
+  // Poll for payment success when KHQR, Wing Deeplink, or ABA Deeplink is active
   useEffect(() => {
     let interval: any;
-    if ((khqrString || wingUrl) && booking?.id) {
+    if ((khqrString || pollingActive) && booking?.id) {
       interval = setInterval(async () => {
         try {
           const res = await api.get(`/api/bookings/${booking.id}`);
           const b = res.data.data.booking ?? res.data.data;
           if (b.status === "confirmed") {
             setKhqrString(null);
-            setWingUrl(null);
+            setPollingActive(false);
             setShowSuccess(true);
           }
         } catch (err) {
@@ -97,10 +120,18 @@ export default function CheckoutScreen() {
       }, 3000);
     }
     return () => clearInterval(interval);
-  }, [khqrString, wingUrl, booking?.id]);
+  }, [khqrString, pollingActive, booking?.id]);
 
   const handleCreateAndPay = async () => {
     setPayError(null);
+    if (isSimulation === "true") {
+      setIsProcessing(true);
+      setTimeout(() => {
+        setIsProcessing(false);
+        setShowSuccess(true);
+      }, 1000);
+      return;
+    }
     setIsProcessing(true);
 
     let activeBookingId = bookingId;
@@ -115,10 +146,11 @@ export default function CheckoutScreen() {
       
       try {
         const bd = new Date();
+        const localDateString = `${bd.getFullYear()}-${String(bd.getMonth() + 1).padStart(2, '0')}-${String(bd.getDate()).padStart(2, '0')}`;
         const res = await api.post("/api/bookings", {
           serviceId, 
           companyId: service?.companyId || companyId || "", 
-          bookingDate: bd.toISOString().split("T")[0],
+          bookingDate: localDateString,
           startTime: time || "10:00", 
           serviceAddress: (user as any)?.city || "Local Address",
         });
@@ -150,9 +182,13 @@ export default function CheckoutScreen() {
 
     if (selectedMethod === 'wing') {
       try {
-        const res = await api.post('/api/payments/wing/checkout', { bookingId: activeBookingId });
+        const res = await api.post('/api/payments/wing/checkout', { bookingId: activeBookingId, type: 'deeplink' });
         if (res.data.success && res.data.webPaymentUrl) {
-          setWingUrl(res.data.webPaymentUrl);
+          // Trigger the deeplink directly
+          Linking.openURL(res.data.webPaymentUrl).catch(() => {
+            Alert.alert("Error", "Could not open Wing Bank App");
+          });
+          setPollingActive(true);
           if (!bookingId) {
             setBooking({ id: activeBookingId });
           }
@@ -171,37 +207,37 @@ export default function CheckoutScreen() {
     const result = await processAbaPayment(activeBookingId as string);
     if (result?.success && result?.data) {
       const abaData = result.data;
-      if (abaData.success && abaData.qrString) {
-        // Use the same KHQR modal for ABA QR
-        setKhqrString(abaData.qrString);
-        setKhqrAmount(abaData.amount);
-        
-        // If we have a deeplink, we could theoretically open it, but for now we just show QR
+      if (abaData.success) {
         if (abaData.abapay_deeplink && Platform.OS !== 'web') {
-           // We'll just show the QR, but we can store the deeplink if we want a button for it later
+          // Trigger mobile deeplink
+          Linking.openURL(abaData.abapay_deeplink).catch(() => {
+            Alert.alert("Error", "Could not open ABA Mobile App");
+          });
+          setPollingActive(true);
+        } else if (abaData.qrString) {
+          // Fallback to QR display for web/unsupported
+          setKhqrString(abaData.qrString);
+          setKhqrAmount(abaData.amount);
         }
-
+        
         if (!bookingId) {
           setBooking({ id: activeBookingId });
         }
-        setIsProcessing(false);
       } else {
         setPayError(abaData.message || "Failed to generate ABA QR.");
-        setIsProcessing(false);
       }
     } else {
       setPayError((result as any)?.message || "Payment initiation failed");
-      setIsProcessing(false);
     }
+    setIsProcessing(false);
   };
-
-  const onWingNavStateChange = (navState: any) => {
+  const onAbaNavStateChange = (navState: any) => {
     const baseUrl = navState.url.split('?')[0];
-    if (baseUrl.endsWith("wing-success") || baseUrl.endsWith("success")) {
-      setWingUrl(null);
+    if (baseUrl.endsWith("aba-success") || baseUrl.endsWith("success")) {
+      setAbaHtml(null);
       setShowSuccess(true);
-    } else if (baseUrl.endsWith("wing-cancel") || baseUrl.endsWith("cancel") || baseUrl.endsWith("fail")) {
-      setWingUrl(null);
+    } else if (baseUrl.endsWith("aba-cancel") || baseUrl.endsWith("cancel") || baseUrl.endsWith("fail")) {
+      setAbaHtml(null);
       setPayError("Payment was cancelled or failed.");
     }
   };
@@ -221,8 +257,8 @@ export default function CheckoutScreen() {
   const displayDate = booking?.bookingDate ? new Date(booking.bookingDate).toLocaleDateString() : (date || "Today");
   const displayTime = booking?.startTime || (time || "ASAP");
   const displayAddress = booking?.serviceAddress || (user as any)?.city || "Local Address";
-  const displayLat = booking?.latitude ? parseFloat(booking.latitude.toString()) : 11.5564;
-  const displayLng = booking?.longitude ? parseFloat(booking.longitude.toString()) : 104.9282;
+  const displayLat = booking?.latitude ? parseFloat(booking.latitude.toString()) : location.latitude;
+  const displayLng = booking?.longitude ? parseFloat(booking.longitude.toString()) : location.longitude;
   
   // Tax & Fees Math
   const subtotal = Number(displayPrice);
@@ -354,7 +390,7 @@ export default function CheckoutScreen() {
             <View style={s.methodIconBox}>
               <MaterialIcons name="account-balance-wallet" size={24} color={selectedMethod === 'wing' ? '#FFF' : T.text2} />
             </View>
-            <Text style={[s.methodLabel, selectedMethod === 'wing' && s.methodLabelActive]}>Wing KHQR</Text>
+            <Text style={[s.methodLabel, selectedMethod === 'wing' && s.methodLabelActive]}>Wing Bank</Text>
             {selectedMethod === 'wing' && <MaterialIcons name="check-circle" size={24} color={T.accent} />}
           </TouchableOpacity>
         </FadeIn>
@@ -399,38 +435,42 @@ export default function CheckoutScreen() {
         </SafeAreaView>
       </Modal>
 
-      {/* WING WEBVIEW */}
-      <Modal visible={!!wingUrl} transparent={false} animationType="slide">
-        <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
-          <View style={s.header}>
-            <TouchableOpacity onPress={() => setWingUrl(null)} style={s.backBtn}>
-              <MaterialIcons name="close" size={24} color={T.text1} />
-            </TouchableOpacity>
-            <Text style={s.headerTitle}>Wing Bank KHQR</Text>
-            <View style={{ width: 44 }} />
-          </View>
-          {wingUrl && (
-            <WebView
-              source={{ uri: wingUrl }}
-              onNavigationStateChange={onWingNavStateChange}
-              style={{ flex: 1 }}
-            />
-          )}
-        </SafeAreaView>
-      </Modal>
-
-      {/* KHQR MODAL */}
+      {/* KHQR / ABA MODAL */}
       <Modal visible={!!khqrString} transparent={true} animationType="fade">
         <View style={s.khqrOverlay}>
           <View style={s.khqrCard}>
-            <Text style={s.khqrTitle}>Scan KHQR to Pay</Text>
+            <Text style={s.khqrTitle}>Scan QR to Pay</Text>
             <Text style={s.khqrAmount}>${khqrAmount}</Text>
             <View style={s.qrWrapper}>
               <QRCode value={khqrString || " "} size={200} />
             </View>
             <Text style={s.khqrSub}>Open your banking app and scan to complete the payment. Waiting for confirmation...</Text>
+            
+            {abaDeeplink && (
+              <TouchableOpacity 
+                style={s.abaButton} 
+                onPress={() => Linking.openURL(abaDeeplink).catch(() => Alert.alert("Error", "ABA Mobile app not found."))}
+              >
+                <Text style={s.abaButtonText}>Pay with ABA Mobile</Text>
+              </TouchableOpacity>
+            )}
+
             <ActivityIndicator size="small" color={T.accent} style={{ marginTop: 12, marginBottom: 16 }} />
-            <TouchableOpacity style={s.khqrClose} onPress={() => setKhqrString(null)}>
+            <TouchableOpacity style={s.khqrClose} onPress={() => { setKhqrString(null); setAbaDeeplink(null); }}>
+              <Text style={s.khqrCloseText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* POLLING OVERLAY */}
+      <Modal visible={pollingActive && !khqrString} transparent={true} animationType="fade">
+        <View style={s.khqrOverlay}>
+          <View style={s.khqrCard}>
+            <ActivityIndicator size="large" color={T.accent} style={{ marginBottom: 16 }} />
+            <Text style={s.khqrTitle}>Waiting for Payment</Text>
+            <Text style={s.khqrSub}>Please complete the payment in your banking app. This screen will close automatically upon success.</Text>
+            <TouchableOpacity style={s.khqrClose} onPress={() => setPollingActive(false)}>
               <Text style={s.khqrCloseText}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -444,7 +484,7 @@ export default function CheckoutScreen() {
           if (isInstant === "true") {
             router.replace({
               pathname: "/(customer)/instant-request/confirmation" as any,
-              params: { bookingId }
+              params: { bookingId, isSimulation }
             });
           } else {
             router.replace("/(customer)/(tabs)/home" as any);
@@ -510,6 +550,8 @@ const s = StyleSheet.create({
   khqrAmount: { fontSize: 32, fontWeight: '900', color: T.accent, marginBottom: 24 },
   qrWrapper: { padding: 16, backgroundColor: '#FFF', borderRadius: 16, borderWidth: 1, borderColor: '#E5E7EB' },
   khqrSub: { fontSize: 13, color: '#6B7280', textAlign: 'center', marginTop: 24, lineHeight: 18 },
-  khqrClose: { marginTop: 24, padding: 16, backgroundColor: '#F3F4F6', borderRadius: 12, width: '100%', alignItems: 'center' },
-  khqrCloseText: { fontSize: 14, fontWeight: '700', color: '#374151' }
+  khqrClose: { marginTop: 16, padding: 16, backgroundColor: '#F3F4F6', borderRadius: 12, width: '100%', alignItems: 'center' },
+  khqrCloseText: { fontSize: 14, fontWeight: '700', color: '#374151' },
+  abaButton: { marginTop: 20, paddingVertical: 14, paddingHorizontal: 24, backgroundColor: '#005370', borderRadius: 12, width: '100%', alignItems: 'center' },
+  abaButtonText: { color: '#FFF', fontWeight: '800', fontSize: 15 }
 });

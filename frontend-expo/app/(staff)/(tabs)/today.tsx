@@ -14,7 +14,7 @@ import NetInfo from '@react-native-community/netinfo';
 
 const { width } = Dimensions.get('window');
 
-type MachineState = 'LOADING' | 'OFFLINE' | 'WAITING' | 'NEW_JOB' | 'TRAVELING' | 'ARRIVED' | 'WORKING' | 'FINISHING' | 'COMPLETED';
+type MachineState = 'LOADING' | 'WAITING' | 'NEW_JOB' | 'NEW_REQUEST' | 'OFFER_SENT' | 'TRAVELING' | 'ARRIVED' | 'WORKING' | 'FINISHING' | 'COMPLETED';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -34,8 +34,9 @@ export default function TodayScreen() {
     return (d * 0.621371).toFixed(1); // Convert to miles
   };
   const [state, setState] = useState<MachineState>('LOADING');
+  const [isOnline, setIsOnline] = useState(true);
   const [checklistStep, setChecklistStep] = useState(0);
-  const [uploadedPhotoUri, setUploadedPhotoUri] = useState<string | null>(null);
+  const [uploadedPhotos, setUploadedPhotos] = useState<{ before?: string; during?: string; after?: string }>({});
   const [activeBooking, setActiveBooking] = useState<any>(null);
   const [availableJobs, setAvailableJobs] = useState<any[]>([]);
   const [selectedJob, setSelectedJob] = useState<any>(null);
@@ -44,6 +45,7 @@ export default function TodayScreen() {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [isOffline, setIsOffline] = useState(false);
   const [offlineQueue, setOfflineQueue] = useState<any[]>([]);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // NetInfo Connection Monitor
   useEffect(() => {
@@ -221,6 +223,10 @@ export default function TodayScreen() {
 
   const updateBackendStatus = async (newStatus: string) => {
     if (!activeBooking?.id) return;
+    if (activeBooking.id.toString() === '999') {
+      console.log(`[Simulation] Bypassing backend update for mock booking 999. New status: ${newStatus}`);
+      return;
+    }
 
     const taskId = Math.random().toString(36).substring(7);
     const taskType = newStatus === 'in_progress' ? 'start' : newStatus === 'completed' ? 'complete' : 'status';
@@ -229,7 +235,7 @@ export default function TodayScreen() {
       bookingId: activeBooking.id,
       type: taskType,
       status: newStatus,
-      photo: uploadedPhotoUri,
+      photo: JSON.stringify(uploadedPhotos),
       timestamp: Date.now()
     };
 
@@ -247,7 +253,7 @@ export default function TodayScreen() {
         await api.patch(`/api/bookings/${activeBooking.id}/start`);
       } else if (newStatus === 'completed') {
         const payload: any = {};
-        if (uploadedPhotoUri) payload.proofOfWorkPhoto = uploadedPhotoUri;
+        if (Object.keys(uploadedPhotos).length > 0) payload.proofOfWorkPhoto = JSON.stringify(uploadedPhotos);
         await api.patch(`/api/bookings/${activeBooking.id}/complete`, payload);
       } else {
         await api.patch(`/api/bookings/${activeBooking.id}/status`, { status: newStatus });
@@ -405,6 +411,10 @@ export default function TodayScreen() {
         return;
       }
 
+      if (activeBooking.id.toString() === '999') {
+        console.log(`[Simulation] Bypassing progress sync for mock booking 999.`);
+        return;
+      }
       await api.patch(`/api/bookings/${activeBooking.id}/progress`, {
         progressPercent: pct,
         checklist: updatedChecklist
@@ -414,10 +424,10 @@ export default function TodayScreen() {
     }
   };
 
-  const handleUploadPhoto = async () => {
+  const handleUploadPhotoForType = async (type: 'before' | 'during' | 'after') => {
     Alert.alert(
-      "Proof of Work",
-      "Capture or select a photo of the completed service.",
+      `${type.toUpperCase()} Photo`,
+      `Capture or select a ${type} service photo.`,
       [
         {
           text: "Take Photo (Camera)",
@@ -425,7 +435,7 @@ export default function TodayScreen() {
             try {
               const perm = await ImagePicker.requestCameraPermissionsAsync();
               if (!perm.granted) {
-                Alert.alert("Permission Required", "Camera permission is required to snap photos.");
+                Alert.alert("Permission Required", "Camera permission is required.");
                 return;
               }
               const result = await ImagePicker.launchCameraAsync({
@@ -433,14 +443,21 @@ export default function TodayScreen() {
                 aspect: [4, 3],
                 quality: 0.8,
               });
-              if (!result.canceled) {
-                setUploadedPhotoUri(result.assets[0].uri);
-                setChecklistStep(0);
-                setState('FINISHING');
+              if (!result.canceled && result.assets?.[0]) {
+                const uri = result.assets[0].uri;
+                setUploadedPhotos(prev => ({ ...prev, [type]: uri }));
+                if (activeBooking.id.toString() === '999') {
+                  console.log(`[Simulation] Bypassing photo upload API for mock booking 999.`);
+                  return;
+                }
+                const formData = new FormData();
+                formData.append("file", { uri, type: "image/jpeg", name: `job_${type}_${Date.now()}.jpg` } as any);
+                formData.append("bookingId", String(activeBooking.id));
+                formData.append("photoType", type);
+                await api.post("/api/bookings/photos", formData, { headers: { "Content-Type": "multipart/form-data" } });
               }
             } catch (e) {
               console.warn("Camera error:", e);
-              Alert.alert("Error", "Could not open camera.");
             }
           }
         },
@@ -450,7 +467,7 @@ export default function TodayScreen() {
             try {
               const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
               if (!perm.granted) {
-                Alert.alert("Permission Required", "Library permission is required to choose photos.");
+                Alert.alert("Permission Required", "Library permission is required.");
                 return;
               }
               const result = await ImagePicker.launchImageLibraryAsync({
@@ -459,21 +476,21 @@ export default function TodayScreen() {
                 aspect: [4, 3],
                 quality: 0.8,
               });
-              if (!result.canceled) {
-                setUploadedPhotoUri(result.assets[0].uri);
-                setChecklistStep(0);
-                setState('FINISHING');
+              if (!result.canceled && result.assets?.[0]) {
+                const uri = result.assets[0].uri;
+                setUploadedPhotos(prev => ({ ...prev, [type]: uri }));
+                const formData = new FormData();
+                formData.append("file", { uri, type: "image/jpeg", name: `job_${type}_${Date.now()}.jpg` } as any);
+                formData.append("bookingId", String(activeBooking.id));
+                formData.append("photoType", type);
+                await api.post("/api/bookings/photos", formData, { headers: { "Content-Type": "multipart/form-data" } });
               }
             } catch (e) {
               console.warn("Library error:", e);
-              Alert.alert("Error", "Could not open photo library.");
             }
           }
         },
-        {
-          text: "Cancel",
-          style: "cancel"
-        }
+        { text: "Cancel", style: "cancel" }
       ]
     );
   };
@@ -538,8 +555,8 @@ export default function TodayScreen() {
           showsMyLocationButton={false}
           customMapStyle={mapStyle} // Cleaner map style
           initialRegion={{
-            latitude: location?.coords.latitude || 11.5564,
-            longitude: location?.coords.longitude || 104.9282,
+            latitude: location?.coords.latitude || 0,
+            longitude: location?.coords.longitude || 0,
             latitudeDelta: 0.0522,
             longitudeDelta: 0.0221,
           }}
@@ -548,8 +565,8 @@ export default function TodayScreen() {
           {activeBooking && activeBooking.serviceAddress && (
              <Marker 
                coordinate={{
-                 latitude: Number(activeBooking.latitude) || (location?.coords.latitude || 11.5564) + 0.01,
-                 longitude: Number(activeBooking.longitude) || (location?.coords.longitude || 104.9282) + 0.01
+                 latitude: Number(activeBooking.latitude) || (location?.coords.latitude || 0) + 0.01,
+                 longitude: Number(activeBooking.longitude) || (location?.coords.longitude || 0) + 0.01
                }}
              >
                <View style={s.markerContainer}>
@@ -563,8 +580,8 @@ export default function TodayScreen() {
              <Marker 
                key={`marker-${job.id}`}
                coordinate={{
-                 latitude: Number(job.latitude) || (location?.coords.latitude || 11.5564) + (Math.random() * 0.02 - 0.01),
-                 longitude: Number(job.longitude) || (location?.coords.longitude || 104.9282) + (Math.random() * 0.02 - 0.01)
+                 latitude: Number(job.latitude) || (location?.coords.latitude || 0) + (Math.random() * 0.02 - 0.01),
+                 longitude: Number(job.longitude) || (location?.coords.longitude || 0) + (Math.random() * 0.02 - 0.01)
                }}
                onPress={() => setSelectedJob(job)}
              >
@@ -596,11 +613,15 @@ export default function TodayScreen() {
       <View style={[s.floatingHeader, { top: insets.top + 12 }]}>
         <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
           <View style={s.headerPill}>
-            <View style={[s.statusDot, { backgroundColor: state === 'OFFLINE' ? T.text3 : T.success }]} />
-            <Text style={s.headerPillText}>{state === 'OFFLINE' ? 'Offline' : state === 'WAITING' ? 'Online' : 'On Job'}</Text>
+            <View style={[s.statusDot, { backgroundColor: isOnline ? T.success : T.text3 }]} />
+            <Text style={s.headerPillText}>{isOnline ? 'Available' : 'Offline'}</Text>
+          </View>
+          <View style={s.headerPill}>
+            <View style={[s.statusDot, { backgroundColor: isOffline ? T.danger : T.success }]} />
+            <Text style={s.headerPillText}>{isOffline ? 'No Internet' : 'Connected'}</Text>
           </View>
           
-          {state === 'WAITING' && (
+          {isOnline && state === 'WAITING' && (
             <View style={s.togglePill}>
               <TouchableOpacity 
                 style={[s.toggleTab, viewMode === 'map' && s.toggleTabActive]} 
@@ -630,27 +651,45 @@ export default function TodayScreen() {
       )}
 
       {/* The Bottom Sheet - Core UI Anchor */}
-      <View style={[s.bottomSheet, { paddingBottom: insets.bottom + 85 }]}>
-        <View style={s.sheetHandle} />
+      <View style={[
+        s.bottomSheet, 
+        isCollapsed ? { height: 50, paddingBottom: 0, paddingTop: 6 } : null
+      ]}>
+        <TouchableOpacity 
+          style={s.sheetHandleContainer} 
+          onPress={() => setIsCollapsed(!isCollapsed)}
+          activeOpacity={0.8}
+        >
+          <View style={s.sheetHandle} />
+          <MaterialCommunityIcons 
+            name={isCollapsed ? "chevron-up" : "chevron-down"} 
+            size={20} 
+            color="#94A3B8" 
+            style={{ marginTop: 2 }} 
+          />
+        </TouchableOpacity>
 
-        {state === 'LOADING' && (
+        {!isCollapsed && (
+          <>
+
+        {isOnline && state === 'LOADING' && (
           <View style={s.sheetContent}>
             <ActivityIndicator size="large" color={T.accent} />
             <Text style={s.loadingText}>Syncing schedule...</Text>
           </View>
         )}
 
-        {state === 'OFFLINE' && (
+        {!isOnline && (
           <View style={s.sheetContent}>
             <Text style={s.sheetTitle}>You are Offline</Text>
-            <Text style={s.sheetSub}>Go online to start receiving jobs in your area.</Text>
+            <Text style={s.sheetSub}>Go online to start receiving company jobs.</Text>
             <View style={s.btnWrapper}>
-              <BigButton label="GO ONLINE" onPress={() => setState('WAITING')} color={T.success} icon="power" />
+              <BigButton label="GO ONLINE" onPress={() => setIsOnline(true)} color={T.success} icon="power" />
             </View>
           </View>
         )}
 
-        {state === 'WAITING' && (
+        {isOnline && state === 'WAITING' && (
           <View style={s.sheetContent}>
             {!selectedJob ? (
                <>
@@ -660,16 +699,34 @@ export default function TodayScreen() {
                    </View>
                  </Animated.View>
                  <Text style={s.sheetTitle}>Finding Jobs</Text>
-                 <Text style={s.sheetSub}>Found {availableJobs.length} open jobs. Tap a pin on the map or use List View.</Text>
+                 <Text style={[s.sheetSub, { marginTop: 4, marginBottom: 12 }]}>Found {availableJobs.length} nearby jobs from your company. Tap a pin on the map or use List View.</Text>
                  
-                 <View style={[s.btnWrapper, { marginTop: 24 }]}>
-                   <BigButton label="GO OFFLINE" onPress={() => setState('OFFLINE')} outline color={T.danger} />
+                 {/* Nearby Opportunities */}
+                 <View style={{ width: '100%', borderTopWidth: 1, borderTopColor: '#E8EEF4', paddingTop: 12, marginBottom: 8 }}>
+                   <Text style={{ fontSize: 13, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+                     ⚡ Nearby Company Jobs
+                   </Text>
+                   <TouchableOpacity 
+                     style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F0F4F8' }}
+                     onPress={() => setState('NEW_REQUEST')}
+                   >
+                     <MaterialCommunityIcons name="lightning-bolt" size={20} color="#F59E0B" style={{ marginRight: 8 }} />
+                     <View>
+                       <Text style={{ fontSize: 14, fontWeight: '700', color: '#0A192F' }}>AC Maintenance (Instant)</Text>
+                       <Text style={{ fontSize: 12, color: '#64748B' }}>1.8 km away · Est: $45-$60</Text>
+                     </View>
+                     <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" style={{ marginLeft: 'auto' }} />
+                   </TouchableOpacity>
+                 </View>
+
+                 <View style={[s.btnWrapper, { marginTop: 16 }]}>
+                   <BigButton label="GO OFFLINE" onPress={() => setIsOnline(false)} outline color={T.danger} />
                  </View>
                </>
             ) : (
                <View style={{ width: '100%' }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <Text style={s.badgeLabel}>OPEN POOL TASK</Text>
+                    <Text style={s.badgeLabel}>COMPANY JOB POOL</Text>
                     <View style={s.priceTag}>
                       <Text style={s.priceTagText}>${selectedJob.totalPrice || "35.00"}</Text>
                     </View>
@@ -711,7 +768,7 @@ export default function TodayScreen() {
           </View>
         )}
 
-        {state === 'NEW_JOB' && (
+        {isOnline && state === 'NEW_JOB' && (
           (() => {
             const distance = location && activeBooking?.latitude && activeBooking?.longitude
               ? `${getDistance(location.coords.latitude, location.coords.longitude, Number(activeBooking.latitude), Number(activeBooking.longitude))} mi`
@@ -778,7 +835,90 @@ export default function TodayScreen() {
           })()
         )}
 
-        {state === 'TRAVELING' && (
+        {isOnline && state === 'NEW_REQUEST' && (
+          <View style={s.sheetContent}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 12 }}>
+              <Text style={s.badgeLabel}>⚡ INSTANT HELP REQUEST</Text>
+              <View style={s.priceTag}>
+                <Text style={s.priceTagText}>Est: $45–60</Text>
+              </View>
+            </View>
+
+            <Text style={s.jobTitle}>Need Help Now: AC Maintenance</Text>
+            
+            <View style={s.pillsContainer}>
+              <View style={s.infoPill}>
+                <MaterialCommunityIcons name="map-marker-distance" size={14} color={T.text2} />
+                <Text style={s.infoPillText}>1.8 km away</Text>
+              </View>
+              <View style={s.infoPill}>
+                <MaterialCommunityIcons name="clock-alert-outline" size={14} color={T.text2} />
+                <Text style={s.infoPillText}>Immediate (30s timer)</Text>
+              </View>
+            </View>
+
+            <View style={s.addressBox}>
+              <MaterialCommunityIcons name="map-marker" size={18} color={T.success} style={{ marginRight: 8 }} />
+              <Text style={s.addressBoxText} numberOfLines={2}>
+                BKK1, Street 278, Phnom Penh
+              </Text>
+            </View>
+
+            <View style={s.clientCard}>
+              <View style={s.clientAvatar}>
+                <Text style={s.clientAvatarText}>JD</Text>
+              </View>
+              <View style={s.clientInfo}>
+                <Text style={s.clientName}>John Doe</Text>
+                <Text style={s.clientLabel}>"AC is making a loud noise and blowing warm air."</Text>
+              </View>
+            </View>
+            
+            <View style={[s.rowBtns, { marginTop: 24 }]}>
+              <View style={{ flex: 1 }}>
+                <BigButton label="DECLINE" onPress={() => setState('WAITING')} outline color={T.text3} />
+              </View>
+              <View style={{ width: 12 }} />
+              <View style={{ flex: 2 }}>
+                <BigButton label="SEND OFFER ($50)" onPress={() => setState('OFFER_SENT')} color={T.success} icon="send" />
+              </View>
+            </View>
+          </View>
+        )}
+
+        {isOnline && state === 'OFFER_SENT' && (
+          <View style={s.sheetContent}>
+             <View style={s.successCircleContainer}>
+               <MaterialCommunityIcons name="timer-sand" size={48} color="#F59E0B" />
+             </View>
+             <Text style={s.jobTitle}>Offer Sent!</Text>
+             <Text style={[s.sheetSub, { marginBottom: 24, marginTop: 4 }]}>
+               Waiting for the customer to review bids and select a provider.
+             </Text>
+             <View style={{ flexDirection: 'row', width: '100%', gap: 12 }}>
+               <View style={{ flex: 1 }}>
+                 <BigButton label="CANCEL OFFER" onPress={() => setState('WAITING')} outline color={T.danger} />
+               </View>
+               <View style={{ flex: 1.5 }}>
+                 <BigButton label="SIMULATE SELECT" onPress={() => {
+                   setActiveBooking({
+                     id: 999,
+                     status: 'confirmed',
+                     latitude: location?.coords.latitude || 0,
+                     longitude: location?.coords.longitude || 0,
+                     serviceAddress: "BKK1, Street 278, Phnom Penh",
+                     totalPrice: 50.00,
+                     customer: { fullName: "John Doe" },
+                     service: { name: "Instant AC Repair", durationMin: 60 }
+                   });
+                   setState('TRAVELING');
+                 }} color={T.success} icon="lightning-bolt" />
+               </View>
+             </View>
+          </View>
+        )}
+
+        {isOnline && state === 'TRAVELING' && (
           (() => {
             const customerName = activeBooking?.customer?.fullName || "Customer";
             const initials = customerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
@@ -832,7 +972,7 @@ export default function TodayScreen() {
           })()
         )}
 
-        {state === 'ARRIVED' && (
+        {isOnline && state === 'ARRIVED' && (
           <View style={[s.sheetContent, { paddingVertical: 12 }]}>
              <View style={s.successCircleContainer}>
                <MaterialCommunityIcons name="map-marker-check" size={56} color={T.success} />
@@ -850,7 +990,7 @@ export default function TodayScreen() {
           </View>
         )}
 
-        {state === 'WORKING' && (
+        {isOnline && state === 'WORKING' && (
           (() => {
             const dbChecklist = activeBooking?.checklist;
             const hasDbChecklist = Array.isArray(dbChecklist) && dbChecklist.length > 0;
@@ -902,10 +1042,10 @@ export default function TodayScreen() {
                 </View>
 
                 <View style={s.btnWrapper}>
-                  {checklistStep < checklistItems.length - 1 ? (
+                  {checklistStep < checklistItems.length ? (
                     <BigButton label="MARK STEP COMPLETE" onPress={handleMarkStepComplete} icon="check" />
                   ) : (
-                    <BigButton label="UPLOAD & FINISH" onPress={handleUploadPhoto} color={T.success} icon="camera" />
+                    <BigButton label="PROCEED TO FINISH" onPress={() => setState('FINISHING')} color={T.success} icon="arrow-right" />
                   )}
                 </View>
               </View>
@@ -913,35 +1053,45 @@ export default function TodayScreen() {
           })()
         )}
 
-        {state === 'FINISHING' && (
+        {isOnline && state === 'FINISHING' && (
           <View style={s.sheetContent}>
             <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', marginBottom: 12 }}>
               <MaterialCommunityIcons name="clipboard-check" size={20} color={T.accent} style={{ marginRight: 6 }} />
               <Text style={s.badgeLabel}>FINAL SIGN OFF</Text>
             </View>
             <Text style={[s.jobTitle, { alignSelf: 'flex-start' }]}>Complete Service</Text>
+            <Text style={[s.sheetSub, { alignSelf: 'flex-start', marginBottom: 12 }]}>Provide evidence photos to complete the job.</Text>
             
-            {uploadedPhotoUri && (
-              <View style={s.premiumPreviewCard}>
-                <Image source={{ uri: uploadedPhotoUri }} style={s.premiumPreviewImage} />
-                <TouchableOpacity onPress={() => handleUploadPhoto()} style={s.premiumChangePhotoBtn} activeOpacity={0.8}>
-                  <MaterialCommunityIcons name="camera-flip" size={16} color="#fff" style={{ marginRight: 6 }} />
-                  <Text style={s.premiumChangePhotoText}>Retake Photo</Text>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%', marginBottom: 20 }}>
+              {(['before', 'during', 'after'] as const).map((type) => (
+                <TouchableOpacity 
+                  key={type} 
+                  style={{ flex: 1, height: 80, borderRadius: 16, borderWidth: 1, borderColor: '#CBD5E1', borderStyle: 'dashed', backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+                  onPress={() => handleUploadPhotoForType(type)}
+                >
+                  {uploadedPhotos[type] ? (
+                    <Image source={{ uri: uploadedPhotos[type] }} style={{ width: '100%', height: '100%' }} />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="camera" size={20} color="#94A3B8" />
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: '#94A3B8', marginTop: 2, textTransform: 'capitalize' }}>{type}</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
-              </View>
-            )}
+              ))}
+            </View>
 
             <View style={s.btnWrapper}>
               <BigButton label="SUBMIT & CLOSE JOB" onPress={() => {
                 updateBackendStatus('completed');
                 setState('COMPLETED');
-                setUploadedPhotoUri(null);
+                setUploadedPhotos({});
               }} color={T.success} icon="check-all" />
             </View>
           </View>
         )}
 
-        {state === 'COMPLETED' && (
+        {isOnline && state === 'COMPLETED' && (
           <View style={s.sheetContent}>
              <View style={s.successCircle}>
                 <MaterialCommunityIcons name="check-decagram" size={64} color={T.success} />
@@ -958,9 +1108,11 @@ export default function TodayScreen() {
                  loadJobs();
                }} />
              </View>
-          </View>
-        )}
-      </View>
+             </View>
+           )}
+         </>
+       )}
+     </View>
     </View>
   );
 }
@@ -993,21 +1145,33 @@ const s = StyleSheet.create({
 
   bottomSheet: {
     position: 'absolute',
-    bottom: 0,
-    width: '100%',
+    bottom: Platform.OS === 'ios' ? 95 : 80,
+    left: 16,
+    right: 16,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    padding: 24,
-    paddingBottom: Dimensions.get('window').height > 800 ? 110 : 90, // Accounts for tab bar
+    borderRadius: 24,
+    padding: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
     shadowRadius: 24,
     elevation: 20,
     zIndex: 20,
   },
-  sheetHandle: { width: 40, height: 4, backgroundColor: '#E8EEF4', borderRadius: 2, alignSelf: 'center', marginBottom: 24 },
+  sheetHandleContainer: {
+    width: '100%',
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetHandle: { 
+    width: 40, 
+    height: 4, 
+    backgroundColor: '#E8EEF4', 
+    borderRadius: 2,
+  },
   sheetContent: { alignItems: 'center', width: '100%' },
   
   sheetTitle: { fontSize: 28, fontWeight: '900', color: '#0A192F', textAlign: 'center', letterSpacing: -0.5 },

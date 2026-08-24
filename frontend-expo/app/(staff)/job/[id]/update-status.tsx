@@ -1,11 +1,19 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { PhotoCapture } from "@/components/jobs/PhotoCapture";
 import api from "@/utils/api";
+import { Theme } from "@/constants/theme";
+
+const T = Theme.colors;
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 type JobStatus = "en_route" | "arrived" | "working" | "completed";
 
@@ -30,7 +38,6 @@ export default function UpdateStatusScreen() {
     setSubmitting(true);
     try {
       if (currentStatus === "en_route") {
-        // Persist en-route status to backend — triggers customer notification and begins location tracking window
         await api.patch(`/api/bookings/${id}/en-route`);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
@@ -92,34 +99,31 @@ export default function UpdateStatusScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface">
-      <View className="flex-row items-center px-4 py-3 border-b border-surface-container">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 mr-2">
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#191c1e" />
+    <SafeAreaView style={s.root}>
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={T.primary} />
         </TouchableOpacity>
         <View>
-          <Text className="text-xl font-headline font-bold text-on-surface">Update Job Status</Text>
-          <Text className="text-xs text-on-surface-variant">Job #{id}</Text>
+          <Text style={s.headerTitle}>Update Job Status</Text>
+          <Text style={s.headerSubtitle}>Job #{id}</Text>
         </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+      <ScrollView style={s.scrollView} contentContainerStyle={s.scrollContent}>
         {/* Status Steps */}
-        <Text className="font-headline font-bold text-on-surface mb-4">Select Current Status</Text>
-        <View className="mb-6">
+        <Text style={s.sectionTitle}>Select Current Status</Text>
+        <View style={s.stepsContainer}>
           {STATUS_STEPS.map((step, idx) => {
             const isSelected = step.key === currentStatus;
             const isPast = idx < currentStepIdx;
             return (
               <TouchableOpacity
                 key={step.key}
-                className={`flex-row items-center p-4 rounded-2xl mb-3 border-2 ${
-                  isSelected
-                    ? "bg-primary-container/40 border-primary"
-                    : isPast
-                    ? "bg-surface-container-lowest border-surface-container opacity-60"
-                    : "bg-surface-container-lowest border-outline-variant"
-                }`}
+                style={[
+                  s.stepCard,
+                  isSelected ? s.stepCardSelected : isPast ? s.stepCardPast : s.stepCardUpcoming
+                ]}
                 onPress={() => {
                   setCurrentStatus(step.key);
                   if (step.key === "arrived") {
@@ -129,20 +133,24 @@ export default function UpdateStatusScreen() {
                   }
                 }}
               >
-                <View className={`w-10 h-10 rounded-full items-center justify-center mr-4 ${
-                  isSelected ? "bg-primary" : isPast ? "bg-surface-container" : "bg-surface-container-high"
-                }`}>
+                <View style={[
+                  s.stepIconBox,
+                  isSelected ? s.stepIconBoxSelected : isPast ? s.stepIconBoxPast : s.stepIconBoxUpcoming
+                ]}>
                   <MaterialCommunityIcons
                     name={step.icon as any}
                     size={20}
-                    color={isSelected ? "white" : isPast ? "#74777f" : "#191c1e"}
+                    color={isSelected ? "white" : isPast ? T.text2 : T.primary}
                   />
                 </View>
-                <View className="flex-1">
-                  <Text className={`font-bold ${isSelected ? "text-primary" : "text-on-surface"}`}>
+                <View style={s.stepTextWrap}>
+                  <Text style={[
+                    s.stepLabel,
+                    isSelected ? s.stepLabelSelected : s.stepLabelDefault
+                  ]}>
                     {step.label}
                   </Text>
-                  <Text className="text-xs text-on-surface-variant mt-0.5">{step.description}</Text>
+                  <Text style={s.stepDesc}>{step.description}</Text>
                 </View>
                 {isSelected && (
                   <MaterialCommunityIcons name="radiobox-marked" size={20} color="#1ba9ed" />
@@ -153,12 +161,12 @@ export default function UpdateStatusScreen() {
         </View>
 
         {/* Progress Notes */}
-        <Text className="font-headline font-bold text-on-surface mb-3">Progress Notes</Text>
-        <View className="bg-surface-container-lowest rounded-2xl border border-outline-variant p-3 mb-6">
+        <Text style={s.sectionTitle}>Progress Notes</Text>
+        <View style={s.inputWrap}>
           <TextInput
-            className="text-on-surface font-body min-h-[80px]"
+            style={s.input}
             placeholder="Add notes about the job progress (optional)..."
-            placeholderTextColor="#c4c6cf"
+            placeholderTextColor={T.text3}
             multiline
             textAlignVertical="top"
             value={notes}
@@ -167,7 +175,7 @@ export default function UpdateStatusScreen() {
         </View>
 
         {/* Photo Upload */}
-        <Text className="font-headline font-bold text-on-surface mb-3">Attach Photos</Text>
+        <Text style={s.sectionTitle}>Attach Photos</Text>
         <PhotoCapture
           jobId={id ?? ""}
           onPhotosChange={setPhotos}
@@ -176,24 +184,26 @@ export default function UpdateStatusScreen() {
       </ScrollView>
 
       {/* Submit Button */}
-      <View className="absolute bottom-0 left-0 right-0 px-4 pb-8 pt-4 bg-surface border-t border-surface-container">
+      <View style={s.footer}>
         <TouchableOpacity
-          className={`h-14 rounded-full items-center justify-center ${
-            submitting ? "bg-primary/70" : currentStatus === "completed" ? "bg-[#16a34a]" : "bg-primary"
-          }`}
+          style={[
+            s.submitBtn,
+            currentStatus === "completed" ? s.submitBtnComplete : s.submitBtnDefault,
+            submitting && { opacity: 0.7 }
+          ]}
           onPress={handleSubmit}
           disabled={submitting}
         >
           {submitting ? (
             <ActivityIndicator color="white" />
           ) : (
-            <View className="flex-row items-center gap-2">
+            <View style={s.submitBtnRow}>
               <MaterialCommunityIcons
                 name={currentStatus === "completed" ? "check-circle" : "update"}
                 size={20}
                 color="white"
               />
-              <Text className="text-white font-bold text-lg">
+              <Text style={s.submitBtnText}>
                 {currentStatus === "completed" ? "Mark as Completed" : "Update Status"}
               </Text>
             </View>
@@ -203,3 +213,153 @@ export default function UpdateStatusScreen() {
     </SafeAreaView>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: T.bg },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: T.border,
+    backgroundColor: T.surface,
+  },
+  backBtn: {
+    padding: 8,
+    marginRight: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: T.text1,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: T.text3,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 120,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: T.text1,
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  stepsContainer: {
+    marginBottom: 20,
+  },
+  stepCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+  },
+  stepCardSelected: {
+    backgroundColor: T.accentLight,
+    borderColor: T.primary,
+  },
+  stepCardPast: {
+    backgroundColor: T.surface,
+    borderColor: T.border,
+    opacity: 0.6,
+  },
+  stepCardUpcoming: {
+    backgroundColor: T.surface,
+    borderColor: T.border,
+  },
+  stepIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  stepIconBoxSelected: {
+    backgroundColor: T.primary,
+  },
+  stepIconBoxPast: {
+    backgroundColor: T.bg,
+  },
+  stepIconBoxUpcoming: {
+    backgroundColor: T.bg,
+  },
+  stepTextWrap: {
+    flex: 1,
+  },
+  stepLabel: {
+    fontWeight: "800",
+    fontSize: 14,
+  },
+  stepLabelSelected: {
+    color: T.primary,
+  },
+  stepLabelDefault: {
+    color: T.text1,
+  },
+  stepDesc: {
+    fontSize: 12,
+    color: T.text2,
+    marginTop: 2,
+  },
+  inputWrap: {
+    backgroundColor: T.surface,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: T.border,
+    padding: 12,
+    marginBottom: 24,
+    ...CARD_SHADOW,
+  },
+  input: {
+    fontSize: 14,
+    color: T.text1,
+    minHeight: 80,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingBottom: 28,
+    paddingTop: 16,
+    backgroundColor: T.surface,
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+  },
+  submitBtn: {
+    height: 54,
+    borderRadius: 27,
+    alignItems: "center",
+    justifyContent: "center",
+    ...CARD_SHADOW,
+  },
+  submitBtnDefault: {
+    backgroundColor: T.primary,
+  },
+  submitBtnComplete: {
+    backgroundColor: T.success,
+  },
+  submitBtnRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  submitBtnText: {
+    color: "white",
+    fontWeight: "800",
+    fontSize: 16,
+  },
+});

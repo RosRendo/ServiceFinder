@@ -19,11 +19,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
+import { useCurrentLocation } from "@/hooks/useCurrentLocation";
 
 const T = Theme.colors;
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-const CUSTOMER_LOC = { latitude: 11.5564, longitude: 104.9282 };
 const PROVIDERS = [
   { id: "p1", name: "ABC Repair", distance: "1.2 km", eta: "7 min", lat: 11.5615, lng: 104.9310 },
   { id: "p2", name: "QuickFix", distance: "2.0 km", eta: "10 min", lat: 11.5510, lng: 104.9380 },
@@ -46,6 +46,8 @@ export default function InstantRequestFlow() {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>(1);
   const [loading, setLoading] = useState(false);
+  const [isSimulation, setIsSimulation] = useState(false);
+  const { location: CUSTOMER_LOC, loadingLocation } = useCurrentLocation();
 
   // Form State
   const [selectedService, setSelectedService] = useState<{ id: string; label: string } | null>(null);
@@ -85,9 +87,29 @@ export default function InstantRequestFlow() {
 
   const handleFindProviders = async () => {
     if (!selectedService) return;
+    const finalDesc = desc.trim() || `Urgent ${selectedService.label} request`;
+    if (isSimulation) {
+      setLoading(true);
+      setTimeout(() => {
+        setLoading(false);
+        router.push({
+          pathname: "/(customer)/instant-request/matching" as any,
+          params: {
+            serviceId: selectedService.id,
+            serviceName: selectedService.label,
+            desc: finalDesc,
+            preferredTime: "now",
+            requestId: `mock-req-${Date.now()}`,
+            lat: CUSTOMER_LOC.latitude,
+            lng: CUSTOMER_LOC.longitude,
+            isSimulation: "true",
+          },
+        });
+      }, 800);
+      return;
+    }
     try {
       setLoading(true);
-      const finalDesc = desc.trim() || `Urgent ${selectedService.label} request`;
       const response = await api.post("/api/instant-requests", {
         serviceCategory: selectedService.label,
         description: finalDesc,
@@ -140,8 +162,28 @@ export default function InstantRequestFlow() {
           <MaterialCommunityIcons name="arrow-left" size={24} color={T.text1} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>{getHeaderTitle()}</Text>
-        <View style={{ width: 40 }} />
+        
+        <TouchableOpacity 
+          onPress={() => setIsSimulation(prev => !prev)} 
+          style={[s.simToggleBtn, isSimulation && s.simToggleBtnActive]}
+        >
+          <MaterialCommunityIcons 
+            name={isSimulation ? "play-circle" : "play-circle-outline"} 
+            size={14} 
+            color={isSimulation ? "#FFF" : T.text2} 
+          />
+          <Text style={[s.simToggleText, isSimulation && s.simToggleTextActive]}>
+            {isSimulation ? "Sim: ON" : "Simulate"}
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {isSimulation && (
+        <View style={s.simBanner}>
+          <MaterialCommunityIcons name="information" size={14} color="#065f46" style={{ marginRight: 6 }} />
+          <Text style={s.simBannerText}>Simulation Mode Active (Offline Walkthrough)</Text>
+        </View>
+      )}
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -149,6 +191,12 @@ export default function InstantRequestFlow() {
       >
         {/* Map (Occupies background/top portion) */}
         <View style={s.mapContainer}>
+          {loadingLocation && (
+             <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(255,255,255,0.7)', zIndex: 10, justifyContent: 'center', alignItems: 'center' }]}>
+               <ActivityIndicator size="large" color={T.accent} />
+               <Text style={{ marginTop: 8, color: T.text1, fontWeight: '600' }}>Locating you...</Text>
+             </View>
+          )}
           <MapView
             provider={MAP_PROVIDER}
             style={StyleSheet.absoluteFillObject}
@@ -455,7 +503,7 @@ const s = StyleSheet.create({
   },
   cardLabel: {
     fontSize: 13,
-    fontWeight: "750",
+    fontWeight: "700",
     color: T.text1,
     textAlign: "center"
   },
@@ -545,5 +593,42 @@ const s = StyleSheet.create({
     fontSize: 14,
     color: T.text1,
     fontWeight: "500"
+  },
+  simToggleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4
+  },
+  simToggleBtnActive: {
+    backgroundColor: "#10B981",
+    borderColor: "#059669"
+  },
+  simToggleText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: T.text2
+  },
+  simToggleTextActive: {
+    color: "#FFF"
+  },
+  simBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E6F4EA",
+    borderBottomWidth: 1,
+    borderBottomColor: "#A3E635",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  simBannerText: {
+    fontSize: 12,
+    color: "#065f46",
+    fontWeight: "600"
   }
 });

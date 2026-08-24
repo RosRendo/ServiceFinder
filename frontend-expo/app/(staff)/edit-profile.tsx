@@ -383,8 +383,21 @@ const s = StyleSheet.create({
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { fontSize: 16, fontWeight: "800", color: "#fff" },
 
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 24 },
-  modalContent: { width: "100%", backgroundColor: T.surface, borderRadius: 24, padding: 24, ...SHADOW },
+  modalOverlay: { 
+    flex: 1, 
+    backgroundColor: "rgba(0,0,0,0.5)", 
+    justifyContent: "flex-end", 
+    alignItems: "center" 
+  },
+  modalContent: { 
+    width: "100%", 
+    backgroundColor: T.surface, 
+    borderTopLeftRadius: 24, 
+    borderTopRightRadius: 24, 
+    padding: 24, 
+    paddingBottom: 40,
+    ...SHADOW 
+  },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   modalTitle: { fontSize: 20, fontWeight: "800", color: T.text1 },
   modalCloseBtn: { padding: 4 },

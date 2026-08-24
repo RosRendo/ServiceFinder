@@ -1,9 +1,17 @@
 import React, { useState } from "react";
 import { Image } from "expo-image";
-import { ScrollView, Text, View, TouchableOpacity, TextInput, FlatList } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, TextInput, FlatList, StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { Theme } from "@/constants/theme";
+
+const T = Theme.colors;
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4 },
+  android: { elevation: 1 },
+});
 
 type Message = {
   id: string;
@@ -81,9 +89,9 @@ export default function BookingMessagesScreen() {
   const renderMessage = (item: Message) => {
     if (item.type === "system") {
       return (
-        <View key={item.id} className="items-center my-4">
-          <View className="bg-surface-container-low px-4 py-2 rounded-full border border-outline-variant/10">
-            <Text className="text-xs font-bold text-on-surface-variant tracking-wider">
+        <View key={item.id} style={s.systemMsgRow}>
+          <View style={s.systemBadge}>
+            <Text style={s.systemBadgeText}>
               {item.content}
             </Text>
           </View>
@@ -96,19 +104,19 @@ export default function BookingMessagesScreen() {
     return (
       <View
         key={item.id}
-        className={`flex-row ${isCustomer ? "justify-end" : "justify-start"} mb-4`}
+        style={[s.msgRow, isCustomer ? s.msgRowCustomer : s.msgRowProvider]}
       >
         <View
-          className={`max-w-[85%] ${isCustomer ? "items-end" : "items-start"}`}
+          style={[s.msgWrap, isCustomer ? s.msgWrapCustomer : s.msgWrapProvider]}
         >
           {item.image && (
-            <View className="bg-surface-container-lowest p-2 rounded-2xl shadow-sm mb-2 overflow-hidden">
+            <View style={s.imageCard}>
               <Image
                 source={{ uri: item.image }}
-                className="w-56 h-40 rounded-xl"
+                style={s.msgImage}
               />
               {item.content && (
-                <Text className="text-on-surface-variant text-xs px-3 py-2">
+                <Text style={s.imageCaption}>
                   {item.content}
                 </Text>
               )}
@@ -117,16 +125,16 @@ export default function BookingMessagesScreen() {
 
           {item.content && !item.image && (
             <View
-              className={`p-4 rounded-2xl ${
-                isCustomer
-                  ? "bg-primary-500 rounded-br-none"
-                  : "bg-surface-container-lowest rounded-bl-none shadow-sm"
-              }`}
+              style={[
+                s.bubble,
+                isCustomer ? s.bubbleMe : s.bubbleThem
+              ]}
             >
               <Text
-                className={`text-base leading-relaxed ${
-                  isCustomer ? "text-white" : "text-on-surface-variant"
-                }`}
+                style={[
+                  s.msgText,
+                  isCustomer ? s.msgTextMe : s.msgTextThem
+                ]}
               >
                 {item.content}
               </Text>
@@ -134,9 +142,10 @@ export default function BookingMessagesScreen() {
           )}
 
           <Text
-            className={`text-[10px] font-bold text-on-secondary-container mt-2 ${
-              isCustomer ? "mr-1" : "ml-1"
-            } uppercase tracking-tighter`}
+            style={[
+              s.msgTime,
+              isCustomer ? s.msgTimeMe : s.msgTimeThem
+            ]}
           >
             {item.timestamp}
           </Text>
@@ -146,49 +155,49 @@ export default function BookingMessagesScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface">
+    <SafeAreaView style={s.root}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-4 border-b border-surface-container bg-surface-container-lowest">
-        <View className="flex-row items-center gap-3 flex-1">
+      <View style={s.header}>
+        <View style={s.headerLeft}>
           <TouchableOpacity
             onPress={() => router.back()}
-            className="w-10 h-10 rounded-full items-center justify-center"
+            style={s.backBtn}
           >
             <MaterialCommunityIcons
               name="arrow-left"
               size={24}
-              color="#002045"
+              color={T.primary}
             />
           </TouchableOpacity>
 
-          <View className="flex-row items-center gap-3 flex-1">
+          <View style={s.providerBadge}>
             {/* Provider Avatar */}
-            <View className="relative">
+            <View style={s.avatarWrap}>
               <Image
                 source={{
                   uri: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
                 }}
-                className="w-10 h-10 rounded-full bg-surface-container"
+                style={s.avatarImg}
               />
-              <View className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
+              <View style={s.onlineDot} />
             </View>
 
-            <View className="flex-1">
-              <Text className="text-base font-bold text-primary-500 font-headline">
+            <View style={s.providerText}>
+              <Text style={s.providerName}>
                 Sparkle Pro Cleaning
               </Text>
-              <Text className="text-[10px] font-bold uppercase tracking-widest text-green-600">
+              <Text style={s.statusText}>
                 Online
               </Text>
             </View>
           </View>
         </View>
 
-        <TouchableOpacity className="w-10 h-10 rounded-full items-center justify-center">
+        <TouchableOpacity style={s.moreBtn}>
           <MaterialCommunityIcons
             name="dots-vertical"
             size={24}
-            color="#002045"
+            color={T.primary}
           />
         </TouchableOpacity>
       </View>
@@ -198,35 +207,35 @@ export default function BookingMessagesScreen() {
         data={messages}
         renderItem={({ item }) => renderMessage(item)}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
+        contentContainerStyle={s.listContent}
         showsVerticalScrollIndicator={false}
         scrollEnabled={true}
       />
 
       {/* Input Area */}
-      <View className="bg-white/80 border-t border-surface-container px-4 py-4 pb-8">
-        <View className="flex-row items-end gap-3">
+      <View style={s.inputContainer}>
+        <View style={s.inputRow}>
           {/* Add Button */}
-          <TouchableOpacity className="w-12 h-12 rounded-full bg-surface-container-low items-center justify-center active:opacity-70">
-            <MaterialCommunityIcons name="plus" size={24} color="#515f74" />
+          <TouchableOpacity style={s.attachBtn} activeOpacity={0.7}>
+            <MaterialCommunityIcons name="plus" size={24} color={T.text2} />
           </TouchableOpacity>
 
           {/* Text Input */}
-          <View className="flex-1 bg-surface-container-low rounded-2xl flex-row items-center px-4">
+          <View style={s.inputWrap}>
             <TextInput
-              className="flex-1 py-3 text-on-surface font-body"
+              style={s.textInput}
               placeholder="Type a message..."
-              placeholderTextColor="#43474e"
+              placeholderTextColor={T.text3}
               value={inputText}
               onChangeText={setInputText}
               multiline
               maxLength={500}
             />
-            <TouchableOpacity className="p-2">
+            <TouchableOpacity style={s.clipBtn}>
               <MaterialCommunityIcons
                 name="paperclip"
                 size={20}
-                color="#43474e"
+                color={T.text2}
               />
             </TouchableOpacity>
           </View>
@@ -235,9 +244,10 @@ export default function BookingMessagesScreen() {
           <TouchableOpacity
             onPress={handleSendMessage}
             disabled={!inputText.trim()}
-            className={`w-12 h-12 rounded-full items-center justify-center shadow-lg active:scale-90 ${
-              inputText.trim() ? "bg-primary-500" : "bg-primary-500/50"
-            }`}
+            style={[
+              s.sendBtn,
+              inputText.trim() ? s.sendBtnActive : s.sendBtnInactive
+            ]}
           >
             <MaterialCommunityIcons name="send" size={20} color="white" />
           </TouchableOpacity>
@@ -246,3 +256,237 @@ export default function BookingMessagesScreen() {
     </SafeAreaView>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: T.bg },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: T.border,
+    backgroundColor: T.surface,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  providerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  avatarWrap: {
+    position: "relative",
+  },
+  avatarImg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: T.bg,
+  },
+  onlineDot: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 11,
+    height: 11,
+    backgroundColor: T.success,
+    borderWidth: 2,
+    borderColor: "white",
+    borderRadius: 5.5,
+  },
+  providerText: {
+    flex: 1,
+  },
+  providerName: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: T.text1,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    color: T.success,
+    marginTop: 2,
+  },
+  moreBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  systemMsgRow: {
+    alignItems: "center",
+    marginVertical: 16,
+  },
+  systemBadge: {
+    backgroundColor: T.border,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  systemBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: T.text2,
+    letterSpacing: 0.2,
+  },
+  msgRow: {
+    flexDirection: "row",
+    marginBottom: 16,
+  },
+  msgRowCustomer: {
+    justifyContent: "flex-end",
+  },
+  msgRowProvider: {
+    justifyContent: "flex-start",
+  },
+  msgWrap: {
+    maxWidth: "85%",
+  },
+  msgWrapCustomer: {
+    alignItems: "flex-end",
+  },
+  msgWrapProvider: {
+    alignItems: "flex-start",
+  },
+  imageCard: {
+    backgroundColor: T.surface,
+    padding: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: T.border,
+    overflow: "hidden",
+    ...CARD_SHADOW,
+  },
+  msgImage: {
+    width: 220,
+    height: 160,
+    borderRadius: 12,
+  },
+  imageCaption: {
+    fontSize: 13,
+    color: T.text2,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  bubble: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+  },
+  bubbleMe: {
+    backgroundColor: T.primary,
+    borderBottomRightRadius: 2,
+  },
+  bubbleThem: {
+    backgroundColor: T.surface,
+    borderWidth: 1,
+    borderColor: T.border,
+    borderBottomLeftRadius: 2,
+    ...CARD_SHADOW,
+  },
+  msgText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  msgTextMe: {
+    color: "white",
+  },
+  msgTextThem: {
+    color: T.text1,
+  },
+  msgTime: {
+    fontSize: 9,
+    fontWeight: "800",
+    marginTop: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.2,
+  },
+  msgTimeMe: {
+    color: T.text3,
+    marginRight: 4,
+  },
+  msgTimeThem: {
+    color: T.text3,
+    marginLeft: 4,
+  },
+  inputContainer: {
+    backgroundColor: T.surface,
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 12,
+  },
+  attachBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: T.bg,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  inputWrap: {
+    flex: 1,
+    backgroundColor: T.bg,
+    borderWidth: 1.5,
+    borderColor: T.border,
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+  },
+  textInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: T.text1,
+    maxHeight: 100,
+  },
+  clipBtn: {
+    padding: 8,
+  },
+  sendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    ...CARD_SHADOW,
+  },
+  sendBtnActive: {
+    backgroundColor: T.primary,
+  },
+  sendBtnInactive: {
+    backgroundColor: T.border,
+    opacity: 0.6,
+  },
+});

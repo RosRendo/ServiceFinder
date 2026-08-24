@@ -11,6 +11,7 @@ import * as Location from 'expo-location';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withDelay, Easing } from "react-native-reanimated";
 import { api, useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
+import { useCurrentLocation } from "@/hooks/useCurrentLocation";
 
 const { width } = Dimensions.get("window");
 
@@ -73,22 +74,10 @@ export default function JobDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [wallet, setWallet] = useState<number>(0);
   const [creditLimit, setCreditLimit] = useState<number>(0);
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const { location: hookLoc } = useCurrentLocation(true);
+  const location = { coords: hookLoc };
   const [photoModalVisible, setPhotoModalVisible] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          let loc = await Location.getCurrentPositionAsync({});
-          setLocation(loc);
-        }
-      } catch (e) {
-        console.warn("Location not available");
-      }
-    })();
-  }, []);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   const fetchJob = async () => {
     try {
@@ -208,10 +197,10 @@ export default function JobDetailScreen() {
   const statusColor = isCompleted ? T.success : isInProgress ? T.warning : T.primary;
   const statusBg = isCompleted ? T.successLight : isInProgress ? T.warningLight : T.primaryLight;
 
-  const customerLat = jobData.latitude ? Number(jobData.latitude) : 11.5564;
-  const customerLng = jobData.longitude ? Number(jobData.longitude) : 104.9282;
-  const staffLat = jobData.staffStartLatitude ? Number(jobData.staffStartLatitude) : (location?.coords.latitude || customerLat - 0.003);
-  const staffLng = jobData.staffStartLongitude ? Number(jobData.staffStartLongitude) : (location?.coords.longitude || customerLng - 0.003);
+  const customerLat = jobData.latitude ? Number(jobData.latitude) : location.coords.latitude;
+  const customerLng = jobData.longitude ? Number(jobData.longitude) : location.coords.longitude;
+  const staffLat = jobData.staffStartLatitude ? Number(jobData.staffStartLatitude) : location.coords.latitude;
+  const staffLng = jobData.staffStartLongitude ? Number(jobData.staffStartLongitude) : location.coords.longitude;
 
   const fitMapToRoute = () => {
     if (mapRef.current && staffLat && staffLng && customerLat && customerLng) {

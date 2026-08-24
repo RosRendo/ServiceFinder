@@ -1,10 +1,18 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { PhotoCapture } from "@/components/jobs/PhotoCapture";
 import api from "@/utils/api";
+import { Theme } from "@/constants/theme";
+
+const T = Theme.colors;
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 interface Measurement {
   label: string;
@@ -44,7 +52,6 @@ export default function MeasurementsScreen() {
     }
     setSubmitting(true);
     try {
-      // await api.post('/api/staff/measurements', { measurements: filled, notes, photos: photos.map(p => p.uri) });
       Alert.alert("Saved!", "Measurements have been recorded and attached to this job.", [
         { text: "OK", onPress: () => router.back() }
       ]);
@@ -59,53 +66,59 @@ export default function MeasurementsScreen() {
   const UNITS = ["ft", "m", "sqft", "sqm"] as const;
 
   return (
-    <SafeAreaView className="flex-1 bg-surface">
-      <View className="flex-row items-center px-4 py-3 border-b border-surface-container">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 mr-2">
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#191c1e" />
+    <SafeAreaView style={s.root}>
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={T.primary} />
         </TouchableOpacity>
         <View>
-          <Text className="text-xl font-headline font-bold text-on-surface">Measurements</Text>
-          <Text className="text-xs text-on-surface-variant">Record job dimensions</Text>
+          <Text style={s.headerTitle}>Measurements</Text>
+          <Text style={s.headerSubtitle}>Record job dimensions</Text>
         </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 140 }}>
+      <ScrollView style={s.scrollView} contentContainerStyle={s.scrollContent}>
         {/* Measurement Rows */}
-        <Text className="font-headline font-bold text-on-surface mb-3">Dimensions</Text>
+        <Text style={s.sectionTitle}>Dimensions</Text>
         {measurements.map((m, idx) => (
-          <View key={idx} className="bg-surface-container-lowest rounded-2xl p-4 mb-3 border border-outline-variant">
-            <View className="flex-row items-center mb-3">
+          <View key={idx} style={s.card}>
+            <View style={s.cardHeader}>
               <TextInput
-                className="flex-1 font-bold text-on-surface text-base border-b border-outline-variant pb-1"
+                style={s.labelInput}
                 placeholder="Label (e.g. Room Length)"
-                placeholderTextColor="#c4c6cf"
+                placeholderTextColor={T.text3}
                 value={m.label}
                 onChangeText={val => updateMeasurement(idx, "label", val)}
               />
               {measurements.length > 1 && (
-                <TouchableOpacity onPress={() => removeRow(idx)} className="ml-3 p-1">
-                  <MaterialCommunityIcons name="close-circle-outline" size={20} color="#dc2626" />
+                <TouchableOpacity onPress={() => removeRow(idx)} style={s.removeBtn}>
+                  <MaterialCommunityIcons name="close-circle-outline" size={20} color={T.error} />
                 </TouchableOpacity>
               )}
             </View>
-            <View className="flex-row items-center gap-3">
+            <View style={s.row}>
               <TextInput
-                className="flex-1 h-12 bg-surface-container rounded-xl px-4 text-on-surface text-lg font-bold"
+                style={s.valueInput}
                 placeholder="0.0"
-                placeholderTextColor="#c4c6cf"
+                placeholderTextColor={T.text3}
                 keyboardType="decimal-pad"
                 value={m.value}
                 onChangeText={val => updateMeasurement(idx, "value", val)}
               />
-              <View className="flex-row gap-1">
+              <View style={s.unitsWrap}>
                 {UNITS.map(unit => (
                   <TouchableOpacity
                     key={unit}
-                    className={`px-3 py-2 rounded-xl ${m.unit === unit ? "bg-primary" : "bg-surface-container border border-outline-variant"}`}
+                    style={[
+                      s.unitBtn,
+                      m.unit === unit ? s.unitBtnActive : s.unitBtnInactive
+                    ]}
                     onPress={() => updateMeasurement(idx, "unit", unit)}
                   >
-                    <Text className={`text-xs font-bold ${m.unit === unit ? "text-white" : "text-on-surface-variant"}`}>{unit}</Text>
+                    <Text style={[
+                      s.unitText,
+                      m.unit === unit ? s.unitTextActive : s.unitTextInactive
+                    ]}>{unit}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -114,20 +127,20 @@ export default function MeasurementsScreen() {
         ))}
 
         <TouchableOpacity
-          className="flex-row items-center justify-center h-12 rounded-2xl border-2 border-dashed border-outline-variant mb-6"
+          style={s.addBtn}
           onPress={addRow}
         >
-          <MaterialCommunityIcons name="plus" size={18} color="#74777f" />
-          <Text className="text-on-surface-variant font-bold ml-2">Add Measurement</Text>
+          <MaterialCommunityIcons name="plus" size={18} color={T.text2} />
+          <Text style={s.addBtnText}>Add Measurement</Text>
         </TouchableOpacity>
 
         {/* Notes */}
-        <Text className="font-headline font-bold text-on-surface mb-3">Site Notes</Text>
-        <View className="bg-surface-container-lowest rounded-2xl border border-outline-variant p-3 mb-6">
+        <Text style={s.sectionTitle}>Site Notes</Text>
+        <View style={s.inputWrap}>
           <TextInput
-            className="text-on-surface font-body min-h-[80px]"
+            style={s.notesInput}
             placeholder="Add observations, conditions, or special notes..."
-            placeholderTextColor="#c4c6cf"
+            placeholderTextColor={T.text3}
             multiline
             textAlignVertical="top"
             value={notes}
@@ -136,13 +149,13 @@ export default function MeasurementsScreen() {
         </View>
 
         {/* Photo Documentation */}
-        <Text className="font-headline font-bold text-on-surface mb-3">Photo Documentation</Text>
+        <Text style={s.sectionTitle}>Photo Documentation</Text>
         <PhotoCapture jobId="measurement" onPhotosChange={setPhotos} maxPhotos={8} />
       </ScrollView>
 
-      <View className="absolute bottom-0 left-0 right-0 px-4 pb-8 pt-4 bg-surface border-t border-surface-container">
+      <View style={s.footer}>
         <TouchableOpacity
-          className={`h-14 rounded-full items-center justify-center flex-row gap-2 ${submitting ? "bg-primary/70" : "bg-primary"}`}
+          style={[s.submitBtn, submitting && { opacity: 0.7 }]}
           onPress={handleSave}
           disabled={submitting}
         >
@@ -151,7 +164,7 @@ export default function MeasurementsScreen() {
           ) : (
             <>
               <MaterialCommunityIcons name="content-save" size={20} color="white" />
-              <Text className="text-white font-bold text-lg">Save Measurements</Text>
+              <Text style={s.submitBtnText}>Save Measurements</Text>
             </>
           )}
         </TouchableOpacity>
@@ -159,3 +172,178 @@ export default function MeasurementsScreen() {
     </SafeAreaView>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: T.bg },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: T.border,
+    backgroundColor: T.surface,
+  },
+  backBtn: {
+    padding: 8,
+    marginRight: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: T.text1,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: T.text3,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 140,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: T.text1,
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  card: {
+    backgroundColor: T.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: T.border,
+    ...CARD_SHADOW,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  labelInput: {
+    flex: 1,
+    fontWeight: "800",
+    fontSize: 15,
+    color: T.text1,
+    borderBottomWidth: 1,
+    borderBottomColor: T.border,
+    paddingBottom: 4,
+  },
+  removeBtn: {
+    marginLeft: 12,
+    padding: 4,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  valueInput: {
+    flex: 1,
+    height: 44,
+    backgroundColor: T.bg,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    fontWeight: "800",
+    color: T.text1,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  unitsWrap: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  unitBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+  },
+  unitBtnActive: {
+    backgroundColor: T.primary,
+    borderColor: T.primary,
+  },
+  unitBtnInactive: {
+    backgroundColor: T.bg,
+    borderColor: T.border,
+  },
+  unitText: {
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  unitTextActive: {
+    color: "white",
+  },
+  unitTextInactive: {
+    color: T.text2,
+  },
+  addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 48,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: T.border,
+    backgroundColor: T.surface,
+    marginBottom: 24,
+  },
+  addBtnText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: T.text2,
+    marginLeft: 8,
+  },
+  inputWrap: {
+    backgroundColor: T.surface,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: T.border,
+    padding: 12,
+    marginBottom: 24,
+    ...CARD_SHADOW,
+  },
+  notesInput: {
+    fontSize: 14,
+    color: T.text1,
+    minHeight: 80,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingBottom: 28,
+    paddingTop: 16,
+    backgroundColor: T.surface,
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+  },
+  submitBtn: {
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: T.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+    ...CARD_SHADOW,
+  },
+  submitBtnText: {
+    color: "white",
+    fontWeight: "800",
+    fontSize: 16,
+  },
+});

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator, Platform } from "react-native";
+import { View, Text, TouchableOpacity, Alert, ActivityIndicator, Platform, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import MapView, { Marker, Polyline } from "react-native-maps";
@@ -7,10 +7,17 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ExpoLocation from "expo-location";
 import { api } from "@/store/authStore";
+import { Theme } from "@/constants/theme";
+
+const T = Theme.colors;
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 interface GeoCoords { lat: number; lng: number; accuracy?: number; heading?: number }
 const PUSH_INTERVAL_MS = 10_000;
-const DEFAULT = { lat: 11.5625, lng: 104.916 };
 
 export default function StaffTrackMapScreen() {
   const router = useRouter();
@@ -34,8 +41,8 @@ export default function StaffTrackMapScreen() {
   const [pushCount, setPushCount]       = useState(0);
   const [error, setError]               = useState<string | null>(null);
 
-  const svcLat = serviceLat ? parseFloat(serviceLat) : DEFAULT.lat;
-  const svcLng = serviceLng ? parseFloat(serviceLng) : DEFAULT.lng;
+  const svcLat = serviceLat ? parseFloat(serviceLat) : (myCoords?.lat || 0);
+  const svcLng = serviceLng ? parseFloat(serviceLng) : (myCoords?.lng || 0);
 
   // ── Request location permission ──────────────────────────────────────────
   useEffect(() => {
@@ -155,7 +162,7 @@ export default function StaffTrackMapScreen() {
         ` : ''}
         window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({type:'ready'}));
       </script>
-    </body></html>`;
+    </head><body></html>`;
   };
 
   const handleWebViewMessage = (e: any) => {
@@ -165,7 +172,6 @@ export default function StaffTrackMapScreen() {
     } catch {}
   };
 
-  // ── Haversine distance helper ─────────────────────────────────────────────
   const distanceKm = () => {
     if (!myCoords) return null;
     const R = 6371;
@@ -177,54 +183,54 @@ export default function StaffTrackMapScreen() {
   };
 
   if (error) return (
-    <SafeAreaView className="flex-1 bg-surface items-center justify-center px-8">
-      <MaterialCommunityIcons name="map-marker-off" size={52} color="#EF4444" />
-      <Text className="text-red-600 font-bold mt-4 text-center">{error}</Text>
-      <TouchableOpacity onPress={() => router.back()} className="mt-6 bg-[#002045] px-6 py-3 rounded-full">
-        <Text className="text-white font-bold">Go Back</Text>
+    <SafeAreaView style={s.errorContainer} edges={["top", "bottom"]}>
+      <MaterialCommunityIcons name="map-marker-off" size={52} color={T.error} />
+      <Text style={s.errorText}>{error}</Text>
+      <TouchableOpacity onPress={() => router.back()} style={s.errorBtn}>
+        <Text style={s.errorBtnText}>Go Back</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
 
   return (
-    <View className="flex-1 bg-surface">
+    <View style={s.root}>
       {/* Header */}
-      <SafeAreaView edges={["top"]} className="bg-white border-b border-surface-container">
-        <View className="flex-row items-center justify-between px-4 py-3">
-          <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 rounded-full items-center justify-center">
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#002045" />
+      <SafeAreaView edges={["top"]} style={s.header}>
+        <View style={s.headerRow}>
+          <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color={T.primary} />
           </TouchableOpacity>
-          <View className="items-center">
-            <Text className="text-base font-bold text-primary">Navigate to Job</Text>
-            {serviceName && <Text className="text-xs text-on-surface-variant" numberOfLines={1}>{serviceName}</Text>}
+          <View style={s.headerCenter}>
+            <Text style={s.headerTitle}>Navigate to Job</Text>
+            {serviceName && <Text style={s.headerSubtitle} numberOfLines={1}>{serviceName}</Text>}
           </View>
           {/* Live indicator */}
-          <View className="flex-row items-center gap-1.5 bg-green-100 px-3 py-1.5 rounded-full">
+          <View style={s.liveBadge}>
             {pushing
-              ? <ActivityIndicator size="small" color="#16a34a" />
-              : <View className="w-2 h-2 rounded-full bg-green-500" />}
-            <Text className="text-[10px] font-bold text-green-700">LIVE</Text>
+              ? <ActivityIndicator size="small" color={T.success} />
+              : <View style={[s.liveDot, { backgroundColor: T.success }]} />}
+            <Text style={[s.liveText, { color: T.success }]}>LIVE</Text>
           </View>
         </View>
       </SafeAreaView>
 
       {/* Stats row */}
       {myCoords && (
-        <View className="absolute top-24 left-4 right-4 z-20">
-          <View className="bg-white/95 rounded-2xl px-4 py-3 shadow-lg flex-row justify-around">
-            <View className="items-center">
-              <Text className="text-[10px] font-bold uppercase text-gray-400">Distance</Text>
-              <Text className="text-lg font-black text-primary">{distanceKm()} km</Text>
+        <View style={s.statsCardWrap}>
+          <View style={s.statsCard}>
+            <View style={s.statCol}>
+              <Text style={s.statLabel}>Distance</Text>
+              <Text style={s.statValue}>{distanceKm()} km</Text>
             </View>
-            <View className="w-px bg-gray-200" />
-            <View className="items-center">
-              <Text className="text-[10px] font-bold uppercase text-gray-400">Updates Sent</Text>
-              <Text className="text-lg font-black text-green-600">{pushCount}</Text>
+            <View style={s.divider} />
+            <View style={s.statCol}>
+              <Text style={s.statLabel}>Updates Sent</Text>
+              <Text style={[s.statValue, { color: T.success }]}>{pushCount}</Text>
             </View>
-            <View className="w-px bg-gray-200" />
-            <View className="items-center">
-              <Text className="text-[10px] font-bold uppercase text-gray-400">Accuracy</Text>
-              <Text className="text-lg font-black text-primary">
+            <View style={s.divider} />
+            <View style={s.statCol}>
+              <Text style={s.statLabel}>Accuracy</Text>
+              <Text style={s.statValue}>
                 {myCoords.accuracy != null ? `±${myCoords.accuracy.toFixed(0)}m` : "—"}
               </Text>
             </View>
@@ -234,19 +240,19 @@ export default function StaffTrackMapScreen() {
 
       {/* Waiting for GPS */}
       {!permGranted && !error && (
-        <View className="absolute top-24 left-0 right-0 items-center z-20">
-          <View className="bg-amber-100 border border-amber-300 px-4 py-2 rounded-full flex-row items-center gap-2">
-            <ActivityIndicator size="small" color="#d97706" />
-            <Text className="text-amber-700 text-xs font-bold">Requesting GPS permission...</Text>
+        <View style={s.statusBannerWrap}>
+          <View style={s.statusBannerWarning}>
+            <ActivityIndicator size="small" color={T.warning} />
+            <Text style={s.statusBannerWarningText}>Requesting GPS permission...</Text>
           </View>
         </View>
       )}
 
       {permGranted && !myCoords && (
-        <View className="absolute top-24 left-0 right-0 items-center z-20">
-          <View className="bg-blue-50 border border-blue-200 px-4 py-2 rounded-full flex-row items-center gap-2">
-            <ActivityIndicator size="small" color="#1d4ed8" />
-            <Text className="text-blue-700 text-xs font-bold">Getting your GPS signal...</Text>
+        <View style={s.statusBannerWrap}>
+          <View style={s.statusBannerInfo}>
+            <ActivityIndicator size="small" color={T.info} />
+            <Text style={s.statusBannerInfoText}>Getting your GPS signal...</Text>
           </View>
         </View>
       )}
@@ -254,7 +260,7 @@ export default function StaffTrackMapScreen() {
       {/* Map */}
       {process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ? (
         <MapView
-          style={{ flex: 1 }}
+          style={s.map}
           initialRegion={{
             latitude: myCoords ? myCoords.lat : svcLat,
             longitude: myCoords ? myCoords.lng : svcLng,
@@ -272,20 +278,20 @@ export default function StaffTrackMapScreen() {
         >
           {myCoords && (
             <Marker coordinate={{ latitude: myCoords.lat, longitude: myCoords.lng }}>
-              <View className="w-12 h-12 bg-[#002045] rounded-full border-4 border-white items-center justify-center shadow-lg">
-                <Text className="text-xl">🧑‍🔧</Text>
+              <View style={s.markerWrap}>
+                <Text style={s.markerEmoji}>🧑‍🔧</Text>
               </View>
             </Marker>
           )}
           <Marker coordinate={{ latitude: svcLat, longitude: svcLng }}>
-            <View className="w-11 h-11 bg-pink-500 rounded-full border-4 border-white items-center justify-center shadow-lg">
-              <Text className="text-lg">🏠</Text>
+            <View style={[s.markerWrap, { backgroundColor: T.error }]}>
+              <Text style={s.markerEmoji}>🏠</Text>
             </View>
           </Marker>
           {myCoords && (
             <Polyline
               coordinates={[{ latitude: myCoords.lat, longitude: myCoords.lng }, { latitude: svcLat, longitude: svcLng }]}
-              strokeColor="#002045"
+              strokeColor={T.primary}
               strokeWidth={3}
               lineDashPattern={[8, 8]}
             />
@@ -298,22 +304,22 @@ export default function StaffTrackMapScreen() {
           source={{ html: buildMapHTML() }}
           javaScriptEnabled
           domStorageEnabled
-          style={{ flex: 1 }}
+          style={s.map}
           onMessage={handleWebViewMessage}
           onError={() => Alert.alert("Map Error", "Could not load map.")}
         />
       )}
 
       {/* Bottom card */}
-      <SafeAreaView edges={["bottom"]} className="bg-white border-t border-surface-container">
-        <View className="px-4 py-4 gap-3">
-          <View className="flex-row items-start gap-3">
-            <View className="w-10 h-10 rounded-full bg-pink-100 items-center justify-center mt-0.5">
-              <MaterialCommunityIcons name="map-marker" size={20} color="#e91e63" />
+      <SafeAreaView edges={["bottom"]} style={s.bottomContainer}>
+        <View style={s.bottomContent}>
+          <View style={s.addressRow}>
+            <View style={s.addressIconBox}>
+              <MaterialCommunityIcons name="map-marker" size={20} color={T.error} />
             </View>
-            <View className="flex-1">
-              <Text className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Customer Address</Text>
-              <Text className="text-sm font-semibold text-on-surface" numberOfLines={2}>
+            <View style={s.addressTextWrap}>
+              <Text style={s.addressTitle}>Customer Address</Text>
+              <Text style={s.addressDesc} numberOfLines={2}>
                 {serviceAddress || "Address not provided"}
               </Text>
             </View>
@@ -325,13 +331,243 @@ export default function StaffTrackMapScreen() {
               pushLocation(myCoords);
               Alert.alert("✅ Location Sent", "Customer can now see your updated position.");
             }}
-            className="bg-[#002045] rounded-full py-3.5 items-center flex-row justify-center gap-2"
+            style={s.updateBtn}
           >
             <MaterialCommunityIcons name="send" size={18} color="white" />
-            <Text className="text-white font-bold">Update My Location Now</Text>
+            <Text style={s.updateBtnText}>Update My Location Now</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: T.bg },
+  errorContainer: {
+    flex: 1,
+    backgroundColor: T.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
+  errorText: {
+    color: T.error,
+    fontWeight: "800",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  errorBtn: {
+    marginTop: 24,
+    backgroundColor: T.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    ...CARD_SHADOW,
+  },
+  errorBtnText: {
+    color: "white",
+    fontWeight: "800",
+  },
+  header: {
+    backgroundColor: T.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: T.border,
+    zIndex: 10,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerCenter: {
+    alignItems: "center",
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: T.primary,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: T.text3,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  liveBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: T.successBg,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  liveText: {
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  statsCardWrap: {
+    position: "absolute",
+    top: 90,
+    left: 16,
+    right: 16,
+    zIndex: 20,
+  },
+  statsCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    borderWidth: 1,
+    borderColor: T.border,
+    ...CARD_SHADOW,
+  },
+  statCol: {
+    alignItems: "center",
+  },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    color: T.text3,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: T.primary,
+    marginTop: 2,
+  },
+  divider: {
+    width: 1,
+    backgroundColor: T.border,
+  },
+  statusBannerWrap: {
+    position: "absolute",
+    top: 90,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 20,
+  },
+  statusBannerWarning: {
+    backgroundColor: T.warningBg,
+    borderColor: T.warning,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  statusBannerWarningText: {
+    color: T.warning,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  statusBannerInfo: {
+    backgroundColor: T.blueBg,
+    borderColor: T.blueBorder,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  statusBannerInfoText: {
+    color: T.blueText,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  map: {
+    flex: 1,
+  },
+  markerWrap: {
+    width: 44,
+    height: 44,
+    backgroundColor: T.primary,
+    borderRadius: 22,
+    borderWidth: 3,
+    borderColor: "white",
+    alignItems: "center",
+    justifyContent: "center",
+    ...CARD_SHADOW,
+  },
+  markerEmoji: {
+    fontSize: 18,
+  },
+  bottomContainer: {
+    backgroundColor: T.surface,
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+  },
+  bottomContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  addressRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  addressIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: T.errorBg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  addressTextWrap: {
+    flex: 1,
+  },
+  addressTitle: {
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    color: T.text3,
+  },
+  addressDesc: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: T.text1,
+    marginTop: 2,
+  },
+  updateBtn: {
+    backgroundColor: T.primary,
+    borderRadius: 24,
+    paddingVertical: 14,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+    ...CARD_SHADOW,
+  },
+  updateBtnText: {
+    color: "white",
+    fontWeight: "800",
+    fontSize: 15,
+  },
+});

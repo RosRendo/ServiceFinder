@@ -1,9 +1,17 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator, StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import api from "@/utils/api";
+import { Theme } from "@/constants/theme";
+
+const T = Theme.colors;
+
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
 const TIMES = ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"];
 
@@ -50,47 +58,58 @@ export default function RescheduleBookingScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface">
-      <View className="flex-row items-center px-4 py-3 border-b border-surface-container">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 mr-2">
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#191c1e" />
+    <SafeAreaView style={s.root}>
+      {/* Header */}
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={T.primary} />
         </TouchableOpacity>
         <View>
-          <Text className="text-xl font-headline font-bold text-on-surface">Reschedule Booking</Text>
-          <Text className="text-xs text-on-surface-variant">Booking #{id}</Text>
+          <Text style={s.headerTitle}>Reschedule Booking</Text>
+          <Text style={s.headerSubtitle}>Booking #{id}</Text>
         </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+      <ScrollView style={s.scrollView} contentContainerStyle={s.scrollContent}>
         {/* Info Banner */}
-        <View className="bg-[#ffdcbc]/40 border border-[#935f00]/30 rounded-2xl p-4 mb-6 flex-row items-start">
-          <MaterialCommunityIcons name="information-outline" size={20} color="#935f00" />
-          <Text className="text-[#935f00] text-sm ml-2 flex-1">
+        <View style={s.infoBanner}>
+          <MaterialCommunityIcons name="information-outline" size={20} color={T.gold} />
+          <Text style={s.infoBannerText}>
             Rescheduling may be subject to availability. The service provider will be notified of the change.
           </Text>
         </View>
 
         {/* Date Picker */}
-        <Text className="font-headline font-bold text-on-surface mb-3">Select New Date</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
-          <View className="flex-row gap-3 pb-2">
+        <Text style={s.sectionTitle}>Select New Date</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.dateListScroll}>
+          <View style={s.dateListContent}>
             {days.map((day, idx) => {
               const isSelected = selectedDate?.toDateString() === day.toDateString();
               return (
                 <TouchableOpacity
                   key={idx}
-                  className={`items-center py-3 px-4 rounded-2xl border-2 min-w-[68px] ${
-                    isSelected ? "bg-primary border-primary" : "bg-surface-container-lowest border-outline-variant"
-                  }`}
+                  style={[
+                    s.dateCard,
+                    isSelected ? s.dateCardActive : s.dateCardInactive
+                  ]}
                   onPress={() => setSelectedDate(day)}
                 >
-                  <Text className={`text-xs font-bold uppercase ${isSelected ? "text-white" : "text-on-surface-variant"}`}>
+                  <Text style={[
+                    s.weekdayText,
+                    isSelected ? s.weekdayTextActive : s.weekdayTextInactive
+                  ]}>
                     {day.toLocaleDateString("en-US", { weekday: "short" })}
                   </Text>
-                  <Text className={`text-2xl font-bold mt-1 ${isSelected ? "text-white" : "text-on-surface"}`}>
+                  <Text style={[
+                    s.dayNumText,
+                    isSelected ? s.dayNumTextActive : s.dayNumTextInactive
+                  ]}>
                     {day.getDate()}
                   </Text>
-                  <Text className={`text-xs ${isSelected ? "text-white/80" : "text-on-surface-variant"}`}>
+                  <Text style={[
+                    s.monthText,
+                    isSelected ? s.monthTextActive : s.monthTextInactive
+                  ]}>
                     {day.toLocaleDateString("en-US", { month: "short" })}
                   </Text>
                 </TouchableOpacity>
@@ -100,19 +119,23 @@ export default function RescheduleBookingScreen() {
         </ScrollView>
 
         {/* Time Picker */}
-        <Text className="font-headline font-bold text-on-surface mb-3">Select New Time</Text>
-        <View className="flex-row flex-wrap gap-3 mb-6">
+        <Text style={s.sectionTitle}>Select New Time</Text>
+        <View style={s.timeGrid}>
           {TIMES.map((time) => {
             const isSelected = selectedTime === time;
             return (
               <TouchableOpacity
                 key={time}
-                className={`py-2.5 px-4 rounded-full border ${
-                  isSelected ? "bg-primary border-primary" : "bg-surface-container-lowest border-outline-variant"
-                }`}
+                style={[
+                  s.timeChip,
+                  isSelected ? s.timeChipActive : s.timeChipInactive
+                ]}
                 onPress={() => setSelectedTime(time)}
               >
-                <Text className={`font-bold text-sm ${isSelected ? "text-white" : "text-on-surface"}`}>
+                <Text style={[
+                  s.timeText,
+                  isSelected ? s.timeTextActive : s.timeTextInactive
+                ]}>
                   {time}
                 </Text>
               </TouchableOpacity>
@@ -122,11 +145,11 @@ export default function RescheduleBookingScreen() {
 
         {/* Summary */}
         {selectedDate && selectedTime && (
-          <View className="bg-primary-container/30 border border-primary/20 rounded-2xl p-4">
-            <Text className="font-bold text-on-surface mb-1">New Schedule</Text>
-            <View className="flex-row items-center">
+          <View style={s.summaryCard}>
+            <Text style={s.summaryTitle}>New Schedule</Text>
+            <View style={s.summaryDetails}>
               <MaterialCommunityIcons name="calendar-check" size={16} color="#1ba9ed" />
-              <Text className="text-on-surface ml-2">
+              <Text style={s.summaryText}>
                 {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} at {selectedTime}
               </Text>
             </View>
@@ -134,21 +157,223 @@ export default function RescheduleBookingScreen() {
         )}
       </ScrollView>
 
-      <View className="absolute bottom-0 left-0 right-0 px-4 pb-8 pt-4 bg-surface border-t border-surface-container">
+      {/* Confirm Button */}
+      <View style={s.footer}>
         <TouchableOpacity
-          className={`h-14 rounded-full items-center justify-center ${
-            !selectedDate || !selectedTime || submitting ? "bg-primary/50" : "bg-primary"
-          }`}
+          style={[
+            s.confirmBtn,
+            (!selectedDate || !selectedTime || submitting) ? s.confirmBtnDisabled : s.confirmBtnActive
+          ]}
           onPress={handleReschedule}
           disabled={!selectedDate || !selectedTime || submitting}
         >
           {submitting ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-white font-bold text-lg">Confirm Reschedule</Text>
+            <Text style={s.confirmBtnText}>Confirm Reschedule</Text>
           )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: T.bg },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: T.border,
+    backgroundColor: T.surface,
+  },
+  backBtn: {
+    padding: 8,
+    marginRight: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: T.text1,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: T.text3,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 120,
+  },
+  infoBanner: {
+    backgroundColor: T.warningBg,
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.2)",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  infoBannerText: {
+    color: T.gold,
+    fontSize: 13,
+    marginLeft: 8,
+    flex: 1,
+    fontWeight: "600",
+    lineHeight: 18,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: T.text1,
+    marginBottom: 12,
+  },
+  dateListScroll: {
+    marginBottom: 24,
+  },
+  dateListContent: {
+    flexDirection: "row",
+    gap: 12,
+    paddingBottom: 4,
+  },
+  dateCard: {
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 2,
+    minWidth: 72,
+    ...CARD_SHADOW,
+  },
+  dateCardActive: {
+    backgroundColor: T.primary,
+    borderColor: T.primary,
+  },
+  dateCardInactive: {
+    backgroundColor: T.surface,
+    borderColor: T.border,
+  },
+  weekdayText: {
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  weekdayTextActive: {
+    color: "white",
+  },
+  weekdayTextInactive: {
+    color: T.text2,
+  },
+  dayNumText: {
+    fontSize: 22,
+    fontWeight: "900",
+    marginTop: 4,
+  },
+  dayNumTextActive: {
+    color: "white",
+  },
+  dayNumTextInactive: {
+    color: T.text1,
+  },
+  monthText: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  monthTextActive: {
+    color: "rgba(255, 255, 255, 0.8)",
+  },
+  monthTextInactive: {
+    color: T.text3,
+  },
+  timeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 24,
+  },
+  timeChip: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    ...CARD_SHADOW,
+  },
+  timeChipActive: {
+    backgroundColor: T.primary,
+    borderColor: T.primary,
+  },
+  timeChipInactive: {
+    backgroundColor: T.surface,
+    borderColor: T.border,
+  },
+  timeText: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  timeTextActive: {
+    color: "white",
+  },
+  timeTextInactive: {
+    color: T.text1,
+  },
+  summaryCard: {
+    backgroundColor: T.accentLight,
+    borderWidth: 1,
+    borderColor: T.border,
+    borderRadius: 16,
+    padding: 16,
+  },
+  summaryTitle: {
+    fontWeight: "800",
+    color: T.primary,
+    marginBottom: 8,
+  },
+  summaryDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  summaryText: {
+    color: T.text1,
+    marginLeft: 8,
+    fontWeight: "700",
+  },
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingBottom: 28,
+    paddingTop: 16,
+    backgroundColor: T.surface,
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+  },
+  confirmBtn: {
+    height: 54,
+    borderRadius: 27,
+    alignItems: "center",
+    justifyContent: "center",
+    ...CARD_SHADOW,
+  },
+  confirmBtnActive: {
+    backgroundColor: T.primary,
+  },
+  confirmBtnDisabled: {
+    backgroundColor: T.border,
+    opacity: 0.6,
+  },
+  confirmBtnText: {
+    color: "white",
+    fontWeight: "800",
+    fontSize: 16,
+  },
+});

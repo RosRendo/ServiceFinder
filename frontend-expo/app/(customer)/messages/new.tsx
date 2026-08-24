@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { View, ActivityIndicator, Alert } from "react-native";
+import React, { useEffect } from "react";
+import { ActivityIndicator, StyleSheet, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { api } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
+import { Theme } from "@/constants/theme";
+
+const T = Theme.colors;
 
 /**
  * This screen is a redirect-only screen.
@@ -43,8 +46,17 @@ export default function NewConversationScreen() {
   }, [companyId]);
 
   return (
-    <SafeAreaView className="flex-1 bg-surface items-center justify-center">
-      <ActivityIndicator size="large" color="#002045" />
+    <SafeAreaView style={s.root}>
+      <ActivityIndicator size="large" color={T.primary} />
     </SafeAreaView>
   );
 }
+
+const s = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: T.bg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});

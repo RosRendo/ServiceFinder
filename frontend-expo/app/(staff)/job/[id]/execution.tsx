@@ -192,7 +192,7 @@ export default function JobExecutionScreen() {
   }, [id]);
 
   const [timeElapsed, setTimeElapsed] = useState({ hours: 0, minutes: 0, seconds: 0 });
-  const [photos, setPhotos] = useState<{ before: string | null; after: string | null }>({ before: null, after: null });
+  const [photos, setPhotos] = useState<{ before: string | null; during: string | null; after: string | null }>({ before: null, during: null, after: null });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [checklist, setChecklist] = useState<any[]>([]);
 
@@ -289,7 +289,7 @@ export default function JobExecutionScreen() {
   };
 
   // ── Photo Capture ──
-  const pickImage = async (type: "before" | "after", useCamera: boolean) => {
+  const pickImage = async (type: "before" | "during" | "after", useCamera: boolean) => {
     const perm = useCamera
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -315,8 +315,8 @@ export default function JobExecutionScreen() {
     } catch {} finally { setUploadingPhoto(false); }
   };
 
-  const handlePhotoCapture = (type: "before" | "after") => {
-    Alert.alert(`${type === "before" ? "Before" : "After"} Photo`, "Choose source", [
+  const handlePhotoCapture = (type: "before" | "during" | "after") => {
+    Alert.alert(`${type === "before" ? "Before" : type === "during" ? "During" : "After"} Photo`, "Choose source", [
       { text: "Camera", onPress: () => pickImage(type, true) },
       { text: "Photo Library", onPress: () => pickImage(type, false) },
       { text: "Cancel", style: "cancel" },
@@ -610,7 +610,7 @@ export default function JobExecutionScreen() {
               </View>
             )}
             <View style={s.photosRow}>
-              {(["before", "after"] as const).map((type) => (
+              {(["before", "during", "after"] as const).map((type) => (
                 <TouchableOpacity key={type} onPress={() => handlePhotoCapture(type)} style={s.photoSlot} activeOpacity={0.85}>
                   <View style={s.photoBox}>
                     {photos[type] ? (
@@ -618,7 +618,7 @@ export default function JobExecutionScreen() {
                     ) : (
                       <View style={s.photoEmpty}>
                         <MaterialCommunityIcons name="camera-plus-outline" size={28} color={T.textMuted} />
-                        <Text style={s.photoEmptyText}>{type === "before" ? "Before" : "After"}</Text>
+                        <Text style={s.photoEmptyText}>{type === "before" ? "Before" : type === "during" ? "During" : "After"}</Text>
                       </View>
                     )}
                     {photos[type] && (

@@ -47,9 +47,6 @@ export default function AvailabilityScreen() {
   };
 
   const onTimeChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS !== 'ios') {
-      setShowPicker(false);
-    }
     if (selectedDate && activeDayIndex !== null && activeTimeType !== null) {
       const hours = String(selectedDate.getHours()).padStart(2, "0");
       const minutes = String(selectedDate.getMinutes()).padStart(2, "0");
@@ -61,9 +58,7 @@ export default function AvailabilityScreen() {
         [activeTimeType]: newTimeStr
       };
       setSchedule(newSched);
-      if (Platform.OS === 'ios') {
-        setTempTime(selectedDate);
-      }
+      setTempTime(selectedDate);
     }
   };
   
@@ -231,33 +226,24 @@ export default function AvailabilityScreen() {
       </ScrollView>
 
       {showPicker && (
-        Platform.OS === 'ios' ? (
-          <Modal transparent visible={showPicker} animationType="slide">
-            <View style={s.modalOverlay}>
-              <View style={s.modalContent}>
-                <View style={s.modalHeader}>
-                  <Text style={s.modalTitle}>Select {activeTimeType === 'start' ? 'Start' : 'End'} Time</Text>
-                  <TouchableOpacity onPress={() => setShowPicker(false)}>
-                    <Text style={s.modalDoneBtn}>Done</Text>
-                  </TouchableOpacity>
-                </View>
-                <DateTimePicker
-                  value={tempTime}
-                  mode="time"
-                  display="spinner"
-                  onChange={onTimeChange}
-                />
+        <Modal transparent visible={showPicker} animationType="slide">
+          <View style={s.modalOverlay}>
+            <View style={s.modalContent}>
+              <View style={s.modalHeader}>
+                <Text style={s.modalTitle}>Select {activeTimeType === 'start' ? 'Start' : 'End'} Time</Text>
+                <TouchableOpacity onPress={() => setShowPicker(false)}>
+                  <Text style={s.modalDoneBtn}>Done</Text>
+                </TouchableOpacity>
               </View>
+              <DateTimePicker
+                value={tempTime}
+                mode="time"
+                display="spinner"
+                onChange={onTimeChange}
+              />
             </View>
-          </Modal>
-        ) : (
-          <DateTimePicker
-            value={tempTime}
-            mode="time"
-            display="default"
-            onChange={onTimeChange}
-          />
-        )
+          </View>
+        </Modal>
       )}
     </SafeAreaView>
   );
