@@ -7,6 +7,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { api } from "@/store/authStore";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { useTranslation } from "react-i18next";
+import ErrorState from "@/components/common/ErrorState";
 import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
@@ -43,6 +44,7 @@ export default function Operations() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const setCompanyOpen = useSidebarStore((s) => s.setCompanyOpen);
 
   const pulseAnim = useRef(new Animated.Value(0.5)).current;
@@ -68,8 +70,10 @@ export default function Operations() {
       const response = await api.get("/api/bookings");
       const data = response.data?.data ?? response.data;
       setBookings(data?.bookings || []);
+      setHasError(false);
     } catch (error) {
       console.error("Failed to load operations", error);
+      setHasError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -91,7 +95,7 @@ export default function Operations() {
       {/* STANDARD HEADER */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => setCompanyOpen(true)} style={s.menuBtn}>
+          <TouchableOpacity onPress={() => setCompanyOpen(true)} style={s.menuBtn} accessibilityRole="button" accessibilityLabel="Open menu">
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>Operations</Text>
@@ -152,6 +156,8 @@ export default function Operations() {
               </Animated.View>
             ))}
           </View>
+        ) : hasError && bookings.length === 0 ? (
+          <ErrorState onRetry={() => { setLoading(true); loadBookings(); }} />
         ) : filteredBookings.length === 0 ? (
           <View style={s.emptyBox}>
             <View style={s.emptyIconCircle}>
@@ -240,7 +246,7 @@ const s = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 22, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 22, fontWeight: "700", color: T.text1 },
   
   // Search & Filters Standard
   filtersContainer: { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, paddingBottom: 12 },
@@ -284,7 +290,7 @@ const s = StyleSheet.create({
   cardTitle: { fontSize: 17, fontWeight: "700", color: T.text1, lineHeight: 22 },
   
   statusBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  statusText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
+  statusText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
 
   cardBody: { gap: 10, marginBottom: 16 },
   detailRow: { flexDirection: "row", alignItems: "center", gap: 10 },
@@ -295,7 +301,7 @@ const s = StyleSheet.create({
   cardFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   footerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
   avatarSmall: { width: 26, height: 26, borderRadius: 13, backgroundColor: T.accent, alignItems: "center", justifyContent: "center" },
-  avatarSmallText: { fontSize: 11, fontWeight: "800", color: "#fff" },
+  avatarSmallText: { fontSize: 11, fontWeight: "700", color: "#fff" },
   footerLeftText: { fontSize: 13, fontWeight: "600", color: T.text1 },
-  footerRightText: { fontSize: 16, fontWeight: "800", color: T.text1 },
+  footerRightText: { fontSize: 16, fontWeight: "700", color: T.text1 },
 });

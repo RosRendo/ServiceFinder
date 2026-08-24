@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { api } from "@/store/authStore";
+import InitialsAvatar from "@/components/common/InitialsAvatar";
 import { Theme } from "@/constants/theme";
 
 const T = {
@@ -255,10 +256,11 @@ export default function StaffDetail() {
         {/* Hero Card */}
         <View style={s.heroCard}>
           <View style={s.avatarWrap}>
-            <Image
-              source={{ uri: staff.user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(staff.fullName || 'S')}&background=1E3A8A&color=fff` }}
-              style={s.avatar}
-            />
+            {staff.user?.avatar ? (
+              <Image source={{ uri: staff.user.avatar }} style={s.avatar} />
+            ) : (
+              <InitialsAvatar name={staff.fullName || "S"} size={72} style={s.avatar} />
+            )}
             <View style={[s.statusDot, { backgroundColor: isActive ? T.success : T.text3 }]} />
           </View>
           <Text style={s.heroName}>{staff.fullName}</Text>
@@ -374,7 +376,7 @@ const s = StyleSheet.create({
   },
   backBtn: { padding: 4, marginLeft: -8 },
   actionBtn: { padding: 8, backgroundColor: T.blue + "15", borderRadius: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1, flex: 1, textAlign: "center", marginLeft: 32 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1, flex: 1, textAlign: "center", marginLeft: 32 },
 
   scrollContent: { padding: 16, gap: 16, paddingBottom: 60 },
 
@@ -388,14 +390,14 @@ const s = StyleSheet.create({
     position: "absolute", bottom: 0, right: 0,
     width: 22, height: 22, borderRadius: 11, borderWidth: 3, borderColor: T.accent,
   },
-  heroName: { fontSize: 24, fontWeight: "800", color: "#fff" },
+  heroName: { fontSize: 24, fontWeight: "700", color: "#fff" },
   heroEmail: { fontSize: 14, fontWeight: "500", color: "rgba(255,255,255,0.7)" },
   heroBadgeRow: { flexDirection: "row", gap: 8, marginTop: 12 },
   roleBadge: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12 },
-  roleBadgeText: { fontSize: 12, fontWeight: "800", textTransform: "capitalize" },
+  roleBadgeText: { fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
   availBadge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12 },
   availDot: { width: 8, height: 8, borderRadius: 4 },
-  availText: { fontSize: 12, fontWeight: "800" },
+  availText: { fontSize: 12, fontWeight: "700" },
 
   statsRow: {
     backgroundColor: T.surface, borderRadius: 24, padding: 20,
@@ -403,7 +405,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: T.border, ...CARD_SHADOW,
   },
   statCard: { flex: 1, alignItems: "center", gap: 4 },
-  statValue: { fontSize: 24, fontWeight: "800", color: T.text1 },
+  statValue: { fontSize: 24, fontWeight: "700", color: T.text1 },
   statLabel: { fontSize: 12, fontWeight: "600", color: T.text3, textAlign: "center" },
   statsDivider: { width: 1, height: 48, backgroundColor: T.border },
 
@@ -418,7 +420,7 @@ const s = StyleSheet.create({
     backgroundColor: T.surface, borderRadius: 24, padding: 24,
     borderWidth: 1, borderColor: T.border, gap: 20, ...CARD_SHADOW,
   },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: T.text1 },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: T.text1 },
   
   infoRow: { flexDirection: "row", alignItems: "center", gap: 16 },
   infoIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: T.blue + "10", alignItems: "center", justifyContent: "center" },
@@ -430,14 +432,14 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: T.border, gap: 16,
   },
   payoutRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  payoutAmount: { fontSize: 24, fontWeight: "800", color: T.accent },
+  payoutAmount: { fontSize: 24, fontWeight: "700", color: T.accent },
   payoutMethod: { fontSize: 13, fontWeight: "700", color: T.text3, textTransform: "uppercase" },
   payoutActions: { flexDirection: "row", gap: 12 },
   payoutBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center" },
   payoutBtnReject: { backgroundColor: T.error + "15" },
-  payoutBtnRejectText: { color: T.error, fontWeight: "800" },
+  payoutBtnRejectText: { color: T.error, fontWeight: "700" },
   payoutBtnApprove: { backgroundColor: T.success },
-  payoutBtnApproveText: { color: "#fff", fontWeight: "800" },
+  payoutBtnApproveText: { color: "#fff", fontWeight: "700" },
 
   timeOffCard: {
     flexDirection: "row", alignItems: "center", gap: 16,
@@ -448,6 +450,6 @@ const s = StyleSheet.create({
     width: 44, height: 44, borderRadius: 12, backgroundColor: T.error + "20",
     alignItems: "center", justifyContent: "center"
   },
-  timeOffDate: { fontSize: 15, fontWeight: "800", color: T.error },
+  timeOffDate: { fontSize: 15, fontWeight: "700", color: T.error },
   timeOffText: { fontSize: 13, fontWeight: "600", color: T.error + "90", marginTop: 2 }
 });

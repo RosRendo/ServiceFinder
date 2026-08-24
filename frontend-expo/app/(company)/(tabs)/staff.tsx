@@ -9,6 +9,8 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { api } from "@/store/authStore";
 import { useSidebarStore } from "@/store/sidebarStore";
+import ErrorState from "@/components/common/ErrorState";
+import InitialsAvatar from "@/components/common/InitialsAvatar";
 import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
 import { Theme } from "@/constants/theme";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
@@ -64,6 +66,7 @@ export default function Staff() {
   const [staffList, setStaffList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const setCompanyOpen = useSidebarStore((s) => s.setCompanyOpen);
 
   const filters = [
@@ -80,8 +83,10 @@ export default function Staff() {
       if (data && data.success) data = data.data;
       if (data && data.data) data = data.data; // Pagination wrap
       setStaffList(Array.isArray(data) ? data : []);
+      setHasError(false);
     } catch (error) {
       console.error("Failed to load staff", error);
+      setHasError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -120,7 +125,7 @@ export default function Staff() {
       <SafeAreaView edges={['top', 'left', 'right']} style={s.headerArea}>
         <View style={s.header}>
           <View style={s.headerLeft}>
-            <TouchableOpacity onPress={() => setCompanyOpen(true)} style={s.menuBtn}>
+            <TouchableOpacity onPress={() => setCompanyOpen(true)} style={s.menuBtn} accessibilityRole="button" accessibilityLabel="Open menu">
               <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
             </TouchableOpacity>
             <Text style={s.headerTitle}>Fleet Map</Text>
@@ -150,10 +155,18 @@ export default function Staff() {
                 <Marker key={member.id} coordinate={loc} title={member.fullName}>
                   <View style={s.markerContainer}>
                     {isAct && <PulseDot color={T.success} />}
-                    <Image
-                      source={{ uri: member.user?.avatar || member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.fullName || 'S')}&background=1E3A8A&color=fff` }}
-                      style={[s.markerAvatar, !isAct && s.markerAvatarInactive]}
-                    />
+                    {member.user?.avatar || member.avatar ? (
+                      <Image
+                        source={{ uri: member.user?.avatar || member.avatar }}
+                        style={[s.markerAvatar, !isAct && s.markerAvatarInactive]}
+                      />
+                    ) : (
+                      <InitialsAvatar
+                        name={member.fullName || "S"}
+                        size={30}
+                        style={!isAct ? s.markerAvatarInactive : undefined}
+                      />
+                    )}
                   </View>
                 </Marker>
               );
@@ -208,6 +221,8 @@ export default function Staff() {
           <View style={s.loadingBox}>
             <ActivityIndicator size="large" color={T.accent} />
           </View>
+        ) : hasError && staffList.length === 0 ? (
+          <ErrorState onRetry={() => { setLoading(true); loadStaff(); }} />
         ) : (
           <FlashList
             data={filteredStaff}
@@ -233,10 +248,14 @@ export default function Staff() {
                   activeOpacity={0.8}
                 >
                   <View style={s.cardHeader}>
-                    <Image
-                      source={{ uri: member.user?.avatar || member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.fullName || 'S')}&background=1E3A8A&color=fff` }}
-                      style={s.avatar}
-                    />
+                    {member.user?.avatar || member.avatar ? (
+                      <Image
+                        source={{ uri: member.user?.avatar || member.avatar }}
+                        style={s.avatar}
+                      />
+                    ) : (
+                      <InitialsAvatar name={member.fullName || "S"} size={44} style={s.avatar} />
+                    )}
                     <View style={s.cardHeaderInfo}>
                       <Text style={s.userName} numberOfLines={1}>{member.fullName || "Unknown"}</Text>
                       <Text style={s.userEmail} numberOfLines={1}>{member.email || "No Email"}</Text>
@@ -294,7 +313,7 @@ const s = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
 
   mapContainer: { flex: 0.45, backgroundColor: "#E2E8F0" },
   
@@ -331,10 +350,10 @@ const s = StyleSheet.create({
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
   avatar: { width: 48, height: 48, borderRadius: 16, backgroundColor: T.bg },
   cardHeaderInfo: { flex: 1 },
-  userName: { fontSize: 16, fontWeight: "800", color: T.text1, marginBottom: 2 },
+  userName: { fontSize: 16, fontWeight: "700", color: T.text1, marginBottom: 2 },
   userEmail: { fontSize: 13, fontWeight: "500", color: T.text3 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
+  statusText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
 
   cardBody: { flexDirection: "row", backgroundColor: T.bg, borderRadius: 12, padding: 12, justifyContent: "space-between" },
   infoBlock: { flex: 1 },

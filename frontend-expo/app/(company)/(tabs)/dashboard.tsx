@@ -13,6 +13,7 @@ import Toast from "react-native-toast-message";
 import { Swipeable } from "react-native-gesture-handler";
 import { api } from "@/store/authStore";
 import NotificationBell from "@/components/NotificationBell";
+import ErrorState from "@/components/common/ErrorState";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { Theme } from "@/constants/theme";
 
@@ -97,6 +98,7 @@ export default function Dashboard() {
   const setCompanyOpen = useSidebarStore((s) => s.setCompanyOpen);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const [company, setCompany] = useState<any>(null);
   const [metrics, setMetrics] = useState<any>(null);
   const [pendingBookings, setPendingBookings] = useState<any[]>([]);
@@ -111,11 +113,13 @@ export default function Dashboard() {
       ]);
       setCompany(companyRes.data?.data || companyRes.data);
       setMetrics(metricsRes.data?.data || metricsRes.data);
-      
+
       const allBookings = bookingsRes.data?.data?.bookings || bookingsRes.data?.bookings || bookingsRes.data?.data || [];
       setPendingBookings(allBookings.filter((b: any) => b.status === 'pending').slice(0, 3));
+      setHasError(false);
     } catch (error) {
       console.error("Failed to load dashboard data", error);
+      setHasError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -167,7 +171,7 @@ export default function Dashboard() {
       <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
         {/* Top App Bar */}
         <View style={s.header}>
-          <TouchableOpacity onPress={() => setCompanyOpen(true)} style={s.menuBtn}>
+          <TouchableOpacity onPress={() => setCompanyOpen(true)} style={s.menuBtn} accessibilityRole="button" accessibilityLabel="Open menu">
             <MaterialCommunityIcons name="menu" size={28} color={T.accent} />
           </TouchableOpacity>
           <Text style={s.headerTitle} numberOfLines={1}>
@@ -204,6 +208,8 @@ export default function Dashboard() {
             <View style={s.loadingBox}>
               <ActivityIndicator size="large" color={T.accent} />
             </View>
+          ) : hasError && !metrics ? (
+            <ErrorState onRetry={() => { setLoading(true); loadDashboardData(false, timeframe); }} />
           ) : (
             <View style={s.contentPad}>
               {/* Escrow and Wallet KPI Grid */}
@@ -386,7 +392,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 24, paddingVertical: 16, backgroundColor: T.bg,
   },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 18, fontWeight: "800", color: T.accent },
+  headerTitle: { flex: 1, textAlign: "center", fontSize: 18, fontWeight: "700", color: T.accent },
   
   timeframeContainer: { paddingHorizontal: 24, paddingBottom: 16, backgroundColor: T.bg },
   timeframeRow: { flexDirection: "row", backgroundColor: T.surface, borderRadius: 14, padding: 4, borderWidth: 1, borderColor: T.border },
@@ -404,18 +410,18 @@ const s = StyleSheet.create({
   heroIconWrap: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
   heroLabel: { flex: 1, fontSize: 13, fontWeight: "700", color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: 1 },
   heroContent: { gap: 8 },
-  heroValue: { fontSize: 36, fontWeight: "800", color: "#fff", letterSpacing: -0.5 },
+  heroValue: { fontSize: 36, fontWeight: "700", color: "#fff", letterSpacing: -0.5 },
 
   kpiGrid: { gap: 16, marginBottom: 24 },
-  kpiRow: { flexDirection: "row", gap: 16 },
+  kpiRow: { flexDirection: "row", gap: 16, marginBottom: 24 },
   kpiCard: { flex: 1, backgroundColor: T.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   kpiLabel: { fontSize: 12, fontWeight: "700", color: T.text3, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 },
-  kpiValue: { fontSize: 26, fontWeight: "800", color: T.text1 },
+  kpiValue: { fontSize: 26, fontWeight: "700", color: T.text1 },
   kpiSubLabel: { fontSize: 12, fontWeight: "600", color: T.text3, marginTop: 6 },
 
   chartCard: { backgroundColor: T.surface, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: T.border, marginBottom: 32, ...CARD_SHADOW },
   chartHeader: { marginBottom: 24 },
-  sectionTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  sectionTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   chartSub: { fontSize: 13, fontWeight: "500", color: T.text3, marginTop: 4 },
 
   chartBarsWrap: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 160, gap: 12 },
@@ -428,7 +434,7 @@ const s = StyleSheet.create({
 
   activitySection: { marginBottom: 24 },
   activityHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
-  viewAllBtn: { fontSize: 12, fontWeight: "800", color: T.accentMid, letterSpacing: 1 },
+  viewAllBtn: { fontSize: 12, fontWeight: "700", color: T.accentMid, letterSpacing: 1 },
   
   activityList: { gap: 12 },
   emptyBox: { alignItems: "center", paddingVertical: 40, gap: 12, backgroundColor: T.surface, borderRadius: 20, borderWidth: 1, borderColor: T.border },
@@ -437,7 +443,7 @@ const s = StyleSheet.create({
   activityCard: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 20, padding: 16, gap: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   activityIconBox: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   activityInfo: { flex: 1, gap: 4 },
-  activityTitle: { fontSize: 15, fontWeight: "800", color: T.text1 },
+  activityTitle: { fontSize: 15, fontWeight: "700", color: T.text1 },
   activitySub: { fontSize: 13, fontWeight: "500", color: T.text3 },
 
   pendingSection: { marginBottom: 24 },
@@ -446,7 +452,7 @@ const s = StyleSheet.create({
   
   pendingCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.warning, ...CARD_SHADOW },
   pendingInfo: { marginBottom: 12 },
-  pendingTitle: { fontSize: 16, fontWeight: "800", color: T.text1 },
+  pendingTitle: { fontSize: 16, fontWeight: "700", color: T.text1 },
   pendingSub: { fontSize: 14, fontWeight: "600", color: T.text2, marginTop: 4 },
   pendingDate: { fontSize: 13, color: T.text3, marginTop: 4 },
   
@@ -455,5 +461,5 @@ const s = StyleSheet.create({
 
   swipeActionLeft: { backgroundColor: T.success, justifyContent: "center", alignItems: "center", width: 100, borderTopLeftRadius: 20, borderBottomLeftRadius: 20, height: "100%" },
   swipeActionRight: { backgroundColor: T.error, justifyContent: "center", alignItems: "center", width: 100, borderTopRightRadius: 20, borderBottomRightRadius: 20, height: "100%" },
-  swipeActionText: { color: "#fff", fontSize: 11, fontWeight: "800", marginTop: 4, textTransform: "uppercase" },
+  swipeActionText: { color: "#fff", fontSize: 11, fontWeight: "700", marginTop: 4, textTransform: "uppercase" },
 });

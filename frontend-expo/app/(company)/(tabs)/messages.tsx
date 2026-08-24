@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import { api } from "@/store/authStore";
 import { useSidebarStore } from "@/store/sidebarStore";
+import ErrorState from "@/components/common/ErrorState";
 import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
@@ -48,7 +49,7 @@ function Avatar({ name, size = 52 }: { name: string; size?: number }) {
   const idx = name.length % colors.length;
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors[idx], alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ fontSize: size * 0.3, fontWeight: "800", color: "#fff" }}>{initials}</Text>
+      <Text style={{ fontSize: size * 0.3, fontWeight: "700", color: "#fff" }}>{initials}</Text>
     </View>
   );
 }
@@ -59,6 +60,7 @@ export default function Messages() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const setCompanyOpen = useSidebarStore((s) => s.setCompanyOpen);
 
   const load = useCallback(async (refresh = false) => {
@@ -84,7 +86,11 @@ export default function Messages() {
       });
       
       setConversations(Array.from(uniqueConvsMap.values()));
-    } catch { setConversations([]); }
+      setHasError(false);
+    } catch (e) {
+      console.error("Failed to load conversations", e);
+      setHasError(true);
+    }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
@@ -99,7 +105,7 @@ export default function Messages() {
       <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
         {/* Header */}
         <View style={s.header}>
-          <TouchableOpacity onPress={() => setCompanyOpen(true)} style={s.menuBtn}>
+          <TouchableOpacity onPress={() => setCompanyOpen(true)} style={s.menuBtn} accessibilityRole="button" accessibilityLabel="Open menu">
             <MaterialCommunityIcons name="menu" size={28} color={T.accent} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>Messages</Text>
@@ -131,6 +137,8 @@ export default function Messages() {
             <View style={s.loadingBox}>
               <ActivityIndicator size="large" color={T.accent} />
             </View>
+          ) : hasError && conversations.length === 0 ? (
+            <ErrorState onRetry={() => { setLoading(true); load(); }} />
           ) : filtered.length === 0 ? (
             <View style={s.emptyBox}>
               <View style={s.emptyIconWrap}>
@@ -191,7 +199,7 @@ const s = StyleSheet.create({
   },
   menuBtn: { padding: 8, marginLeft: -8 },
   iconBtn: { padding: 8, marginRight: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: T.accent },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: T.accent },
 
   searchWrap: { paddingHorizontal: 24, paddingVertical: 14, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
   searchBox: { flexDirection: "row", alignItems: "center", backgroundColor: T.bg, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, gap: 10, borderWidth: 1, borderColor: T.border },
@@ -200,7 +208,7 @@ const s = StyleSheet.create({
   loadingBox: { paddingVertical: 80, alignItems: "center" },
   emptyBox: { paddingVertical: 80, alignItems: "center", gap: 12 },
   emptyIconWrap: { width: 88, height: 88, borderRadius: 44, backgroundColor: T.bg, borderWidth: 1, borderColor: T.border, alignItems: "center", justifyContent: "center" },
-  emptyTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
+  emptyTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
   emptySubtitle: { fontSize: 14, fontWeight: "500", color: T.text3, textAlign: "center", paddingHorizontal: 40 },
 
   listWrap: { paddingHorizontal: 24, paddingTop: 16, gap: 4 },
@@ -214,7 +222,7 @@ const s = StyleSheet.create({
 
   convBody: { flex: 1 },
   convTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-  convName: { fontSize: 15, fontWeight: "800", color: T.text1, flex: 1 },
+  convName: { fontSize: 15, fontWeight: "700", color: T.text1, flex: 1 },
   convTime: { fontSize: 12, fontWeight: "500", color: T.text3 },
   convPreview: { fontSize: 13, fontWeight: "500", color: T.text2 },
 });
