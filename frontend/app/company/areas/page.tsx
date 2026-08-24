@@ -1,8 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
-import { 
-  Plus, MapPin, MoreVertical, CheckCircle2, XCircle, Search, Users,
-  Calendar, Edit, Trash2, Loader2, RefreshCw, AlertCircle
+import { ErrorState } from "@/components/common/ErrorState";
+import {
+  Plus, MapPin, MoreVertical, CheckCircle2, Search,
+  Edit, Loader2, RefreshCw, AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,8 @@ type ServiceArea = {
 export default function Areas() {
   const [areas, setAreas] = useState<ServiceArea[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [newAreaOpen, setNewAreaOpen] = useState(false);
@@ -49,18 +52,19 @@ export default function Areas() {
   const fetchAreas = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await api.get('/companies/my-company');
       const company = res.data?.data || res.data;
       if (company?.serviceAreas) {
         const mapped = company.serviceAreas.map((a: any) => ({
-          id: a.id, city: a.city, state: a.state || "N/A",
+          id: a.id, city: a.city, state: "N/A",
           zipCodes: [], coverageRadiusKm: a.coverageRadiusKm || 0,
-          status: "active", bookingsCount: Math.floor(Math.random() * 100), customersCount: Math.floor(Math.random() * 50),
+          status: "active", bookingsCount: 0, customersCount: 0,
         }));
         setAreas(mapped);
       }
     } catch (error) {
-      toast.error("Failed to fetch areas");
+      setError("Could not load your service areas.");
     } finally {
       setLoading(false);
     }
@@ -75,19 +79,26 @@ export default function Areas() {
   });
 
   const activeAreas = areas.filter(a => a.status === "active").length;
-  const totalBookings = areas.reduce((sum, a) => sum + a.bookingsCount, 0);
-  const totalCustomers = areas.reduce((sum, a) => sum + a.customersCount, 0);
 
-  const handleDelete = (id: string, city: string) => {
-    if (!confirm(`Are you sure you want to delete ${city}?`)) return;
-    setAreas(prev => prev.filter(a => a.id !== id));
-    toast.success(`${city} has been removed`);
-  };
-
-  const handleToggle = (id: string) => {
-    setAreas(prev => prev.map(a => 
-      a.id === id ? { ...a, status: a.status === "active" ? "inactive" : "active" } : a
-    ));
+  // Persists via PUT /companies/my-company (backend upserts the company's
+  // service area from city + coverageRadiusKm).
+  const handleAddArea = async () => {
+    if (!newAreaForm.city.trim()) { toast.error("City is required."); return; }
+    setSaving(true);
+    try {
+      await api.put('/companies/my-company', {
+        city: newAreaForm.city.trim(),
+        coverageRadiusKm: newAreaForm.radius ? Number(newAreaForm.radius) : undefined,
+      });
+      toast.success("Service area saved!");
+      setNewAreaOpen(false);
+      setNewAreaForm({ city: "", state: "", zipCodes: "", radius: "" });
+      fetchAreas();
+    } catch {
+      toast.error("Failed to save service area.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleUseCurrentLocation = () => {
@@ -186,10 +197,10 @@ export default function Areas() {
                     />
                   </div>
 
-                  <Button className="w-full rounded-md h-12 bg-blue-600 hover:bg-blue-700 shadow-sm font-bold text-white mt-4" onClick={() => {
-                    setNewAreaOpen(false); toast.success("Service area added successfully!");
-                    setNewAreaForm({ city: "", state: "", zipCodes: "", radius: "" });
-                  }}>Add Area</Button>
+                  <Button className="w-full rounded-md h-12 bg-blue-600 hover:bg-blue-700 shadow-sm font-bold text-white mt-4" disabled={saving} onClick={handleAddArea}>
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    {saving ? "Saving..." : "Add Area"}
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -197,12 +208,10 @@ export default function Areas() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {[
             { label: "Total Areas", value: areas.length, sub: "zones", icon: MapPin, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
             { label: "Active", value: activeAreas, sub: "serving customers", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
-            { label: "Total Bookings", value: totalBookings.toLocaleString(), sub: "from all areas", icon: Calendar, color: "text-indigo-600", bg: "bg-indigo-50", border: "border-indigo-100" },
-            { label: "Customers", value: totalCustomers.toLocaleString(), sub: "served", icon: Users, color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
           ].map((stat, i) => (
             <motion.div 
               key={stat.label}
@@ -253,6 +262,8 @@ export default function Areas() {
           <div className="bg-background rounded-xl border border-border p-12 flex justify-center items-center shadow-sm h-[400px]">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
+        ) : error ? (
+          <ErrorState title="Couldn't load service areas" message={error} onRetry={fetchAreas} />
         ) : filteredAreas.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
@@ -300,13 +311,6 @@ export default function Areas() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-xl border-border shadow-xl min-w-[160px] p-2">
                           <DropdownMenuItem className="rounded-lg font-medium cursor-pointer"><Edit className="w-4 h-4 mr-2 text-muted-foreground" /> Edit Area</DropdownMenuItem>
-                          <DropdownMenuItem className="rounded-lg font-medium cursor-pointer" onClick={() => handleToggle(area.id)}>
-                            {area.status === "active" ? <><XCircle className="w-4 h-4 mr-2 text-muted-foreground" /> Deactivate</> : <><CheckCircle2 className="w-4 h-4 mr-2 text-muted-foreground" /> Activate</>}
-                          </DropdownMenuItem>
-                          <div className="h-px bg-muted my-1 mx-2" />
-                          <DropdownMenuItem className="text-rose-600 rounded-lg font-bold focus:text-rose-700 focus:bg-rose-50 cursor-pointer" onClick={() => handleDelete(area.id, area.city)}>
-                            <Trash2 className="w-4 h-4 mr-2" /> Delete
-                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -318,30 +322,14 @@ export default function Areas() {
                   </div>
 
                   <div className="p-6">
-                    <div className="mb-6">
-                      <p className="text-[10px] font-bold text-muted-foreground font-medium mb-3">Covered ZIP Codes</p>
-                      <div className="flex flex-wrap gap-2">
-                        {area.zipCodes.length > 0 ? (
-                          <>
-                            {area.zipCodes.slice(0, 6).map((zip) => (
-                              <span key={zip} className="px-2.5 py-1 bg-background border border-border rounded-lg text-xs font-bold text-muted-foreground shadow-sm">{zip}</span>
-                            ))}
-                            {area.zipCodes.length > 6 && <span className="px-2.5 py-1 bg-muted/50 border border-border rounded-lg text-xs font-bold text-slate-400 shadow-sm">+{area.zipCodes.length - 6} more</span>}
-                          </>
-                        ) : (
-                          <span className="text-sm font-semibold text-muted-foreground bg-background px-3 py-1.5 rounded-xl border border-border shadow-sm">All ZIPs within {area.coverageRadiusKm}km</span>
-                        )}
-                      </div>
-                    </div>
-                    
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-background p-4 rounded-xl border border-border shadow-sm flex flex-col items-center justify-center">
-                        <p className="text-[10px] font-bold text-muted-foreground font-medium mb-1">Bookings</p>
-                        <p className="text-xl font-black text-foreground tracking-tight">{area.bookingsCount.toLocaleString()}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground font-medium mb-1">Radius</p>
+                        <p className="text-xl font-black text-foreground tracking-tight">{area.coverageRadiusKm} km</p>
                       </div>
                       <div className="bg-background p-4 rounded-xl border border-border shadow-sm flex flex-col items-center justify-center">
-                        <p className="text-[10px] font-bold text-muted-foreground font-medium mb-1">Customers</p>
-                        <p className="text-xl font-black text-foreground tracking-tight">{area.customersCount.toLocaleString()}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground font-medium mb-1">Coverage</p>
+                        <p className="text-xl font-black text-foreground tracking-tight">{area.city}</p>
                       </div>
                     </div>
                   </div>
