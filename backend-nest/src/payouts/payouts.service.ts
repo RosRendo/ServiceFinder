@@ -26,8 +26,17 @@ export class PayoutsService {
     if (!company) throw new NotFoundException('Company not found');
 
     const payouts = await this.prisma.payout.findMany({
-      where: { companyId },
+      where: {
+        OR: [
+          { companyId },
+          // Staff payouts created before companyId stamping (legacy rows)
+          { payoutType: 'staff', staff: { companyId } },
+        ],
+      },
       orderBy: { requestedAt: 'desc' },
+      include: {
+        staff: { include: { user: { select: { fullName: true } } } },
+      },
     });
 
     return {
@@ -129,6 +138,7 @@ export class PayoutsService {
       const p = await tx.payout.create({
         data: {
           staffId,
+          companyId: staff.companyId,
           amount,
           method,
           status: 'pending',

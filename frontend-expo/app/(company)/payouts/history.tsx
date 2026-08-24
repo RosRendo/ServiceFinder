@@ -47,7 +47,9 @@ export default function PayoutHistoryScreen() {
         net: p.amount,
         status: p.status === 'completed' ? 'paid' : p.status,
         method: p.method === 'bank_transfer' ? 'Bank Transfer' : p.method,
-        date: p.requestedAt || p.createdAt || new Date().toISOString()
+        date: p.requestedAt || p.createdAt || new Date().toISOString(),
+        payoutType: p.payoutType || 'company',
+        recipient: p.payoutType === 'staff' ? p.staff?.user?.fullName || `Staff #${p.staffId}` : 'Company withdrawal'
       }));
       setPayouts(mapped);
     } catch {
@@ -69,7 +71,9 @@ export default function PayoutHistoryScreen() {
         <View style={s.cardHeader}>
           <View>
             <Text style={s.amountText}>${item.amount.toFixed(2)}</Text>
-            <Text style={s.methodText}>via {item.method}</Text>
+            <Text style={s.methodText}>
+              {item.recipient ? `${item.recipient} · ` : ""}via {item.method}
+            </Text>
           </View>
           <View style={[s.badge, { backgroundColor: cfg.bg }]}>
             <MaterialCommunityIcons name={cfg.icon as any} size={12} color={cfg.color} />

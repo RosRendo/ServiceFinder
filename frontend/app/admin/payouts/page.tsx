@@ -130,7 +130,7 @@ export default function PayoutsPage() {
     try {
       await Promise.all(
         Array.from(selectedIds).map((id) =>
-          api.post(`/admin/payouts/${id.replace("PAY-", "")}/approve`)
+          api.patch(`/admin/payouts/${id.replace("PAY-", "")}/process`)
         )
       );
       toast({ title: "Payouts Processed", description: `${selectedIds.size} payout(s) processed successfully.` });
@@ -257,7 +257,7 @@ export default function PayoutsPage() {
                 onClick={async () => {
                   setIsSimulatingPayment(true);
                   try {
-                    await api.post(`/admin/payouts/${selectedPayoutForQr.id.replace("PAY-", "")}/approve`);
+                    await api.patch(`/admin/payouts/${selectedPayoutForQr.id.replace("PAY-", "")}/process`);
                     toast({ 
                       title: "Marked as Paid", 
                       description: `Payout for ${selectedPayoutForQr.recipient} marked as paid successfully.` 
