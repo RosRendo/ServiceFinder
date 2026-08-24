@@ -9,6 +9,7 @@ import { CreateBookingDrawer } from "@/components/drawers/CreateBookingDrawer";
 import { Search, Loader2, Calendar, Clock, Download, Plus, SlidersHorizontal, Eye, Edit } from "lucide-react";
 import api from "@/lib/api/client";
 import { useToast } from "@/lib/hooks/use-toast";
+import { ErrorState } from "@/components/common/ErrorState";
 
 // ─── Columns ──────────────────────────────────────────────────
 export default function BookingsPage() {
@@ -17,6 +18,7 @@ export default function BookingsPage() {
   const [search, setSearch] = useState("");
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
@@ -42,8 +44,9 @@ export default function BookingsPage() {
       const response = await api.get(`/bookings?${params.toString()}`);
       const payload = response.data.data || response.data;
       setBookings(payload.bookings || []);
+      setFetchError(null);
     } catch {
-      toast({ title: "Error", description: "Failed to load bookings", variant: "destructive" });
+      setFetchError("Check your connection and try again.");
     } finally { setLoading(false); }
   };
 
@@ -146,6 +149,8 @@ export default function BookingsPage() {
           <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">
             <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
           </div>
+        ) : fetchError && bookings.length === 0 ? (
+          <ErrorState title="Couldn't load bookings" message={fetchError} onRetry={fetchBookings} />
         ) : (
           <DataGrid
             columns={columns}

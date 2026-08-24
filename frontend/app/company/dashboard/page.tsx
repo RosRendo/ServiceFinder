@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { 
   TrendingUp, CalendarClock, Users, Clock, 
   ArrowUpRight, ArrowDownRight, CheckCircle2, 
-  Calendar as CalendarIcon, Activity, ArrowRight, MoreHorizontal, Loader2, Star
+  Calendar as CalendarIcon, Activity, ArrowRight, MoreHorizontal, Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -13,6 +13,7 @@ import { useToast } from "@/lib/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { format, formatDistanceToNow, isToday } from "date-fns";
 
 export default function CompanyDashboard() {
@@ -55,8 +56,26 @@ export default function CompanyDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/50/50">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+      <div className="h-full overflow-hidden p-6 space-y-6 font-sans">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <Skeleton className="h-9 w-44 rounded-lg" />
+        </div>
+        {/* KPI cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[120px] rounded-xl" />
+          ))}
+        </div>
+        {/* Chart + activity skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Skeleton className="lg:col-span-2 h-[300px] rounded-xl" />
+          <Skeleton className="h-[300px] rounded-xl" />
+        </div>
       </div>
     );
   }

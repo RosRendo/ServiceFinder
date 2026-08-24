@@ -11,6 +11,7 @@ import { useAPI } from "@/lib/hooks/useAPI";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminDashboard() {
   const { data, loading, refetch } = useAPI<any>('/api/admin/analytics');
@@ -27,8 +28,23 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <RefreshCw className="w-8 h-8 animate-spin text-primary opacity-50" />
+      <div className="h-full overflow-hidden p-6 space-y-6">
+        {/* Header skeleton */}
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-4 w-56" />
+        </div>
+        {/* KPI cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[120px] rounded-xl" />
+          ))}
+        </div>
+        {/* Chart + panels skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Skeleton className="lg:col-span-2 h-[300px] rounded-xl" />
+          <Skeleton className="h-[300px] rounded-xl" />
+        </div>
       </div>
     );
   }

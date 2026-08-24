@@ -304,7 +304,15 @@ export default function CompaniesPage() {
                   console.error(e);
                 }
               }
-              toast({ title: "Companies Deleted", description: `Successfully deleted ${successCount} companie(s).` });
+              if (successCount === 0) {
+                toast({ title: "Error", description: "Failed to delete companies.", variant: "destructive" });
+                return;
+              }
+              if (successCount < selectedIds.size) {
+                toast({ title: "Partial", description: `Deleted ${successCount} of ${selectedIds.size} companie(s).`, variant: "destructive" });
+              } else {
+                toast({ title: "Companies Deleted", description: `Successfully deleted ${successCount} companie(s).` });
+              }
               setSelectedIds(new Set());
               fetchCompanies();
             }

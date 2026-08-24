@@ -6,6 +6,7 @@ import { useToast } from "@/lib/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/api/client";
+import { ErrorState } from "@/components/common/ErrorState";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
 import { useSocket } from "@/lib/hooks/useSocket";
@@ -15,6 +16,7 @@ export default function CustomersCRM() {
   const router = useRouter();
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -30,8 +32,9 @@ export default function CustomersCRM() {
       const res = await api.get(`/companies/my-company/customers?${params.toString()}`);
       const payload = res.data.data || res.data;
       setCustomers(payload.customers || []);
+      setFetchError(null);
     } catch (err) {
-      toast({ title: "Error", description: "Failed to load customers", variant: "destructive" });
+      setFetchError("Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -188,6 +191,10 @@ export default function CustomersCRM() {
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
+          </div>
+        ) : fetchError && customers.length === 0 ? (
+          <div className="p-6">
+            <ErrorState title="Couldn't load customers" message={fetchError} onRetry={fetchCustomers} />
           </div>
         ) : (
           <DataGrid

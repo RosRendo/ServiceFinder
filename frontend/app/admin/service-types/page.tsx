@@ -47,7 +47,11 @@ export default function AdminServiceTypesPage() {
       const res = await api.get("/categories");
       const payload = res.data.data || res.data;
       setCategories(Array.isArray(payload) ? payload : payload.data || []);
-    } catch {}
+    } catch (e) {
+      // Non-fatal: the form's category dropdown falls back to manual entry,
+      // but log it so the empty-dropdown case is diagnosable.
+      console.error("Failed to load categories", e);
+    }
   };
 
   useEffect(() => {

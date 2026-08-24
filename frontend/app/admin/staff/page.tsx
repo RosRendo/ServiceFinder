@@ -209,7 +209,15 @@ export default function StaffPage() {
                   console.error(e);
                 }
               }
-              toast({ title: "Staff Deleted", description: `Successfully deleted ${successCount} staff member(s).` });
+              if (successCount === 0) {
+                toast({ title: "Error", description: "Failed to delete staff members.", variant: "destructive" });
+                return;
+              }
+              if (successCount < selectedIds.size) {
+                toast({ title: "Partial", description: `Deleted ${successCount} of ${selectedIds.size} staff member(s).`, variant: "destructive" });
+              } else {
+                toast({ title: "Staff Deleted", description: `Successfully deleted ${successCount} staff member(s).` });
+              }
               setSelectedIds(new Set());
               fetchStaff();
             }
