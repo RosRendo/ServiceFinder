@@ -61,13 +61,6 @@ export default function CustomerLayout() {
       <Stack.Screen name="change-password" />
       <Stack.Screen name="settings" />
 
-      {/* ── Instant Request Flow ───────────────────── */}
-      <Stack.Screen name="instant-request/index" />
-      <Stack.Screen name="instant-request/matching" />
-      <Stack.Screen name="instant-request/selection" />
-      <Stack.Screen name="instant-request/confirmation" />
-      <Stack.Screen name="instant-request/tracking" />
-
       {/* ── Complete Profile ─────────────────────── */}
       <Stack.Screen name="complete-profile" />
     </Stack>

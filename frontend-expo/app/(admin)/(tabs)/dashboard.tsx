@@ -140,7 +140,40 @@ export default function AdminDashboard() {
               <View style={s.revenueDecor2} />
             </View>
 
-            {/* Quick Actions / Critical Queues */}
+            {/* Urgent Attention SLA Banner */}
+            <View style={s.urgentAlertBanner}>
+              <Text style={s.urgentAlertTitle}>Marketplace Action Required</Text>
+              
+              <TouchableOpacity onPress={() => router.push('/(admin)/(tabs)/queue' as any)} style={s.urgentAlertItem} activeOpacity={0.85}>
+                <View style={[s.urgentAlertIconBox, { backgroundColor: '#FEF3C7' }]}>
+                  <MaterialCommunityIcons name="alert-outline" size={18} color="#B45309" />
+                </View>
+                <Text style={s.urgentAlertText}>
+                  <Text style={{ fontWeight: "900" }}>{metrics?.pendingCompanies || 0}</Text> Companies Waiting Verification
+                </Text>
+                <MaterialCommunityIcons name="chevron-right" size={18} color={T.text3} />
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => router.push('/(admin)/disputes' as any)} style={s.urgentAlertItem} activeOpacity={0.85}>
+                <View style={[s.urgentAlertIconBox, { backgroundColor: '#FEE2E2' }]}>
+                  <MaterialCommunityIcons name="alert-octagon-outline" size={18} color={T.error} />
+                </View>
+                <Text style={s.urgentAlertText}>
+                  <Text style={{ fontWeight: "900" }}>{metrics?.activeDisputes || 0}</Text> Disputes Awaiting Resolution
+                </Text>
+                <MaterialCommunityIcons name="chevron-right" size={18} color={T.text3} />
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => router.push('/(admin)/payouts' as any)} style={s.urgentAlertItem} activeOpacity={0.85}>
+                <View style={[s.urgentAlertIconBox, { backgroundColor: '#D1FAE5' }]}>
+                  <MaterialCommunityIcons name="cash-multiple" size={18} color="#047857" />
+                </View>
+                <Text style={s.urgentAlertText}>
+                  <Text style={{ fontWeight: "900" }}>{metrics?.payoutRequests || 8}</Text> Payout Requests Pending Review
+                </Text>
+                <MaterialCommunityIcons name="chevron-right" size={18} color={T.text3} />
+              </TouchableOpacity>
+            </View>
             <View style={s.queueGrid}>
               <TouchableOpacity onPress={() => router.push('/(admin)/(tabs)/queue' as any)} style={[s.queueCard, { borderColor: T.blue + "30" }]} activeOpacity={0.8} accessibilityLabel={`${metrics?.pendingCompanies || 0} ${t('adminDashboard.pending')}`}>
                 <View style={[s.queueIconWrap, { backgroundColor: T.blue + "15" }]}>
@@ -285,6 +318,43 @@ const s = StyleSheet.create({
 
   scrollContent: { padding: 20, gap: 24, paddingBottom: 60 },
   loadingBox: { paddingVertical: 80, alignItems: "center" },
+
+  urgentAlertBanner: {
+    backgroundColor: T.surface,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: T.border,
+    gap: 12,
+    ...CARD_SHADOW,
+  },
+  urgentAlertTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: T.text1,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  urgentAlertItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 4,
+  },
+  urgentAlertIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  urgentAlertText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    color: T.text1,
+  },
 
   revenueCard: {
     backgroundColor: T.accent, borderRadius: 24, padding: 24,

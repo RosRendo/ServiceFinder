@@ -290,6 +290,13 @@ export class UsersService {
     return { user };
   }
 
+  async updateLocation(userId: bigint, latitude: number, longitude: number) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { latitude, longitude },
+    });
+  }
+
   async updateUser(id: bigint, dto: UpdateUserDto, currentUser: any) {
     if (currentUser.id !== id && currentUser.role !== 'admin') {
       throw new ForbiddenException('Access denied');

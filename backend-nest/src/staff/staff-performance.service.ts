@@ -74,15 +74,29 @@ export class StaffPerformanceService {
     let weeklyCompleted = 0;
     let weeklyEarnings = 0;
 
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const weeklyChart = dayNames.map((day, i) => {
+      const d = new Date(thisWeek);
+      d.setDate(thisWeek.getDate() + i);
+      return { day, amount: 0, isToday: d.toDateString() === today.toDateString() };
+    });
+
     for (const b of completedDetails) {
       weeklyCompleted++;
-      weeklyEarnings += Number(b.staffEarnings || 0);
+      const earnings = Number(b.staffEarnings || 0);
+      weeklyEarnings += earnings;
 
       const bd = new Date(b.bookingDate);
       bd.setHours(0, 0, 0, 0);
+
+      const dayIdx = bd.getDay() === 0 ? 6 : bd.getDay() - 1;
+      if (dayIdx >= 0 && dayIdx < 7) {
+        weeklyChart[dayIdx].amount += earnings;
+      }
+
       if (bd.getTime() === today.getTime()) {
         todayCompleted++;
-        todayEarnings += Number(b.staffEarnings || 0);
+        todayEarnings += earnings;
       }
     }
 
@@ -121,9 +135,10 @@ export class StaffPerformanceService {
         todayEarnings,
         weeklyCompleted,
         weeklyEarnings,
+        weeklyChart,
         walletBalance: Number(staffRecord.walletBalance || 0),
         pendingBalance: Number(pendingBalance || 0),
-        responseRate: 94.5,
+        responseRate: 100,
       },
     };
   }

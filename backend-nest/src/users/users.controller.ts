@@ -97,6 +97,19 @@ export class UsersController {
     return this.usersService.updatePreferences(BigInt(user.id), dto);
   }
 
+  @Patch('me/location')
+  @ApiOperation({ summary: 'Update user location' })
+  @ApiResponse({
+    status: 200,
+    description: 'Location updated successfully.',
+  })
+  updateLocation(
+    @Body() dto: { latitude: number; longitude: number },
+    @CurrentUser() user: any,
+  ) {
+    return this.usersService.updateLocation(BigInt(user.id), dto.latitude, dto.longitude);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiResponse({ status: 200, description: 'Return user details.' })

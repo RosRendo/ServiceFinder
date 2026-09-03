@@ -15,7 +15,7 @@ const NAV = {
 const TABS = [
   { name: 'home',     icon: 'home-variant-outline', iconActive: 'home-variant', label: 'Home' },
   { name: 'explore',  icon: 'compass-outline',      iconActive: 'compass',        label: 'Explore' },
-  { name: 'activity', icon: 'calendar-blank-outline', iconActive: 'calendar-check', label: 'Activity' },
+  { name: 'activity', icon: 'calendar-blank-outline', iconActive: 'calendar-check', label: 'Bookings' },
   { name: 'message',  icon: 'message-outline',      iconActive: 'message-processing', label: 'Messages' },
   { name: 'profile',  icon: 'account-circle-outline', iconActive: 'account-circle', label: 'Profile' },
 ];

@@ -20,4 +20,6 @@ export class CreateInstantRequestDto {
   @IsNotEmpty()
   @IsNumber()
   longitude: number;
+
+  companyId?: string;
 }

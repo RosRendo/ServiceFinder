@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { ScrollView, Text, View, TouchableOpacity, RefreshControl, ActivityIndicator, Alert, StyleSheet, Animated, Easing, Pressable, Platform, Dimensions, Share } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, RefreshControl, ActivityIndicator, Alert, StyleSheet, Animated, Pressable, Platform, Dimensions, Share } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -8,6 +8,7 @@ import { api, useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
 import ScaleButton from "@/components/ScaleButton";
+import InitialsAvatar from "@/components/common/InitialsAvatar";
 
 const T = Theme.colors;
 const { width } = Dimensions.get('window');
@@ -16,11 +17,6 @@ const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12 },
   android: { elevation: 3 },
 });
-
-interface ServiceItem {
-  id: string; name: string; description?: string; basePrice: number;
-  durationMin: number; durationMax?: number; image?: string; features?: string[];
-}
 
 export default function CompanyDetailScreen() {
   const router = useRouter();
@@ -53,7 +49,6 @@ export default function CompanyDetailScreen() {
           const savedStatus = checkRes.data?.savedIds?.[0]?.saved;
           if (savedStatus) setIsSaved(true);
         } catch (checkErr: any) {
-          // Ignore 401 errors for unauthenticated users
           console.warn("Could not check saved status:", checkErr?.message);
         }
       }
@@ -108,7 +103,7 @@ export default function CompanyDetailScreen() {
   if (isLoading) {
     return (
       <View style={s.centerRoot}>
-        <ActivityIndicator size="large" color={T.accent} />
+        <ActivityIndicator size="large" color={T.primary} />
       </View>
     );
   }
@@ -119,14 +114,14 @@ export default function CompanyDetailScreen() {
         <MaterialIcons name="storefront" size={64} color={T.text3} />
         <Text style={s.errorText}>Provider not found.</Text>
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
-          <Text style={{ color: T.accent, fontWeight: '600' }}>Go Back</Text>
+          <Text style={{ color: T.primary, fontWeight: '600' }}>Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
   const heroImage = company.coverImageUrl;
-  const logoImage = company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}`;
+  const logoImage = company.logoUrl;
   const rating = company.ratingSummary?.averageRating ? Number(company.ratingSummary.averageRating).toFixed(1) : "New";
   const reviewCount = company.ratingSummary?.totalReviews || 0;
   const completedJobs = company.completedJobs || 0;
@@ -137,27 +132,27 @@ export default function CompanyDetailScreen() {
 
   return (
     <View style={s.root}>
-      {/* ── FLOATING HEADER ───────────────────────────────────────── */}
-      <View style={[s.floatingHeader, { paddingTop: Math.max(insets.top, 16) }]}>
+      {/* ── FLOATING OVERLAY HEADER ───────────────────────────────── */}
+      <View style={[s.floatingHeader, { paddingTop: Math.max(insets.top, 12) }]}>
         <TouchableOpacity onPress={() => router.back()} style={s.iconBtn}>
-          <MaterialIcons name="arrow-back" size={24} color={T.text1} />
+          <MaterialIcons name="arrow-back" size={20} color="#FFFFFF" />
         </TouchableOpacity>
 
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <TouchableOpacity onPress={() => Share.share({ message: `Check out ${company?.name} on Service Finder!` })} style={s.iconBtn}>
-            <MaterialIcons name="share" size={20} color={T.text1} />
+            <MaterialIcons name="share" size={18} color="#FFFFFF" />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleSaveToggle} disabled={isSaving} style={s.iconBtn}>
-            <MaterialCommunityIcons name={isSaved ? "heart" : "heart-outline"} size={22} color={isSaved ? "#ED6B6B" : T.text1} />
+            <MaterialCommunityIcons name={isSaved ? "heart" : "heart-outline"} size={20} color={isSaved ? "#EF4444" : "#FFFFFF"} />
           </TouchableOpacity>
         </View>
       </View>
 
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }} // Space for sticky footer
-        stickyHeaderIndices={[1]} // Makes the Tab Bar (index 1) sticky!
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={loadCompany} colors={[T.accent]} tintColor={T.accent} />}
+        contentContainerStyle={{ paddingBottom: 140 }}
+        stickyHeaderIndices={[1]}
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={loadCompany} colors={[T.primary]} tintColor={T.primary} />}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
@@ -182,59 +177,63 @@ export default function CompanyDetailScreen() {
               })
             }]
           }]}>
-            {heroImage && <Image source={{ uri: heroImage }} style={StyleSheet.absoluteFillObject} contentFit="cover" />}
+            {heroImage ? (
+              <Image source={{ uri: heroImage }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+            ) : (
+              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: T.primary }]} />
+            )}
             <View style={s.heroOverlay} />
           </Animated.View>
 
-          {/* Logo & Title Row (Overlapping the hero image slightly) */}
+          {/* Logo & Title Row */}
           <View style={s.headerInfoBox}>
             <View style={s.logoWrapper}>
-              <Image source={{ uri: logoImage }} style={s.logoImg} />
+              {logoImage ? (
+                <Image source={{ uri: logoImage }} style={s.logoImg} />
+              ) : (
+                <InitialsAvatar name={company.name} size={74} radius={20} />
+              )}
             </View>
             <View style={{ flex: 1, paddingBottom: 4 }}>
               <View style={s.titleRow}>
                 <Text style={s.companyName} numberOfLines={1}>{company.name}</Text>
                 {company.verificationStatus === 'verified' && (
-                  <MaterialIcons name="verified" size={20} color="#3B82F6" />
+                  <MaterialIcons name="verified" size={18} color={T.blue} />
                 )}
               </View>
-              <Text style={s.locationText}>{company.city || "Local Service Provider"}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <MaterialCommunityIcons name="map-marker-outline" size={14} color={T.text3} />
+                <Text style={s.locationText}>{company.city || "Local Service Provider"}</Text>
+              </View>
             </View>
           </View>
 
-          {/* Trust Metrics (ZERO ANXIETY) */}
-          <View style={s.trustMetrics}>
-            <View style={s.trustItem}>
-              <View style={s.trustValRow}>
-                <MaterialIcons name="star" size={16} color="#F59E0B" />
+          {/* Trust Metrics Bento Grid */}
+          <View style={s.bentoContainer}>
+            <View style={s.trustMetrics}>
+              <View style={s.trustItem}>
+                <View style={[s.metricIconWrap, { backgroundColor: "rgba(245, 158, 11, 0.08)" }]}>
+                  <MaterialIcons name="star" size={20} color={T.gold} />
+                </View>
                 <Text style={s.trustVal}>{rating}</Text>
+                <Text style={s.trustLabel}>{reviewCount} reviews</Text>
               </View>
-              <Text style={s.trustLabel}>{reviewCount} reviews</Text>
-            </View>
-            <View style={s.trustDivider} />
-            <View style={s.trustItem}>
-              <View style={s.trustValRow}>
-                <MaterialIcons name="work" size={16} color={T.text2} />
+              
+              <View style={s.trustItem}>
+                <View style={[s.metricIconWrap, { backgroundColor: "rgba(10, 25, 47, 0.06)" }]}>
+                  <MaterialIcons name="work" size={20} color={T.primary} />
+                </View>
                 <Text style={s.trustVal}>{completedJobs > 1000 ? `${(completedJobs / 1000).toFixed(1)}k+` : completedJobs}</Text>
+                <Text style={s.trustLabel}>Jobs done</Text>
               </View>
-              <Text style={s.trustLabel}>Jobs done</Text>
-            </View>
-            <View style={s.trustDivider} />
-            <View style={s.trustItem}>
-              <View style={s.trustValRow}>
-                {isInsured ? (
-                  <>
-                    <MaterialIcons name="shield" size={16} color="#10B981" />
-                    <Text style={s.trustVal}>Insured</Text>
-                  </>
-                ) : (
-                  <>
-                    <MaterialIcons name="check-circle" size={16} color="#3B82F6" />
-                    <Text style={s.trustVal}>{completionRate}%</Text>
-                  </>
-                )}
+
+              <View style={s.trustItem}>
+                <View style={[s.metricIconWrap, { backgroundColor: isInsured ? "rgba(16, 185, 129, 0.08)" : "rgba(37, 99, 235, 0.08)" }]}>
+                  <MaterialIcons name={isInsured ? "shield" : "check-circle"} size={20} color={isInsured ? T.success : T.blue} />
+                </View>
+                <Text style={s.trustVal}>{isInsured ? "Insured" : `${completionRate}%`}</Text>
+                <Text style={s.trustLabel}>{isInsured ? "Protected" : "Completion"}</Text>
               </View>
-              <Text style={s.trustLabel}>{isInsured ? "Protected" : "Completion"}</Text>
             </View>
           </View>
         </View>
@@ -259,11 +258,11 @@ export default function CompanyDetailScreen() {
               {services.length === 0 ? (
                 <View style={s.emptyState}>
                   <Text style={s.emptyIcon}>🛠️</Text>
-                  <Text style={s.emptyText}>No services available.</Text>
+                  <Text style={s.emptyText}>No services available right now.</Text>
                 </View>
               ) : (
                 <View style={s.serviceList}>
-                  {services.map((service: any, idx: number) => (
+                  {services.map((service: any) => (
                     <TouchableOpacity
                       key={service.id}
                       style={s.serviceCard}
@@ -272,13 +271,14 @@ export default function CompanyDetailScreen() {
                       <View style={s.serviceInfo}>
                         <Text style={s.serviceTitle}>{service.name}</Text>
                         <Text style={s.serviceMeta}>
-                          {service.durationMin} mins • Starting at ${service.basePrice}
+                          {service.durationMin} mins • Starting at ${Number(service.basePrice).toFixed(0)}
                         </Text>
                         {service.description && (
                           <Text style={s.serviceDesc} numberOfLines={2}>{service.description}</Text>
                         )}
                         <View style={s.bookBtnSm}>
                           <Text style={s.bookBtnSmText}>View Details</Text>
+                          <MaterialIcons name="chevron-right" size={14} color={T.text1} />
                         </View>
                       </View>
                       {service.image ? (
@@ -302,7 +302,7 @@ export default function CompanyDetailScreen() {
                 <View style={s.reviewsSummaryLeft}>
                   <Text style={s.ratingMassive}>{rating}</Text>
                   <View style={s.starsRow}>
-                    {[1, 2, 3, 4, 5].map(i => <MaterialIcons key={i} name="star" size={14} color="#F59E0B" />)}
+                    {[1, 2, 3, 4, 5].map(i => <MaterialIcons key={i} name="star" size={14} color={T.gold} />)}
                   </View>
                   <Text style={s.reviewCountLabel}>Based on {reviewCount} reviews</Text>
                 </View>
@@ -321,11 +321,11 @@ export default function CompanyDetailScreen() {
               {reviewCount > 0 ? (
                 <View style={s.reviewCard}>
                   <View style={s.reviewHeader}>
-                    <View style={s.reviewAvatar}><Text style={s.reviewAvatarText}>J</Text></View>
+                    <InitialsAvatar name="John D." size={40} radius={14} />
                     <View style={{ flex: 1 }}>
-                      <Text style={s.reviewName}>John D. (Verified)</Text>
+                      <Text style={s.reviewName}>John D. <Text style={{ fontSize: 11, color: T.success, fontWeight: "600" }}>(Verified)</Text></Text>
                       <View style={{ flexDirection: 'row', marginTop: 2 }}>
-                        {[...Array(5)].map((_, i) => <MaterialIcons key={i} name="star" size={12} color="#F59E0B" />)}
+                        {[...Array(5)].map((_, i) => <MaterialIcons key={i} name="star" size={12} color={T.gold} />)}
                       </View>
                     </View>
                     <Text style={s.reviewDate}>2 weeks ago</Text>
@@ -346,35 +346,34 @@ export default function CompanyDetailScreen() {
             <View style={s.tabSection}>
 
               {/* Gallery Mini */}
-              <Text style={s.aboutTitle}>Gallery</Text>
+              <Text style={s.aboutTitle}>Service Showcase</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
                 {services.filter((s: any) => s.image).map((s: any) => (
                   <Image key={s.id} source={{ uri: s.image }} style={s.galleryImg} />
                 ))}
-                <Image source={{ uri: heroImage }} style={s.galleryImg} />
-                <Image source={{ uri: logoImage }} style={s.galleryImg} />
+                {heroImage && <Image source={{ uri: heroImage }} style={s.galleryImg} />}
               </ScrollView>
 
               <View style={s.divider} />
 
               {/* Company Info */}
-              <Text style={s.aboutTitle}>About {company.name}</Text>
+              <Text style={s.aboutTitle}>About provider</Text>
               <Text style={s.aboutDesc}>
                 {company.description || "A highly rated service provider dedicated to quality and customer satisfaction."}
               </Text>
 
               <View style={s.infoList}>
                 <View style={s.infoRow}>
-                  <MaterialIcons name="event" size={20} color={T.accent} />
+                  <View style={s.iconCircle}><MaterialIcons name="event" size={18} color={T.primary} /></View>
                   <Text style={s.infoText}>Established in {company.establishedYear || "2015"}</Text>
                 </View>
                 <View style={s.infoRow}>
-                  <MaterialIcons name="location-on" size={20} color={T.accent} />
+                  <View style={s.iconCircle}><MaterialIcons name="location-on" size={18} color={T.primary} /></View>
                   <Text style={s.infoText}>{company.address ? `${company.address}, ${company.city}` : company.city}</Text>
                 </View>
                 {company.phone && (
                   <View style={s.infoRow}>
-                    <MaterialIcons name="phone" size={20} color={T.accent} />
+                    <View style={s.iconCircle}><MaterialIcons name="phone" size={18} color={T.primary} /></View>
                     <Text style={s.infoText}>{company.phone}</Text>
                   </View>
                 )}
@@ -383,9 +382,9 @@ export default function CompanyDetailScreen() {
               <View style={s.divider} />
 
               {/* Location/Map placeholder */}
-              <Text style={s.aboutTitle}>Service Area</Text>
+              <Text style={s.aboutTitle}>Service Coverage Area</Text>
               <View style={s.mapPlaceholder}>
-                <MaterialIcons name="map" size={32} color={T.accent} />
+                <MaterialIcons name="map" size={28} color={T.primary} style={{ marginBottom: 4 }} />
                 <Text style={s.mapText}>Serves up to 25 miles from {company.city}</Text>
               </View>
 
@@ -398,7 +397,7 @@ export default function CompanyDetailScreen() {
       <View style={s.stickyFooter}>
         <View>
           <Text style={s.footerLabel}>Starting at</Text>
-          <Text style={s.footerPrice}>{lowestPrice !== null ? `$${lowestPrice.toFixed(2)}` : 'Free Quote'}</Text>
+          <Text style={s.footerPrice}>{lowestPrice !== null ? `$${lowestPrice.toFixed(0)}` : 'Free Quote'}</Text>
         </View>
         <ScaleButton
           onPress={() => {
@@ -422,92 +421,92 @@ const s = StyleSheet.create({
   centerRoot: { flex: 1, backgroundColor: T.bg, alignItems: "center", justifyContent: "center", gap: 12 },
   errorText: { color: T.error, fontSize: 16, fontWeight: '600', marginTop: 12 },
 
-  // Floating Header
-  floatingHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12, backgroundColor: 'rgba(255,255,255,0.95)', borderBottomWidth: 1, borderColor: T.border },
-  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  // Floating Overlaid Circular Action Buttons
+  floatingHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12, backgroundColor: 'transparent' },
+  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: "rgba(10, 25, 47, 0.4)", borderWidth: 1, borderColor: "rgba(255,255,255,0.15)", ...CARD_SHADOW },
 
-  // Hero
-  heroContainer: { height: 220, backgroundColor: T.border },
-  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.05)' },
+  // Hero Area
+  heroContainer: { height: 240, backgroundColor: T.primary },
+  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10, 25, 47, 0.15)' },
 
-  // Header Info
-  headerInfoBox: { paddingHorizontal: 24, flexDirection: 'row', alignItems: 'flex-end', gap: 16, marginTop: -32 },
-  logoWrapper: { width: 80, height: 80, borderRadius: 16, backgroundColor: T.surface, borderWidth: 3, borderColor: T.surface, ...CARD_SHADOW, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  // Overlapping Identity Box
+  headerInfoBox: { paddingHorizontal: 24, flexDirection: 'row', alignItems: 'flex-end', gap: 16, marginTop: -36 },
+  logoWrapper: { width: 80, height: 80, borderRadius: 20, backgroundColor: T.surface, borderWidth: 3, borderColor: T.surface, ...CARD_SHADOW, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   logoImg: { width: '100%', height: '100%' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  companyName: { fontSize: 22, fontWeight: '900', color: T.text1, flexShrink: 1, letterSpacing: -0.5 },
+  companyName: { fontSize: 22, fontWeight: '800', color: T.text1, flexShrink: 1, letterSpacing: -0.5 },
   locationText: { fontSize: 13, color: T.text2, fontWeight: '600' },
 
-  // Trust Metrics
-  trustMetrics: { flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center', paddingVertical: 20, paddingHorizontal: 24, marginTop: 8 },
-  trustItem: { alignItems: 'center', gap: 4 },
-  trustValRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  trustVal: { fontSize: 15, fontWeight: '800', color: T.text1 },
-  trustLabel: { fontSize: 12, color: T.text3, fontWeight: '600' },
-  trustDivider: { width: 1, height: 24, backgroundColor: T.border },
+  // Bento Trust Box
+  bentoContainer: { paddingHorizontal: 20, marginTop: 16 },
+  trustMetrics: { flexDirection: 'row', backgroundColor: T.surface, borderRadius: 24, paddingVertical: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  trustItem: { flex: 1, alignItems: 'center' },
+  metricIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  trustVal: { fontSize: 16, fontWeight: '800', color: T.text1, letterSpacing: -0.3 },
+  trustLabel: { fontSize: 11, color: T.text3, fontWeight: '600', textTransform: "uppercase", marginTop: 2 },
 
   // Sticky Tab Bar
-  stickyTabBar: { backgroundColor: T.surface, borderBottomWidth: 1, borderColor: T.border, zIndex: 10 },
+  stickyTabBar: { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, zIndex: 10 },
   tabsScroll: { paddingHorizontal: 16 },
   tabItem: { paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 2, borderBottomColor: "transparent" },
-  tabItemActive: { borderBottomColor: T.accent },
+  tabItemActive: { borderBottomColor: T.primary },
   tabText: { fontSize: 14, fontWeight: "700", color: T.text3 },
-  tabTextActive: { color: T.accent },
+  tabTextActive: { color: T.primary },
 
-  // Tab Content
+  // Tab Content Wrapper
   tabContentWrapper: { minHeight: 600, backgroundColor: T.bg },
-  tabSection: { padding: 24 },
+  tabSection: { padding: 20 },
   emptyState: { alignItems: "center", paddingVertical: 40 },
   emptyIcon: { fontSize: 40, marginBottom: 12 },
-  emptyText: { fontSize: 14, color: T.text3 },
+  emptyText: { fontSize: 14, color: T.text3, fontWeight: "600" },
 
-  // Services
-  serviceList: { gap: 16 },
-  serviceCard: { flexDirection: 'row', backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW, gap: 16 },
+  // Services Cards
+  serviceList: { gap: 14 },
+  serviceCard: { flexDirection: 'row', backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW, gap: 16 },
   serviceInfo: { flex: 1, justifyContent: 'space-between' },
   serviceTitle: { fontSize: 16, fontWeight: '800', color: T.text1, marginBottom: 4 },
-  serviceMeta: { fontSize: 12, fontWeight: '600', color: T.text2, marginBottom: 8 },
-  serviceDesc: { fontSize: 13, color: T.text3, lineHeight: 18, marginBottom: 12 },
-  bookBtnSm: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, backgroundColor: T.bg, borderRadius: 8, borderWidth: 1, borderColor: T.border },
-  bookBtnSmText: { fontSize: 12, fontWeight: '700', color: T.text1 },
+  serviceMeta: { fontSize: 12, fontWeight: '600', color: T.text2, marginBottom: 6 },
+  serviceDesc: { fontSize: 12, color: T.text3, lineHeight: 16, marginBottom: 10 },
+  bookBtnSm: { flexDirection: "row", alignItems: "center", gap: 2, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, backgroundColor: T.bg, borderRadius: 8, borderWidth: 1, borderColor: T.border },
+  bookBtnSmText: { fontSize: 11, fontWeight: '700', color: T.text1 },
   serviceImg: { width: 88, height: 88, borderRadius: 12, backgroundColor: T.bg },
   serviceImgPlaceholder: { width: 88, height: 88, borderRadius: 12, backgroundColor: T.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: T.border },
 
-  // Reviews
-  reviewsSummaryCard: { backgroundColor: T.surface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: T.border, flexDirection: "row", gap: 24, marginBottom: 24 },
+  // Reviews Summary
+  reviewsSummaryCard: { backgroundColor: T.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.border, flexDirection: "row", gap: 24, marginBottom: 20, ...CARD_SHADOW },
   reviewsSummaryLeft: { alignItems: "center", justifyContent: "center" },
   ratingMassive: { fontSize: 40, fontWeight: "900", color: T.text1, letterSpacing: -1 },
   starsRow: { flexDirection: "row", gap: 2, marginVertical: 4 },
-  reviewCountLabel: { fontSize: 10, fontWeight: "700", color: T.text3 },
+  reviewCountLabel: { fontSize: 11, fontWeight: "700", color: T.text3 },
   reviewsSummaryRight: { flex: 1, gap: 6, justifyContent: 'center' },
   barRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   barLabel: { fontSize: 11, fontWeight: "700", color: T.text3, width: 8 },
   barTrack: { flex: 1, height: 6, backgroundColor: T.bg, borderRadius: 3, overflow: 'hidden' },
-  barFill: { height: '100%', backgroundColor: '#F59E0B', borderRadius: 3 },
+  barFill: { height: '100%', backgroundColor: T.gold, borderRadius: 3 },
 
-  reviewCard: { backgroundColor: T.surface, padding: 20, borderRadius: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  // Review List
+  reviewCard: { backgroundColor: T.surface, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  reviewAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: T.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: T.border },
-  reviewAvatarText: { fontSize: 18, fontWeight: '800', color: T.text2 },
   reviewName: { fontSize: 15, fontWeight: '800', color: T.text1 },
   reviewDate: { fontSize: 12, color: T.text3, fontWeight: '600' },
-  reviewBody: { fontSize: 14, color: T.text2, lineHeight: 22 },
+  reviewBody: { fontSize: 13, color: T.text2, lineHeight: 20 },
 
-  // About
-  aboutTitle: { fontSize: 18, fontWeight: '900', color: T.text1, marginBottom: 16, letterSpacing: -0.5 },
+  // About Tab
+  aboutTitle: { fontSize: 16, fontWeight: '800', color: T.text1, marginBottom: 16, letterSpacing: -0.3 },
   galleryImg: { width: 140, height: 100, borderRadius: 12, backgroundColor: T.bg, borderWidth: 1, borderColor: T.border },
-  divider: { height: 1, backgroundColor: T.border, marginVertical: 24 },
-  aboutDesc: { fontSize: 15, color: T.text2, lineHeight: 24, marginBottom: 24 },
-  infoList: { gap: 16 },
+  divider: { height: 1, backgroundColor: T.border, marginVertical: 20 },
+  aboutDesc: { fontSize: 14, color: T.text2, lineHeight: 22, marginBottom: 20 },
+  infoList: { gap: 12 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  infoText: { fontSize: 14, fontWeight: '600', color: T.text1 },
-  mapPlaceholder: { width: '100%', height: 140, backgroundColor: T.bg, borderRadius: 16, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  mapText: { fontSize: 13, fontWeight: '600', color: T.text2 },
+  iconCircle: { width: 36, height: 36, borderRadius: 10, backgroundColor: T.inputBg, alignItems: 'center', justifyContent: 'center' },
+  infoText: { fontSize: 14, fontWeight: '700', color: T.text1 },
+  mapPlaceholder: { width: '100%', height: 120, backgroundColor: T.inputBg, borderRadius: 20, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  mapText: { fontSize: 13, fontWeight: '700', color: T.text2 },
 
-  // Sticky Footer
-  stickyFooter: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "rgba(255,255,255,0.98)", borderTopWidth: 1, borderTopColor: T.border, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 32, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  footerLabel: { fontSize: 10, fontWeight: "800", color: T.text3, letterSpacing: 1, textTransform: 'uppercase' },
-  footerPrice: { fontSize: 24, fontWeight: "900", color: T.accent, letterSpacing: -0.5 },
-  footerBtn: { backgroundColor: T.accent, paddingHorizontal: 32, paddingVertical: 16, borderRadius: 12, ...CARD_SHADOW },
+  // Sticky Checkout Footer
+  stickyFooter: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border, paddingHorizontal: 24, paddingTop: 16, paddingBottom: Platform.OS === 'ios' ? 34 : 20, flexDirection: "row", justifyContent: "space-between", alignItems: "center", ...CARD_SHADOW },
+  footerLabel: { fontSize: 10, fontWeight: "800", color: T.text3, letterSpacing: 0.8, textTransform: 'uppercase' },
+  footerPrice: { fontSize: 24, fontWeight: "900", color: T.primary, letterSpacing: -0.5 },
+  footerBtn: { backgroundColor: T.primary, paddingHorizontal: 32, paddingVertical: 16, borderRadius: 16, ...CARD_SHADOW },
   footerBtnText: { fontSize: 16, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
 });

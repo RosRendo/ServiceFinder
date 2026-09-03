@@ -44,18 +44,25 @@ export default function UserDetail() {
 
   const [user, setUser] = useState<UserDetailData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [suspendModalVisible, setSuspendModalVisible] = useState(false);
   const [suspendReason, setSuspendReason] = useState("");
 
+  const safeFormatDate = (dateStr: any) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) 
+      ? "—" 
+      : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
   const fetchUser = async () => {
     if (!id) return;
     try {
       const res = await api.get(`/api/users/${id}`);
-      const data = res.data?.data || res.data;
-      const obj = data.user || data;
+      const data = res.data?.data || res.data || {};
+      const obj = data.user || data || {};
       setUser({
         id: obj.id?.toString(),
         fullName: obj.fullName || obj.name || "Unknown",
@@ -64,8 +71,8 @@ export default function UserDetail() {
         role: obj.role || "user",
         status: obj.status || "active",
         avatar: obj.avatar || obj.avatarUrl || null,
-        createdAt: obj.createdAt ? new Date(obj.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—",
-        lastLoginAt: obj.lastLoginAt ? new Date(obj.lastLoginAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—",
+        createdAt: safeFormatDate(obj.createdAt),
+        lastLoginAt: safeFormatDate(obj.lastLoginAt),
         ownedCompanies: obj.ownedCompanies || [],
         staffMemberships: obj.staffMemberships || [],
         stats: {
@@ -218,133 +225,195 @@ export default function UserDetail() {
   const roleStyle = getRoleColor(user.role);
   const statusStyle = getStatusStyle(user.status);
 
+  // Custom function to format fraud risk level and colors
+  const getFraudConfig = (score: number) => {
+    if (score < 30) return { label: "Low Risk", color: T.success, desc: "Account exhibits normal behavior patterns." };
+    if (score < 80) return { label: "Medium Risk", color: T.warning, desc: "Suspicious activity detected. Audit suggested." };
+    return { label: "High Risk", color: T.error, desc: "Critical flags triggered. Suspension recommended." };
+  };
+
+  const fraudConfig = getFraudConfig(user.fraudScore || 0);
+
   return (
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.headerBtn}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={T.text1} />
+          <MaterialCommunityIcons name="arrow-left" size={20} color={T.text1} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>User Details</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 38 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
         
-        {/* Main Identity Bento */}
+        {/* Asymmetrical Bento Hero Profile Card */}
         <View style={s.heroCard}>
           <View style={s.avatarWrap}>
-            <InitialsAvatar name={user.fullName ?? 'User'} size={96} radius={32} />
-            <View style={[s.avatarStatusDot, { backgroundColor: statusStyle.bg }]}>
-              <MaterialCommunityIcons name={statusStyle.icon as any} size={12} color={statusStyle.color} />
+            <InitialsAvatar name={user.fullName} size={88} radius={28} />
+          </View>
+          <View style={s.heroDetails}>
+            <Text style={s.userName} numberOfLines={1}>{user.fullName}</Text>
+            <Text style={s.userId}>#{user.id}</Text>
+            <View style={[s.roleBadge, { backgroundColor: roleStyle.bg }]}>
+              <MaterialCommunityIcons name={roleStyle.icon as any} size={12} color={roleStyle.text} />
+              <Text style={[s.roleText, { color: roleStyle.text }]}>{user.role.replace('_', ' ')}</Text>
             </View>
           </View>
-          
-          <Text style={s.userName}>{user.fullName}</Text>
-          <Text style={s.userId}>#{user.id}</Text>
-
-          {user.fraudScore !== undefined && user.fraudScore > 80 && (
-            <View style={s.fraudBadge}>
-              <MaterialCommunityIcons name="robot-dead-outline" size={14} color={T.error} />
-              <Text style={s.fraudText}>High Fraud Risk: {user.fraudScore}</Text>
-            </View>
-          )}
         </View>
 
-        {/* Primary Data Bento Grid */}
+        {/* Pulsing Status & Fraud Box */}
+        <View style={s.fraudCard}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <View style={[s.statusBadge, { borderColor: statusStyle.bg + "40", backgroundColor: statusStyle.bg + "10" }]}>
+              <View style={[s.statusDot, { backgroundColor: statusStyle.bg }]} />
+              <Text style={[s.statusText, { color: statusStyle.bg }]}>{user.status}</Text>
+            </View>
+            <Text style={[s.fraudScoreText, { color: fraudConfig.color }]}>{user.fraudScore}% Fraud Score</Text>
+          </View>
+
+          <Text style={s.fraudTitle}>Safety & Trust Profile</Text>
+          <View style={s.gaugeTrack}>
+            <View style={[s.gaugeBar, { width: `${user.fraudScore ?? 0}%` as any, backgroundColor: fraudConfig.color }]} />
+          </View>
+          <Text style={s.fraudDesc}>{fraudConfig.desc}</Text>
+        </View>
+
+        {/* Metrics Grid (Bookings & Reviews) */}
         <View style={s.bentoRow}>
-          {/* Role Box (Double Width) */}
-          <View style={[s.bentoBox, { flex: 1.5, backgroundColor: roleStyle.bg }]}>
-            <MaterialCommunityIcons name={roleStyle.icon as any} size={24} color={roleStyle.text} style={{ marginBottom: 8 }} />
-            <Text style={[s.bentoBoxValue, { color: roleStyle.text }]} numberOfLines={1}>{user.role.replace('_', ' ')}</Text>
-            <Text style={[s.bentoBoxLabel, { color: roleStyle.text, opacity: 0.8 }]}>Role</Text>
+          {/* Bookings Card */}
+          <View style={s.bentoBox}>
+            <View style={[s.metricIconWrap, { backgroundColor: "rgba(124, 58, 237, 0.1)" }]}>
+              <MaterialCommunityIcons name="calendar-check" size={22} color={T.purple} />
+            </View>
+            <Text style={s.metricValue}>{user.stats.bookings}</Text>
+            <Text style={s.metricLabel}>Total Bookings</Text>
           </View>
 
-          {/* Quick Action: Message */}
-          <TouchableOpacity style={[s.bentoBox, s.bentoActionBtn, { flex: 1 }]} onPress={handleMessageUser} disabled={actionLoading}>
-            <MaterialCommunityIcons name="message-text-outline" size={24} color={T.primary} style={{ marginBottom: 8 }} />
-            <Text style={[s.bentoBoxValue, { color: T.primary }]} numberOfLines={1}>Chat</Text>
-            <Text style={s.bentoBoxLabel}>Contact</Text>
-          </TouchableOpacity>
+          {/* Reviews Card */}
+          <View style={s.bentoBox}>
+            <View style={[s.metricIconWrap, { backgroundColor: "rgba(245, 158, 11, 0.1)" }]}>
+              <MaterialCommunityIcons name="star" size={22} color={T.gold} />
+            </View>
+            <Text style={s.metricValue}>{user.stats.reviews}</Text>
+            <Text style={s.metricLabel}>Reviews Written</Text>
+          </View>
         </View>
 
-        {/* Contact & Meta Data Grid */}
-        <View style={s.bentoGrid}>
-          {/* Email (Full Width) */}
-          <View style={s.bentoBoxFull}>
-            <View style={s.bentoIconCircle}><MaterialCommunityIcons name="email-outline" size={20} color={T.primary} /></View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.bentoBoxLabelText}>Email Address</Text>
-              <Text style={s.bentoBoxValueText} numberOfLines={1}>{user.email}</Text>
+        {/* Quick Contact Info */}
+        <View style={s.metaCard}>
+          <Text style={s.metaTitle}>Contact Details</Text>
+          
+          <View style={s.metaRow}>
+            <View style={[s.metricIconWrap, { backgroundColor: T.inputBg }]}><MaterialCommunityIcons name="email-outline" size={20} color={T.text2} /></View>
+            <View style={s.metaTextWrap}>
+              <Text style={s.metaLabel}>Email Address</Text>
+              <Text style={s.metaValue} numberOfLines={1}>{user.email}</Text>
             </View>
           </View>
 
-          {/* Phone (Full Width, conditionally) */}
           {!!user.phone && (
-            <View style={s.bentoBoxFull}>
-              <View style={s.bentoIconCircle}><MaterialCommunityIcons name="phone-outline" size={20} color={T.primary} /></View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.bentoBoxLabelText}>Phone Number</Text>
-                <Text style={s.bentoBoxValueText} numberOfLines={1}>{user.phone}</Text>
+            <View style={[s.metaRow, { marginTop: 8 }]}>
+              <View style={[s.metricIconWrap, { backgroundColor: T.inputBg }]}><MaterialCommunityIcons name="phone-outline" size={20} color={T.text2} /></View>
+              <View style={s.metaTextWrap}>
+                <Text style={s.metaLabel}>Phone Number</Text>
+                <Text style={s.metaValue} numberOfLines={1}>{user.phone}</Text>
               </View>
             </View>
           )}
-          
-          {/* Half Width Stats */}
-          <View style={s.bentoRow}>
-            <View style={[s.bentoBox, { flex: 1 }]}>
-              <MaterialCommunityIcons name="calendar-outline" size={20} color={T.text3} style={{ marginBottom: 8 }} />
-              <Text style={s.bentoBoxValueText} numberOfLines={1}>{user.createdAt}</Text>
-              <Text style={s.bentoBoxLabelText}>Joined</Text>
-            </View>
-            <View style={[s.bentoBox, { flex: 1 }]}>
-              <MaterialCommunityIcons name="login" size={20} color={T.text3} style={{ marginBottom: 8 }} />
-              <Text style={s.bentoBoxValueText} numberOfLines={1}>{user.lastLoginAt}</Text>
-              <Text style={s.bentoBoxLabelText}>Last Login</Text>
-            </View>
+        </View>
+
+        {/* Joined & Last Login */}
+        <View style={s.bentoRow}>
+          <View style={s.bentoBox}>
+            <MaterialCommunityIcons name="calendar-clock" size={20} color={T.text3} style={{ marginBottom: 8 }} />
+            <Text style={s.metaValue}>{user.createdAt}</Text>
+            <Text style={s.metaLabel}>Joined Platform</Text>
+          </View>
+          <View style={s.bentoBox}>
+            <MaterialCommunityIcons name="login-variant" size={20} color={T.text3} style={{ marginBottom: 8 }} />
+            <Text style={s.metaValue}>{user.lastLoginAt}</Text>
+            <Text style={s.metaLabel}>Last Session</Text>
+          </View>
+        </View>
+
+        {/* Interactive Action Hub */}
+        <View style={s.actionHub}>
+          <Text style={s.actionTitle}>Profile Management Actions</Text>
+          <View style={s.actionButtons}>
+            {/* Contact Chat */}
+            <TouchableOpacity style={[s.actionBtn, { borderColor: T.blue, backgroundColor: T.blue + "08" }]} onPress={handleMessageUser} disabled={actionLoading}>
+              <MaterialCommunityIcons name="message-text-outline" size={18} color={T.blue} />
+              <Text style={[s.actionBtnText, { color: T.blue }]}>Chat</Text>
+            </TouchableOpacity>
+
+            {/* Suspend/Restore */}
+            {user.status === "suspended" ? (
+              <TouchableOpacity style={[s.actionBtn, { borderColor: T.success, backgroundColor: T.success + "08" }]} onPress={() => confirmStatusChange("active")} disabled={actionLoading}>
+                <MaterialCommunityIcons name="account-check-outline" size={18} color={T.success} />
+                <Text style={[s.actionBtnText, { color: T.success }]}>Restore</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={[s.actionBtn, { borderColor: T.warning, backgroundColor: T.warning + "08" }]} onPress={() => setSuspendModalVisible(true)} disabled={actionLoading}>
+                <MaterialCommunityIcons name="account-off-outline" size={18} color={T.warning} />
+                <Text style={[s.actionBtnText, { color: T.warning }]}>Suspend</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Ban/Delete */}
+            <TouchableOpacity style={[s.actionBtn, { borderColor: T.error, backgroundColor: T.error + "08" }]} onPress={handleDelete} disabled={actionLoading}>
+              <MaterialCommunityIcons name="gavel" size={18} color={T.error} />
+              <Text style={[s.actionBtnText, { color: T.error }]}>Ban Account</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
         {/* Associations Bento */}
         {(user.ownedCompanies.length > 0 || user.staffMemberships.length > 0) && (
           <View style={s.bentoCard}>
-            <Text style={s.cardTitle}>Associations</Text>
+            <Text style={s.cardTitle}>Marketplace Affiliations</Text>
+            
             {user.ownedCompanies.map((c) => (
               <View key={`owned-${c.id}`} style={s.associationRow}>
-                <View style={[s.bentoIconCircle, { backgroundColor: "rgba(37, 99, 235, 0.1)" }]}>
+                <View style={[s.assocIcon, { backgroundColor: "rgba(37, 99, 235, 0.1)" }]}>
                   <MaterialCommunityIcons name="domain" size={20} color={T.blue} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.bentoBoxLabelText}>Owner Of</Text>
-                  <Text style={s.bentoBoxValueText}>{c.name}</Text>
+                  <Text style={s.assocLabel}>Company Owner</Text>
+                  <Text style={s.assocValue}>{c.name}</Text>
+                </View>
+                <View style={[s.statusBadge, { borderColor: T.success + "30", backgroundColor: T.success + "08", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }]}>
+                  <Text style={{ fontSize: 9, fontWeight: "700", color: T.success }}>{c.verificationStatus}</Text>
                 </View>
               </View>
             ))}
+
             {user.staffMemberships.map((m) => (
               <View key={`staff-${m.id}`} style={s.associationRow}>
-                <View style={[s.bentoIconCircle, { backgroundColor: "rgba(100, 116, 139, 0.1)" }]}>
-                  <MaterialCommunityIcons name="briefcase-account-outline" size={20} color={T.text2} />
+                <View style={[s.assocIcon, { backgroundColor: "rgba(100, 116, 139, 0.1)" }]}>
+                  <MaterialCommunityIcons name="briefcase-account-outline" size={20} color={T.gray} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.bentoBoxLabelText}>Staff Member At</Text>
-                  <Text style={s.bentoBoxValueText}>{m.company.name}</Text>
+                  <Text style={s.assocLabel}>Staff Representative</Text>
+                  <Text style={s.assocValue}>{m.company.name}</Text>
                 </View>
               </View>
             ))}
           </View>
         )}
 
-        {/* Security & History */}
+        {/* Chronological Security Timeline */}
         <View style={s.bentoCard}>
-          <Text style={s.cardTitle}>Security & History</Text>
+          <Text style={s.cardTitle}>Security & Audit History</Text>
           {user.auditLogs && user.auditLogs.length > 0 ? (
-            <View style={{ gap: 12 }}>
+            <View style={s.timelineContainer}>
+              <View style={s.timelineLine} />
               {user.auditLogs.map((log) => (
-                <View key={log.id} style={s.logRow}>
-                  <View style={s.bentoIconCircle}>
-                    <MaterialCommunityIcons name="shield-lock-outline" size={20} color={T.text3} />
+                <View key={log.id} style={s.timelineNode}>
+                  <View style={s.timelineDot}>
+                    <MaterialCommunityIcons name="shield-lock" size={14} color={T.text3} />
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <View style={s.timelineContent}>
                     <Text style={s.logMeta}>
                       {new Date(log.createdAt).toLocaleDateString()} • by {log.user?.fullName || "System"}
                     </Text>
@@ -356,31 +425,6 @@ export default function UserDetail() {
           ) : (
             <Text style={s.noneText}>No security events logged.</Text>
           )}
-        </View>
-
-        {/* Danger Zone Bento */}
-        <View style={s.dangerCard}>
-          <Text style={s.dangerTitle}>Danger Zone</Text>
-          <Text style={s.dangerDesc}>Critical actions. Suspensions instantly block access. Bans are irreversible.</Text>
-          
-          <View style={s.bentoRow}>
-            {user.status === "suspended" ? (
-              <TouchableOpacity onPress={() => confirmStatusChange("active")} disabled={actionLoading} style={[s.dangerBtn, { backgroundColor: T.success, flex: 1 }]}>
-                <MaterialCommunityIcons name="account-check" size={20} color="#fff" />
-                <Text style={s.dangerBtnText}>Restore</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity onPress={() => setSuspendModalVisible(true)} disabled={actionLoading} style={[s.dangerBtn, { backgroundColor: T.warning, flex: 1 }]}>
-                <MaterialCommunityIcons name="block-helper" size={20} color="#fff" />
-                <Text style={s.dangerBtnText}>Suspend</Text>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity onPress={handleDelete} disabled={actionLoading} style={[s.dangerBtn, { backgroundColor: T.error, flex: 1 }]}>
-              <MaterialCommunityIcons name="gavel" size={20} color="#fff" />
-              <Text style={s.dangerBtnText}>Ban</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
       </ScrollView>
@@ -421,59 +465,80 @@ export default function UserDetail() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   centerArea: { flex: 1, backgroundColor: T.bg, alignItems: "center", justifyContent: "center" },
-  errorText: { marginTop: 16, fontSize: 16, fontWeight: "600", color: T.error },
-  backBtn: { marginTop: 24, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: T.primary, borderRadius: 24 },
-  backBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-
+  
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, backgroundColor: T.bg },
-  headerBtn: { padding: 4, marginLeft: -8 },
-  headerTitle: { fontSize: 22, fontWeight: "700", color: T.text1, letterSpacing: -0.5 },
+  headerBtn: { padding: 8, borderRadius: 12, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  headerTitle: { fontSize: 20, fontWeight: "800", color: T.text1, letterSpacing: -0.5 },
 
   content: { padding: 20, gap: 16, paddingBottom: 60 },
 
-  heroCard: { backgroundColor: T.surface, borderRadius: 24, padding: 24, alignItems: "center", borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  avatarWrap: { position: "relative", marginBottom: 16 },
-  avatar: { width: 100, height: 100, borderRadius: 32, backgroundColor: T.bg, borderWidth: 4, borderColor: T.surface, ...CARD_SHADOW },
-  avatarStatusDot: { position: "absolute", bottom: -4, right: -4, width: 28, height: 28, borderRadius: 14, borderWidth: 3, borderColor: T.surface, alignItems: "center", justifyContent: "center" },
-  userName: { fontSize: 26, fontWeight: "700", color: T.text1, marginBottom: 4, textAlign: "center", letterSpacing: -0.5 },
-  userId: { fontSize: 14, fontWeight: "600", color: T.text3, textAlign: "center" },
-  
-  fraudBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(239, 68, 68, 0.1)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginTop: 12 },
-  fraudText: { fontSize: 12, fontWeight: "700", color: T.error },
+  // Bento Hero Card (Asymmetrical Row Layout)
+  heroCard: { flexDirection: "row", backgroundColor: T.surface, borderRadius: 24, padding: 20, alignItems: "center", borderWidth: 1, borderColor: T.border, gap: 16, ...CARD_SHADOW },
+  avatarWrap: { position: "relative" },
+  heroDetails: { flex: 1, gap: 4 },
+  userName: { fontSize: 22, fontWeight: "800", color: T.text1, letterSpacing: -0.5 },
+  userId: { fontSize: 13, fontWeight: "600", color: T.text3 },
+  roleBadge: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginTop: 4 },
+  roleText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
 
+  // Status Badge with pulsing dot
+  statusBadge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1 },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  statusText: { fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
+
+  // Fraud Score Bento Box
+  fraudCard: { backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  fraudHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  fraudTitle: { fontSize: 14, fontWeight: "700", color: T.text2 },
+  fraudScoreText: { fontSize: 16, fontWeight: "800" },
+  gaugeTrack: { height: 8, backgroundColor: T.inputBg, borderRadius: 4, width: "100%", overflow: "hidden", marginTop: 8 },
+  gaugeBar: { height: "100%", borderRadius: 4 },
+  fraudDesc: { fontSize: 12, color: T.text3, marginTop: 8 },
+
+  // Metrics Grid
   bentoRow: { flexDirection: "row", gap: 16 },
-  bentoGrid: { gap: 16 },
-  
-  bentoBox: { backgroundColor: T.surface, borderRadius: 20, padding: 16, justifyContent: "center", borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  bentoActionBtn: { alignItems: "center", backgroundColor: T.surface },
-  bentoBoxValue: { fontSize: 18, fontWeight: "700", color: T.text1, marginBottom: 2, textTransform: "capitalize", letterSpacing: -0.5 },
-  bentoBoxLabel: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase" },
+  bentoBox: { flex: 1, backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  metricValue: { fontSize: 28, fontWeight: "800", color: T.text1, letterSpacing: -1, marginTop: 8, marginBottom: 2 },
+  metricLabel: { fontSize: 12, fontWeight: "600", color: T.text3 },
+  metricIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
 
-  bentoBoxFull: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border, gap: 16, ...CARD_SHADOW },
-  bentoIconCircle: { width: 48, height: 48, borderRadius: 16, backgroundColor: "rgba(10, 25, 47, 0.05)", alignItems: "center", justifyContent: "center" },
-  bentoBoxLabelText: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase", marginBottom: 2 },
-  bentoBoxValueText: { fontSize: 15, fontWeight: "700", color: T.text1 },
+  // Metadata Card
+  metaCard: { backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  metaTitle: { fontSize: 14, fontWeight: "700", color: T.text2, marginBottom: 16 },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8 },
+  metaTextWrap: { flex: 1 },
+  metaLabel: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase" },
+  metaValue: { fontSize: 14, fontWeight: "700", color: T.text1 },
 
+  // Quick Action Hub
+  actionHub: { backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  actionTitle: { fontSize: 14, fontWeight: "700", color: T.text2, marginBottom: 16 },
+  actionButtons: { flexDirection: "row", gap: 12, flexWrap: "wrap" },
+  actionBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, borderWidth: 1, minWidth: 100, justifyContent: "center" },
+  actionBtnText: { fontSize: 14, fontWeight: "700" },
+
+  // Associations Bento
   bentoCard: { backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  cardTitle: { fontSize: 16, fontWeight: "700", color: T.text1, marginBottom: 16 },
-  
-  associationRow: { flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 12 },
-  
-  logRow: { flexDirection: "row", alignItems: "center", gap: 16 },
-  logMeta: { fontSize: 12, fontWeight: "600", color: T.text3, marginBottom: 2 },
-  logAction: { fontSize: 14, fontWeight: "700", color: T.text1 },
+  cardTitle: { fontSize: 15, fontWeight: "800", color: T.text1, marginBottom: 16, letterSpacing: -0.3 },
+  associationRow: { flexDirection: "row", alignItems: "center", gap: 16, padding: 12, backgroundColor: T.bg, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: T.border },
+  assocIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  assocLabel: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase" },
+  assocValue: { fontSize: 14, fontWeight: "700", color: T.text1 },
+
+  // Timeline Security Audit Trail
+  timelineContainer: { gap: 16, position: "relative", paddingLeft: 8 },
+  timelineLine: { position: "absolute", left: 19, top: 10, bottom: 10, width: 2, backgroundColor: T.border },
+  timelineNode: { flexDirection: "row", gap: 16 },
+  timelineDot: { width: 24, height: 24, borderRadius: 12, backgroundColor: T.surface, borderWidth: 2, borderColor: T.border, alignItems: "center", justifyContent: "center", zIndex: 10 },
+  timelineContent: { flex: 1, backgroundColor: T.bg, borderRadius: 16, padding: 12, borderWidth: 1, borderColor: T.border },
+  logMeta: { fontSize: 11, fontWeight: "600", color: T.text3, marginBottom: 4 },
+  logAction: { fontSize: 13, fontWeight: "700", color: T.text1 },
   noneText: { fontSize: 14, color: T.text3, fontStyle: "italic" },
 
-  dangerCard: { backgroundColor: "rgba(239, 68, 68, 0.05)", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "rgba(239, 68, 68, 0.2)" },
-  dangerTitle: { fontSize: 16, fontWeight: "700", color: T.error, marginBottom: 4 },
-  dangerDesc: { fontSize: 13, color: T.error, opacity: 0.8, marginBottom: 16 },
-  dangerBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 14, borderRadius: 16, gap: 8 },
-  dangerBtnText: { fontSize: 15, fontWeight: "700", color: "#fff" },
-
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 },
+  // Modal styling
+  modalOverlay: { flex: 1, backgroundColor: "rgba(10,25,47,0.5)", justifyContent: "center", padding: 20 },
   modalContainer: { backgroundColor: T.surface, borderRadius: 24, padding: 24, ...CARD_SHADOW },
-  modalTitle: { fontSize: 20, fontWeight: "700", color: T.text1, marginBottom: 8 },
+  modalTitle: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 8, letterSpacing: -0.5 },
   modalDesc: { fontSize: 14, color: T.text2, marginBottom: 20, lineHeight: 20 },
   modalInput: { backgroundColor: T.bg, borderRadius: 16, padding: 16, fontSize: 15, color: T.text1, height: 100, textAlignVertical: "top", marginBottom: 20, borderWidth: 1, borderColor: T.border },
   modalActions: { flexDirection: "row", gap: 12 },

@@ -2,22 +2,48 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import Toast from 'react-native-toast-message';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
 import { Platform } from 'react-native';
+
+// Safely attempt to load native modules (Google & Facebook)
+// These custom native modules are present in Development Builds / Custom Binaries, but absent in standard Expo Go.
+let GoogleSignin: any = null;
+let statusCodes: any = {};
+try {
+  const gModule = require('@react-native-google-signin/google-signin');
+  GoogleSignin = gModule.GoogleSignin;
+  statusCodes = gModule.statusCodes || {};
+} catch (e) {
+  // Native module unavailable (e.g. running in standard Expo Go client)
+}
+
+let LoginManager: any = null;
+let AccessToken: any = null;
+try {
+  const fbModule = require('react-native-fbsdk-next');
+  LoginManager = fbModule.LoginManager;
+  AccessToken = fbModule.AccessToken;
+} catch (e) {
+  // Native module unavailable
+}
 
 export function useSocialAuth() {
   const { checkAuth, googleLogin, facebookLogin, appleLogin } = useAuthStore();
   const [isAppleReady, setIsAppleReady] = useState(false);
 
   useEffect(() => {
-    // Configure Google Sign-In
-    GoogleSignin.configure({
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '', // From Google Console
-      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '',
-      offlineAccess: true,
-      scopes: ['profile', 'email'],
-    });
+    // Configure Google Sign-In if native module is present
+    if (GoogleSignin && typeof GoogleSignin.configure === 'function') {
+      try {
+        GoogleSignin.configure({
+          webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '', // From Google Console
+          iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '',
+          offlineAccess: true,
+          scopes: ['profile', 'email'],
+        });
+      } catch (e) {
+        console.warn('Failed to configure GoogleSignin', e);
+      }
+    }
 
     // Check Apple Sign-In availability
     const checkApple = async () => {
@@ -30,6 +56,10 @@ export function useSocialAuth() {
   }, []);
 
   const promptGoogleAsync = async () => {
+    if (!GoogleSignin) {
+      Toast.show({ type: 'info', text1: 'Development Build Needed', text2: 'Native Google Sign-In requires a custom development build (npx expo run:android).' });
+      return;
+    }
     try {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
@@ -51,6 +81,10 @@ export function useSocialAuth() {
   };
 
   const promptFacebookAsync = async () => {
+    if (!LoginManager || !AccessToken) {
+      Toast.show({ type: 'info', text1: 'Development Build Needed', text2: 'Native Facebook Sign-In requires a custom development build.' });
+      return;
+    }
     try {
       const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
       if (result.isCancelled) {

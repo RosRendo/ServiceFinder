@@ -108,6 +108,20 @@ export class AuthService {
 
   /** Invalidate a specific refresh token on logout */
   async revokeRefreshToken(refreshToken: string): Promise<void> {
+    try {
+      const stored = await this.prisma.refreshToken.findUnique({
+        where: { token: refreshToken },
+      });
+      if (stored?.userId) {
+        await this.prisma.user.update({
+          where: { id: stored.userId },
+          data: { workingStatus: 'offline' },
+        });
+      }
+    } catch (e) {
+      // ignore
+    }
+
     await this.prisma.refreshToken.deleteMany({
       where: { token: refreshToken },
     });

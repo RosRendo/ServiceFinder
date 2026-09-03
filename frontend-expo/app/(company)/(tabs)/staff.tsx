@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Image } from "expo-image";
 import {
   Text, View, TouchableOpacity, TextInput,
-  ActivityIndicator, RefreshControl, StyleSheet, Platform, ScrollView, Animated
+  ActivityIndicator, RefreshControl, StyleSheet, Platform, ScrollView, Animated, Linking
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -28,9 +28,9 @@ const FAB_SHADOW = Platform.select({
   android: { elevation: 8 },
 });
 
-// Default center (San Francisco)
-const BASE_LAT = 37.7749;
-const BASE_LNG = -122.4194;
+// Default center (Phnom Penh, Cambodia)
+const BASE_LAT = 11.5564;
+const BASE_LNG = 104.9282;
 
 const PulseDot = ({ color }: { color: string }) => {
   const scale = useRef(new Animated.Value(1)).current;
@@ -61,6 +61,8 @@ const PulseDot = ({ color }: { color: string }) => {
 
 export default function Staff() {
   const router = useRouter();
+  const mapRef = useRef<MapView>(null);
+  const [selectedStaff, setSelectedStaff] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [staffList, setStaffList] = useState<any[]>([]);
@@ -68,6 +70,23 @@ export default function Staff() {
   const [refreshing, setRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
   const setCompanyOpen = useSidebarStore((s) => s.setCompanyOpen);
+
+  const handleSelectStaff = (member: any) => {
+    setSelectedStaff(member);
+    const lat = Number(member.latitude) || BASE_LAT;
+    const lng = Number(member.longitude) || BASE_LNG;
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(
+        {
+          latitude: lat,
+          longitude: lng,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015,
+        },
+        800
+      );
+    }
+  };
 
   const filters = [
     { id: "all", label: "All Staff" },
@@ -134,8 +153,55 @@ export default function Staff() {
       </SafeAreaView>
 
       <View style={s.mapContainer}>
+        {/* Floating Quick Detail Card Overlay on Map */}
+        {selectedStaff && (
+          <View style={s.selectedCard}>
+            <TouchableOpacity style={s.closeBtn} onPress={() => setSelectedStaff(null)}>
+              <MaterialCommunityIcons name="close" size={18} color={T.text2} />
+            </TouchableOpacity>
+            <View style={s.selectedHeader}>
+              {selectedStaff.user?.avatar || selectedStaff.avatar ? (
+                <Image source={{ uri: selectedStaff.user?.avatar || selectedStaff.avatar }} style={s.selectedAvatar} />
+              ) : (
+                <InitialsAvatar name={selectedStaff.fullName || "S"} size={44} style={s.selectedAvatar} />
+              )}
+              <View style={{ flex: 1, paddingLeft: 12 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={s.selectedName} numberOfLines={1}>{selectedStaff.fullName}</Text>
+                  <View style={[s.statusBadge, { backgroundColor: getStatusStyle(selectedStaff.status).bg }]}>
+                    <Text style={[s.statusText, { color: getStatusStyle(selectedStaff.status).color }]}>
+                      {selectedStaff.status || "inactive"}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={s.selectedRole}>{selectedStaff.role?.replace("_", " ") || "Staff Member"}</Text>
+              </View>
+            </View>
+
+            <View style={s.selectedActions}>
+              {selectedStaff.phone ? (
+                <TouchableOpacity
+                  style={s.actionCallBtn}
+                  onPress={() => Linking.openURL(`tel:${selectedStaff.phone}`)}
+                >
+                  <MaterialCommunityIcons name="phone" size={16} color="#FFF" />
+                  <Text style={s.actionCallText}>Call</Text>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                style={s.actionDetailBtn}
+                onPress={() => router.push(`/(company)/staff/${selectedStaff.id}` as any)}
+              >
+                <MaterialCommunityIcons name="account-details" size={16} color={T.accent} />
+                <Text style={s.actionDetailText}>View Details & Manage</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {Platform.OS !== 'web' ? (
           <MapView
+            ref={mapRef}
             provider={PROVIDER_DEFAULT}
             style={StyleSheet.absoluteFillObject}
             initialRegion={{
@@ -146,19 +212,27 @@ export default function Staff() {
             }}
           >
             {filteredStaff.map((member) => {
+              const latVal = member.latitude ?? member.user?.latitude;
+              const lngVal = member.longitude ?? member.user?.longitude;
               const loc = { 
-                latitude: member.latitude || BASE_LAT + (Math.random() - 0.5) * 0.02, 
-                longitude: member.longitude || BASE_LNG + (Math.random() - 0.5) * 0.02 
+                latitude: latVal != null ? Number(latVal) : BASE_LAT, 
+                longitude: lngVal != null ? Number(lngVal) : BASE_LNG 
               };
               const isAct = member.status === 'active';
+              const isSel = selectedStaff?.id === member.id;
               return (
-                <Marker key={member.id} coordinate={loc} title={member.fullName}>
-                  <View style={s.markerContainer}>
+                <Marker 
+                  key={member.id} 
+                  coordinate={loc} 
+                  title={member.fullName}
+                  onPress={() => handleSelectStaff(member)}
+                >
+                  <View style={[s.markerContainer, isSel && { transform: [{ scale: 1.25 }] }]}>
                     {isAct && <PulseDot color={T.success} />}
                     {member.user?.avatar || member.avatar ? (
                       <Image
                         source={{ uri: member.user?.avatar || member.avatar }}
-                        style={[s.markerAvatar, !isAct && s.markerAvatarInactive]}
+                        style={[s.markerAvatar, !isAct && s.markerAvatarInactive, isSel && { borderColor: T.accent, borderWidth: 3 }]}
                       />
                     ) : (
                       <InitialsAvatar
@@ -241,10 +315,11 @@ export default function Staff() {
             }
             renderItem={({ item: member }: any) => {
               const sStyle = getStatusStyle(member.status);
+              const isSelected = selectedStaff?.id === member.id;
               return (
                 <TouchableOpacity
-                  style={s.userCard}
-                  onPress={() => router.push(`/(company)/staff/${member.id}` as any)}
+                  style={[s.userCard, isSelected && { borderColor: T.accent, borderWidth: 2 }]}
+                  onPress={() => handleSelectStaff(member)}
                   activeOpacity={0.8}
                 >
                   <View style={s.cardHeader}>
@@ -369,4 +444,33 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     ...FAB_SHADOW,
   },
+
+  // Floating Staff Detail Card Overlay
+  selectedCard: {
+    position: "absolute",
+    top: 10,
+    left: 16,
+    right: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    zIndex: 50,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  selectedHeader: { flexDirection: "row", alignItems: "center" },
+  selectedAvatar: { width: 44, height: 44, borderRadius: 22 },
+  selectedName: { fontSize: 15, fontWeight: "800", color: T.text1 },
+  selectedRole: { fontSize: 12, fontWeight: "600", color: T.text2, marginTop: 2 },
+  selectedActions: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12 },
+  actionCallBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: T.success, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  actionCallText: { fontSize: 12, fontWeight: "800", color: "#FFF" },
+  actionDetailBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: T.bg, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: T.border },
+  actionDetailText: { fontSize: 12, fontWeight: "800", color: T.accent },
+  closeBtn: { position: "absolute", top: 10, right: 10, padding: 4, zIndex: 10 },
 });

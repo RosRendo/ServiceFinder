@@ -37,7 +37,7 @@ const T = {
 
 const SHADOW = {};
 
-// Pulsing Marker Animation Component
+// Pulsing Marker Animation Component (Staff Live Location)
 function PulsingMarker({ color = T.secondary, delay = 0, icon }: { color?: string, delay?: number, icon?: React.ReactNode }) {
   const progress = useSharedValue(0);
 
@@ -54,7 +54,7 @@ function PulsingMarker({ color = T.secondary, delay = 0, icon }: { color?: strin
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ scale: 1 + progress.value * 0.8 }], // Spread slightly
+      transform: [{ scale: 1 + progress.value * 0.9 }], // Spread slightly
       opacity: 0.2 + (progress.value * 0.4), // Glow becomes brighter then fades back
     };
   });
@@ -63,7 +63,22 @@ function PulsingMarker({ color = T.secondary, delay = 0, icon }: { color?: strin
     <View style={s.markerContainer}>
       <Reanimated.View style={[s.markerGlow, { backgroundColor: color }, animatedStyle]} />
       <View style={[s.markerCore, { backgroundColor: color }]}>
-        {icon}
+        {icon || <MaterialCommunityIcons name="navigation" size={16} color="#fff" />}
+      </View>
+    </View>
+  );
+}
+
+// Destination Marker Component (Pill Badge + Pin)
+function DestinationMarker({ label }: { label?: string }) {
+  return (
+    <View style={s.destMarkerContainer}>
+      <View style={s.destBadge}>
+        <MaterialCommunityIcons name="flag-checkered" size={13} color="#FFF" style={{ marginRight: 4 }} />
+        <Text style={s.destBadgeText} numberOfLines={1}>{label || "Destination"}</Text>
+      </View>
+      <View style={s.destPinCore}>
+        <MaterialCommunityIcons name="map-marker" size={30} color={T.error} />
       </View>
     </View>
   );
@@ -118,15 +133,21 @@ export default function JobExecutionScreen() {
         watchRef.current = await ExpoLocation.watchPositionAsync(
           {
             accuracy: ExpoLocation.Accuracy.High,
-            timeInterval: 10000,
-            distanceInterval: 5, // Only update if moved 5m to reduce jitter
+            timeInterval: 3000,
+            distanceInterval: 1,
             showsBackgroundLocationIndicator: true,
           } as any,
           async (loc) => {
             if (!active) return;
             
-            // Ignore inaccurate location jumps
-            if (loc.coords.accuracy && loc.coords.accuracy > 100) return;
+            // Ignore inaccurate location jumps (>1000m)
+            if (loc.coords.accuracy && loc.coords.accuracy > 1000) return;
+
+            const newCoords = {
+              lat: loc.coords.latitude,
+              lng: loc.coords.longitude,
+            };
+            setStaffLocation(newCoords);
 
             const lat = loc.coords.latitude;
             const lng = loc.coords.longitude;
@@ -431,25 +452,25 @@ export default function JobExecutionScreen() {
         }
         showsUserLocation={false}
       >
-        {/* Destination Marker */}
+        {/* Destination Marker with Compact Pill Badge */}
         {jobData?.latitude && jobData?.longitude && (
           <Marker
             coordinate={{ latitude: jobData.latitude, longitude: jobData.longitude }}
             title="Destination"
             description={jobData.serviceAddress}
           >
-            <PulsingMarker color={T.error} delay={0} />
+            <DestinationMarker label={jobData?.customer?.fullName || "Customer"} />
           </Marker>
         )}
         
-        {/* Staff Marker (Smooth Animated) */}
+        {/* Staff Marker (Smooth Animated Pulsing Driver Marker) */}
         {staffLocation && (
           <Marker.Animated
             coordinate={staffCoordAnim as any}
             title="You"
             description="Your current location"
           >
-            <PulsingMarker color={T.secondary} delay={500} icon={<MaterialCommunityIcons name="car" size={14} color="#fff" />} />
+            <PulsingMarker color={T.secondary} delay={500} icon={<MaterialCommunityIcons name="navigation" size={16} color="#fff" />} />
           </Marker.Animated>
         )}
 
@@ -577,6 +598,19 @@ export default function JobExecutionScreen() {
             <Text style={s.jobInfoTitle}>{jobData?.service?.name || "Service Task"}</Text>
             <Text style={s.jobInfoSub} numberOfLines={2}>{jobData?.serviceAddress || "No address provided"}</Text>
           </View>
+
+          {/* Customer Problem Description */}
+          {jobData?.customerNotes ? (
+            <View style={s.card}>
+              <Text style={s.cardLabel}>Problem Description (From Customer)</Text>
+              <View style={{ backgroundColor: '#F8FAFC', padding: 12, borderRadius: 8, marginTop: 8 }}>
+                <Text style={{ fontSize: 14, color: '#334155', lineHeight: 20 }}>
+                  "{jobData.customerNotes}"
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
 
           {/* Checklist */}
           {checklist && checklist.length > 0 && (
@@ -750,8 +784,29 @@ const s = StyleSheet.create({
   },
   completeBtnText: { fontSize: 18, fontWeight: "800", color: "#fff" },
 
+  // Destination Marker Pill Styles
+  destMarkerContainer: { alignItems: 'center', justifyContent: 'center' },
+  destBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    marginBottom: 2,
+    borderWidth: 1,
+    borderColor: '#334155',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  destBadgeText: { fontSize: 11, fontWeight: '800', color: '#FFFFFF' },
+  destPinCore: { alignItems: 'center', justifyContent: 'center' },
+
   // Animated Marker Styles
-  markerContainer: { width: 60, height: 60, alignItems: "center", justifyContent: "center" },
-  markerGlow: { position: "absolute", width: 28, height: 28, borderRadius: 14 },
-  markerCore: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: "#FFFFFF", alignItems: 'center', justifyContent: 'center' },
+  markerContainer: { width: 64, height: 64, alignItems: "center", justifyContent: "center" },
+  markerGlow: { position: "absolute", width: 36, height: 36, borderRadius: 18 },
+  markerCore: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: "#FFFFFF", alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4 },
 });

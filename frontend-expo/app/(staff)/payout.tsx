@@ -66,8 +66,7 @@ export default function PayoutScreen() {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
+        allowsEditing: false, // Do not force square crop on KHQR screenshots
         quality: 0.8,
       });
 
@@ -78,7 +77,8 @@ export default function PayoutScreen() {
         const formData = new FormData();
         const filename = uri.split('/').pop() || 'khqr.jpg';
         const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image`;
+        let type = match ? `image/${match[1].toLowerCase()}` : `image/jpeg`;
+        if (type === 'image/jpg') type = 'image/jpeg';
 
         formData.append('file', {
           uri,

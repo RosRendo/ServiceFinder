@@ -19,6 +19,9 @@ import FadeIn from "@/components/FadeIn";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { api } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
+import MapView, { Marker } from "react-native-maps";
+import { MAP_PROVIDER, centerMapCamera } from "@/utils/mapHelper";
+import { useCurrentLocation } from "@/hooks/useCurrentLocation";
 
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS
@@ -166,11 +169,17 @@ export default function CategoryScreen() {
   });
   const [availability, setAvailability] = useState({ today: false, weekends: true });
 
+  // View mode: list vs map
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
+  const [selectedMapCompany, setSelectedMapCompany] = useState<any | null>(null);
+  const { location: userLoc } = useCurrentLocation();
+  const mapRef = useRef<MapView>(null);
+
   // API data state
   const [allCategories, setAllCategories] = useState<CategoryItem[]>([]);
   const [activeSlug, setActiveSlug] = useState<string>(typeof id === "string" ? id : "cleaning");
   const [activeCategory, setActiveCategory] = useState<CategoryItem | null>(null);
-  const [companies, setCompanies] = useState<CompanyItem[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -269,12 +278,15 @@ export default function CategoryScreen() {
             {activeCategory?.name || "Category"}
           </Text>
 
-          <View style={{ flexDirection: "row", gap: 4 }}>
-            <TouchableOpacity onPress={() => router.push(`/(customer)/map-view?categoryId=${activeCategory?.id || id}` as any)} style={s.iconBtn}>
-              <MaterialIcons name="map" size={24} color={T.text1} />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <TouchableOpacity
+              onPress={() => router.push(`/(customer)/map-view?categorySlug=${activeSlug}` as any)}
+              style={s.iconBtn}
+            >
+              <MaterialIcons name="map" size={22} color={T.text1} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowFilter(true)} style={s.iconBtn}>
-              <MaterialIcons name="tune" size={24} color={T.text1} />
+              <MaterialIcons name="tune" size={22} color={T.text1} />
             </TouchableOpacity>
           </View>
         </View>
@@ -464,7 +476,9 @@ export default function CategoryScreen() {
             <View style={{ paddingVertical: 24, alignItems: "center" }}>
               <ActivityIndicator size="small" color={T.accent} />
             </View>
-          ) : <View style={{ height: 24 }} />
+          ) : (
+            <View style={{ height: 24 }} />
+          )
         }
       />
 
@@ -713,5 +727,169 @@ const s = StyleSheet.create({
       ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
       android: { elevation: 2 }
     })
+  },
+
+  // ── View Mode Toggle ─────────────────────────
+  togglePill: {
+    flexDirection: "row",
+    backgroundColor: "#F1F5F9",
+    borderRadius: 12,
+    padding: 3,
+    gap: 2,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  toggleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toggleBtnActive: {
+    backgroundColor: T.accent,
+  },
+
+  // ── Map View Overlay ─────────────────────────
+  mapCategoryTabsOverlay: {
+    position: "absolute",
+    top: 12,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  mapMarkerPin: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: T.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#FFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  mapMarkerPinActive: {
+    backgroundColor: "#10B981",
+    transform: [{ scale: 1.15 }],
+  },
+  mapMarkerPinLetter: {
+    color: "#FFF",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  mapMarkerRating: {
+    position: "absolute",
+    top: -6,
+    right: -10,
+    backgroundColor: "#FFF",
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  mapMarkerRatingText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: T.text1,
+  },
+
+  // ── Floating Selected Company Card on Map ───
+  mapCompanyCard: {
+    position: "absolute",
+    bottom: 20,
+    left: 16,
+    right: 16,
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    zIndex: 20,
+  },
+  mapCompanyClose: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mapCompanyAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: T.accentLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mapCompanyAvatarText: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: T.accent,
+  },
+  mapCompanyName: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: T.text1,
+  },
+  mapCompanyRating: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: T.text1,
+  },
+  mapCompanyCity: {
+    fontSize: 12,
+    color: T.text2,
+    fontWeight: "500",
+  },
+  mapCompanyProfileBtn: {
+    flex: 1.2,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: T.accent,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    shadowColor: T.accent,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  mapCompanyProfileText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FFF",
+  },
+  mapCompanyListBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mapCompanyListText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: T.text1,
   },
 });

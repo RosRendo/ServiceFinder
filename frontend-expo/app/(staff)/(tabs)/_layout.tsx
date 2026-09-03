@@ -17,9 +17,9 @@ const NAV = {
 };
 
 const TABS = [
-  { name: 'today', icon: 'lightning-bolt-outline', iconActive: 'lightning-bolt', label: 'TODAY' },
-  { name: 'money', icon: 'currency-usd', iconActive: 'currency-usd', label: 'MONEY' },
-  { name: 'me',    icon: 'account-outline', iconActive: 'account', label: 'ME' },
+  { name: 'today', icon: 'lightning-bolt-outline', iconActive: 'lightning-bolt', label: 'Today' },
+  { name: 'money', icon: 'currency-usd', iconActive: 'currency-usd', label: 'Money' },
+  { name: 'me',    icon: 'account-outline', iconActive: 'account', label: 'Profile' },
 ];
 
 function FloatingTabBar({ state, descriptors, navigation }: any) {

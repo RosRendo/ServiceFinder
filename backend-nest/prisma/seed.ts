@@ -193,26 +193,26 @@ async function runMassiveSeed() {
     }));
   }
 
-  // 2. CREATE COMPANIES
+  // 2. CREATE COMPANIES (Phnom Penh Metro Area)
   console.log('🏢 Creating Companies & Staff Links...');
   const companies: any[] = [];
   companies.push(await prisma.company.create({
-    data: { name: 'Cleaning Solutions LLC', ownerId: owners[0].id, phone: '555-0101', email: 'hello@cleaningsolutions.com', address: '123 Sparkle Ave', city: 'New York', verificationStatus: 'verified', bookingMode: 'dispatch' as any, latitude: 11.5564, longitude: 104.9282 }
+    data: { name: 'Cleaning Solutions LLC', ownerId: owners[0].id, phone: '555-0101', email: 'hello@cleaningsolutions.com', address: '123 Sparkle Ave, BKK1', city: 'Phnom Penh', verificationStatus: 'verified', bookingMode: 'dispatch' as any, latitude: 11.5564, longitude: 104.9282 }
   }));
   companies.push(await prisma.company.create({
-    data: { name: 'Elite Plumbers', ownerId: owners[1].id, phone: '555-0102', email: 'hello@eliteplumbers.com', address: '456 Pipe St', city: 'Los Angeles', verificationStatus: 'verified', bookingMode: 'open_pool' as any, latitude: 11.5621, longitude: 104.9123 }
+    data: { name: 'Elite Plumbers', ownerId: owners[1].id, phone: '555-0102', email: 'hello@eliteplumbers.com', address: '456 Pipe St, Toul Kork', city: 'Phnom Penh', verificationStatus: 'verified', bookingMode: 'open_pool' as any, latitude: 11.5681, longitude: 104.9083 }
   }));
   companies.push(await prisma.company.create({
-    data: { name: 'Quick Fix Electricians', ownerId: owners[2].id, phone: '555-0103', email: 'hello@quickfix.com', address: '789 Wire Blvd', city: 'Chicago', verificationStatus: 'verified', bookingMode: 'dispatch' as any, latitude: 3.1470, longitude: 101.6938 }
+    data: { name: 'Quick Fix Electricians', ownerId: owners[2].id, phone: '555-0103', email: 'hello@quickfix.com', address: '789 Wire Blvd, Daun Penh', city: 'Phnom Penh', verificationStatus: 'verified', bookingMode: 'dispatch' as any, latitude: 11.5720, longitude: 104.9238 }
   }));
   companies.push(await prisma.company.create({
-    data: { name: 'Sparkle & Shine Cleaning', ownerId: owners[0].id, phone: '555-0104', email: 'hello@sparkle.com', address: '101 Glow Dr', city: 'New York', verificationStatus: 'verified', bookingMode: 'dispatch' as any, latitude: 3.1550, longitude: 101.6850 }
+    data: { name: 'Sparkle & Shine Cleaning', ownerId: owners[0].id, phone: '555-0104', email: 'hello@sparkle.com', address: '101 Glow Dr, Chamkarmon', city: 'Phnom Penh', verificationStatus: 'verified', bookingMode: 'dispatch' as any, latitude: 11.5450, longitude: 104.9150 }
   }));
   companies.push(await prisma.company.create({
-    data: { name: 'Eco Plumbers & Rooters', ownerId: owners[1].id, phone: '555-0105', email: 'hello@ecoplumbers.com', address: '202 green Way', city: 'Los Angeles', verificationStatus: 'verified', bookingMode: 'open_pool' as any, latitude: 37.7858, longitude: -122.4064 }
+    data: { name: 'Eco Plumbers & Rooters', ownerId: owners[1].id, phone: '555-0105', email: 'hello@ecoplumbers.com', address: '202 Green Way, Sen Sok', city: 'Phnom Penh', verificationStatus: 'verified', bookingMode: 'open_pool' as any, latitude: 11.5858, longitude: 104.8864 }
   }));
   companies.push(await prisma.company.create({
-    data: { name: 'Volt Masters Electrical', ownerId: owners[2].id, phone: '555-0106', email: 'hello@voltmasters.com', address: '303 Power Rd', city: 'Chicago', verificationStatus: 'verified', bookingMode: 'dispatch' as any, latitude: 37.7749, longitude: -122.4194 }
+    data: { name: 'Volt Masters Electrical', ownerId: owners[2].id, phone: '555-0106', email: 'hello@voltmasters.com', address: '303 Power Rd, 7 Makara', city: 'Phnom Penh', verificationStatus: 'verified', bookingMode: 'dispatch' as any, latitude: 11.5649, longitude: 104.9194 }
   }));
 
   // Link Staff to Companies (distributed among all 6 companies)

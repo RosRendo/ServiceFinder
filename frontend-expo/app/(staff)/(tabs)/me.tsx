@@ -51,9 +51,9 @@ export default function MeScreen() {
             <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
           <View style={s.divider} />
-          <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/payout')}>
-            <MaterialCommunityIcons name="wallet-outline" size={24} color={T.text2} />
-            <Text style={s.rowText}>Wallet & Payouts</Text>
+          <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/(tabs)/money' as any)}>
+            <MaterialCommunityIcons name="cash-multiple" size={24} color={T.text2} />
+            <Text style={s.rowText}>Earnings & Revenue</Text>
             <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
           <View style={s.divider} />

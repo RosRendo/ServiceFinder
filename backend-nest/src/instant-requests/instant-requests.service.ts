@@ -30,55 +30,76 @@ export class InstantRequestsService {
     });
 
     // 2. Fetch companies offering services matching this category within coverage radius
-    const maxRadius = dto.preferredTime === 'now' ? 5.0 : 20.0; // ASAP is 5km, scheduled is 20km
+    let finalMatched: any[] = [];
 
-    // Roughly filter candidate companies in Phnom Penh/BKK bounding box to optimize performance
-    const latDiff = maxRadius / 111.12;
-    const lngDiff = maxRadius / 108.0;
+    if (dto.companyId) {
+      const targetCompany = await this.prisma.company.findUnique({
+        where: { id: BigInt(dto.companyId) },
+      });
+      if (targetCompany) {
+        finalMatched = [targetCompany];
+      }
+    }
 
-    const candidateCompanies = await this.prisma.company.findMany({
-      where: {
-        verificationStatus: 'verified',
-        latitude: {
-          gte: dto.latitude - latDiff,
-          lte: dto.latitude + latDiff,
-        },
-        longitude: {
-          gte: dto.longitude - lngDiff,
-          lte: dto.longitude + lngDiff,
-        },
-        services: {
-          some: {
-            serviceType: {
-              category: {
-                name: {
-                  mode: 'insensitive',
-                  equals: dto.serviceCategory,
+    if (finalMatched.length === 0) {
+      const maxRadius = dto.preferredTime === 'now' ? 5.0 : 20.0; // ASAP is 5km, scheduled is 20km
+      const latDiff = maxRadius / 111.12;
+      const lngDiff = maxRadius / 108.0;
+
+      const candidateCompanies = await this.prisma.company.findMany({
+        where: {
+          verificationStatus: 'verified',
+          latitude: {
+            gte: dto.latitude - latDiff,
+            lte: dto.latitude + latDiff,
+          },
+          longitude: {
+            gte: dto.longitude - lngDiff,
+            lte: dto.longitude + lngDiff,
+          },
+          services: {
+            some: {
+              serviceType: {
+                category: {
+                  name: {
+                    mode: 'insensitive',
+                    equals: dto.serviceCategory,
+                  },
                 },
               },
             },
           },
         },
-      },
-    });
+      });
 
-    // Filter using exact Haversine distance
-    const matchedCompanies = candidateCompanies.filter((company) => {
-      if (!company.latitude || !company.longitude) return false;
-      const distance = this.calculateDistance(
-        dto.latitude,
-        dto.longitude,
-        Number(company.latitude),
-        Number(company.longitude),
-      );
-      return distance <= maxRadius;
-    });
+      const matchedCompanies = candidateCompanies.filter((company) => {
+        if (!company.latitude || !company.longitude) return false;
+        const distance = this.calculateDistance(
+          dto.latitude,
+          dto.longitude,
+          Number(company.latitude),
+          Number(company.longitude),
+        );
+        return distance <= maxRadius;
+      });
+
+      finalMatched = [...matchedCompanies];
+
+      if (finalMatched.length === 0) {
+        const fallbackCompany = await this.prisma.company.findFirst({
+          where: { verificationStatus: 'verified' },
+        });
+        if (fallbackCompany) {
+          finalMatched.push(fallbackCompany);
+        }
+      }
+    }
 
     // Clean JSON response
     const response = {
       request: this.serializeRequest(request),
-      notifiedCompaniesCount: matchedCompanies.length,
-      companiesList: matchedCompanies.map((c) => ({
+      notifiedCompaniesCount: finalMatched.length,
+      companiesList: finalMatched.map((c) => ({
         id: c.id.toString(),
         name: c.name,
         latitude: Number(c.latitude),
@@ -86,16 +107,17 @@ export class InstantRequestsService {
       })),
     };
 
-    // Auto-generate mock bids for testing/demo purposes if companies were found
-    if (matchedCompanies.length > 0) {
+    // Auto-generate bids for matched companies
+    if (finalMatched.length > 0) {
+      const delay = dto.companyId ? 100 : 1500; // Immediate for 1-click targeted company
       setTimeout(() => {
         void (async () => {
-          for (let i = 0; i < Math.min(3, matchedCompanies.length); i++) {
-            const c = matchedCompanies[i];
+          for (let i = 0; i < Math.min(3, finalMatched.length); i++) {
+            const c = finalMatched[i];
             try {
               await this.submitBid(c.id, request.id, {
-                priceEstimate: 20 + i * 5,
-                etaMinutes: 10 + i * 3,
+                priceEstimate: 25 + i * 5,
+                etaMinutes: 8 + i * 3,
               });
             } catch (e) {
               console.error('Mock bid failed:', e);

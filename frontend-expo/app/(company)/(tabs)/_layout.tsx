@@ -14,9 +14,9 @@ const NAV = {
 
 const TABS = [
   { name: 'dashboard', icon: 'view-dashboard-outline',           iconActive: 'view-dashboard',           label: 'Dashboard' },
-  { name: 'operations',icon: 'radar',                            iconActive: 'radar',                    label: 'Operations' },
+  { name: 'operations',icon: 'radar',                            iconActive: 'radar',                    label: 'Dispatch' },
   { name: 'staff',     icon: 'account-group-outline',            iconActive: 'account-group',            label: 'Staff' },
-  { name: 'messages',  icon: 'message-outline',                  iconActive: 'message',                  label: 'Messages' },
+  { name: 'finance',   icon: 'currency-usd',                     iconActive: 'currency-usd',             label: 'Finance' },
   { name: 'more',      icon: 'dots-horizontal-circle-outline',   iconActive: 'dots-horizontal-circle',   label: 'More' },
 ];
 
@@ -112,7 +112,7 @@ export default function CompanyTabsLayout() {
       <Tabs.Screen name="dashboard" />
       <Tabs.Screen name="operations" />
       <Tabs.Screen name="staff" />
-      <Tabs.Screen name="messages" />
+      <Tabs.Screen name="finance" />
       <Tabs.Screen name="more" />
     </Tabs>
   );

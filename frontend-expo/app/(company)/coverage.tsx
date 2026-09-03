@@ -148,8 +148,8 @@ export default function CoverageAreas() {
   };
 
   // Convert string coordinates to float for the map
-  const mapLat = parseFloat(latitude) || 37.7749; // Fallback to SF
-  const mapLng = parseFloat(longitude) || -122.4194;
+  const mapLat = parseFloat(latitude) || 11.5564; // Fallback to Phnom Penh
+  const mapLng = parseFloat(longitude) || 104.9282;
   const hasCoordinates = latitude && longitude;
 
   return (

@@ -351,7 +351,7 @@ export default function Home() {
                     position: "relative",
                     overflow: "hidden"
                   }}
-                  onPress={() => router.push("/(customer)/instant-request" as any)}
+                  onPress={() => router.push("/(customer)/map-view?mode=instant" as any)}
                 >
                   <View style={{
                     position: "absolute",

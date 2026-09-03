@@ -1445,7 +1445,7 @@ export class BookingsService {
     });
     if (!staff) throw new ForbiddenException('You are not registered as staff');
 
-    const { status, page = 1, limit = 10 } = query;
+    const { status, page = 1, limit = 50 } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = { assignedStaffId: staff.id };
@@ -1475,7 +1475,7 @@ export class BookingsService {
             },
           },
         },
-        orderBy: { bookingDate: 'asc' },
+        orderBy: { id: 'desc' },
       }),
       this.prisma.booking.count({ where }),
     ]);
@@ -1532,14 +1532,16 @@ export class BookingsService {
     const platformFee = Number(u.platformFee || 0);
     const rawCompanyEarnings = Number(u.companyEarnings || 0);
 
-    // Calculate staff split (default to 50%)
+    // Calculate staff split for payroll/performance tracking (default 50%)
     const split = staff.splitPercent ? Number(staff.splitPercent) : 50;
     const staffEarnings = Number(
       (Number(u.totalPrice) * (split / 100)).toFixed(2),
     );
-    const companyEarnings = Math.max(0, rawCompanyEarnings - staffEarnings);
+    // In pure B2B model, Company receives 100% of net revenue (totalPrice - platformFee).
+    // Staff payroll is disbursed directly by the Company offline or via internal ERP.
+    const companyEarnings = rawCompanyEarnings;
 
-    // Update booking row with actual splits
+    // Update booking row with actual splits for reporting & analytics
     await tx.booking.update({
       where: { id },
       data: {
@@ -1549,7 +1551,7 @@ export class BookingsService {
     });
 
     // ─── Platform Wallet Flow ───────────────────────────────────────────────
-    // Customer pays → Platform takes fee → Company pendingBalance
+    // Customer pays → Platform takes fee → Company pendingBalance (or debits cash fee)
     // Staff payroll is the Company's internal responsibility (not the platform's).
     // ────────────────────────────────────────────────────────────────────────
 
@@ -1604,25 +1606,6 @@ export class BookingsService {
           data: { pendingBalance: { increment: companyEarnings } },
         });
       }
-    }
-
-    // ─── Staff personal wallet credit ─────────────────────────────────────────
-    if (staffEarnings > 0) {
-      const currentStaffBal = Number(staff.walletBalance || 0);
-      await tx.companyStaff.update({
-        where: { id: staff.id },
-        data: { walletBalance: currentStaffBal + staffEarnings },
-      });
-
-      await tx.walletTransaction.create({
-        data: {
-          staffId: staff.id,
-          amount: staffEarnings,
-          type: 'CREDIT',
-          description: `Earnings for booking #${id}`,
-          bookingId: id,
-        },
-      });
     }
   }
 

@@ -37,6 +37,28 @@ export class ModerationService {
     };
   }
 
+  async flagItem(
+    userId: bigint,
+    dto: { entityType: string; entityId: string; reason: string },
+  ) {
+    const log = await this.prisma.moderationLog.create({
+      data: {
+        adminId: userId,
+        entityType: dto.entityType,
+        entityId: BigInt(dto.entityId),
+        action: 'flagged',
+        reason: dto.reason,
+        status: 'pending',
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Item reported for moderation review',
+      id: log.id.toString(),
+    };
+  }
+
   async applyAction(id: number, action: string) {
     const newStatus =
       action === 'resolve'

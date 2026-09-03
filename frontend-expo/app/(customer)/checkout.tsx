@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ScrollView, Text, View, TouchableOpacity, Alert, ActivityIndicator,
-  StyleSheet, Modal, Platform, Dimensions, Linking
+  StyleSheet, Modal, Platform, Dimensions, Linking, TextInput
 } from "react-native";
 import { Image } from "expo-image";
 import { WebView } from "react-native-webview";
@@ -13,7 +13,7 @@ import { usePayments } from "@/hooks/usePayments";
 import SuccessOverlay from "@/components/SuccessOverlay";
 import QRCode from "react-native-qrcode-svg";
 import { Theme } from "@/constants/theme";
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, MapPressEvent } from 'react-native-maps';
 import { MAP_PROVIDER } from "@/utils/mapHelper";
 import FadeIn from "@/components/FadeIn";
 import ScaleButton from "@/components/ScaleButton";
@@ -33,7 +33,7 @@ export default function CheckoutScreen() {
   const { location } = useCurrentLocation(true);
   
   // Accept EITHER an existing bookingId OR temp params from BottomSheet
-  const { bookingId, serviceId, date, time, price, companyId, isInstant, isSimulation, companyName, serviceName } = useLocalSearchParams<{ 
+  const { bookingId, serviceId, date, time, price, companyId, isInstant, companyName, serviceName } = useLocalSearchParams<{ 
     bookingId?: string; 
     serviceId?: string; 
     date?: string; 
@@ -41,7 +41,6 @@ export default function CheckoutScreen() {
     price?: string;
     companyId?: string; 
     isInstant?: string;
-    isSimulation?: string;
     companyName?: string;
     serviceName?: string;
   }>();
@@ -64,26 +63,47 @@ export default function CheckoutScreen() {
   const [abaHtml, setAbaHtml] = useState<string | null>(null);
   const [abaDeeplink, setAbaDeeplink] = useState<string | null>(null);
 
+  const mapViewRef = useRef<MapView>(null);
+  const pickerMapRef = useRef<MapView>(null);
+
+  // Address picker state
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
+  const [customAddress, setCustomAddress] = useState<string | null>(null);
+  const [customLat, setCustomLat] = useState<number | null>(null);
+  const [customLng, setCustomLng] = useState<number | null>(null);
+  const [pinLat, setPinLat] = useState(location.latitude);
+  const [pinLng, setPinLng] = useState(location.longitude);
+
+  // Derive display values at top level to avoid conditional hook rules
+  const displayService = booking?.service || service;
+  const displayCompany = displayService?.company;
+  const displayPrice = booking?.totalPrice || price || displayService?.basePrice || "0.00";
+  const displayDate = booking?.bookingDate ? new Date(booking.bookingDate).toLocaleDateString() : (date || "Today");
+  const displayTime = booking?.startTime || (time || "ASAP");
+  const rawAddress = booking?.serviceAddress || (user as any)?.city || null;
+  const displayAddress = customAddress || rawAddress;
+  const hasAddress = !!displayAddress;
+  const displayLat = customLat ?? (booking?.latitude ? parseFloat(booking.latitude.toString()) : location.latitude);
+  const displayLng = customLng ?? (booking?.longitude ? parseFloat(booking.longitude.toString()) : location.longitude);
+  
+  // Tax & Fees Math
+  const subtotal = Number(displayPrice);
+  const tax = subtotal * 0.05;
+  const total = subtotal + tax;
+
+  useEffect(() => {
+    if (mapViewRef.current) {
+      mapViewRef.current.animateToRegion({
+        latitude: displayLat,
+        longitude: displayLng,
+        latitudeDelta: 0.015,
+        longitudeDelta: 0.015,
+      }, 1000);
+    }
+  }, [displayLat, displayLng]);
+
   useEffect(() => {
     async function init() {
-      if (isSimulation === "true") {
-        setBooking({
-          id: bookingId || "mock-booking",
-          status: "pending",
-          totalPrice: price || "25.00",
-          serviceAddress: "Street 278, BKK1, Phnom Penh",
-          latitude: location?.latitude || 11.5564,
-          longitude: location?.longitude || 104.9282,
-          company: { name: companyName || "ABC Repair (Simulated)" },
-          service: { name: serviceName || "AC Cleaning" }
-        });
-        setService({
-          name: serviceName || "AC Cleaning",
-          basePrice: price || "25.00",
-        });
-        setLoading(false);
-        return;
-      }
       try {
         if (bookingId) {
           const res = await api.get(`/api/bookings/${bookingId}`);
@@ -124,14 +144,6 @@ export default function CheckoutScreen() {
 
   const handleCreateAndPay = async () => {
     setPayError(null);
-    if (isSimulation === "true") {
-      setIsProcessing(true);
-      setTimeout(() => {
-        setIsProcessing(false);
-        setShowSuccess(true);
-      }, 1000);
-      return;
-    }
     setIsProcessing(true);
 
     let activeBookingId = bookingId;
@@ -250,21 +262,6 @@ export default function CheckoutScreen() {
     );
   }
 
-  // Derive display values
-  const displayService = booking?.service || service;
-  const displayCompany = displayService?.company;
-  const displayPrice = booking?.totalPrice || price || displayService?.basePrice || "0.00";
-  const displayDate = booking?.bookingDate ? new Date(booking.bookingDate).toLocaleDateString() : (date || "Today");
-  const displayTime = booking?.startTime || (time || "ASAP");
-  const displayAddress = booking?.serviceAddress || (user as any)?.city || "Local Address";
-  const displayLat = booking?.latitude ? parseFloat(booking.latitude.toString()) : location.latitude;
-  const displayLng = booking?.longitude ? parseFloat(booking.longitude.toString()) : location.longitude;
-  
-  // Tax & Fees Math
-  const subtotal = Number(displayPrice);
-  const tax = subtotal * 0.05;
-  const total = subtotal + tax;
-
   return (
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       {/* HEADER */}
@@ -278,33 +275,162 @@ export default function CheckoutScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         
-        {/* MAP SUMMARY */}
+        {/* MAP SUMMARY / LOCATION PICKER */}
         <FadeIn delay={100}>
-          <View style={s.mapCard}>
-            <MapView
-              provider={MAP_PROVIDER}
-              style={s.map}
-              key={`${displayLat}-${displayLng}`}
-              initialRegion={{
-                latitude: displayLat, longitude: displayLng,
-                latitudeDelta: 0.015, longitudeDelta: 0.015,
-              }}
-              scrollEnabled={false}
-              zoomEnabled={false}
-            >
-              <Marker coordinate={{ latitude: displayLat, longitude: displayLng }} />
-            </MapView>
-            <View style={s.mapOverlay}>
-              <View style={s.addressRow}>
-                <View style={s.iconBox}><MaterialIcons name="location-on" size={20} color="#FFF" /></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.addressLabel}>Service Location</Text>
-                  <Text style={s.addressText} numberOfLines={1}>{displayAddress}</Text>
+          <TouchableOpacity activeOpacity={0.85} onPress={() => {
+            setPinLat(displayLat);
+            setPinLng(displayLng);
+            setShowAddressPicker(true);
+          }}>
+            <View style={s.mapCard}>
+              {!hasAddress && (
+                <View style={s.addressBanner}>
+                  <MaterialIcons name="add-location-alt" size={18} color={T.accent} />
+                  <Text style={s.addressBannerText}>Tap to set your service location</Text>
+                </View>
+              )}
+              <MapView
+                ref={mapViewRef}
+                provider={MAP_PROVIDER}
+                style={[s.map, !hasAddress && { opacity: 0.5 }]}
+                initialRegion={{
+                  latitude: displayLat, longitude: displayLng,
+                  latitudeDelta: 0.015, longitudeDelta: 0.015,
+                }}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                pointerEvents="none"
+              >
+                <Marker coordinate={{ latitude: displayLat, longitude: displayLng }} />
+              </MapView>
+              <View style={s.mapOverlay}>
+                <View style={s.addressRow}>
+                  <View style={[s.iconBox, !hasAddress && { backgroundColor: T.text3 }]}>
+                    <MaterialIcons name={hasAddress ? "location-on" : "add-location-alt"} size={20} color="#FFF" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.addressLabel}>Service Location</Text>
+                    <Text style={[s.addressText, !hasAddress && { color: T.text3, fontStyle: 'italic' }]} numberOfLines={1}>
+                      {displayAddress ?? "Not set — tap to add"}
+                    </Text>
+                  </View>
+                  <MaterialIcons name="edit" size={16} color={T.text3} style={{ marginLeft: 8 }} />
                 </View>
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </FadeIn>
+
+        {/* ADDRESS PICKER MODAL */}
+        <Modal visible={showAddressPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAddressPicker(false)}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
+            {/* Modal Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: T.border }}>
+              <TouchableOpacity onPress={() => setShowAddressPicker(false)}>
+                <Text style={{ fontSize: 15, color: T.text2, fontWeight: '600' }}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={{ fontSize: 17, fontWeight: '800', color: T.text1 }}>Set Location</Text>
+              <TouchableOpacity onPress={() => {
+                setCustomAddress(customAddress ?? `${pinLat.toFixed(5)}, ${pinLng.toFixed(5)}`);
+                setCustomLat(pinLat);
+                setCustomLng(pinLng);
+                setShowAddressPicker(false);
+              }}>
+                <Text style={{ fontSize: 15, color: T.accent, fontWeight: '800' }}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Map with draggable pin */}
+            <View style={{ flex: 1, position: 'relative' }}>
+              <MapView
+                ref={pickerMapRef}
+                provider={MAP_PROVIDER}
+                style={StyleSheet.absoluteFillObject}
+                initialRegion={{ latitude: pinLat, longitude: pinLng, latitudeDelta: 0.01, longitudeDelta: 0.01 }}
+                onPress={(e: MapPressEvent) => {
+                  const { latitude, longitude } = e.nativeEvent.coordinate;
+                  setPinLat(latitude);
+                  setPinLng(longitude);
+                }}
+              >
+                <Marker
+                  coordinate={{ latitude: pinLat, longitude: pinLng }}
+                  draggable
+                  onDragEnd={(e) => {
+                    setPinLat(e.nativeEvent.coordinate.latitude);
+                    setPinLng(e.nativeEvent.coordinate.longitude);
+                  }}
+                />
+              </MapView>
+
+              {/* Use Current Location FAB */}
+              <TouchableOpacity
+                style={{
+                  position: 'absolute', top: 16, right: 16,
+                  flexDirection: 'row', alignItems: 'center', gap: 6,
+                  backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10,
+                  shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 4,
+                  borderWidth: 1, borderColor: T.border,
+                }}
+                onPress={() => {
+                  const gpsLat = location.latitude;
+                  const gpsLng = location.longitude;
+                  setPinLat(gpsLat);
+                  setPinLng(gpsLng);
+                  setCustomAddress(null);
+                  pickerMapRef.current?.animateToRegion({
+                    latitude: gpsLat,
+                    longitude: gpsLng,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  }, 800);
+                }}
+              >
+                <MaterialIcons name="my-location" size={18} color={T.accent} />
+                <Text style={{ fontSize: 13, fontWeight: '700', color: T.accent }}>Current Location</Text>
+              </TouchableOpacity>
+
+              {/* Hint bar */}
+              <View style={{ position: 'absolute', bottom: 24, left: 24, right: 24, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <MaterialIcons name="info-outline" size={16} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600', flex: 1 }}>Tap the map or drag the pin to set where the service will happen.</Text>
+              </View>
+            </View>
+
+            {/* Address text override */}
+            <View style={{ padding: 20, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: T.text3, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Address Label (optional)</Text>
+              <TextInput
+                style={{
+                  backgroundColor: T.bg,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: T.border,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  fontSize: 14,
+                  color: T.text1,
+                  fontWeight: '500',
+                }}
+                placeholder="e.g. 123 Main St, Apt 4B"
+                placeholderTextColor={T.text3}
+                value={customAddress ?? ""}
+                onChangeText={setCustomAddress}
+                returnKeyType="done"
+              />
+              <TouchableOpacity
+                style={{ marginTop: 12, backgroundColor: T.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center' }}
+                onPress={() => {
+                  setCustomLat(pinLat);
+                  setCustomLng(pinLng);
+                  setShowAddressPicker(false);
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>Use This Location</Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </Modal>
 
         {/* BOOKING DETAILS */}
         <FadeIn delay={200}>
@@ -483,8 +609,8 @@ export default function CheckoutScreen() {
           setShowSuccess(false);
           if (isInstant === "true") {
             router.replace({
-              pathname: "/(customer)/instant-request/confirmation" as any,
-              params: { bookingId, isSimulation }
+              pathname: "/(customer)/map-view" as any,
+              params: { bookingId, mode: "tracking" }
             });
           } else {
             router.replace("/(customer)/(tabs)/home" as any);
@@ -509,6 +635,13 @@ const s = StyleSheet.create({
   iconBox: { width: 36, height: 36, borderRadius: 18, backgroundColor: T.accent, alignItems: 'center', justifyContent: 'center' },
   addressLabel: { fontSize: 11, color: T.text3, fontWeight: '600' },
   addressText: { fontSize: 14, color: T.text1, fontWeight: '700' },
+  addressBanner: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: T.accentLight, paddingHorizontal: 16, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: T.accent + '30',
+  },
+  addressBannerText: { fontSize: 13, fontWeight: '700', color: T.accent, flex: 1 },
 
   detailsCard: { backgroundColor: T.surface, borderRadius: 24, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   serviceRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },

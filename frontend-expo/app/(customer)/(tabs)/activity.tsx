@@ -10,7 +10,7 @@ import {
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { api, useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
@@ -160,6 +160,20 @@ function BookingCard({ booking, onCancel, index }: { booking: Booking; onCancel:
       >
         <View style={[s.bookingCard, { borderWidth: 1, borderColor: T.border }]}>
           
+          {/* CARD HEADER: Booking ID & Status */}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <View style={{ backgroundColor: T.accentLight, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                <Text style={{ fontSize: 12, fontWeight: "900", color: T.accent }}>#{booking.id}</Text>
+              </View>
+              <Text style={{ fontSize: 12, color: T.text3, fontWeight: "600" }}>Booking ID</Text>
+            </View>
+            <View style={[s.statusBadge, { backgroundColor: cfg.bg }]}>
+              <MaterialCommunityIcons name={cfg.icon as any} size={12} color={cfg.color} />
+              <Text style={[s.statusBadgeText, { color: cfg.color }]}>{cfg.label}</Text>
+            </View>
+          </View>
+
           {/* TOP HALF: Service Info */}
           <View style={s.cardTop}>
             <View style={s.cardImgBox}>
@@ -182,12 +196,9 @@ function BookingCard({ booking, onCancel, index }: { booking: Booking; onCancel:
                 </Text>
               </View>
 
-              <View style={{ alignSelf: "flex-start" }}>
-                <View style={[s.statusBadge, { backgroundColor: cfg.bg }]}>
-                  <MaterialCommunityIcons name={cfg.icon as any} size={12} color={cfg.color} />
-                  <Text style={[s.statusBadgeText, { color: cfg.color }]}>{cfg.label}</Text>
-                </View>
-              </View>
+              <Text style={{ fontSize: 12, color: T.accent, fontWeight: "700" }}>
+                {(booking as any).assignedStaff?.user?.fullName ? `Staff: ${(booking as any).assignedStaff.user.fullName}` : "Staff Assigned (Nearby)"}
+              </Text>
             </View>
           </View>
 
@@ -224,13 +235,16 @@ function BookingCard({ booking, onCancel, index }: { booking: Booking; onCancel:
                     <Text style={s.actionBtnOutlineText}>Cancel</Text>
                   </TouchableOpacity>
                 )}
-                {booking.status?.toLowerCase() === "confirmed" && (
-                  <TouchableOpacity style={s.actionBtnPrimary} hitSlop={10} onPress={(e) => { e.stopPropagation(); router.push(`/(customer)/booking/${booking.id}` as any); }}>
-                    <Text style={s.actionBtnPrimaryText}>Details</Text>
-                  </TouchableOpacity>
-                )}
-                {booking.status?.toLowerCase() === "in_progress" && (
-                  <TouchableOpacity style={[s.actionBtnPrimary, { backgroundColor: T.inprogress }]} hitSlop={10} onPress={(e) => { e.stopPropagation(); router.push(`/(customer)/booking/${booking.id}` as any); }}>
+                {(booking.status?.toLowerCase() === "confirmed" || booking.status?.toLowerCase() === "in_progress") && (
+                  <TouchableOpacity
+                    style={[s.actionBtnPrimary, { backgroundColor: T.accent, flexDirection: "row", gap: 4 }]}
+                    hitSlop={10}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      router.push(`/(customer)/map-view?bookingId=${booking.id}&mode=tracking` as any);
+                    }}
+                  >
+                    <MaterialCommunityIcons name="map-marker-radius" size={14} color="#FFF" />
                     <Text style={s.actionBtnPrimaryText}>Track Staff</Text>
                   </TouchableOpacity>
                 )}
@@ -291,7 +305,7 @@ export default function ActivityScreen() {
   const loadBookings = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await api.get("/api/bookings");
+      const res = await api.get("/api/bookings", { params: { limit: 50 } });
       const all: Booking[] = extractArray(res.data);
       const filtered = all.filter((b) => {
         if (activeTab === "upcoming") return ["pending", "confirmed", "in_progress"].includes(b.status);
@@ -307,13 +321,15 @@ export default function ActivityScreen() {
     }
   }, [activeTab]);
 
-  useEffect(() => { 
-    if (!isGuest) {
-      loadBookings(); 
-    } else {
-      setIsLoading(false);
-    }
-  }, [loadBookings, isGuest]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!isGuest) {
+        loadBookings();
+      } else {
+        setIsLoading(false);
+      }
+    }, [loadBookings, isGuest])
+  );
 
   const handleCancel = (id: string) => {
     Alert.alert("Cancel Booking", "Are you sure you want to cancel this booking?", [

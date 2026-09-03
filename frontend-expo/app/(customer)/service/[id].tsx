@@ -286,34 +286,48 @@ export default function ServiceDetailScreen() {
         <View style={s.divider} />
 
         {/* 5. AM I PROTECTED? (Peace of Mind Guarantee) */}
-        <View style={s.section}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <MaterialIcons name="shield" size={24} color="#10B981" />
-            <Text style={s.sectionTitle}>Peace of Mind Guarantee</Text>
-          </View>
-          
-          <View style={s.policyList}>
-            <View style={s.policyItem}>
-              <MaterialCommunityIcons name="calendar-remove" size={20} color={T.text2} />
-              <View style={{ flex: 1 }}>
-                <Text style={s.policyTitle}>Free Cancellation</Text>
-                <Text style={s.policyDesc}>Cancel up to 24 hours before the service for a full refund.</Text>
-              </View>
+        <View style={s.guaranteeSection}>
+          <View style={s.guaranteeHeader}>
+            <View style={s.shieldIconWrap}>
+              <MaterialIcons name="verified-user" size={22} color="#059669" />
             </View>
-            
-            <View style={s.policyItem}>
-              <MaterialCommunityIcons name="cash-refund" size={20} color={T.text2} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.guaranteeTitle}>Peace of Mind Guarantee</Text>
+              <Text style={s.guaranteeSubtitle}>Your safety, trust, and satisfaction are fully covered.</Text>
+            </View>
+          </View>
+
+          {/* Bento Grid */}
+          <View style={s.policyBentoGrid}>
+            {/* Full Width Satisfaction Card */}
+            <View style={s.policyBentoFull}>
+              <View style={[s.policyIconCircle, { backgroundColor: "rgba(16, 185, 129, 0.1)", marginBottom: 0 }]}>
+                <MaterialCommunityIcons name="cash-refund" size={22} color="#059669" />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.policyTitle}>100% Satisfaction Refund</Text>
-                <Text style={s.policyDesc}>If you're not satisfied, we will re-do it or refund you completely.</Text>
+                <Text style={s.policyDesc}>If you're not satisfied, we will re-do the service or refund you completely.</Text>
               </View>
             </View>
-            
-            <View style={s.policyItem}>
-              <MaterialCommunityIcons name="file-document-check-outline" size={20} color={T.text2} />
-              <View style={{ flex: 1 }}>
-                <Text style={s.policyTitle}>Insured & Protected</Text>
-                <Text style={s.policyDesc}>Property damage and dispute protection included up to $1,000.</Text>
+
+            {/* Row of two half-width cards */}
+            <View style={s.bentoRow}>
+              {/* Free Cancellation */}
+              <View style={s.policyBentoHalf}>
+                <View style={s.policyIconCircle}>
+                  <MaterialCommunityIcons name="calendar-remove" size={18} color="#059669" />
+                </View>
+                <Text style={s.policyTitleCompact}>Free Cancel</Text>
+                <Text style={s.policyDescCompact}>Up to 24 hours prior to service.</Text>
+              </View>
+
+              {/* Insured & Protected */}
+              <View style={s.policyBentoHalf}>
+                <View style={s.policyIconCircle}>
+                  <MaterialCommunityIcons name="file-document-check-outline" size={18} color="#059669" />
+                </View>
+                <Text style={s.policyTitleCompact}>Insured & Safe</Text>
+                <Text style={s.policyDescCompact}>Damage cover included up to $1,000.</Text>
               </View>
             </View>
           </View>
@@ -385,20 +399,39 @@ export default function ServiceDetailScreen() {
             <Text style={s.sectionTitle}>Frequently Booked Together</Text>
             
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 16, gap: 16 }}>
-              {crossSells.map((cs, i) => (
-                <FadeIn key={cs.id} delay={i * 100}>
-                  <TouchableOpacity 
-                    style={s.crossSellCard} 
-                    onPress={() => router.push(`/(customer)/service/${cs.id}` as any)}
-                  >
-                    <Image source={{ uri: cs.image || "https://picsum.photos/200/200" }} style={s.crossSellImg} />
-                    <View style={s.crossSellBody}>
-                      <Text style={s.crossSellTitle} numberOfLines={2}>{cs.name}</Text>
-                      <Text style={s.crossSellPrice}>+ ${cs.basePrice}</Text>
-                    </View>
-                  </TouchableOpacity>
-                </FadeIn>
-              ))}
+              {crossSells.map((cs, i) => {
+                // Derive icon from service name keywords
+                const nameL = (cs.name || '').toLowerCase();
+                const icon = nameL.includes('clean') ? 'broom' :
+                  nameL.includes('plumb') ? 'pipe-wrench' :
+                  nameL.includes('electric') ? 'lightning-bolt' :
+                  nameL.includes('ac') || nameL.includes('air') ? 'air-conditioner' :
+                  nameL.includes('repair') || nameL.includes('fix') ? 'hammer-wrench' :
+                  nameL.includes('paint') ? 'brush' :
+                  nameL.includes('garden') ? 'flower' :
+                  'home-outline';
+                const iconColor = nameL.includes('clean') ? '#3b82f6' :
+                  nameL.includes('plumb') ? '#06b6d4' :
+                  nameL.includes('electric') ? '#eab308' :
+                  nameL.includes('ac') || nameL.includes('air') ? '#f97316' :
+                  '#10b981';
+                return (
+                  <FadeIn key={cs.id} delay={i * 100}>
+                    <TouchableOpacity 
+                      style={s.crossSellCard} 
+                      onPress={() => router.push(`/(customer)/service/${cs.id}` as any)}
+                    >
+                      <View style={[s.crossSellIconBox, { backgroundColor: iconColor + '12' }]}>
+                        <MaterialCommunityIcons name={icon as any} size={28} color={iconColor} />
+                      </View>
+                      <View style={s.crossSellBody}>
+                        <Text style={s.crossSellTitle} numberOfLines={2}>{cs.name}</Text>
+                        <Text style={s.crossSellPrice}>+ ${cs.basePrice}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </FadeIn>
+                );
+              })}
             </ScrollView>
           </View>
         )}
@@ -474,11 +507,24 @@ const s = StyleSheet.create({
   viewCompanyBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
   viewCompanyText: { fontSize: 12, fontWeight: '700', color: T.text1 },
 
-  // Policies
-  policyList: { gap: 20 },
-  policyItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
-  policyTitle: { fontSize: 16, fontWeight: '700', color: T.text1, marginBottom: 4 },
-  policyDesc: { fontSize: 14, color: T.text2, lineHeight: 20 },
+  // Policies Redesign — Premium Bento Grid Overhaul
+  guaranteeSection: {
+    marginHorizontal: 24,
+    marginVertical: 24,
+  },
+  guaranteeHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  shieldIconWrap: { width: 42, height: 42, borderRadius: 14, backgroundColor: "rgba(16, 185, 129, 0.08)", alignItems: 'center', justifyContent: 'center' },
+  guaranteeTitle: { fontSize: 16, fontWeight: '800', color: T.text1, letterSpacing: -0.3 },
+  guaranteeSubtitle: { fontSize: 12, color: T.text2, marginTop: 1, fontWeight: '500' },
+  policyBentoGrid: { gap: 12 },
+  policyBentoFull: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: T.surface, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  bentoRow: { flexDirection: 'row', gap: 12 },
+  policyBentoHalf: { flex: 1, backgroundColor: T.surface, padding: 14, borderRadius: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  policyIconCircle: { width: 32, height: 32, borderRadius: 10, backgroundColor: "rgba(16, 185, 129, 0.06)", alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  policyTitle: { fontSize: 15, fontWeight: '700', color: T.text1, marginBottom: 4 },
+  policyDesc: { fontSize: 12, color: T.text2, lineHeight: 17 },
+  policyTitleCompact: { fontSize: 13, fontWeight: '700', color: T.text1, marginBottom: 2 },
+  policyDescCompact: { fontSize: 11, color: T.text2, lineHeight: 15 },
 
   // Other Providers
   otherProviderCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, backgroundColor: T.surface, borderRadius: 12, borderWidth: 1, borderColor: T.border },
@@ -490,10 +536,10 @@ const s = StyleSheet.create({
   otherPrice: { fontSize: 16, fontWeight: '800', color: T.accent, marginBottom: 2 },
 
   // Cross Sell
-  crossSellCard: { width: 160, backgroundColor: T.surface, borderRadius: 16, borderWidth: 1, borderColor: T.border, overflow: 'hidden' },
-  crossSellImg: { width: '100%', height: 100, backgroundColor: T.border },
+  crossSellCard: { width: 148, backgroundColor: T.surface, borderRadius: 16, borderWidth: 1, borderColor: T.border, overflow: 'hidden' },
+  crossSellIconBox: { width: '100%', height: 88, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: T.border },
   crossSellBody: { padding: 12 },
-  crossSellTitle: { fontSize: 14, fontWeight: '700', color: T.text1, marginBottom: 8, height: 38 },
+  crossSellTitle: { fontSize: 13, fontWeight: '700', color: T.text1, marginBottom: 8, lineHeight: 18, height: 36 },
   crossSellPrice: { fontSize: 14, fontWeight: '800', color: T.accent },
 
   // FAB

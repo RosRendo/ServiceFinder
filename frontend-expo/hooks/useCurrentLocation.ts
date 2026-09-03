@@ -3,6 +3,15 @@ import * as Location from 'expo-location';
 
 const DEFAULT_LOC = { latitude: 11.5564, longitude: 104.9282 };
 
+const isSimulatorLocation = (lat: number, lng: number) => {
+  // Android Emulator default: ~37.422, -122.084 (Google Mountain View)
+  // iOS Simulator default: ~37.785, -122.406 (San Francisco) or ~37.332, -122.030 (Cupertino)
+  const isAndroidEmu = Math.abs(lat - 37.422) < 0.2 && Math.abs(lng - (-122.084)) < 0.2;
+  const isIosEmu = (Math.abs(lat - 37.785) < 0.3 && Math.abs(lng - (-122.406)) < 0.3) ||
+                   (Math.abs(lat - 37.332) < 0.3 && Math.abs(lng - (-122.030)) < 0.3);
+  return isAndroidEmu || isIosEmu;
+};
+
 export function useCurrentLocation(requestOnMount = true) {
   const [location, setLocation] = useState(DEFAULT_LOC);
   const [loadingLocation, setLoadingLocation] = useState(requestOnMount);
@@ -17,9 +26,21 @@ export function useCurrentLocation(requestOnMount = true) {
         return DEFAULT_LOC;
       }
 
-      // Use Balanced accuracy for faster resolution since we just need roughly the right neighborhood
-      let loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const newLoc = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+      let loc = await Location.getLastKnownPositionAsync();
+      if (!loc) {
+        loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      }
+      
+      const rawLat = loc.coords.latitude;
+      const rawLng = loc.coords.longitude;
+
+      // If emulator is in default US West Coast coordinates, stick to Phnom Penh Metro
+      if (isSimulatorLocation(rawLat, rawLng)) {
+        setLocation(DEFAULT_LOC);
+        return DEFAULT_LOC;
+      }
+
+      const newLoc = { latitude: rawLat, longitude: rawLng };
       setLocation(newLoc);
       return newLoc;
     } catch (err: any) {

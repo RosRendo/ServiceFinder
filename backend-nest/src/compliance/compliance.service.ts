@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -43,6 +43,34 @@ export class ComplianceService {
         submittedAt: r.createdAt.toISOString(),
         notes: r.notes ?? '',
       })),
+    };
+  }
+
+  async submitReport(
+    userId: bigint,
+    dto: { type: string; documentUrl: string; notes?: string },
+  ) {
+    const company = await this.prisma.company.findFirst({
+      where: { ownerId: userId },
+    });
+    if (!company) {
+      throw new NotFoundException('Company profile not found');
+    }
+
+    const report = await this.prisma.complianceReport.create({
+      data: {
+        companyId: company.id,
+        type: dto.type,
+        documentUrl: dto.documentUrl,
+        notes: dto.notes ?? '',
+        status: 'pending',
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Compliance document submitted successfully for admin review.',
+      reportId: report.id.toString(),
     };
   }
 

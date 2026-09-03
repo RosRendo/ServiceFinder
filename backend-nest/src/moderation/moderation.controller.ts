@@ -11,6 +11,7 @@ import { ModerationService } from './moderation.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Admin')
@@ -25,6 +26,16 @@ export class ModerationController {
   @ApiOperation({ summary: 'Get all moderation logs filtered by status' })
   getLogs(@Query('status') status?: string) {
     return this.moderationService.getLogs(status);
+  }
+
+  @Post('flag')
+  @Roles('admin', 'customer', 'staff', 'company_admin')
+  @ApiOperation({ summary: 'Flag or report an item for admin moderation' })
+  flagItem(
+    @Body() dto: { entityType: string; entityId: string; reason: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.moderationService.flagItem(BigInt(user.id), dto);
   }
 
   @Post(':id/action')

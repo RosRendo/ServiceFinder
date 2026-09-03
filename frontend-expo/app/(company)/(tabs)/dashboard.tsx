@@ -35,8 +35,8 @@ function PressCard({ onPress, style, children }: { onPress: () => void; style?: 
   const pressOut = () => Animated.timing(scale, { toValue: 1, duration: 100, useNativeDriver: true }).start();
   
   return (
-    <Pressable onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} style={{ flex: 1 }}>
-      <Animated.View style={[{ transform: [{ scale }], flex: 1 }, style]}>
+    <Pressable onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} style={style}>
+      <Animated.View style={{ transform: [{ scale }] }}>
         {children}
       </Animated.View>
     </Pressable>
@@ -102,6 +102,7 @@ export default function Dashboard() {
   const [company, setCompany] = useState<any>(null);
   const [metrics, setMetrics] = useState<any>(null);
   const [pendingBookings, setPendingBookings] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
 
   const loadDashboardData = useCallback(async (isRefresh = false, period = timeframe) => {
     if (isRefresh) { setRefreshing(true); } else { setLoading(true); }
@@ -116,6 +117,7 @@ export default function Dashboard() {
 
       const allBookings = bookingsRes.data?.data?.bookings || bookingsRes.data?.bookings || bookingsRes.data?.data || [];
       setPendingBookings(allBookings.filter((b: any) => b.status === 'pending').slice(0, 3));
+      setBookings(allBookings);
       setHasError(false);
     } catch (error) {
       console.error("Failed to load dashboard data", error);
@@ -212,29 +214,82 @@ export default function Dashboard() {
             <ErrorState onRetry={() => { setLoading(true); loadDashboardData(false, timeframe); }} />
           ) : (
             <View style={s.contentPad}>
-              {/* Escrow and Wallet KPI Grid */}
-              <View style={s.kpiGrid}>
-                {/* Available Wallet Balance */}
-                <PressCard onPress={() => router.push("/(company)/payouts/request" as any)} style={[s.heroCard, { flex: 2, backgroundColor: T.accent }]}>
-                  <View style={s.heroHeader}>
-                    <View style={s.heroIconWrap}>
-                      <MaterialCommunityIcons name="wallet-outline" size={24} color={T.accent} />
+              {/* Today's Jobs Overview */}
+              <View style={[s.todayJobsCard, CARD_SHADOW]}>
+                <Text style={s.todayJobsHeader}>Today's Jobs</Text>
+                <View style={s.todayJobsRow}>
+                  <View style={s.todayJobsCol}>
+                    <Text style={[s.todayJobsCount, { color: T.warning }]}>{bookings.filter((b: any) => b.status === 'pending').length}</Text>
+                    <Text style={s.todayJobsLabel}>Pending</Text>
+                  </View>
+                  <View style={s.todayJobsDivider} />
+                  <View style={s.todayJobsCol}>
+                    <Text style={[s.todayJobsCount, { color: T.info }]}>{bookings.filter((b: any) => b.status === 'confirmed').length}</Text>
+                    <Text style={s.todayJobsLabel}>Assigned</Text>
+                  </View>
+                  <View style={s.todayJobsDivider} />
+                  <View style={s.todayJobsCol}>
+                    <Text style={[s.todayJobsCount, { color: T.success }]}>{bookings.filter((b: any) => b.status === 'in_progress').length}</Text>
+                    <Text style={s.todayJobsLabel}>Active</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Quick Actions Grid */}
+              <View style={s.quickActionsSection}>
+                <Text style={s.sectionSubtitle}>Quick Actions</Text>
+                <View style={s.quickActionsRow}>
+                  <TouchableOpacity onPress={() => router.push("/(company)/(tabs)/operations" as any)} style={[s.quickActionBtn, CARD_SHADOW]}>
+                    <View style={s.quickActionIconBox}>
+                      <MaterialCommunityIcons name="plus-circle-outline" size={22} color={T.accent} />
                     </View>
-                    <Text style={[s.heroLabel, { color: "rgba(255,255,255,0.8)" }]}>Available Wallet</Text>
+                    <Text style={s.quickActionText}>Create Job</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => router.push("/(company)/(tabs)/staff" as any)} style={[s.quickActionBtn, CARD_SHADOW]}>
+                    <View style={s.quickActionIconBox}>
+                      <MaterialCommunityIcons name="account-plus-outline" size={22} color={T.accent} />
+                    </View>
+                    <Text style={s.quickActionText}>Assign Staff</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={[s.quickActionsRow, { marginTop: 12 }]}>
+                  <TouchableOpacity onPress={() => router.push("/(company)/services" as any)} style={[s.quickActionBtn, CARD_SHADOW]}>
+                    <View style={s.quickActionIconBox}>
+                      <MaterialCommunityIcons name="tag-plus-outline" size={22} color={T.accent} />
+                    </View>
+                    <Text style={s.quickActionText}>Add Service</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => router.push("/(company)/(tabs)/finance" as any)} style={[s.quickActionBtn, CARD_SHADOW]}>
+                    <View style={s.quickActionIconBox}>
+                      <MaterialCommunityIcons name="cash-multiple" size={22} color={T.accent} />
+                    </View>
+                    <Text style={s.quickActionText}>Earnings</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Available Wallet Balance Hero Card */}
+              <PressCard onPress={() => router.push("/(company)/payments" as any)} style={[s.heroCard, { backgroundColor: T.accent, marginBottom: 20 }]}>
+                <View style={s.heroHeader}>
+                  <View style={s.heroIconWrap}>
+                    <MaterialCommunityIcons name="wallet-outline" size={24} color={T.accent} />
                   </View>
-                  <View style={s.heroContent}>
-                    <AnimatedNumber 
-                      value={metrics?.availableBalance || 0} 
-                      prefix="$" 
-                      fractionDigits={2} 
-                      style={[s.heroValue, { color: "#FFF" }]} 
-                    />
-                    <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 4, fontWeight: "600" }}>Tap to withdraw funds</Text>
-                  </View>
-                </PressCard>
-                
-                {/* Escrow Hold */}
-                <PressCard onPress={() => router.push("/(company)/(tabs)/operations" as any)} style={[s.kpiCard, { flex: 1.5 }]}>
+                  <Text style={[s.heroLabel, { color: "rgba(255,255,255,0.8)" }]}>Available Wallet</Text>
+                </View>
+                <View style={s.heroContent}>
+                  <AnimatedNumber 
+                    value={metrics?.availableBalance || 0} 
+                    prefix="$" 
+                    fractionDigits={2} 
+                    style={[s.heroValue, { color: "#FFF" }]} 
+                  />
+                  <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 4, fontWeight: "600" }}>Tap to withdraw funds</Text>
+                </View>
+              </PressCard>
+
+              {/* KPI Cards Row 1: Escrow & Total Revenue */}
+              <View style={s.kpiRow}>
+                <PressCard onPress={() => router.push("/(company)/(tabs)/operations" as any)} style={s.kpiCard}>
                   <Text style={s.kpiLabel}>In Escrow</Text>
                   <AnimatedNumber 
                     value={metrics?.escrowBalance || 0} 
@@ -244,10 +299,7 @@ export default function Dashboard() {
                   />
                   <Text style={s.kpiSubLabel}>Active jobs</Text>
                 </PressCard>
-              </View>
 
-              {/* Secondary KPIs */}
-              <View style={s.kpiRow}>
                 <PressCard onPress={() => router.push("/(company)/analytics" as any)} style={s.kpiCard}>
                   <Text style={s.kpiLabel}>Total Revenue</Text>
                   <AnimatedNumber 
@@ -258,8 +310,12 @@ export default function Dashboard() {
                   />
                   <Text style={s.kpiSubLabel}>All-time earnings</Text>
                 </PressCard>
+              </View>
+
+              {/* KPI Cards Row 2: Completion Rate */}
+              <View style={s.kpiRow}>
                 <PressCard onPress={() => router.push("/(company)/(tabs)/operations" as any)} style={s.kpiCard}>
-                  <Text style={s.kpiLabel}>Completion</Text>
+                  <Text style={s.kpiLabel}>Completion Rate</Text>
                   <View style={{ flexDirection: "row", alignItems: "baseline" }}>
                     <AnimatedNumber 
                       value={metrics?.completionRate || 0} 
@@ -297,7 +353,7 @@ export default function Dashboard() {
                 <View style={s.pendingSection}>
                   <View style={s.activityHeader}>
                     <Text style={[s.sectionTitle, { color: T.error }]}>Urgent Action Queue</Text>
-                    <TouchableOpacity onPress={() => router.push("/(company)/(tabs)/bookings" as any)}>
+                    <TouchableOpacity onPress={() => router.push("/(company)/(tabs)/operations" as any)}>
                       <Text style={s.viewAllBtn}>VIEW ALL</Text>
                     </TouchableOpacity>
                   </View>
@@ -349,7 +405,7 @@ export default function Dashboard() {
               <View style={s.activitySection}>
                 <View style={s.activityHeader}>
                   <Text style={s.sectionTitle}>Recent Activity</Text>
-                  <TouchableOpacity onPress={() => router.push("/(company)/(tabs)/bookings" as any)}>
+                  <TouchableOpacity onPress={() => router.push("/(company)/(tabs)/operations" as any)}>
                     <Text style={s.viewAllBtn}>VIEW ALL</Text>
                   </TouchableOpacity>
                 </View>
@@ -404,6 +460,86 @@ const s = StyleSheet.create({
   scrollView: { flex: 1 },
   contentPad: { paddingHorizontal: 24, paddingTop: 8 },
   loadingBox: { paddingVertical: 80, alignItems: "center" },
+
+  todayJobsCard: {
+    backgroundColor: T.surface,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  todayJobsHeader: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: T.text1,
+    marginBottom: 16,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  todayJobsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  todayJobsCol: {
+    flex: 1,
+    alignItems: "center",
+  },
+  todayJobsCount: {
+    fontSize: 28,
+    fontWeight: "900",
+  },
+  todayJobsLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: T.text3,
+    marginTop: 4,
+  },
+  todayJobsDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: T.border,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: T.text1,
+    marginBottom: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  quickActionsSection: {
+    marginBottom: 24,
+  },
+  quickActionsRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  quickActionBtn: {
+    flex: 1,
+    backgroundColor: T.surface,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: T.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickActionIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: T.accentLight,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  quickActionText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: T.text1,
+  },
 
   heroCard: { backgroundColor: T.accent, borderRadius: 24, padding: 24, marginBottom: 16, overflow: "visible", ...HERO_SHADOW },
   heroHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 20 },

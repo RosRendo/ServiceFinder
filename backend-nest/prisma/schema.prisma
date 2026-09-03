@@ -24,6 +24,8 @@ model User {
   workingStatus             String                    @default("offline") @map("working_status")
   lastSeen                  DateTime?                 @map("last_seen")
   lastLoginAt               DateTime?                 @map("last_login_at")
+  latitude                  Decimal?                  @db.Decimal(10, 7)
+  longitude                 Decimal?                  @db.Decimal(10, 7)
   pushToken                 String?                   @map("push_token") @db.VarChar(255)
   mfaEnabled                Boolean                   @default(false) @map("mfa_enabled")
   mfaSecret                 String?                   @map("mfa_secret") @db.VarChar(255)

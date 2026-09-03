@@ -791,6 +791,22 @@ export class CompaniesService {
       delete updateData.coverageRadiusKm;
     }
 
+    if (updates.verificationDocumentUrl) {
+      try {
+        await this.prisma.complianceReport.create({
+          data: {
+            companyId: id,
+            type: 'business_license',
+            documentUrl: updates.verificationDocumentUrl,
+            status: 'pending',
+            notes: 'Submitted via company profile settings',
+          },
+        });
+      } catch (err) {
+        // ignore if report creation fails
+      }
+    }
+
     const updatedCompany = await this.prisma.company.update({
       where: { id },
       data: updateData,
@@ -1314,6 +1330,8 @@ export class CompaniesService {
             workingStatus: true,
             lastSeen: true,
             lastLoginAt: true,
+            latitude: true,
+            longitude: true,
           },
         },
         _count: {
@@ -1362,7 +1380,10 @@ export class CompaniesService {
             : s.role === 'supervisor'
               ? 'Senior Technician'
               : 'Manager',
-        status: isAvailable ? 'online' : 'offline',
+        status:
+          s.status === 'active' && s.user.workingStatus !== 'offline'
+            ? 'active'
+            : 'inactive',
         rating: avgRating ? Number(avgRating.toFixed(1)) : 0,
         jobsCompleted: s._count.assignedBookings,
         todayJobs: todayJobsCount,
@@ -1394,7 +1415,15 @@ export class CompaniesService {
         averageRating: avgRating ? Number(avgRating.toFixed(1)) : null,
         totalReviews: s.reviews.length,
         isAvailable,
-        joinedAt: s.createdAt.toISOString(),
+        latitude: s.user.latitude ? Number(s.user.latitude) : null,
+        longitude: s.user.longitude ? Number(s.user.longitude) : null,
+        user: {
+          id: s.user.id.toString(),
+          fullName: s.user.fullName,
+          avatar: s.user.avatar,
+          latitude: s.user.latitude ? Number(s.user.latitude) : null,
+          longitude: s.user.longitude ? Number(s.user.longitude) : null,
+        },
         walletBalance: s.walletBalance ? Number(s.walletBalance) : 0,
         creditLimit: s.creditLimit ? Number(s.creditLimit) : 0,
       };

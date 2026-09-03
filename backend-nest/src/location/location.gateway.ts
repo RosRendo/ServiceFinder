@@ -67,8 +67,7 @@ export class LocationGateway
     @ConnectedSocket() client: Socket,
   ) {
     const room = `booking_${data.bookingId}`;
-    // Broadcast to everyone else in the room
-    client.to(room).emit('staff_location_updated', {
+    this.server.to(room).emit('staff_location_updated', {
       latitude: data.latitude,
       longitude: data.longitude,
     });

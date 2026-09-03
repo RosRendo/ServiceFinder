@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -37,7 +37,7 @@ interface Notification {
 const TYPE_CONFIG: Record<string, { icon: string; color: string; bg: string }> = {
   booking_confirmed:  { icon: "check-circle",          color: "#10b981", bg: "#d1fae5" },
   booking_cancelled:  { icon: "close-circle",           color: "#ef4444", bg: "#fee2e2" },
-  booking_assigned:   { icon: "account-check",          color: "#6366f1", bg: "#e0e7ff" },
+  booking_assigned:   { icon: "account-check",          color: "#2563eb", bg: "#dbeafe" },
   payment_success:    { icon: "cash-check",             color: "#10b981", bg: "#d1fae5" },
   payment_failed:     { icon: "cash-remove",            color: "#ef4444", bg: "#fee2e2" },
   message:            { icon: "message-text",           color: "#3b82f6", bg: "#dbeafe" },

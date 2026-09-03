@@ -16,11 +16,11 @@ const NAV = {
 };
 
 const TABS = [
-  { name: 'dashboard', icon: 'view-dashboard-outline',  iconActive: 'view-dashboard',  label: 'Dashboard' },
-  { name: 'users',     icon: 'account-group-outline',   iconActive: 'account-group',   label: 'Users' },
-  { name: 'companies', icon: 'office-building-outline', iconActive: 'office-building', label: 'Companies' },
-  { name: 'queue',     icon: 'clipboard-list-outline',  iconActive: 'clipboard-list',  label: 'Queue' },
-  { name: 'settings',  icon: 'cog-outline',             iconActive: 'cog',             label: 'Settings' },
+  { name: 'dashboard', icon: 'view-dashboard-outline',           iconActive: 'view-dashboard',           label: 'Dashboard' },
+  { name: 'queue',     icon: 'clipboard-list-outline',            iconActive: 'clipboard-list',           label: 'Approvals' },
+  { name: 'issues',    icon: 'alert-circle-outline',             iconActive: 'alert-circle',             label: 'Issues' },
+  { name: 'companies', icon: 'office-building-outline',          iconActive: 'office-building',          label: 'Marketplace' },
+  { name: 'settings',  icon: 'dots-horizontal-circle-outline',   iconActive: 'dots-horizontal-circle',   label: 'More' },
 ];
 
 function FloatingTabBar({ state, descriptors, navigation, t }: any) {
@@ -67,7 +67,7 @@ function FloatingTabBar({ state, descriptors, navigation, t }: any) {
                   size={isFocused ? 24 : 22}
                   color={isFocused ? NAV.active : NAV.inactive}
                 />
-                {isFocused && <Text style={nb.label} numberOfLines={1}>{t(`adminNavigation.${tab.name}`)}</Text>}
+                {isFocused && <Text style={nb.label} numberOfLines={1}>{tab.label}</Text>}
               </Animated.View>
             </TouchableOpacity>
           );
@@ -108,9 +108,10 @@ export default function AdminTabsLayout() {
       screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="dashboard" />
-      <Tabs.Screen name="users" />
-      <Tabs.Screen name="companies" />
       <Tabs.Screen name="queue" />
+      <Tabs.Screen name="issues" />
+      <Tabs.Screen name="companies" />
+      <Tabs.Screen name="users" options={{ href: null }} />
       <Tabs.Screen name="analytics" options={{ href: null }} />
       <Tabs.Screen name="settings" />
     </Tabs>

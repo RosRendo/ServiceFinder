@@ -464,7 +464,7 @@ export default function BookingDetailsScreen() {
                 )}
                 
                 <TouchableOpacity
-                  onPress={() => router.push(`/(customer)/instant-request/tracking?bookingId=${id}` as any)}
+                  onPress={() => router.push(`/(customer)/map-view?bookingId=${id}&mode=tracking` as any)}
                   style={s.trackBtn}
                 >
                   <MaterialCommunityIcons name="map-marker-radius" size={18} color="#fff" />

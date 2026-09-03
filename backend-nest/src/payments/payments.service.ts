@@ -912,7 +912,13 @@ export class PaymentsService {
 
     const now = new Date();
     const reqTime = now.toISOString().replace(/[-:T]/g, '').slice(0, 14);
-    const tranId = `BKG${booking.id.toString().replace(/-/g, '').substring(0, 15)}`;
+
+    const existingPayment = await this.prisma.payment.findUnique({
+      where: { bookingId: booking.id },
+    });
+    const tranId =
+      existingPayment?.transactionRef ||
+      `BKG${booking.id.toString().replace(/-/g, '').substring(0, 15)}`;
 
     // Ensure amount is formatted as "10.00" string but for QR API the doc says "number", so we will parse it.
     // However, the hash concatenation uses the string representation.
