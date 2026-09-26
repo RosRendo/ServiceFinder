@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import api from "@/lib/api/client";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
+import { ServiceAreaDrawer } from "@/components/drawers/ServiceAreaDrawer";
 
 const CoverageMap = dynamic(() => import("@/components/map/CoverageMap"), { 
   ssr: false,
@@ -45,6 +46,7 @@ export default function Areas() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [newAreaOpen, setNewAreaOpen] = useState(false);
   const [newAreaForm, setNewAreaForm] = useState({ city: "", state: "", zipCodes: "", radius: "" });
+  const [selectedArea, setSelectedArea] = useState<ServiceArea | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
 
   useEffect(() => { fetchAreas(); }, []);
@@ -96,6 +98,23 @@ export default function Areas() {
       fetchAreas();
     } catch {
       toast.error("Failed to save service area.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateArea = async (updated: any) => {
+    setSaving(true);
+    try {
+      await api.put('/companies/my-company', {
+        city: updated.city || updated.name,
+        coverageRadiusKm: updated.coverageRadiusKm ? Number(updated.coverageRadiusKm) : undefined,
+      });
+      toast.success("Service area updated successfully!");
+      setSelectedArea(null);
+      fetchAreas();
+    } catch {
+      toast.error("Failed to update service area.");
     } finally {
       setSaving(false);
     }
@@ -162,7 +181,7 @@ export default function Areas() {
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
                     <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-wider">
-                      <span className="bg-background px-3 text-slate-400 rounded-full">Or enter manually</span>
+                      <span className="bg-background px-3 text-muted-foreground/70 rounded-full">Or enter manually</span>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -238,7 +257,7 @@ export default function Areas() {
         <div className="bg-background rounded-xl border border-border shadow-sm p-2 sticky top-4 z-40">
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
               <Input placeholder="Search areas..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-muted/50 border-border rounded-xl h-11 shadow-sm" />
             </div>
             <div className="flex bg-muted/50 p-1 rounded-xl border border-border shrink-0">
@@ -247,7 +266,7 @@ export default function Areas() {
                   key={status}
                   onClick={() => setStatusFilter(status)}
                   className={`px-5 py-2.5 rounded-lg text-sm font-bold capitalize transition-all flex-1 sm:flex-none ${
-                    statusFilter === status ? "bg-background text-foreground shadow-sm border border-border" : "text-muted-foreground hover:text-slate-700"
+                    statusFilter === status ? "bg-background text-foreground shadow-sm border border-border" : "text-muted-foreground hover:text-foreground/90"
                   }`}
                 >
                   {status}
@@ -271,7 +290,7 @@ export default function Areas() {
             className="bg-background rounded-xl border border-border p-12 text-center shadow-sm h-[400px] flex flex-col items-center justify-center"
           >
             <div className="w-20 h-20 bg-muted/50 rounded-xl flex items-center justify-center mb-6 border border-border shadow-sm">
-              <MapPin className="w-10 h-10 text-slate-300" />
+              <MapPin className="w-10 h-10 text-muted-foreground/50" />
             </div>
             <h3 className="text-2xl font-bold text-foreground">No service areas found</h3>
             <p className="text-muted-foreground text-base mt-2 mb-8 max-w-sm">You haven't defined any service areas yet, or none match your filters.</p>
@@ -287,13 +306,14 @@ export default function Areas() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.05 }}
-                  className={`bg-background rounded-xl border overflow-hidden shadow-sm hover:shadow-md transition-all group ${area.status === "active" ? "border-border" : "border-border opacity-75 grayscale-[0.2]"}`}
+                  onClick={() => setSelectedArea(area)}
+                  className={`bg-background rounded-xl border overflow-hidden shadow-sm hover:shadow-md transition-all group cursor-pointer ${area.status === "active" ? "border-border" : "border-border opacity-75 grayscale-[0.2]"}`}
                 >
                   <div className="p-6 border-b border-border bg-background">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-4">
                         <div className={`w-14 h-14 rounded-xl flex items-center justify-center border shadow-sm ${area.status === "active" ? "bg-blue-50 border-blue-100" : "bg-muted/50 border-border"}`}>
-                          <MapPin className={`w-6 h-6 ${area.status === "active" ? "text-blue-600" : "text-slate-400"}`} />
+                          <MapPin className={`w-6 h-6 ${area.status === "active" ? "text-blue-600" : "text-muted-foreground/70"}`} />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -305,12 +325,20 @@ export default function Areas() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-slate-400 hover:text-foreground hover:bg-background bg-muted/50 border border-transparent hover:border-border transition-all shadow-sm">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground/70 hover:text-foreground hover:bg-background bg-muted/50 border border-transparent hover:border-border transition-all shadow-sm">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-xl border-border shadow-xl min-w-[160px] p-2">
-                          <DropdownMenuItem className="rounded-lg font-medium cursor-pointer"><Edit className="w-4 h-4 mr-2 text-muted-foreground" /> Edit Area</DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedArea(area);
+                            }}
+                            className="rounded-lg font-medium cursor-pointer"
+                          >
+                            <Edit className="w-4 h-4 mr-2 text-muted-foreground" /> Edit Area
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -338,6 +366,21 @@ export default function Areas() {
             </AnimatePresence>
           </div>
         )}
+
+      {/* Service Area Drawer */}
+      <ServiceAreaDrawer
+        open={!!selectedArea}
+        onClose={() => setSelectedArea(null)}
+        area={selectedArea ? {
+          id: selectedArea.id,
+          name: selectedArea.city,
+          city: selectedArea.city,
+          coverageRadiusKm: selectedArea.coverageRadiusKm,
+          status: selectedArea.status,
+        } : null}
+        onSave={handleUpdateArea}
+        isSaving={saving}
+      />
     </div>
   );
 }

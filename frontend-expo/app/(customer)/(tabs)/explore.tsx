@@ -24,6 +24,7 @@ import FadeIn from "@/components/FadeIn";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { Theme } from "@/constants/theme";
+import { SearchDiscoverySvg } from "@/components/svg";
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS
 // ─────────────────────────────────────────────────────────────
@@ -91,7 +92,7 @@ function PressCard({ onPress, style, children }: {
 // ─────────────────────────────────────────────────────────────
 // SKELETON PLACEHOLDERS
 // ─────────────────────────────────────────────────────────────
-function AnimatedExploreEmpty({ icon, title, body }: { icon: string; title: string; body: string }) {
+function AnimatedExploreEmpty({ title, body }: { icon?: string; title: string; body: string }) {
   const floatAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
@@ -103,7 +104,9 @@ function AnimatedExploreEmpty({ icon, title, body }: { icon: string; title: stri
   }, []);
   return (
     <View style={s.emptyState}>
-      <Animated.Text style={[s.emptyIcon, { transform: [{ translateY: floatAnim }] }]}>{icon}</Animated.Text>
+      <Animated.View style={{ transform: [{ translateY: floatAnim }], marginBottom: 16 }}>
+        <SearchDiscoverySvg size={96} />
+      </Animated.View>
       <Text style={s.emptyTitle}>{title}</Text>
       <Text style={s.emptyBody}>{body}</Text>
     </View>

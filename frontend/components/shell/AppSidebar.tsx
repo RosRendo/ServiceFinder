@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Bell, Mail, CalendarClock, Map, Users, CalendarDays,
   UserRound, Layers, Star, TrendingUp, CreditCard, Receipt, BarChart3, Settings,
   ShieldCheck, Wrench, ShieldAlert, FileText, Bot, Zap, PieChart, LifeBuoy, Building2, Tag,
-  ChevronLeft, ChevronRight, Sparkles, MessageSquare
+  ChevronLeft, ChevronRight, Sparkles, MessageSquare, Percent, Activity
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/lib/contexts/AuthContext";
@@ -24,52 +24,61 @@ function buildAdminNav(unreadCount: number, unreadMessagesCount: number): NavGro
       items: [
         { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
         { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-        { name: "Financial Reports", href: "/admin/reports", icon: PieChart },
+        { name: "Reports", href: "/admin/reports", icon: PieChart },
       ],
     },
     {
-      group: "Management",
+      group: "Operations",
       items: [
-        { name: "Companies", href: "/admin/companies", icon: Building2 },
-        { name: "Verification Queue", href: "/admin/verification", icon: ShieldCheck },
-        { name: "Users", href: "/admin/users", icon: Users },
-        { name: "Staff", href: "/admin/staff", icon: UserRound },
         { name: "Bookings", href: "/admin/bookings", icon: CalendarClock },
+        { name: "Dispatch Engine", href: "/admin/settings?tab=general", icon: Bot },
+        { name: "Service Areas", href: "/admin/service-areas", icon: Map },
+      ],
+    },
+    {
+      group: "Trust & Safety",
+      items: [
+        { name: "Verification Queue", href: "/admin/verification", icon: ShieldCheck },
+        { name: "Compliance", href: "/admin/compliance", icon: FileText },
+        { name: "Disputes", href: "/admin/disputes", icon: ShieldAlert },
+        { name: "Fraud Monitoring", href: "/admin/moderation", icon: ShieldAlert },
         { name: "Support Desk", href: "/admin/support", icon: LifeBuoy },
       ],
     },
     {
-      group: "Catalog",
+      group: "Marketplace",
+      items: [
+        { name: "Companies", href: "/admin/companies", icon: Building2 },
+        { name: "Users", href: "/admin/users", icon: Users },
+        { name: "Staff", href: "/admin/staff", icon: UserRound },
+      ],
+    },
+    {
+      group: "Catalog & Growth",
       items: [
         { name: "Categories", href: "/admin/categories", icon: Layers },
         { name: "Service Types", href: "/admin/service-types", icon: Wrench },
+        { name: "Campaigns", href: "/admin/broadcasts", icon: Sparkles },
         { name: "Promo Codes", href: "/admin/promotions", icon: Tag },
+        { name: "Featured Listings", href: "/admin/featured", icon: Star },
       ],
     },
     {
-      group: "Platform Ops",
+      group: "Finance",
       items: [
-        { name: "Disputes", href: "/admin/disputes", icon: ShieldAlert },
+        { name: "Transactions Ledger", href: "/admin/transactions", icon: Receipt },
         { name: "Payouts", href: "/admin/payouts", icon: CreditCard },
-        { name: "Transactions", href: "/admin/transactions", icon: Receipt },
+        { name: "Refunds", href: "/admin/refunds", icon: CreditCard },
+      ],
+    },
+    {
+      group: "Platform Settings",
+      items: [
+        { name: "System Settings", href: "/admin/settings?tab=general", icon: Settings },
+        { name: "System Monitoring", href: "/admin/monitoring", icon: Activity },
+        { name: "Email Settings", href: "/admin/emails", icon: Mail },
+        { name: "Integrations", href: "/admin/settings?tab=integrations", icon: Zap },
         { name: "Audit Logs", href: "/admin/audit", icon: FileText },
-      ],
-    },
-    {
-      group: "Content & Trust",
-      items: [
-        { name: "Reviews", href: "/admin/reviews", icon: Star },
-        { name: "Moderation", href: "/admin/moderation", icon: Bot },
-        { name: "Compliance", href: "/admin/compliance", icon: ShieldCheck },
-      ],
-    },
-    {
-      group: "System & Comms",
-      items: [
-        { name: "Messages", href: "/admin/messages", icon: MessageSquare, badge: unreadMessagesCount > 0 ? unreadMessagesCount.toString() : undefined },
-        { name: "Email Templates", href: "/admin/emails", icon: Mail },
-        { name: "Push Broadcasts", href: "/admin/broadcasts", icon: Bell },
-        { name: "Global Settings", href: "/admin/settings", icon: Settings },
       ],
     },
   ];
@@ -82,6 +91,7 @@ function buildCompanyNav(unreadCount: number, unreadMessagesCount: number): NavG
       items: [
         { name: "Dashboard", href: "/company/dashboard", icon: LayoutDashboard },
         { name: "Analytics", href: "/company/analytics", icon: BarChart3 },
+        { name: "Reports", href: "/company/reports", icon: PieChart },
         { name: "Notifications", href: "/company/notifications", icon: Bell, badge: unreadCount > 0 ? unreadCount.toString() : undefined },
         { name: "Messages", href: "/company/messages", icon: Mail, badge: unreadMessagesCount > 0 ? unreadMessagesCount.toString() : undefined },
       ],
@@ -89,32 +99,35 @@ function buildCompanyNav(unreadCount: number, unreadMessagesCount: number): NavG
     {
       group: "Operations",
       items: [
-        { name: "Booking Queue", href: "/company/bookings", icon: CalendarClock },
         { name: "Dispatch Center", href: "/company/dispatch", icon: Map },
+        { name: "Bookings", href: "/company/bookings", icon: CalendarClock },
+        { name: "Schedule", href: "/company/schedule", icon: CalendarDays },
         { name: "Staff Management", href: "/company/staff", icon: Users },
-        { name: "Schedule Center", href: "/company/schedule", icon: CalendarDays },
       ],
     },
     {
       group: "Business",
       items: [
-        { name: "Customers", href: "/company/customers", icon: UserRound },
         { name: "Services", href: "/company/services", icon: Layers },
+        { name: "Customers", href: "/company/customers", icon: UserRound },
         { name: "Reviews", href: "/company/reviews", icon: Star },
+        { name: "Disputes", href: "/company/disputes", icon: ShieldAlert },
       ],
     },
     {
       group: "Finance",
       items: [
+        { name: "Wallet", href: "/company/wallet", icon: CreditCard },
+        { name: "Transactions Ledger", href: "/company/transactions", icon: Receipt },
         { name: "Revenue", href: "/company/revenue", icon: TrendingUp },
+        { name: "Commission Rules", href: "/company/commission-rules", icon: Percent },
         { name: "Payouts", href: "/company/payouts", icon: CreditCard },
-        { name: "Transactions", href: "/company/transactions", icon: Receipt },
       ],
     },
     {
-      group: "System",
+      group: "Settings",
       items: [
-        { name: "Settings", href: "/company/settings", icon: Settings },
+        { name: "Profile & Configuration", href: "/company/settings", icon: Settings },
       ],
     },
   ];
@@ -170,7 +183,7 @@ export function AppSidebar({ role, collapsed, onToggle, onItemClick }: AppSideba
                 const active = isActive(item.href);
                 return (
                   <Link
-                    key={item.href}
+                    key={`${group.group}-${item.name}-${item.href}`}
                     href={item.href}
                     onClick={onItemClick}
                     title={collapsed ? item.name : undefined}

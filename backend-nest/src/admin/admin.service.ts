@@ -29,6 +29,9 @@ export class AdminService {
       revenueResult,
       activeDisputes,
       openTickets,
+      activeStaffCount,
+      inProgressJobs,
+      unassignedJobs,
     ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.company.count(),
@@ -42,6 +45,11 @@ export class AdminService {
       }),
       this.prisma.dispute.count({ where: { status: 'open' } }),
       this.prisma.supportTicket.count({ where: { status: 'open' } }),
+      this.prisma.companyStaff.count({ where: { status: 'active' } }),
+      this.prisma.booking.count({ where: { status: 'in_progress' } }),
+      this.prisma.booking.count({
+        where: { assignedStaffId: null, status: { in: ['pending', 'confirmed'] } },
+      }),
     ]);
 
     const totalRevenue = Number(revenueResult._sum.totalPrice || 0);
@@ -317,6 +325,82 @@ export class AdminService {
       }),
     );
 
+    // Today's dynamic metrics
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const [todayRevenueResult, todayBookingsCount, todayUsersCount, todayCompaniesCount] =
+      await Promise.all([
+        this.prisma.booking.aggregate({
+          where: { status: 'completed', createdAt: { gte: startOfToday } },
+          _sum: { totalPrice: true, platformFee: true },
+        }),
+        this.prisma.booking.count({
+          where: { createdAt: { gte: startOfToday } },
+        }),
+        this.prisma.user.count({
+          where: { createdAt: { gte: startOfToday } },
+        }),
+        this.prisma.company.count({
+          where: { createdAt: { gte: startOfToday } },
+        }),
+      ]);
+
+    // Real recently registered companies
+    const rawRecentCompanies = await this.prisma.company.findMany({
+      take: 4,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        verificationStatus: true,
+        logoUrl: true,
+        createdAt: true,
+        _count: { select: { bookings: { where: { status: 'completed' } } } },
+      },
+    });
+
+    const latestRegisteredCompanies = rawRecentCompanies.map((c) => ({
+      id: c.id.toString(),
+      name: c.name,
+      verificationStatus: c.verificationStatus,
+      logoUrl: c.logoUrl,
+      createdAt: c.createdAt,
+      completedJobs: c._count.bookings,
+    }));
+
+    // Real platform audit logs
+    const rawAuditLogs = await this.prisma.auditLog.findMany({
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    const recentAuditLogs = rawAuditLogs.map((log) => ({
+      id: log.id.toString(),
+      userId: log.userId ? log.userId.toString() : null,
+      entityId: log.entityId ? log.entityId.toString() : null,
+      action: log.action,
+      entityType: log.entityType,
+      ipAddress: log.ipAddress,
+      createdAt: log.createdAt,
+      user: log.user
+        ? {
+            ...log.user,
+            id: log.user.id.toString(),
+          }
+        : null,
+    }));
+
     return {
       totalRevenue,
       platformRevenue,
@@ -343,6 +427,18 @@ export class AdminService {
       topCompanies,
       registrationTrend,
       activeDisputes,
+      activeStaffCount,
+      inProgressJobs,
+      unassignedJobs,
+      todayStats: {
+        platformRevenue: Number(todayRevenueResult._sum.platformFee || 0),
+        totalRevenue: Number(todayRevenueResult._sum.totalPrice || 0),
+        bookings: todayBookingsCount,
+        users: todayUsersCount,
+        companies: todayCompaniesCount,
+      },
+      recentCompanies: latestRegisteredCompanies,
+      recentAuditLogs,
     };
   }
 

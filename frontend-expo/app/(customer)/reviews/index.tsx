@@ -8,6 +8,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
+import { EmptyReviewsSvg } from "@/components/svg";
+
 const FlashList = ShopifyFlashList as any;
 const T = Theme.colors;
 
@@ -91,8 +93,8 @@ export default function MyReviewsScreen() {
           <ActivityIndicator size="large" color={T.accent} style={{ marginTop: 40 }} />
         ) : reviews.length === 0 ? (
           <View style={s.emptyState}>
-            <View style={s.emptyIconBox}>
-              <MaterialCommunityIcons name="star-outline" size={48} color={T.text3} />
+            <View style={{ marginBottom: 20 }}>
+              <EmptyReviewsSvg size={105} />
             </View>
             <Text style={s.emptyTitle}>No reviews yet</Text>
             <Text style={s.emptyDesc}>You haven't reviewed any services yet. After a booking is completed, you can share your experience.</Text>
@@ -132,7 +134,6 @@ const s = StyleSheet.create({
   starsRow: { flexDirection: "row", gap: 2, marginBottom: 12 },
   commentText: { fontSize: 14, color: T.text2, lineHeight: 20 },
   emptyState: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
-  emptyIconBox: { width: 96, height: 96, borderRadius: 48, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", marginBottom: 24, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   emptyTitle: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 8 },
   emptyDesc: { fontSize: 15, color: T.text3, textAlign: "center", lineHeight: 22 },
 });

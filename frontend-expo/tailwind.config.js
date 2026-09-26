@@ -41,10 +41,13 @@ module.exports = {
         "info": "#3B82F6",
       },
       fontFamily: {
-        headline: ["Manrope"],
-        display: ["Manrope"],
-        body: ["Inter"],
-        label: ["Inter"]
+        sans: ["KantumruyPro-Regular", "sans-serif"],
+        headline: ["KantumruyPro-Bold", "sans-serif"],
+        display: ["KantumruyPro-Bold", "sans-serif"],
+        body: ["KantumruyPro-Regular", "sans-serif"],
+        label: ["KantumruyPro-Medium", "sans-serif"],
+        khmer: ["KantumruyPro-Regular", "sans-serif"],
+        "khmer-bold": ["KantumruyPro-Bold", "sans-serif"],
       }
     },
   },

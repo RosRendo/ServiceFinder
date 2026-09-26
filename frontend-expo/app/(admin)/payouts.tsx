@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, FlatList, TouchableOpacity, ActivityIndicator,
-  RefreshControl, StyleSheet, Alert, Platform, ScrollView
+  RefreshControl, StyleSheet, Alert, Platform, ScrollView, Image
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -26,28 +26,43 @@ export default function AdminPayoutsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<PayoutStatus | "all">("all");
-  const [typeFilter, setTypeFilter] = useState<"company" | "staff" | "all">("all");
 
   const fetchPayouts = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
       const res = await api.get("/api/admin/payouts");
-      // Backend returns { success: true, data: [...], meta: {} }
-      // TransformInterceptor passes it through as-is (sees success: true)
-      const data = res.data?.data ?? [];
-      const formatted = data.map((p: any) => ({
-        ...p,
-        companyName: p.company?.name,
-        staffName: p.staff?.user?.fullName,
-        email: p.company?.owner?.email || p.staff?.user?.email || "",
-        bankDetails: p.payoutType === 'company'
-          ? (p.company?.paymentMethods?.find((m: any) => m.isDefault) || p.company?.paymentMethods?.[0])
-          : (p.staff?.paymentMethods?.find((m: any) => m.isDefault) || p.staff?.paymentMethods?.[0])
+      const raw = res.data;
+      const list = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.data)
+        ? raw.data
+        : Array.isArray(raw?.payouts)
+        ? raw.payouts
+        : Array.isArray(raw?.data?.payouts)
+        ? raw.data.payouts
+        : [];
+
+      const formatted = list.map((p: any) => ({
+        id: String(p.id),
+        amount: Number(p.amount || 0),
+        status: p.status || "pending",
+        requestedAt: p.requestedAt,
+        processedAt: p.processedAt,
+        transactionId: p.transactionId,
+        method: p.method || "Bank Transfer",
+        companyName: p.company?.name || "Company",
+        ownerName: p.company?.owner?.fullName || "Company Owner",
+        email: p.company?.owner?.email || "",
+        phone: p.company?.owner?.phone || "",
+        khqrImageUrl: p.company?.khqrImageUrl || p.khqrImageUrl || null,
+        bankDetails: p.company?.paymentMethods?.find((m: any) => m.isDefault) || p.company?.paymentMethods?.[0] || null,
       }));
       setPayouts(formatted);
+      setHasError(false);
     } catch (err) {
       console.error("Error fetching payouts:", err);
+      setHasError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -57,15 +72,15 @@ export default function AdminPayoutsScreen() {
   useEffect(() => { fetchPayouts(); }, [fetchPayouts]);
 
   const handleProcess = (id: string) => {
-    Alert.alert("Process Payout", "Are you sure you want to mark this payout as completed?", [
+    Alert.alert("Disburse Payout", "Are you sure you want to approve and mark this company payout as disbursed?", [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Process",
+        text: "Confirm Disburse",
         onPress: async () => {
           setProcessingId(id);
           try {
             await api.post(`/api/admin/payouts/${id}/approve`);
-            Alert.alert("Success", "Payout marked as completed.");
+            Alert.alert("Success", "Company payout successfully marked as completed.");
             setPayouts(prev => prev.map(p => p.id === id ? { ...p, status: "completed" } : p));
           } catch {
             Alert.alert("Error", "Failed to process payout.");
@@ -77,9 +92,30 @@ export default function AdminPayoutsScreen() {
     ]);
   };
 
+  const handleReject = (id: string) => {
+    Alert.alert("Reject Payout", "Are you sure you want to reject this payout and refund the amount back to the company available balance?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Reject & Refund",
+        style: "destructive",
+        onPress: async () => {
+          setProcessingId(id);
+          try {
+            await api.post(`/api/admin/payouts/${id}/reject`, { reason: "Admin rejected" });
+            Alert.alert("Success", "Payout rejected. Balance refunded to company.");
+            setPayouts(prev => prev.map(p => p.id === id ? { ...p, status: "rejected" } : p));
+          } catch {
+            Alert.alert("Error", "Failed to reject payout.");
+          } finally {
+            setProcessingId(null);
+          }
+        }
+      }
+    ]);
+  };
+
   const filteredPayouts = payouts.filter(p => {
     if (filter !== "all" && p.status !== filter) return false;
-    if (typeFilter !== "all" && p.payoutType !== typeFilter) return false;
     return true;
   });
 
@@ -96,10 +132,9 @@ export default function AdminPayoutsScreen() {
     <View style={s.card}>
       <View style={s.cardHeader}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <View style={[s.typeBadge, { backgroundColor: item.payoutType === "company" ? T.blue + "15" : T.accentMid + "15" }]}>
-            <Text style={[s.typeBadgeText, { color: item.payoutType === "company" ? T.blue : T.accentMid }]}>
-              {item.payoutType === "company" ? "Company" : "Staff"}
-            </Text>
+          <View style={[s.typeBadge, { backgroundColor: T.blue + "15" }]}>
+            <MaterialCommunityIcons name="office-building" size={12} color={T.blue} style={{ marginRight: 4 }} />
+            <Text style={[s.typeBadgeText, { color: T.blue }]}>Company Payout</Text>
           </View>
           <View style={[s.statusBadge, { backgroundColor: getStatusColor(item.status) + "15" }]}>
             <Text style={[s.statusBadgeText, { color: getStatusColor(item.status) }]}>
@@ -111,29 +146,48 @@ export default function AdminPayoutsScreen() {
       </View>
 
       <View style={s.cardBody}>
-        <Text style={s.recipientName}>
-          {item.payoutType === "company" ? item.companyName : item.staffName}
-        </Text>
-        <Text style={s.recipientEmail}>{item.email}</Text>
+        <Text style={s.recipientName}>{item.companyName}</Text>
+        <Text style={s.recipientEmail}>Owner: {item.ownerName} {item.email ? `• ${item.email}` : ""}</Text>
         <Text style={s.dateText}>
           Requested: {item.requestedAt ? new Date(item.requestedAt).toLocaleDateString() : "—"}
         </Text>
 
+        {item.transactionId && (
+          <Text style={s.txnText}>Txn ID: {item.transactionId}</Text>
+        )}
+
         {item.bankDetails ? (
           <View style={s.bankBox}>
-            <MaterialCommunityIcons name="bank" size={16} color={T.text2} />
-            <View>
-              <Text style={s.bankName}>{item.bankDetails.type}</Text>
+            <MaterialCommunityIcons name="bank" size={18} color={T.accentMid} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.bankName}>{item.bankDetails.type?.toUpperCase() || "BANK"}</Text>
               <Text style={s.bankText}>{item.bankDetails.accountName} • {item.bankDetails.accountNumber}</Text>
             </View>
           </View>
         ) : (
-          <Text style={s.methodText}>Via {item.method}</Text>
+          <View style={s.methodBox}>
+            <MaterialCommunityIcons name="wallet-outline" size={16} color={T.text2} />
+            <Text style={s.methodText}>Method: {item.method}</Text>
+          </View>
+        )}
+
+        {item.khqrImageUrl && (
+          <View style={s.khqrBadge}>
+            <MaterialCommunityIcons name="qrcode-scan" size={14} color={T.success} />
+            <Text style={s.khqrText}>KHQR Code Available</Text>
+          </View>
         )}
       </View>
 
       {item.status === "pending" && (
         <View style={s.cardFooter}>
+          <TouchableOpacity
+            style={[s.rejectBtn, processingId === item.id && { opacity: 0.7 }]}
+            onPress={() => handleReject(item.id)}
+            disabled={processingId === item.id}
+          >
+            <Text style={s.rejectBtnText}>Reject</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[s.processBtn, processingId === item.id && { opacity: 0.7 }]}
             onPress={() => handleProcess(item.id)}
@@ -142,7 +196,7 @@ export default function AdminPayoutsScreen() {
             {processingId === item.id ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={s.processBtnText}>Process Payout</Text>
+              <Text style={s.processBtnText}>Disburse Payout</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -160,13 +214,13 @@ export default function AdminPayoutsScreen() {
               onPress={() => openSidebar(true)} style={s.menuBtn}>
             <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>Payouts</Text>
+          <Text style={s.headerTitle}>Company Payouts</Text>
         </View>
       </View>
 
       <View style={s.filtersContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersScroll}>
-          {["all", "pending", "completed"].map(f => (
+          {["all", "pending", "completed", "rejected"].map(f => (
             <TouchableOpacity
               key={f}
               style={[s.filterChip, filter === f && s.filterChipActive]}
@@ -174,18 +228,6 @@ export default function AdminPayoutsScreen() {
             >
               <Text style={[s.filterText, filter === f && s.filterTextActive]}>
                 {f.charAt(0).toUpperCase() + f.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-          <View style={s.filterDivider} />
-          {["all", "company", "staff"].map(t => (
-            <TouchableOpacity
-              key={t}
-              style={[s.filterChip, typeFilter === t && s.filterChipActive]}
-              onPress={() => setTypeFilter(t as any)}
-            >
-              <Text style={[s.filterText, typeFilter === t && s.filterTextActive]}>
-                {t === "all" ? "All Types" : t.charAt(0).toUpperCase() + t.slice(1)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -207,7 +249,7 @@ export default function AdminPayoutsScreen() {
           ListEmptyComponent={
             <View style={s.centerBox}>
               <MaterialCommunityIcons name="bank-transfer-out" size={48} color={T.text3} />
-              <Text style={s.emptyText}>No payouts found matching your filters.</Text>
+              <Text style={s.emptyText}>No company payouts found.</Text>
             </View>
           }
         />
@@ -230,11 +272,10 @@ const s = StyleSheet.create({
 
   filtersContainer: { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
   filtersScroll: { paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: "center" },
-  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: T.bg, borderWidth: 1, borderColor: T.border },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: T.bg, borderWidth: 1, borderColor: T.border },
   filterChipActive: { backgroundColor: T.accent, borderColor: T.accent },
   filterText: { fontSize: 13, fontWeight: "600", color: T.text2 },
   filterTextActive: { color: "#fff" },
-  filterDivider: { width: 1, height: 20, backgroundColor: T.border, marginHorizontal: 4 },
 
   listContent: { padding: 16, gap: 12, paddingBottom: 60 },
   centerBox: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 60 },
@@ -242,23 +283,30 @@ const s = StyleSheet.create({
 
   card: { backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  typeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  typeBadgeText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
+  typeBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  typeBadgeText: { fontSize: 11, fontWeight: "700" },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   statusBadgeText: { fontSize: 11, fontWeight: "700" },
   amount: { fontSize: 20, fontWeight: "700", color: T.text1 },
 
   cardBody: { gap: 4, marginBottom: 16 },
   recipientName: { fontSize: 16, fontWeight: "700", color: T.text1 },
-  recipientEmail: { fontSize: 13, color: T.text2, marginBottom: 4 },
+  recipientEmail: { fontSize: 13, color: T.text2, marginBottom: 2 },
   dateText: { fontSize: 12, color: T.text3 },
-  methodText: { fontSize: 12, color: T.text3, textTransform: "capitalize" },
+  txnText: { fontSize: 12, color: T.accentMid, fontWeight: "600", marginTop: 2 },
+  methodBox: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  methodText: { fontSize: 12, color: T.text2, textTransform: "capitalize" },
 
-  bankBox: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8, padding: 8, backgroundColor: T.bg, borderRadius: 8 },
-  bankName: { fontSize: 13, fontWeight: "600", color: T.text1 },
-  bankText: { fontSize: 12, color: T.text2 },
+  bankBox: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8, padding: 10, backgroundColor: T.bg, borderRadius: 10, borderWidth: 1, borderColor: T.border },
+  bankName: { fontSize: 12, fontWeight: "700", color: T.text1, letterSpacing: 0.5 },
+  bankText: { fontSize: 12, color: T.text2, marginTop: 2 },
 
-  cardFooter: { borderTopWidth: 1, borderTopColor: T.border, paddingTop: 16 },
-  processBtn: { backgroundColor: T.accent, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
-  processBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  khqrBadge: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: T.success + "15", borderRadius: 8, alignSelf: "flex-start" },
+  khqrText: { fontSize: 11, fontWeight: "600", color: T.success },
+
+  cardFooter: { flexDirection: "row", gap: 10, borderTopWidth: 1, borderTopColor: T.border, paddingTop: 14 },
+  rejectBtn: { flex: 1, backgroundColor: T.error + "15", borderRadius: 12, paddingVertical: 11, alignItems: "center", borderWidth: 1, borderColor: T.error + "30" },
+  rejectBtnText: { color: T.error, fontWeight: "700", fontSize: 13 },
+  processBtn: { flex: 2, backgroundColor: T.accent, borderRadius: 12, paddingVertical: 11, alignItems: "center" },
+  processBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
 });

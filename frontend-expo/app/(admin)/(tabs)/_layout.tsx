@@ -8,11 +8,11 @@ import { Theme } from "@/constants/theme";
 const T = Theme.colors;
 
 const NAV = {
-  bg: T.surface,
-  active: T.primary,
-  inactive: T.text3,
-  pill: T.inputBg,
-  border: T.border,
+  bg: T.mgmtSurface || T.surface,
+  active: T.text1 || T.primary,
+  inactive: T.mgmtTextSecondary || T.text3,
+  pill: T.mgmtSurfaceSubtle || T.inputBg,
+  border: T.mgmtBorder || T.border,
 };
 
 const TABS = [

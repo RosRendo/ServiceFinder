@@ -20,6 +20,8 @@ import { useAPI } from "@/lib/hooks/useAPI";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api/client";
+import { StatusPill } from "@/components/admin/StatusPill";
+import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 function getFullLogoUrl(src?: string, name?: string) {
@@ -39,11 +41,13 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
     const [isActioning, setIsActioning] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("overview");
+    const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
+    const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
 
     const { data: company, loading, error, refetch } = useAPI(`/api/admin/companies/${resolvedParams.id}`);
 
-    const handleVerify = async () => {
-        if (!confirm("Are you sure you want to approve this company?")) return;
+    const handleVerify = () => setVerifyDialogOpen(true);
+    const confirmVerify = async () => {
         setIsActioning(true);
         try {
             await api.post(`/admin/companies/${resolvedParams.id}/verify`);
@@ -53,11 +57,12 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
             toast({ title: "Error", description: "Failed to verify company.", variant: "destructive" });
         } finally {
             setIsActioning(false);
+            setVerifyDialogOpen(false);
         }
     };
 
-    const handleSuspend = async () => {
-        if (!confirm("Are you sure you want to suspend this company? This will freeze their operations.")) return;
+    const handleSuspend = () => setSuspendDialogOpen(true);
+    const confirmSuspend = async () => {
         setIsActioning(true);
         try {
             toast({ title: "Company Suspended", description: "Company operations frozen.", variant: "destructive" });
@@ -65,6 +70,7 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
             toast({ title: "Error", description: "Failed to suspend company.", variant: "destructive" });
         } finally {
             setIsActioning(false);
+            setSuspendDialogOpen(false);
         }
     };
 
@@ -155,12 +161,7 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                                         <h1 className="text-2xl font-black text-foreground tracking-tight">
                                             {company.name}
                                         </h1>
-                                        <span className={cn("px-2.5 py-1 rounded-full border flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-widest", 
-                                            isSuspended ? "bg-rose-500/10 text-rose-600 border-rose-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                                        )}>
-                                            <div className={cn("w-1.5 h-1.5 rounded-full", isSuspended ? "bg-rose-500" : "bg-emerald-500")} />
-                                            {isSuspended ? "Suspended" : "Active"}
-                                        </span>
+                                        <StatusPill status={isSuspended ? "suspended" : (company.verificationStatus || "active")} />
                                         {isVerified && (
                                             <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full uppercase tracking-widest">
                                                 <CheckCircle2 className="w-3 h-3" /> Verified
@@ -683,6 +684,28 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                 onClose={() => setEditModalOpen(false)} 
                 company={company} 
                 onSuccess={refetch} 
+            />
+
+            {/* Verification Confirmation */}
+            <ConfirmationDialog
+                isOpen={verifyDialogOpen}
+                onClose={() => setVerifyDialogOpen(false)}
+                title="Approve & Verify Company"
+                description={`Are you sure you want to approve "${company?.name || 'this company'}"? They will be granted verified badge and active platform visibility.`}
+                actionType="warning"
+                confirmLabel="Approve Company"
+                onConfirm={confirmVerify}
+            />
+
+            {/* Suspend Confirmation */}
+            <ConfirmationDialog
+                isOpen={suspendDialogOpen}
+                onClose={() => setSuspendDialogOpen(false)}
+                title="Suspend Company Account"
+                description={`Are you sure you want to suspend "${company?.name || 'this company'}"? This will immediately freeze their merchant operations, services, and staff dispatch.`}
+                actionType="danger"
+                confirmLabel="Suspend Company"
+                onConfirm={confirmSuspend}
             />
         </div>
     );

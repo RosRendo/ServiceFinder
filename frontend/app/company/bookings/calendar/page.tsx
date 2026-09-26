@@ -75,9 +75,9 @@ function BookingPill({ booking, onOpen }: { booking: CalendarBooking; onOpen: (i
         "block w-full text-left text-[10px] font-bold px-1.5 py-0.5 rounded-lg border truncate hover:scale-[1.02] transition-transform shadow-sm",
         STATUS_STYLES[booking.status]
       )}
-      title={`${booking.startTime} · ${booking.customer} · ${booking.service}`}
+      title={`${booking.startTime} · ${booking.customer || 'Customer'} · ${booking.service}`}
     >
-      {booking.startTime} · {booking.customer.split(" ")[0]}
+      {booking.startTime} · {(booking.customer || "Customer").split(" ")[0]}
     </button>
   );
 }

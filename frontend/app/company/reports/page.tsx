@@ -5,11 +5,13 @@ import { useAPI } from "@/lib/hooks/useAPI";
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { toast } from "sonner";
 import api from "@/lib/api/client";
+import { cn } from "@/lib/utils";
 
 export default function CompanyReportsPage() {
   const { data, loading } = useAPI<any>('/api/companies/my-company/metrics');
   const [metrics, setMetrics] = useState<any>(null);
   const [isExporting, setIsExporting] = useState<string | null>(null);
+  const [timeframe, setTimeframe] = useState<"7d" | "30d" | "90d" | "all">("30d");
 
   useEffect(() => {
     if (data?.metrics) {
@@ -93,10 +95,24 @@ export default function CompanyReportsPage() {
           <h1 className="text-xl font-bold tracking-tight text-foreground">Reports & Analytics</h1>
           <p className="text-sm font-medium text-muted-foreground mt-1">Export custom data and view aggregated performance metrics.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted/60 transition-colors">
-            <Filter className="w-3.5 h-3.5" /> Filter Range
-          </button>
+        <div className="flex items-center gap-2 bg-muted/40 p-1 rounded-xl border border-border">
+          {(["7d", "30d", "90d", "all"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => {
+                setTimeframe(t);
+                toast.info(`Timeframe filtered to ${t.toUpperCase()}`);
+              }}
+              className={cn(
+                "px-3 py-1 text-xs font-bold rounded-lg transition-all",
+                timeframe === t
+                  ? "bg-primary text-primary-foreground shadow-xs dark:bg-background dark:text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {t.toUpperCase()}
+            </button>
+          ))}
         </div>
       </div>
 

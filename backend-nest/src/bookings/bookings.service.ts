@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { RescheduleBookingDto } from './dto/booking-actions.dto';
 import { validateTransition } from '../common/status-transitions.util';
 import { BookingsGateway } from './bookings.gateway';
 import { AdminGateway } from '../admin/admin.gateway';
@@ -1435,6 +1436,146 @@ export class BookingsService {
     this.adminGateway.broadcastKpiUpdate('booking_cancelled', {
       id: id.toString(),
     });
+
+    return result;
+  }
+
+  async rescheduleBooking(
+    id: bigint,
+    dto: RescheduleBookingDto,
+    user: any,
+  ) {
+    const booking: any = await this.findOrFail(id, true);
+
+    const isCustomer = booking.customerId === BigInt(user.id);
+    const isAdmin = user.role === 'admin';
+
+    let isCompanyOwner = false;
+    if (user.role === 'company_admin') {
+      const company = await this.prisma.company.findFirst({
+        where: { ownerId: BigInt(user.id) },
+      });
+      if (company && company.id === booking.companyId) {
+        isCompanyOwner = true;
+      }
+    }
+
+    if (!isCustomer && !isAdmin && !isCompanyOwner) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    if (
+      booking.status === 'cancelled' ||
+      booking.status === 'completed' ||
+      booking.status === 'in_progress'
+    ) {
+      throw new BadRequestException(
+        `Cannot reschedule a booking with status '${booking.status}'`,
+      );
+    }
+
+    const cleanDate = dto.newDate.includes('T')
+      ? dto.newDate.split('T')[0]
+      : dto.newDate;
+
+    let parsedTime = dto.newTime.trim();
+    if (parsedTime.toLowerCase().includes('m')) {
+      const isPM = parsedTime.toLowerCase().includes('pm');
+      const timeParts = parsedTime.replace(/am|pm/i, '').trim().split(':');
+      let h = parseInt(timeParts[0], 10);
+      const m = timeParts[1] || '00';
+      if (isPM && h < 12) h += 12;
+      if (!isPM && h === 12) h = 0;
+      parsedTime = `${h.toString().padStart(2, '0')}:${m}`;
+    } else if (parsedTime.includes(':')) {
+      const parts = parsedTime.split(':');
+      parsedTime = `${parts[0].padStart(2, '0')}:${parts[1]}`;
+    }
+
+    const bookingDate = new Date(`${cleanDate}T00:00:00.000Z`);
+    const start = new Date(`${cleanDate}T${parsedTime}:00.000Z`);
+    const durationMin = booking.service?.durationMin || 60;
+    const end = new Date(start.getTime() + durationMin * 60000);
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.booking.update({
+        where: { id },
+        data: {
+          bookingDate,
+          startTime: start,
+          endTime: end,
+        },
+        include: {
+          customer: {
+            select: { id: true, fullName: true, email: true, phone: true },
+          },
+          company: {
+            select: { id: true, name: true, ownerId: true, logoUrl: true },
+          },
+          service: true,
+          assignedStaff: {
+            include: {
+              user: {
+                select: { id: true, fullName: true, phone: true, email: true },
+              },
+            },
+          },
+          payment: true,
+        },
+      });
+
+      await tx.bookingStatusLog.create({
+        data: {
+          bookingId: id,
+          oldStatus: booking.status,
+          newStatus: booking.status,
+          changedBy: BigInt(user.id),
+        },
+      });
+
+      return u;
+    });
+
+    // Notify company owner if customer rescheduled
+    if (user.role === 'customer' && updated.company?.ownerId) {
+      await this.notificationsService
+        .createNotification(
+          updated.company.ownerId,
+          'booking_rescheduled',
+          'Booking Rescheduled',
+          `Booking #${id} has been rescheduled to ${cleanDate} at ${dto.newTime}.`,
+          { bookingId: id.toString() },
+        )
+        .catch((e) =>
+          console.warn('Notification create failed (reschedule):', e?.message),
+        );
+    }
+
+    // Notify customer if company/admin rescheduled
+    if (user.role !== 'customer') {
+      await this.notificationsService
+        .createNotification(
+          booking.customerId,
+          'booking_rescheduled',
+          'Booking Rescheduled',
+          `Your booking #${id} (${updated.service?.name}) has been rescheduled to ${cleanDate} at ${dto.newTime}.`,
+          { bookingId: id.toString() },
+        )
+        .catch((e) =>
+          console.warn('Notification create failed (reschedule):', e?.message),
+        );
+    }
+
+    const result = {
+      message: 'Booking rescheduled successfully',
+      booking: this.serializeBooking(updated),
+    };
+
+    this.bookingsGateway.broadcastBookingUpdate(
+      id.toString(),
+      booking.status,
+      result.booking,
+    );
 
     return result;
   }

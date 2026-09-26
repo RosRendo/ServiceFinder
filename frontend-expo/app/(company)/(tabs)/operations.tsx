@@ -9,6 +9,7 @@ import { useSidebarStore } from "@/store/sidebarStore";
 import { useTranslation } from "react-i18next";
 import ErrorState from "@/components/common/ErrorState";
 import { Theme } from "@/constants/theme";
+import { MobileStatusPill } from "@/components/admin/ManagementCard";
 
 const T = Theme.colors;
 
@@ -168,23 +169,20 @@ export default function Operations() {
           </View>
         ) : (
           filteredBookings.map((booking) => {
-            const status = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG.pending;
             return (
               <TouchableOpacity
                 key={booking.id}
                 onPress={() => router.push(`/(company)/booking/${booking.id}` as any)}
-                style={[s.standardCard, { borderLeftColor: status.accent }]}
+                style={s.standardCard}
                 activeOpacity={0.8}
               >
                 {/* Card Header */}
                 <View style={s.cardHeader}>
                   <View style={s.cardHeaderLeft}>
-                    <Text style={s.cardId}>#{booking.id}</Text>
-                    <Text style={s.cardTitle}>{booking.customer?.fullName ?? "Unknown"}</Text>
+                    <Text style={s.cardId}>#{booking.id?.slice?.(-6)?.toUpperCase?.() || booking.id}</Text>
+                    <Text style={s.cardTitle}>{booking.customer?.fullName ?? "Customer"}</Text>
                   </View>
-                  <View style={[s.statusBadge, { backgroundColor: status.bg }]}>
-                    <Text style={[s.statusText, { color: status.color }]}>{status.label}</Text>
-                  </View>
+                  <MobileStatusPill status={booking.status} />
                 </View>
 
                 {/* Card Body */}
@@ -282,7 +280,7 @@ const s = StyleSheet.create({
   // Card Standard
   standardCard: {
     backgroundColor: T.surface, borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: T.border, borderLeftWidth: 4, ...CARD_SHADOW,
+    borderWidth: 1, borderColor: T.border, ...CARD_SHADOW,
   },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
   cardHeaderLeft: { flex: 1, paddingRight: 12 },

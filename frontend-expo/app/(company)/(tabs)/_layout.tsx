@@ -3,13 +3,16 @@ import { Tabs } from "expo-router";
 import { View, Text, TouchableOpacity, Animated, StyleSheet, Platform } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { Theme } from "@/constants/theme";
+
+const T = Theme.colors;
 
 const NAV = {
-  bg: '#FFFFFF',
-  active: '#0A192F',
-  inactive: '#94A3B8',
-  pill: '#F0F4F8',
-  border: '#E8EEF4',
+  bg: T.mgmtSurface || '#FFFFFF',
+  active: T.text1 || '#0A192F',
+  inactive: T.mgmtTextSecondary || '#94A3B8',
+  pill: T.mgmtSurfaceSubtle || '#F0F4F8',
+  border: T.mgmtBorder || '#E8EEF4',
 };
 
 const TABS = [

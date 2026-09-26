@@ -22,6 +22,7 @@ import MapView, { Marker, Polyline } from "react-native-maps";
 import { MAP_PROVIDER, fitDualCoordinates, centerMapCamera } from "@/utils/mapHelper";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { api } from "@/store/authStore";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { io, Socket } from "socket.io-client";
@@ -185,6 +186,7 @@ function CompanyMapMarker({ company, isSelected, getPinColor }: { company: any; 
 
 export default function MasterMapViewScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{
     categoryId?: string;
     categorySlug?: string;
@@ -613,7 +615,7 @@ export default function MasterMapViewScreen() {
           </View>
         ) : (
           <Text style={s.headerTitle}>
-            {appMode === "tracking" ? "Live Staff Tracking" : "Need Help Now (Instant)"}
+            {appMode === "tracking" ? "Live Staff Tracking" : `${t("instantBooking.urgentProTitle", "ហៅជាងបន្ទាន់")} • Urgent Help`}
           </Text>
         )}
 
@@ -849,7 +851,7 @@ export default function MasterMapViewScreen() {
                     ) : (
                       <>
                         <MaterialCommunityIcons name="lightning-bolt" size={16} color={T.accent} />
-                        <Text style={s.previewUrgentText}>1-Click Dispatch</Text>
+                        <Text style={s.previewUrgentText}>{t("instantBooking.requestThisPro", "ហៅជាងនេះភ្លាម")}</Text>
                       </>
                     )}
                   </TouchableOpacity>
@@ -868,7 +870,7 @@ export default function MasterMapViewScreen() {
                 }}
               >
                 <MaterialCommunityIcons name="lightning-bolt" size={20} color="#FFF" />
-                <Text style={s.instantFabText}>Need Help Now</Text>
+                <Text style={s.instantFabText}>{t("instantBooking.urgentProTitle", "ហៅជាងបន្ទាន់")}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -878,6 +880,32 @@ export default function MasterMapViewScreen() {
         {appMode !== "explore" && (
           <View style={s.bottomSheet}>
             <View style={s.dragIndicator} />
+
+            {/* ── Visual 3-Step Walkthrough for Cambodian Users ── */}
+            {appMode === "instant" && (
+              <View style={s.stepGuideRow}>
+                <View style={[s.stepChip, instantStage >= 1 && s.stepChipActive]}>
+                  <MaterialCommunityIcons name="tools" size={12} color={instantStage >= 1 ? T.accent : T.text3} />
+                  <Text style={[s.stepChipText, instantStage >= 1 && s.stepChipTextActive]}>
+                    1. {t("instantBooking.step1", "រើសសេវា")}
+                  </Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={14} color={T.text3} />
+                <View style={[s.stepChip, instantStage >= 4 && s.stepChipActive]}>
+                  <MaterialCommunityIcons name="map-marker-radius" size={12} color={instantStage >= 4 ? T.accent : T.text3} />
+                  <Text style={[s.stepChipText, instantStage >= 4 && s.stepChipTextActive]}>
+                    2. {t("instantBooking.step2", "រកជាងជិតបំផុត")}
+                  </Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={14} color={T.text3} />
+                <View style={[s.stepChip, instantStage >= 5 && s.stepChipActive]}>
+                  <MaterialCommunityIcons name="chat-processing-outline" size={12} color={instantStage >= 5 ? T.accent : T.text3} />
+                  <Text style={[s.stepChipText, instantStage >= 5 && s.stepChipTextActive]}>
+                    3. {t("instantBooking.step3", "ជជែក/ខល")}
+                  </Text>
+                </View>
+              </View>
+            )}
 
             {/* ── INSTANT STAGE 1: PICK URGENT SERVICE ── */}
             {appMode === "instant" && instantStage === 1 && (
@@ -898,13 +926,17 @@ export default function MasterMapViewScreen() {
                       onPress={() => handleDirectCompanyDispatch(selectedCompany)}
                       disabled={isDispatching}
                     >
-                      <Text style={{ color: "#FFF", fontSize: 12, fontWeight: "800" }}>Dispatch</Text>
+                      <Text style={{ color: "#FFF", fontSize: 12, fontWeight: "800" }}>{t("instantBooking.requestThisPro", "ហៅជាង")}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
                   <View>
-                    <Text style={s.sheetTitle}>What do you need help with?</Text>
-                    <Text style={s.sheetSubtitle}>Pick an urgent category or tap a pro pin directly on the map.</Text>
+                    <Text style={s.sheetTitle}>
+                      {t("instantBooking.urgentProTitle", "ហៅជាងបន្ទាន់")} • {t("instantBooking.step1", "ជ្រើសរើសសេវាកម្ម")}
+                    </Text>
+                    <Text style={s.sheetSubtitle}>
+                      {t("instantBooking.urgentProDesc", "ជាងនៅជិតអ្នកមកដល់លឿន • មិនទាន់គិតលុយទេ")}
+                    </Text>
                   </View>
                 )}
 
@@ -925,6 +957,19 @@ export default function MasterMapViewScreen() {
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
+
+                {/* Reassurance Banner for Cambodia Users */}
+                <View style={s.reassuranceBanner}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <MaterialCommunityIcons name="shield-check" size={15} color="#059669" />
+                    <Text style={s.reassuranceText}>
+                      {t("instantBooking.freeToRequest", "មិនទាន់កាត់ប្រាក់ទេ • ពិនិត្យតម្លៃសិន")}
+                    </Text>
+                  </View>
+                  <Text style={s.reassuranceSubText}>
+                    {t("instantBooking.khqrCashAccepted", "ទទួល KHQR និង សាច់ប្រាក់")} • {t("instantBooking.arrivalEstimate", "មកដល់ក្នុង ១៥-៣០ នាទី")}
+                  </Text>
+                </View>
               </View>
             )}
 
@@ -966,7 +1011,9 @@ export default function MasterMapViewScreen() {
                     <ActivityIndicator color="#FFF" />
                   ) : (
                     <>
-                      <Text style={s.primaryBtnText}>{selectedCompany ? "Dispatch Staff Now (1-Click)" : "Continue"}</Text>
+                      <Text style={s.primaryBtnText}>
+                        {selectedCompany ? `${t("instantBooking.requestThisPro", "ហៅជាងនេះភ្លាម")} (Direct)` : `${t("common.continue", "បន្ត • Continue")}`}
+                      </Text>
                       <MaterialIcons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 6 }} />
                     </>
                   )}
@@ -978,8 +1025,8 @@ export default function MasterMapViewScreen() {
             {appMode === "instant" && instantStage === 3 && (
               <View style={{ gap: 12 }}>
                 <View>
-                  <Text style={s.sheetTitle}>Broadcast Request?</Text>
-                  <Text style={s.sheetSubtitle}>We will scan and notify nearby providers within 5-10km.</Text>
+                  <Text style={s.sheetTitle}>{t("instantBooking.findNearbyPros", "ស្វែងរកជាងនៅជិតអ្នក • Find Nearby Pros")}</Text>
+                  <Text style={s.sheetSubtitle}>{t("instantBooking.broadcastSub", "យើងនឹងស្វែងរក និងជូនដំណឹងដល់ជាងជំនាញនៅជិតអ្នក 5-10km")}</Text>
                 </View>
                 <View style={s.summaryCard}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -988,7 +1035,7 @@ export default function MasterMapViewScreen() {
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                     <MaterialCommunityIcons name="clock-fast" size={18} color={T.success} />
-                    <Text style={s.summaryText}>Immediate Dispatch (ASAP)</Text>
+                    <Text style={s.summaryText}>{t("instantBooking.arrivalEstimate", "មកដល់ក្នុង 15-30 នាទី (Arrives in 15-30 mins)")}</Text>
                   </View>
                 </View>
                 <TouchableOpacity
@@ -996,7 +1043,11 @@ export default function MasterMapViewScreen() {
                   onPress={handleLaunchInstantRequest}
                   disabled={isDispatching}
                 >
-                  {isDispatching ? <ActivityIndicator color="#FFF" /> : <Text style={s.primaryBtnText}>Find Available Providers</Text>}
+                  {isDispatching ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text style={s.primaryBtnText}>{t("instantBooking.findNearbyPros", "ស្វែងរកជាងឥឡូវនេះ (Find Available Pros)")}</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             )}
@@ -1056,8 +1107,14 @@ export default function MasterMapViewScreen() {
                       })}
                     </ScrollView>
                     <TouchableOpacity style={s.primaryBtn} onPress={handleSelectBid} disabled={isDispatching}>
-                      {isDispatching ? <ActivityIndicator color="#FFF" /> : <Text style={s.primaryBtnText}>Select & Proceed to Checkout</Text>}
+                      {isDispatching ? <ActivityIndicator color="#FFF" /> : <Text style={s.primaryBtnText}>{t("instantBooking.payAfterDone", "ជ្រើសរើស • ទូទាត់ក្រោយពេលធ្វើរួច")}</Text>}
                     </TouchableOpacity>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, marginTop: 4 }}>
+                      <MaterialCommunityIcons name="shield-check" size={14} color="#059669" />
+                      <Text style={{ fontSize: 11, color: "#059669", fontWeight: "600" }}>
+                        {t("instantBooking.freeToRequest", "មិនទាន់កាត់ប្រាក់ទេ • បញ្ជាក់តម្លៃផ្ទាល់")}
+                      </Text>
+                    </View>
                   </>
                 )}
               </View>
@@ -1328,6 +1385,60 @@ const s = StyleSheet.create({
     backgroundColor: "#CBD5E1",
     alignSelf: "center",
     marginBottom: 10,
+  },
+  // Step Guide Row
+  stepGuideRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  stepChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  stepChipActive: {
+    backgroundColor: T.accentLight,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  stepChipText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: T.text3,
+  },
+  stepChipTextActive: {
+    color: T.accent,
+    fontWeight: "800",
+  },
+  // Reassurance Banner
+  reassuranceBanner: {
+    backgroundColor: "#F0FDF4",
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 4,
+    gap: 3,
+  },
+  reassuranceText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#166534",
+  },
+  reassuranceSubText: {
+    fontSize: 10,
+    color: "#15803D",
+    fontWeight: "500",
   },
   sheetTitle: { fontSize: 16, fontWeight: "800", color: T.text1 },
   sheetSubtitle: { fontSize: 12, color: T.text2, marginTop: 2, lineHeight: 16 },

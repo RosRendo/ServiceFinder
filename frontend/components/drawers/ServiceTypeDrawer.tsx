@@ -29,8 +29,8 @@ interface ServiceTypeDrawerProps {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border-b border-slate-200 px-8 py-5">
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{title}</p>
+    <div className="border-b border-border px-8 py-5">
+      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4">{title}</p>
       {children}
     </div>
   );
@@ -55,14 +55,14 @@ export function ServiceTypeDrawer({ open, onClose, serviceType, formData, setFor
           <button 
             onClick={onClose}
             disabled={loading}
-            className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 h-12 rounded-xl font-bold flex items-center justify-center transition-colors disabled:opacity-50 shadow-sm"
+            className="flex-1 bg-background hover:bg-muted/50 border border-border text-foreground h-12 rounded-xl font-bold flex items-center justify-center transition-colors disabled:opacity-50 shadow-sm"
           >
             Cancel
           </button>
           <button 
             onClick={onSave}
             disabled={loading}
-            className="flex-1 bg-violet-600 hover:bg-violet-700 text-white h-12 rounded-xl font-bold flex items-center justify-center transition-colors disabled:opacity-50 shadow-sm gap-2"
+            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground h-12 rounded-xl font-bold flex items-center justify-center transition-colors disabled:opacity-50 shadow-sm gap-2"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             {isEditing ? "Save Changes" : "Create Service Type"}
@@ -74,9 +74,9 @@ export function ServiceTypeDrawer({ open, onClose, serviceType, formData, setFor
         <Section title="Basic Details">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-xs font-bold text-slate-700">Name <span className="text-rose-500">*</span></Label>
+              <Label htmlFor="name" className="text-xs font-bold text-foreground">Name <span className="text-rose-500">*</span></Label>
               <div className="relative">
-                <Type className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Type className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
                   id="name" 
                   value={formData.name} 
@@ -85,29 +85,29 @@ export function ServiceTypeDrawer({ open, onClose, serviceType, formData, setFor
                     setFormData((p) => ({ ...p, name: v, slug: isEditing ? p.slug : slugify(v) }));
                   }}
                   placeholder="e.g. Deep Cleaning" 
-                  className="pl-10 h-11 bg-slate-50 border-slate-200 focus:border-violet-500 focus:ring-violet-500/20 font-medium rounded-xl"
+                  className="pl-10 h-11 bg-muted/20 border-border focus:border-primary focus:ring-primary/20 font-medium rounded-xl"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="slug" className="text-xs font-bold text-slate-700">URL Slug <span className="text-rose-500">*</span></Label>
+                <Label htmlFor="slug" className="text-xs font-bold text-foreground">URL Slug <span className="text-rose-500">*</span></Label>
                 <div className="relative">
-                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input 
                     id="slug" 
                     value={formData.slug} 
                     onChange={(e) => setFormData((p) => ({ ...p, slug: slugify(e.target.value) }))} 
                     placeholder="deep-cleaning" 
-                    className="pl-10 h-11 font-mono text-xs bg-slate-50 border-slate-200 focus:border-violet-500 focus:ring-violet-500/20 rounded-xl" 
+                    className="pl-10 h-11 font-mono text-xs bg-muted/20 border-border focus:border-primary focus:ring-primary/20 rounded-xl" 
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="icon" className="text-xs font-bold text-slate-700">Icon (Emoji)</Label>
+                <Label htmlFor="icon" className="text-xs font-bold text-foreground">Icon (Emoji)</Label>
                 <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-slate-400 text-sm">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-muted-foreground text-sm">
                     {formData.icon || "✨"}
                   </div>
                   <Input 
@@ -115,7 +115,7 @@ export function ServiceTypeDrawer({ open, onClose, serviceType, formData, setFor
                     value={formData.icon} 
                     onChange={(e) => setFormData((p) => ({ ...p, icon: e.target.value }))} 
                     placeholder="🧹" 
-                    className="pl-10 h-11 bg-slate-50 border-slate-200 focus:border-violet-500 focus:ring-violet-500/20 font-medium rounded-xl" 
+                    className="pl-10 h-11 bg-muted/20 border-border focus:border-primary focus:ring-primary/20 font-medium rounded-xl" 
                   />
                 </div>
               </div>
@@ -126,23 +126,23 @@ export function ServiceTypeDrawer({ open, onClose, serviceType, formData, setFor
         <Section title="Classification">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-slate-400"/> Parent Category <span className="text-rose-500">*</span></Label>
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-muted-foreground"/> Parent Category <span className="text-rose-500">*</span></Label>
               <Select value={formData.categoryId} onValueChange={(v) => setFormData((p) => ({ ...p, categoryId: v }))}>
-                <SelectTrigger className="h-11 bg-slate-50 border-slate-200 focus:ring-violet-500/20 font-medium rounded-xl">
+                <SelectTrigger className="h-11 bg-muted/20 border-border focus:ring-primary/20 font-medium rounded-xl">
                   <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => (
-                    <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                    <SelectItem key={c.id?.toString()} value={c.id?.toString()}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5 text-slate-400"/> Status</Label>
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5 text-muted-foreground"/> Status</Label>
               <Select value={formData.status} onValueChange={(v) => setFormData((p) => ({ ...p, status: v }))}>
-                <SelectTrigger className="h-11 bg-slate-50 border-slate-200 focus:ring-violet-500/20 font-medium rounded-xl">
+                <SelectTrigger className="h-11 bg-muted/20 border-border focus:ring-primary/20 font-medium rounded-xl">
                   <SelectValue placeholder="Select Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -156,16 +156,16 @@ export function ServiceTypeDrawer({ open, onClose, serviceType, formData, setFor
 
         <Section title="Additional Information">
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-xs font-bold text-slate-700">Description</Label>
+            <Label htmlFor="description" className="text-xs font-bold text-foreground">Description</Label>
             <div className="relative">
-              <FileText className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+              <FileText className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
               <Textarea 
                 id="description" 
                 value={formData.description} 
                 onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} 
                 placeholder="Describe this service type..." 
                 rows={4} 
-                className="pl-10 pt-2.5 bg-slate-50 border-slate-200 focus:border-violet-500 focus:ring-violet-500/20 font-medium rounded-xl resize-none"
+                className="pl-10 pt-2.5 bg-muted/20 border-border focus:border-primary focus:ring-primary/20 font-medium rounded-xl resize-none"
               />
             </div>
           </div>

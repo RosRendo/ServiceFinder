@@ -9,6 +9,7 @@ import { Theme } from '@/constants/theme';
 import ScaleButton from '@/components/ScaleButton';
 import BookingBottomSheet from '@/components/BookingBottomSheet';
 import FadeIn from '@/components/FadeIn';
+import { SatisfactionShieldSvg, FreeCancelClockSvg, DamageCoverUmbrellaSvg } from '@/components/svg';
 
 const T = Theme.colors;
 const { width } = Dimensions.get('window');
@@ -285,49 +286,38 @@ export default function ServiceDetailScreen() {
 
         <View style={s.divider} />
 
-        {/* 5. AM I PROTECTED? (Peace of Mind Guarantee) */}
+        {/* 5. PEACE OF MIND GUARANTEE (Unified Trust Card) */}
         <View style={s.guaranteeSection}>
-          <View style={s.guaranteeHeader}>
-            <View style={s.shieldIconWrap}>
-              <MaterialIcons name="verified-user" size={22} color="#059669" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.guaranteeTitle}>Peace of Mind Guarantee</Text>
-              <Text style={s.guaranteeSubtitle}>Your safety, trust, and satisfaction are fully covered.</Text>
-            </View>
-          </View>
-
-          {/* Bento Grid */}
-          <View style={s.policyBentoGrid}>
-            {/* Full Width Satisfaction Card */}
-            <View style={s.policyBentoFull}>
-              <View style={[s.policyIconCircle, { backgroundColor: "rgba(16, 185, 129, 0.1)", marginBottom: 0 }]}>
-                <MaterialCommunityIcons name="cash-refund" size={22} color="#059669" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.policyTitle}>100% Satisfaction Refund</Text>
-                <Text style={s.policyDesc}>If you're not satisfied, we will re-do the service or refund you completely.</Text>
-              </View>
+          <View style={s.guaranteeUnifiedCard}>
+            <View style={s.guaranteeHeader}>
+              <MaterialIcons name="verified-user" size={17} color="#059669" />
+              <Text style={s.guaranteeHeaderTitle}>Peace of Mind Guarantee</Text>
             </View>
 
-            {/* Row of two half-width cards */}
-            <View style={s.bentoRow}>
-              {/* Free Cancellation */}
-              <View style={s.policyBentoHalf}>
-                <View style={s.policyIconCircle}>
-                  <MaterialCommunityIcons name="calendar-remove" size={18} color="#059669" />
-                </View>
-                <Text style={s.policyTitleCompact}>Free Cancel</Text>
-                <Text style={s.policyDescCompact}>Up to 24 hours prior to service.</Text>
+            <View style={s.guaranteeRow}>
+              {/* 1: 100% Refund */}
+              <View style={s.guaranteeCol}>
+                <SatisfactionShieldSvg size={28} />
+                <Text style={s.guaranteeCardTitle} numberOfLines={1}>100% Refund</Text>
+                <Text style={s.guaranteeCardSub} numberOfLines={1}>Satisfaction</Text>
               </View>
 
-              {/* Insured & Protected */}
-              <View style={s.policyBentoHalf}>
-                <View style={s.policyIconCircle}>
-                  <MaterialCommunityIcons name="file-document-check-outline" size={18} color="#059669" />
-                </View>
-                <Text style={s.policyTitleCompact}>Insured & Safe</Text>
-                <Text style={s.policyDescCompact}>Damage cover included up to $1,000.</Text>
+              <View style={s.guaranteeColDivider} />
+
+              {/* 2: Free Cancel */}
+              <View style={s.guaranteeCol}>
+                <FreeCancelClockSvg size={28} />
+                <Text style={s.guaranteeCardTitle} numberOfLines={1}>Free Cancel</Text>
+                <Text style={s.guaranteeCardSub} numberOfLines={1}>Up to 24h</Text>
+              </View>
+
+              <View style={s.guaranteeColDivider} />
+
+              {/* 3: Insured */}
+              <View style={s.guaranteeCol}>
+                <DamageCoverUmbrellaSvg size={28} />
+                <Text style={s.guaranteeCardTitle} numberOfLines={1}>$1k Cover</Text>
+                <Text style={s.guaranteeCardSub} numberOfLines={1}>Protected</Text>
               </View>
             </View>
           </View>
@@ -507,24 +497,65 @@ const s = StyleSheet.create({
   viewCompanyBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
   viewCompanyText: { fontSize: 12, fontWeight: '700', color: T.text1 },
 
-  // Policies Redesign — Premium Bento Grid Overhaul
+  // Policies Redesign — Unified Premium Trust Card
   guaranteeSection: {
-    marginHorizontal: 24,
-    marginVertical: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
   },
-  guaranteeHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  shieldIconWrap: { width: 42, height: 42, borderRadius: 14, backgroundColor: "rgba(16, 185, 129, 0.08)", alignItems: 'center', justifyContent: 'center' },
-  guaranteeTitle: { fontSize: 16, fontWeight: '800', color: T.text1, letterSpacing: -0.3 },
-  guaranteeSubtitle: { fontSize: 12, color: T.text2, marginTop: 1, fontWeight: '500' },
-  policyBentoGrid: { gap: 12 },
-  policyBentoFull: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: T.surface, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  bentoRow: { flexDirection: 'row', gap: 12 },
-  policyBentoHalf: { flex: 1, backgroundColor: T.surface, padding: 14, borderRadius: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  policyIconCircle: { width: 32, height: 32, borderRadius: 10, backgroundColor: "rgba(16, 185, 129, 0.06)", alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  policyTitle: { fontSize: 15, fontWeight: '700', color: T.text1, marginBottom: 4 },
-  policyDesc: { fontSize: 12, color: T.text2, lineHeight: 17 },
-  policyTitleCompact: { fontSize: 13, fontWeight: '700', color: T.text1, marginBottom: 2 },
-  policyDescCompact: { fontSize: 11, color: T.text2, lineHeight: 15 },
+  guaranteeUnifiedCard: {
+    backgroundColor: T.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: T.border,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    ...CARD_SHADOW,
+  },
+  guaranteeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  guaranteeHeaderTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: T.text1,
+    letterSpacing: -0.2,
+  },
+  guaranteeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  guaranteeCol: {
+    flex: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  guaranteeColDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: T.border,
+    opacity: 0.8,
+  },
+  guaranteeCardTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: T.text1,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  guaranteeCardSub: {
+    fontSize: 10,
+    color: T.text2,
+    marginTop: 1,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
 
   // Other Providers
   otherProviderCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, backgroundColor: T.surface, borderRadius: 12, borderWidth: 1, borderColor: T.border },

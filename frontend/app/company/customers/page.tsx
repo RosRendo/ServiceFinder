@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Users, Search, Mail, Phone, MoreHorizontal, ShieldAlert, ArrowUpRight, Loader2, Edit2, Eye, Trash2 } from "lucide-react";
+import { Users, Search, Mail, Phone, MoreHorizontal, ShieldAlert, ArrowUpRight, Loader2, Edit2, Eye, MessageSquare } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,7 +75,7 @@ export default function CustomersCRM() {
       header: "Customer",
       render: (c: any) => (
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-violet-500/10 flex items-center justify-center text-violet-500 font-bold shrink-0 border border-violet-500/20">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0 border border-primary/20">
             {c.profilePictureUrl ? (
               <img src={c.profilePictureUrl} alt={c.fullName} className="h-10 w-10 rounded-full object-cover" />
             ) : (
@@ -168,15 +168,14 @@ export default function CustomersCRM() {
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
             placeholder="Search customers..."
-            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60" 
+            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary" 
           />
         </div>
         <div className="flex items-center gap-1">
-          {/* Customers doesn't have an explicit tab filter yet, but we'll add All/Active for visual alignment */}
           {["all"].map((s) => (
             <button key={s}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-violet-500/10 text-violet-500 border border-violet-500/20">
-              {s.charAt(0).toUpperCase() + s.slice(1)}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors bg-foreground text-background dark:bg-background dark:text-foreground">
+              {s.charAt(0).toUpperCase() + s.slice(1)} Customers
             </button>
           ))}
         </div>
@@ -266,11 +265,13 @@ export default function CustomersCRM() {
             }
           },
           {
-            icon: Trash2,
-            label: "Delete",
-            variant: "danger",
+            icon: MessageSquare,
+            label: "Send Message",
             onClick: () => {
-              setSelectedIds(new Set());
+              const id = Array.from(selectedIds)[0];
+              if (id) {
+                router.push(`/company/messages?new=${id}`);
+              }
             }
           }
         ]}

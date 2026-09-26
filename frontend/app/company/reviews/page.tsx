@@ -14,7 +14,7 @@ import api from "@/lib/api/client";
 
 const STATUS_COLORS: Record<string, string> = {
   visible: "text-emerald-500 bg-emerald-500/10 border border-emerald-500/20",
-  hidden: "text-muted-foreground bg-muted/500/10 border border-slate-500/20",
+  hidden: "text-muted-foreground bg-muted/20 border border-border/40",
   flagged: "text-rose-500 bg-rose-500/10 border border-rose-500/20",
 };
 
@@ -84,12 +84,12 @@ export default function CompanyReviewsPage() {
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search reviews..."
-            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60" />
+            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary" />
         </div>
         <div className="flex items-center gap-1">
           {["all", "visible", "flagged", "hidden"].map((s) => (
             <button key={s} onClick={() => setFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === s ? "bg-violet-500/10 text-violet-500 border border-violet-500/20" : "text-muted-foreground hover:bg-muted/50 border border-transparent"}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${filter === s ? "bg-foreground text-background dark:bg-background dark:text-foreground" : "text-muted-foreground hover:bg-muted/50 border border-transparent"}`}>
               {s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
@@ -109,7 +109,15 @@ export default function CompanyReviewsPage() {
         ) : (
           <DataGrid
             selectedIds={selectedIds}
-            onToggleRow={(id) => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; })}
+            onToggleRow={(id) => setSelectedIds(p => {
+              const n = new Set(p);
+              if (n.has(id)) {
+                n.delete(id);
+              } else {
+                n.add(id);
+              }
+              return n;
+            })}
             onToggleAll={() => setSelectedIds(p => p.size === filtered.length ? new Set() : new Set(filtered.map((x: any) => x.id)))}
             columns={columns} data={filtered}
             onRowClick={(r) => { setActive(r); setDrawerOpen(true); }}
@@ -128,32 +136,23 @@ export default function CompanyReviewsPage() {
             label: "View Detail",
             onClick: () => {
               const id = Array.from(selectedIds)[0];
-              if (id) {
-                router.push(`/company/reviews/${id}`);
-              }
-  
-            }
-          },
-          {
-            icon: Edit2,
-            label: "Edit",
-            onClick: () => {
-              const id = Array.from(selectedIds)[0];
-
               const r = filtered.find((x: any) => x.id === id);
               if (r) {
                 setActive(r);
                 setDrawerOpen(true);
               }
-  
             }
           },
           {
-            icon: Trash2,
-            label: "Delete",
-            variant: "danger",
+            icon: Edit2,
+            label: "Respond to Review",
             onClick: () => {
-              setSelectedIds(new Set());
+              const id = Array.from(selectedIds)[0];
+              const r = filtered.find((x: any) => x.id === id);
+              if (r) {
+                setActive(r);
+                setDrawerOpen(true);
+              }
             }
           }
         ]}

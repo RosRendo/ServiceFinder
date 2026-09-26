@@ -30,6 +30,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
+import { SearchDiscoverySvg } from "@/components/svg";
 
 type Filter = "all" | "service" | "company";
 
@@ -364,7 +365,9 @@ export default function SearchScreen() {
         {/* No Results State */}
         {showNoResults && (
           <View style={s.emptyState}>
-            <Text style={s.emptyIcon}>👻</Text>
+            <View style={{ marginBottom: 12 }}>
+              <SearchDiscoverySvg size={105} />
+            </View>
             <Text style={s.emptyTitle}>No results found</Text>
             <Text style={s.emptyBody}>We couldn't find anything matching "{query}". Try a different term or check your spelling.</Text>
           </View>

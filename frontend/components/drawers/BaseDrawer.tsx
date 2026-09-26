@@ -16,9 +16,9 @@ interface BaseDrawerProps {
 }
 
 const widthMap = {
-  md: "w-[480px]",
-  lg: "w-[560px]",
-  xl: "w-[640px]",
+  md: "w-full max-w-[100vw] sm:w-[480px]",
+  lg: "w-full max-w-[100vw] sm:w-[560px]",
+  xl: "w-full max-w-[100vw] sm:w-[640px]",
 };
 
 export function BaseDrawer({ open, onClose, title, subtitle, children, width = "lg", headerIcon: HeaderIcon, footer }: BaseDrawerProps) {

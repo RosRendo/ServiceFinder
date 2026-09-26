@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
 import { Loader2, Edit2, Save, X } from "lucide-react";
+import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
 
 export interface CompanyRow {
   id: string;
@@ -64,6 +65,7 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
   const [fee, setFee] = useState(15);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [suspendConfirmOpen, setSuspendConfirmOpen] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", phone: "" });
   
   useEffect(() => {
@@ -90,6 +92,9 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
   };
 
   if (!company) return null;
+
+  const ownerName = typeof company.owner === 'object' ? (company.owner as any)?.fullName : (company.owner || "Owner");
+  const ownerEmail = typeof company.owner === 'object' ? (company.owner as any)?.email : (company.ownerEmail || (company as any).email || "No email");
 
   const statusConfig = STATUS_COLORS[company.status] || { bg: "bg-muted", border: "border-border", text: "text-muted-foreground" };
 
@@ -142,7 +147,7 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
               </p>
               <button 
                 onClick={() => {
-                  navigator.clipboard.writeText(`Email: ${company.ownerEmail}\nPassword: Password123!`);
+                  navigator.clipboard.writeText(`Email: ${ownerEmail}\nPassword: Password123!`);
                   toast({ title: "Copied!", description: "Credentials copied to clipboard." });
                 }}
                 className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded font-bold uppercase hover:bg-primary/20 transition-colors"
@@ -152,11 +157,11 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground text-sm">Owner Name</span>
-              <span className="font-bold text-foreground text-sm">{company.owner}</span>
+              <span className="font-bold text-foreground text-sm">{ownerName}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground text-sm">Email</span>
-              <span className="font-medium text-foreground text-sm">{company.ownerEmail || "No email"}</span>
+              <span className="font-medium text-foreground text-sm">{ownerEmail}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground text-sm shrink-0 mr-4">Phone</span>
@@ -296,19 +301,11 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
                       router.push(`/admin/messages?new=${company.ownerId}`);
                       onClose();
                     } else {
-                      alert("No owner ID associated with this company.");
+                      toast({ title: "Notice", description: "No owner ID associated with this company." });
                     }
                   }
                   if (id === "suspend") {
-                    if (confirm(`Are you sure you want to suspend ${company.name}?`)) {
-                      try {
-                        await api.post(`/admin/companies/${company.id}/suspend`);
-                        onSuccess?.();
-                        onClose();
-                      } catch (err) {
-                        console.error("Failed to suspend company", err);
-                      }
-                    }
+                    setSuspendConfirmOpen(true);
                   }
                 }}
                 className={cn("h-10 text-xs font-bold rounded-lg border shadow-sm transition-colors justify-center gap-2", color)}
@@ -330,6 +327,29 @@ export function CompanyDrawer({ open, onClose, company, onSuccess }: CompanyDraw
         onSuccess={() => {
           onSuccess?.();
           onClose();
+        }}
+      />
+
+      {/* Suspend Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={suspendConfirmOpen}
+        onClose={() => setSuspendConfirmOpen(false)}
+        title="Suspend Company Account"
+        description={`Are you sure you want to suspend "${company.name}"? This will freeze all merchant services, staff dispatch, and incoming bookings.`}
+        actionType="danger"
+        confirmLabel="Suspend Company"
+        onConfirm={async () => {
+          try {
+            await api.post(`/admin/companies/${company.id}/suspend`);
+            toast({ title: "Company Suspended", description: `${company.name} has been suspended.` });
+            onSuccess?.();
+            onClose();
+          } catch (err) {
+            console.error("Failed to suspend company", err);
+            toast({ title: "Error", description: "Failed to suspend company", variant: "destructive" });
+          } finally {
+            setSuspendConfirmOpen(false);
+          }
         }}
       />
     </>

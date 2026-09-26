@@ -18,6 +18,7 @@ import { MAP_PROVIDER } from "@/utils/mapHelper";
 import FadeIn from "@/components/FadeIn";
 import ScaleButton from "@/components/ScaleButton";
 import { useCurrentLocation } from "@/hooks/useCurrentLocation";
+import { AbaPayWaySvg, KhqrBakongSvg, WingBankSvg, EscrowShieldSvg, PhoneScanIllustrationSvg } from "@/components/svg";
 
 const T = Theme.colors;
 const { width } = Dimensions.get('window');
@@ -86,10 +87,8 @@ export default function CheckoutScreen() {
   const displayLat = customLat ?? (booking?.latitude ? parseFloat(booking.latitude.toString()) : location.latitude);
   const displayLng = customLng ?? (booking?.longitude ? parseFloat(booking.longitude.toString()) : location.longitude);
   
-  // Tax & Fees Math
-  const subtotal = Number(displayPrice);
-  const tax = subtotal * 0.05;
-  const total = subtotal + tax;
+  // Pricing: clean total without extra customer-facing fees
+  const total = Number(displayPrice) || 0;
 
   useEffect(() => {
     if (mapViewRef.current) {
@@ -460,25 +459,43 @@ export default function CheckoutScreen() {
           </View>
         </FadeIn>
 
-        {/* BILLING SUMMARY */}
+        {/* PAYMENT SUMMARY */}
         <FadeIn delay={300}>
           <View style={s.billingCard}>
-            <Text style={s.billingTitle}>Billing Summary</Text>
-            
-            <View style={s.billRow}>
-              <Text style={s.billLabel}>Subtotal</Text>
-              <Text style={s.billValue}>${subtotal.toFixed(2)}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View>
+                <Text style={s.billingTitle}>Total Payment</Text>
+                <Text style={{ fontSize: 12, color: T.text2, marginTop: 2 }}>Price to pay</Text>
+              </View>
+              <Text style={{ fontSize: 24, fontWeight: '900', color: T.accent }}>
+                ${total.toFixed(2)}
+              </Text>
             </View>
-            <View style={s.billRow}>
-              <Text style={s.billLabel}>Platform Fee (5%)</Text>
-              <Text style={s.billValue}>${tax.toFixed(2)}</Text>
-            </View>
-            
-            <View style={s.divider} />
-            
-            <View style={s.totalRow}>
-              <Text style={s.totalLabel}>Total</Text>
-              <Text style={s.totalValue}>${total.toFixed(2)}</Text>
+          </View>
+        </FadeIn>
+
+        {/* ESCROW BUYER PROTECTION BANNER */}
+        <FadeIn delay={350}>
+          <View style={{
+            backgroundColor: '#F0FDF4',
+            borderWidth: 1,
+            borderColor: '#BBF7D0',
+            borderRadius: 16,
+            padding: 14,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            marginTop: 16,
+            marginBottom: 20
+          }}>
+            <EscrowShieldSvg size={38} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: '#166534' }}>
+                Safe Escrow Protection
+              </Text>
+              <Text style={{ fontSize: 11, color: '#15803D', marginTop: 2, lineHeight: 15 }}>
+                Funds are held safely in escrow and only released to the provider after you confirm the job is done.
+              </Text>
             </View>
           </View>
         </FadeIn>
@@ -491,8 +508,8 @@ export default function CheckoutScreen() {
             style={[s.methodCard, selectedMethod === 'aba' && s.methodCardActive]} 
             onPress={() => setSelectedMethod('aba')}
           >
-            <View style={s.methodIconBox}>
-              <MaterialIcons name="credit-card" size={24} color={selectedMethod === 'aba' ? '#FFF' : T.text2} />
+            <View style={{ marginRight: 12 }}>
+              <AbaPayWaySvg width={48} height={32} />
             </View>
             <Text style={[s.methodLabel, selectedMethod === 'aba' && s.methodLabelActive]}>ABA PayWay</Text>
             {selectedMethod === 'aba' && <MaterialIcons name="check-circle" size={24} color={T.accent} />}
@@ -502,8 +519,8 @@ export default function CheckoutScreen() {
             style={[s.methodCard, selectedMethod === 'khqr' && s.methodCardActive, { marginTop: 12 }]} 
             onPress={() => setSelectedMethod('khqr')}
           >
-            <View style={s.methodIconBox}>
-              <MaterialIcons name="qr-code-scanner" size={24} color={selectedMethod === 'khqr' ? '#FFF' : T.text2} />
+            <View style={{ marginRight: 12 }}>
+              <KhqrBakongSvg width={48} height={32} />
             </View>
             <Text style={[s.methodLabel, selectedMethod === 'khqr' && s.methodLabelActive]}>KHQR (Scan to Pay)</Text>
             {selectedMethod === 'khqr' && <MaterialIcons name="check-circle" size={24} color={T.accent} />}
@@ -513,8 +530,8 @@ export default function CheckoutScreen() {
             style={[s.methodCard, selectedMethod === 'wing' && s.methodCardActive, { marginTop: 12 }]} 
             onPress={() => setSelectedMethod('wing')}
           >
-            <View style={s.methodIconBox}>
-              <MaterialIcons name="account-balance-wallet" size={24} color={selectedMethod === 'wing' ? '#FFF' : T.text2} />
+            <View style={{ marginRight: 12 }}>
+              <WingBankSvg width={48} height={32} />
             </View>
             <Text style={[s.methodLabel, selectedMethod === 'wing' && s.methodLabelActive]}>Wing Bank</Text>
             {selectedMethod === 'wing' && <MaterialIcons name="check-circle" size={24} color={T.accent} />}
@@ -568,9 +585,12 @@ export default function CheckoutScreen() {
             <Text style={s.khqrTitle}>Scan QR to Pay</Text>
             <Text style={s.khqrAmount}>${khqrAmount}</Text>
             <View style={s.qrWrapper}>
-              <QRCode value={khqrString || " "} size={200} />
+              <QRCode value={khqrString || " "} size={190} />
             </View>
-            <Text style={s.khqrSub}>Open your banking app and scan to complete the payment. Waiting for confirmation...</Text>
+            <View style={{ alignItems: 'center', marginVertical: 8 }}>
+              <PhoneScanIllustrationSvg width={200} height={90} />
+            </View>
+            <Text style={s.khqrSub}>Scan with ABA, ACLEDA, Canadia, Wing, or any Bakong banking app.</Text>
             
             {abaDeeplink && (
               <TouchableOpacity 

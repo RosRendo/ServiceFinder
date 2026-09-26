@@ -59,8 +59,8 @@ export function CreateUserDrawer({ open, onClose, onSuccess }: CreateUserDrawerP
       subtitle="Add a new user manually to the platform."
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        <div className="w-16 h-16 rounded-2xl bg-violet-100 flex items-center justify-center text-violet-600 mx-auto mb-6 shadow-sm border border-violet-200">
-          <UserPlus className="w-8 h-8" />
+        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto mb-6 shadow-sm border border-primary/20">
+          <UserPlus className="w-7 h-7" />
         </div>
         
         <div>
@@ -72,7 +72,7 @@ export function CreateUserDrawer({ open, onClose, onSuccess }: CreateUserDrawerP
               required
               value={formData.fullName}
               onChange={e => setFormData({...formData, fullName: e.target.value})}
-              className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm outline-none focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/10 transition-all"
+              className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium"
               placeholder="John Doe"
             />
           </div>
@@ -87,7 +87,7 @@ export function CreateUserDrawer({ open, onClose, onSuccess }: CreateUserDrawerP
               required
               value={formData.email}
               onChange={e => setFormData({...formData, email: e.target.value})}
-              className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm outline-none focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/10 transition-all"
+              className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium"
               placeholder="john@example.com"
             />
           </div>
@@ -102,7 +102,7 @@ export function CreateUserDrawer({ open, onClose, onSuccess }: CreateUserDrawerP
               required
               value={formData.password}
               onChange={e => setFormData({...formData, password: e.target.value})}
-              className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm outline-none focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/10 transition-all"
+              className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium"
               placeholder="Min 8 characters"
             />
           </div>
@@ -116,8 +116,8 @@ export function CreateUserDrawer({ open, onClose, onSuccess }: CreateUserDrawerP
               type="tel"
               value={formData.phone}
               onChange={e => setFormData({...formData, phone: e.target.value})}
-              className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm outline-none focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/10 transition-all"
-              placeholder="+1 555-0123"
+              className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium"
+              placeholder="+855 12 345 678"
             />
           </div>
         </div>
@@ -127,7 +127,7 @@ export function CreateUserDrawer({ open, onClose, onSuccess }: CreateUserDrawerP
           <select
             value={formData.role}
             onChange={e => setFormData({...formData, role: e.target.value})}
-            className="w-full px-4 py-2 bg-background border border-border rounded-lg text-sm outline-none focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/10 transition-all"
+            className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium"
           >
             <option value="customer">Customer</option>
             <option value="staff">Staff</option>
@@ -140,7 +140,7 @@ export function CreateUserDrawer({ open, onClose, onSuccess }: CreateUserDrawerP
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-violet-600 text-white font-medium hover:bg-violet-700 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
             {loading ? "Creating..." : "Create Account"}

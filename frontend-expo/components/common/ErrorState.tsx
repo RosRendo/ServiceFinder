@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
+import { OfflineErrorSvg } from "@/components/svg";
 
 const T = Theme.colors;
 
@@ -18,9 +19,7 @@ export default function ErrorState({ message, onRetry }: ErrorStateProps) {
   const { t } = useTranslation();
   return (
     <View style={s.box}>
-      <View style={s.iconCircle}>
-        <MaterialCommunityIcons name="alert-circle-outline" size={44} color={T.error} />
-      </View>
+      <OfflineErrorSvg size={110} />
       <Text style={s.title}>{t("common.errorTitle")}</Text>
       <Text style={s.message}>{message ?? t("common.errorMessage")}</Text>
       {onRetry ? (

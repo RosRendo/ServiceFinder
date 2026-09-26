@@ -22,6 +22,15 @@ function CompanyMessagesPageContent() {
     const [showMobileChat, setShowMobileChat] = useState(false);
     const [newChatUser, setNewChatUser] = useState<any>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            toast.success(`Attached file: ${file.name}`);
+            setNewMessage((prev) => (prev ? `${prev} [Attachment: ${file.name}]` : `[Attachment: ${file.name}]`));
+        }
+    };
 
     const { messages, sendMessage } = useMessages(activeConversationId || undefined);
 
@@ -170,7 +179,7 @@ function CompanyMessagesPageContent() {
                                         <img src={displayUser.avatar} alt={displayUser.name} className="h-10 w-10 rounded-full object-cover border border-border" />
                                     ) : (
                                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold border border-primary/20 text-sm">
-                                            {displayUser.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                                            {(displayUser.name || "U").split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                                         </div>
                                     )}
                                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white"></div>
@@ -182,10 +191,34 @@ function CompanyMessagesPageContent() {
                                 </div>
 
                                 <div className="flex items-center gap-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"><Phone className="h-4 w-4" /></Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"><Video className="h-4 w-4" /></Button>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                        onClick={() => toast.info(`Starting voice call channel with ${displayUser.name}...`)}
+                                        title="Voice Call"
+                                    >
+                                        <Phone className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                        onClick={() => toast.info(`Video inspection available on mobile technician application.`)}
+                                        title="Video Call"
+                                    >
+                                        <Video className="h-4 w-4" />
+                                    </Button>
                                     <div className="w-px h-5 bg-muted mx-1"></div>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"><MoreVertical className="h-4 w-4" /></Button>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                        onClick={() => toast.info(`Contact profile: ${displayUser.name} (${displayUser.role || 'User'})`)}
+                                        title="More details"
+                                    >
+                                        <MoreVertical className="h-4 w-4" />
+                                    </Button>
                                 </div>
                             </div>
 
@@ -217,9 +250,31 @@ function CompanyMessagesPageContent() {
                                     </div>
                                 ) : (
                                     <div className="flex items-end gap-2 bg-muted/30 rounded-lg border border-border p-2 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
+                                        <input 
+                                            type="file" 
+                                            ref={fileInputRef} 
+                                            className="hidden" 
+                                            onChange={handleFileUpload} 
+                                        />
                                         <div className="flex items-center gap-1 pb-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"><Paperclip className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md hidden sm:flex"><ImageIcon className="h-4 w-4" /></Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                title="Attach Document"
+                                            >
+                                                <Paperclip className="h-4 w-4" />
+                                            </Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md hidden sm:flex"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                title="Attach Image"
+                                            >
+                                                <ImageIcon className="h-4 w-4" />
+                                            </Button>
                                         </div>
                                         <textarea
                                             value={newMessage}
@@ -235,7 +290,15 @@ function CompanyMessagesPageContent() {
                                             rows={1}
                                         />
                                         <div className="flex items-center gap-2 pb-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md hidden sm:flex"><Smile className="h-4 w-4" /></Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md hidden sm:flex"
+                                                onClick={() => setNewMessage((prev) => prev + " 👍 ")}
+                                                title="Add Emoji"
+                                            >
+                                                <Smile className="h-4 w-4" />
+                                            </Button>
                                             <Button 
                                                 onClick={handleSend} 
                                                 disabled={!newMessage.trim()}

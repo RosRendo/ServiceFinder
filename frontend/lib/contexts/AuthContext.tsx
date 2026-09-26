@@ -70,7 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json()
-        setUser(data.user)
+        // /api/auth/me returns { success, data: { user } } — handle both shapes.
+        setUser(data.user ?? data.data?.user ?? null)
       } else {
         clearToken()
         setUser(null)

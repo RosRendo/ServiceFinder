@@ -9,6 +9,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { api, useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
+import { EmptyChatSvg } from "@/components/svg";
 import { GuestCTA } from "@/components/common/GuestCTA";
 
 const T = Theme.colors;
@@ -38,20 +39,9 @@ const formatTime = (iso: string, t: any) => {
 
 // ─── Animated Empty State ──────────────────────────────────────
 function AnimatedChatEmpty({ title, sub }: { title: string; sub: string }) {
-  const floatAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, { toValue: -8, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(floatAnim, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
   return (
     <View style={s.emptyWrap}>
-      <Animated.View style={[s.emptyIcon, { transform: [{ translateY: floatAnim }] }]}>
-        <MaterialCommunityIcons name="chat-outline" size={40} color={T.text3} />
-      </Animated.View>
+      <EmptyChatSvg size={140} />
       <Text style={s.emptyTitle}>{title}</Text>
       <Text style={s.emptySub}>{sub}</Text>
     </View>

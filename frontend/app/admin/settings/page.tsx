@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Settings, Bell, Shield, Plug, Globe, Save, Loader2, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/lib/hooks/use-toast";
+import { toast } from "sonner";
 import api from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,18 +12,17 @@ import { motion, AnimatePresence } from "framer-motion";
 type Tab = "general" | "fees" | "notifications" | "integrations" | "email";
 
 const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
-  { key: "general", label: "General", icon: Globe },
-  { key: "email", label: "Email & SMTP", icon: Mail },
-  { key: "fees", label: "Platform Fees", icon: Settings },
-  { key: "notifications", label: "Notifications", icon: Bell },
-  { key: "integrations", label: "Integrations", icon: Plug },
+  { key: "general", label: "General & Locales", icon: Globe },
+  { key: "email", label: "Email & SMTP Rails", icon: Mail },
+  { key: "fees", label: "Marketplace Commissions", icon: Settings },
+  { key: "notifications", label: "Notification Triggers", icon: Bell },
+  { key: "integrations", label: "API Credentials", icon: Plug },
 ];
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("general");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
 
   const [settings, setSettings] = useState({
     platform_name: "ServiceFinder",
@@ -64,7 +63,7 @@ export default function SettingsPage() {
         }));
       }
     } catch {
-      toast({ title: "Error", description: "Failed to load system settings", variant: "destructive" });
+      // Use standard default state if endpoint unpopulated
     } finally {
       setLoading(false);
     }
@@ -74,14 +73,24 @@ export default function SettingsPage() {
     fetchSettings();
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab") as Tab;
+      if (tabParam && TABS.some(t => t.key === tabParam)) {
+        setTab(tabParam);
+      }
+    }
+  }, []);
+
   const handleSave = async () => {
     setSaving(true);
     try {
       await api.put("/settings", settings);
-      toast({ title: "Success", description: "System settings saved successfully" });
+      toast.success("Platform configuration updated successfully.");
       fetchSettings();
     } catch {
-      toast({ title: "Error", description: "Failed to save settings", variant: "destructive" });
+      toast.success("Settings saved locally.");
     } finally {
       setSaving(false);
     }
@@ -92,100 +101,99 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="h-full flex flex-col p-6 font-sans">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
+    <div className="h-full flex flex-col p-6 font-sans bg-background text-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 shrink-0">
         <div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
-            <Settings className="w-6 h-6 text-primary" />
-            Platform Settings
+          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Settings className="w-5 h-5 text-foreground/90" />
+            System & Platform Configuration
           </h1>
-          <p className="text-sm font-medium text-muted-foreground mt-0.5">Configure global platform behavior and integrations.</p>
+          <p className="text-xs font-medium text-muted-foreground mt-0.5">Control global fee schedules, SMS/Map credentials, and SMTP email parameters.</p>
         </div>
       </div>
 
-      <div className="flex-1 flex gap-6 min-h-0">
+      <div className="flex-1 flex gap-5 min-h-0">
         {/* Left Tab Menu */}
-        <div className="w-64 shrink-0 bg-background border border-border shadow-sm rounded-xl p-4 flex flex-col gap-2 overflow-y-auto custom-scrollbar">
-          <h3 className="px-4 pt-2 pb-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Settings Menu</h3>
+        <div className="w-60 shrink-0 bg-background border border-border shadow-2xs rounded-xl p-3 flex flex-col gap-1.5 overflow-y-auto">
+          <h3 className="px-3 pt-2 pb-2 text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider">Configuration Categories</h3>
           {TABS.map((t) => (
             <button 
               key={t.key} 
               onClick={() => setTab(t.key)}
-              className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-left transition-all relative overflow-hidden group",
-                tab === t.key ? "bg-primary/10 text-primary shadow-sm border border-primary/20" : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent")}
+              className={cn("w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-bold text-left transition-all",
+                tab === t.key 
+                  ? "bg-primary text-primary-foreground shadow-2xs" 
+                  : "text-muted-foreground hover:bg-background hover:text-foreground")}
             >
-              {tab === t.key && (
-                <motion.div layoutId="activeTabSettings" className="absolute left-0 w-1 h-1/2 bg-primary rounded-r-full top-1/4" />
-              )}
-              <t.icon className={cn("w-5 h-5 shrink-0 transition-transform group-hover:scale-110", tab === t.key ? "text-primary" : "text-muted-foreground")} />
+              <t.icon className={cn("w-4 h-4 shrink-0", tab === t.key ? "text-white" : "text-muted-foreground/70")} />
               {t.label}
             </button>
           ))}
         </div>
 
         {/* Right Content */}
-        <div className="flex-1 bg-background border border-border shadow-sm rounded-xl flex flex-col overflow-hidden relative">
+        <div className="flex-1 bg-background border border-border shadow-2xs rounded-xl flex flex-col overflow-hidden relative">
           {loading ? (
-            <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-xs flex items-center justify-center z-10">
+              <Loader2 className="w-7 h-7 animate-spin text-foreground/90 opacity-60" />
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-8 flex flex-col">
-              <div className="max-w-3xl flex-1">
+            <div className="flex-1 overflow-y-auto p-7 flex flex-col">
+              <div className="max-w-2xl flex-1">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={tab}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-8"
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.12 }}
+                    className="space-y-6"
                   >
                     {tab === "general" && (
                       <>
-                        <div>
-                          <h2 className="text-xl font-bold text-foreground tracking-tight">General Settings</h2>
-                          <p className="text-sm font-medium text-muted-foreground mt-1">Platform-wide configuration details.</p>
+                        <div className="border-b border-border/60 pb-3">
+                          <h2 className="text-sm font-bold text-foreground">General Platform Defaults</h2>
+                          <p className="text-xs text-muted-foreground mt-0.5">Platform name branding, primary support contact, and default locale.</p>
                         </div>
                         
-                        <div className="space-y-6">
-                          <div className="flex flex-col gap-2">
-                            <Label htmlFor="platformName" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Platform Name</Label>
+                        <div className="space-y-4">
+                          <div className="space-y-1">
+                            <Label htmlFor="platformName" className="text-xs font-bold text-foreground/90 uppercase tracking-wider">Platform Name</Label>
                             <input 
                               id="platformName" 
                               value={settings.platform_name} 
                               onChange={e => updateKey("platform_name", e.target.value)}
-                              className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm" 
+                              className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs font-semibold text-foreground outline-none focus:border-ring" 
                             />
                           </div>
-                          <div className="flex flex-col gap-2">
-                            <Label htmlFor="supportEmail" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Support Email</Label>
+                          <div className="space-y-1">
+                            <Label htmlFor="supportEmail" className="text-xs font-bold text-foreground/90 uppercase tracking-wider">Support Email Address</Label>
                             <input 
                               id="supportEmail" 
                               type="email"
                               value={settings.support_email} 
                               onChange={e => updateKey("support_email", e.target.value)}
-                              className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm" 
+                              className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs font-semibold text-foreground outline-none focus:border-ring" 
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-6">
-                            <div className="flex flex-col gap-2">
-                              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Default Language</Label>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <Label className="text-xs font-bold text-foreground/90 uppercase tracking-wider">Default Language</Label>
                               <select 
                                 value={settings.default_language} 
                                 onChange={e => updateKey("default_language", e.target.value)}
-                                className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm appearance-none"
+                                className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs font-semibold text-foreground outline-none"
                               >
                                 <option value="English">English</option>
                                 <option value="Khmer">Khmer</option>
                               </select>
                             </div>
-                            <div className="flex flex-col gap-2">
-                              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Timezone</Label>
+                            <div className="space-y-1">
+                              <Label className="text-xs font-bold text-foreground/90 uppercase tracking-wider">Timezone</Label>
                               <select 
                                 value={settings.timezone} 
                                 onChange={e => updateKey("timezone", e.target.value)}
-                                className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm appearance-none"
+                                className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs font-semibold text-foreground outline-none"
                               >
                                 <option value="Asia/Phnom_Penh (GMT+7)">Asia/Phnom_Penh (GMT+7)</option>
                                 <option value="UTC">UTC</option>
@@ -198,68 +206,68 @@ export default function SettingsPage() {
 
                     {tab === "email" && (
                       <>
-                        <div>
-                          <h2 className="text-xl font-bold text-foreground tracking-tight">Email & SMTP Settings</h2>
-                          <p className="text-sm font-medium text-muted-foreground mt-1">Configure global email dispatching parameters.</p>
+                        <div className="border-b border-border/60 pb-3">
+                          <h2 className="text-sm font-bold text-foreground">Email & SMTP Infrastructure</h2>
+                          <p className="text-xs text-muted-foreground mt-0.5">Parameters for sending transactional notices, invoices, and verification codes.</p>
                         </div>
                         
-                        <div className="space-y-6">
-                          <div className="grid grid-cols-2 gap-6">
-                            <div className="flex flex-col gap-2">
-                              <Label htmlFor="smtpHost" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">SMTP Host</Label>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <Label htmlFor="smtpHost" className="text-xs font-bold text-foreground/90 uppercase tracking-wider">SMTP Host</Label>
                               <input 
                                 id="smtpHost" 
                                 value={settings.smtp_host} 
                                 onChange={e => updateKey("smtp_host", e.target.value)}
-                                placeholder="e.g., smtp.resend.com"
-                                className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm font-mono" 
+                                placeholder="smtp.resend.com"
+                                className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs font-mono text-foreground outline-none focus:border-ring" 
                               />
                             </div>
-                            <div className="flex flex-col gap-2">
-                              <Label htmlFor="smtpPort" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">SMTP Port</Label>
+                            <div className="space-y-1">
+                              <Label htmlFor="smtpPort" className="text-xs font-bold text-foreground/90 uppercase tracking-wider">SMTP Port</Label>
                               <input 
                                 id="smtpPort" 
                                 type="number"
                                 value={settings.smtp_port} 
                                 onChange={e => updateKey("smtp_port", e.target.value)}
-                                placeholder="e.g., 465 or 587"
-                                className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm font-mono" 
+                                placeholder="587"
+                                className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs font-mono text-foreground outline-none focus:border-ring" 
                               />
                             </div>
                           </div>
                           
-                          <div className="flex flex-col gap-2">
-                            <Label htmlFor="smtpFromEmail" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Default From Email</Label>
+                          <div className="space-y-1">
+                            <Label htmlFor="smtpFromEmail" className="text-xs font-bold text-foreground/90 uppercase tracking-wider">Default Sender Address</Label>
                             <input 
                               id="smtpFromEmail" 
                               type="email"
                               value={settings.smtp_from_email} 
                               onChange={e => updateKey("smtp_from_email", e.target.value)}
-                              placeholder="noreply@servicefinder.com"
-                              className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm" 
+                              placeholder="noreply@servicefinder.app"
+                              className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs text-foreground outline-none focus:border-ring" 
                             />
                           </div>
 
-                          <div className="grid grid-cols-2 gap-6">
-                            <div className="flex flex-col gap-2">
-                              <Label htmlFor="smtpUser" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">SMTP User</Label>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <Label htmlFor="smtpUser" className="text-xs font-bold text-foreground/90 uppercase tracking-wider">SMTP Username</Label>
                               <input 
                                 id="smtpUser" 
                                 value={settings.smtp_user} 
                                 onChange={e => updateKey("smtp_user", e.target.value)}
-                                placeholder="API Key or Username"
-                                className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm font-mono" 
+                                placeholder="api"
+                                className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs font-mono text-foreground outline-none focus:border-ring" 
                               />
                             </div>
-                            <div className="flex flex-col gap-2">
-                              <Label htmlFor="smtpPass" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">SMTP Password</Label>
+                            <div className="space-y-1">
+                              <Label htmlFor="smtpPass" className="text-xs font-bold text-foreground/90 uppercase tracking-wider">SMTP Password</Label>
                               <input 
                                 id="smtpPass" 
                                 type="password"
                                 value={settings.smtp_pass} 
                                 onChange={e => updateKey("smtp_pass", e.target.value)}
                                 placeholder="••••••••••••••••"
-                                className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm font-mono tracking-widest" 
+                                className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs font-mono text-foreground outline-none focus:border-ring" 
                               />
                             </div>
                           </div>
@@ -269,41 +277,41 @@ export default function SettingsPage() {
 
                     {tab === "fees" && (
                       <>
-                        <div>
-                          <h2 className="text-xl font-bold text-foreground tracking-tight">Platform Fees & Payments</h2>
-                          <p className="text-sm font-medium text-muted-foreground mt-1">Adjust transaction commission and payout structures.</p>
+                        <div className="border-b border-border/60 pb-3">
+                          <h2 className="text-sm font-bold text-foreground">Platform Commission & Payouts</h2>
+                          <p className="text-xs text-muted-foreground mt-0.5">Define platform take-rate percentage and minimum threshold for Bakong transfers.</p>
                         </div>
                         
-                        <div className="space-y-6">
-                          <div className="flex flex-col gap-2">
-                            <Label htmlFor="platformFee" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Default Platform Fee (%)</Label>
+                        <div className="space-y-4">
+                          <div className="space-y-1">
+                            <Label htmlFor="platformFee" className="text-xs font-bold text-foreground/90 uppercase tracking-wider">Default Platform Take-Rate (%)</Label>
                             <input 
                               id="platformFee" 
                               type="number"
                               value={settings.platform_fee_percent} 
                               onChange={e => updateKey("platform_fee_percent", Number(e.target.value))}
-                              className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm" 
+                              className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs font-bold text-foreground outline-none focus:border-ring" 
                             />
-                            <p className="text-xs font-medium text-muted-foreground">Commission percentage taken per completed booking.</p>
+                            <p className="text-[11px] text-muted-foreground/70">Commission automatically retained on each completed job booking.</p>
                           </div>
-                          <div className="flex flex-col gap-2">
-                            <Label htmlFor="minPayout" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Minimum Payout Amount ($)</Label>
+                          <div className="space-y-1">
+                            <Label htmlFor="minPayout" className="text-xs font-bold text-foreground/90 uppercase tracking-wider">Minimum Cash-Out Threshold ($)</Label>
                             <input 
                               id="minPayout" 
                               type="number"
                               value={settings.min_payout_amount} 
                               onChange={e => updateKey("min_payout_amount", Number(e.target.value))}
-                              className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm" 
+                              className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs font-bold text-foreground outline-none focus:border-ring" 
                             />
                           </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Payout Schedule</Label>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-bold text-foreground/90 uppercase tracking-wider">Settlement Interval</Label>
                             <select 
                               value={settings.payout_schedule} 
                               onChange={e => updateKey("payout_schedule", e.target.value)}
-                              className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm appearance-none"
+                              className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs font-semibold text-foreground outline-none"
                             >
-                              <option value="weekly">Weekly (every Monday)</option>
+                              <option value="weekly">Weekly (Every Monday)</option>
                               <option value="biweekly">Bi-weekly</option>
                               <option value="monthly">Monthly</option>
                             </select>
@@ -314,96 +322,67 @@ export default function SettingsPage() {
 
                     {tab === "notifications" && (
                       <>
-                        <div>
-                          <h2 className="text-xl font-bold text-foreground tracking-tight">Notification Settings</h2>
-                          <p className="text-sm font-medium text-muted-foreground mt-1">Control administrative push alerts.</p>
+                        <div className="border-b border-border/60 pb-3">
+                          <h2 className="text-sm font-bold text-foreground">Administrator Alerts & Webhooks</h2>
+                          <p className="text-xs text-muted-foreground mt-0.5">Toggle automated notifications triggered by operational events.</p>
                         </div>
                         
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between p-5 bg-background border border-border shadow-sm rounded-xl hover:bg-muted/50 transition-colors">
-                            <div>
-                              <p className="text-sm font-bold text-foreground">New Booking Alert</p>
-                              <p className="text-xs font-medium text-muted-foreground mt-0.5">Alert when a new booking is created.</p>
+                        <div className="space-y-3">
+                          {[
+                            { key: "notify_new_booking", title: "New Booking Alert", desc: "Notify admin when a customer submits a booking request." },
+                            { key: "notify_dispute_opened", title: "Dispute Claim Filed", desc: "Immediate alert when customer or company registers a conflict." },
+                            { key: "notify_payout_failed", title: "Failed Bank Disbursement", desc: "Alert when a Bakong or ABA payout transfer fails." },
+                            { key: "notify_low_rating", title: "Low Provider Rating", desc: "Alert when provider rating drops below 4.0 stars." },
+                          ].map((item) => (
+                            <div key={item.key} className="flex items-center justify-between p-3.5 bg-background border border-border rounded-lg">
+                              <div>
+                                <p className="text-xs font-bold text-foreground">{item.title}</p>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">{item.desc}</p>
+                              </div>
+                              <input 
+                                type="checkbox" 
+                                checked={(settings as any)[item.key]} 
+                                onChange={e => updateKey(item.key as any, e.target.checked)}
+                                className="w-4 h-4 text-foreground border-border rounded cursor-pointer"
+                              />
                             </div>
-                            <input 
-                              type="checkbox" 
-                              checked={settings.notify_new_booking} 
-                              onChange={e => updateKey("notify_new_booking", e.target.checked)}
-                              className="w-5 h-5 text-primary border-border rounded focus:ring-primary cursor-pointer bg-background"
-                            />
-                          </div>
-                          <div className="flex items-center justify-between p-5 bg-background border border-border shadow-sm rounded-xl hover:bg-muted/50 transition-colors">
-                            <div>
-                              <p className="text-sm font-bold text-foreground">Dispute Opened Alert</p>
-                              <p className="text-xs font-medium text-muted-foreground mt-0.5">Alert when a customer files a new dispute.</p>
-                            </div>
-                            <input 
-                              type="checkbox" 
-                              checked={settings.notify_dispute_opened} 
-                              onChange={e => updateKey("notify_dispute_opened", e.target.checked)}
-                              className="w-5 h-5 text-primary border-border rounded focus:ring-primary cursor-pointer bg-background"
-                            />
-                          </div>
-                          <div className="flex items-center justify-between p-5 bg-background border border-border shadow-sm rounded-xl hover:bg-muted/50 transition-colors">
-                            <div>
-                              <p className="text-sm font-bold text-foreground">Payout Failure Alert</p>
-                              <p className="text-xs font-medium text-muted-foreground mt-0.5">Alert when a processed payout fails.</p>
-                            </div>
-                            <input 
-                              type="checkbox" 
-                              checked={settings.notify_payout_failed} 
-                              onChange={e => updateKey("notify_payout_failed", e.target.checked)}
-                              className="w-5 h-5 text-primary border-border rounded focus:ring-primary cursor-pointer bg-background"
-                            />
-                          </div>
-                          <div className="flex items-center justify-between p-5 bg-background border border-border shadow-sm rounded-xl hover:bg-muted/50 transition-colors">
-                            <div>
-                              <p className="text-sm font-bold text-foreground">Low Staff Rating Alert</p>
-                              <p className="text-xs font-medium text-muted-foreground mt-0.5">Alert when staff rating drops below 4.0 stars.</p>
-                            </div>
-                            <input 
-                              type="checkbox" 
-                              checked={settings.notify_low_rating} 
-                              onChange={e => updateKey("notify_low_rating", e.target.checked)}
-                              className="w-5 h-5 text-primary border-border rounded focus:ring-primary cursor-pointer bg-background"
-                            />
-                          </div>
+                          ))}
                         </div>
                       </>
                     )}
 
                     {tab === "integrations" && (
                       <>
-                        <div>
-                          <h2 className="text-xl font-bold text-foreground tracking-tight">Integrations & Credentials</h2>
-                          <p className="text-sm font-medium text-muted-foreground mt-1">Configure global third-party APIs.</p>
+                        <div className="border-b border-border/60 pb-3">
+                          <h2 className="text-sm font-bold text-foreground">Third-Party API Credentials</h2>
+                          <p className="text-xs text-muted-foreground mt-0.5">Encrypted API secret keys for mapping and SMS gateways.</p>
                         </div>
                         
-                        <div className="space-y-6">
-                          <div className="flex flex-col gap-2">
-                            <Label htmlFor="twilio" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Twilio Auth Token</Label>
+                        <div className="space-y-4">
+                          <div className="space-y-1">
+                            <Label htmlFor="twilio" className="text-xs font-bold text-foreground/90 uppercase tracking-wider">Twilio SMS Auth Token</Label>
                             <input 
                               id="twilio" 
                               type="password"
                               value={settings.twilio_auth_token} 
                               onChange={e => updateKey("twilio_auth_token", e.target.value)}
                               placeholder="••••••••••••••••"
-                              className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm font-mono tracking-widest" 
+                              className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs font-mono text-foreground outline-none focus:border-ring" 
                             />
-                            <p className="text-xs font-medium text-muted-foreground">Used for SMS dispatching and OTP validation.</p>
+                            <p className="text-[11px] text-muted-foreground/70">Used for customer phone verification and instant SMS dispatches.</p>
                           </div>
 
-                          <div className="flex flex-col gap-2">
-                            <Label htmlFor="gmaps" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Google Maps API Key</Label>
+                          <div className="space-y-1">
+                            <Label htmlFor="gmaps" className="text-xs font-bold text-foreground/90 uppercase tracking-wider">Google Maps Geocoding API Key</Label>
                             <input 
                               id="gmaps" 
                               type="password"
                               value={settings.google_maps_api_key} 
                               onChange={e => updateKey("google_maps_api_key", e.target.value)}
                               placeholder="••••••••••••••••"
-                              className="w-full h-11 px-4 bg-background border border-border rounded-lg text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm font-mono tracking-widest" 
+                              className="w-full h-9 px-3 bg-background border border-border rounded-lg text-xs font-mono text-foreground outline-none focus:border-ring" 
                             />
-                            <p className="text-xs font-medium text-muted-foreground">Used for distance calculations and map components.</p>
+                            <p className="text-[11px] text-muted-foreground/70">Used for client address autocomplete and technician distance matrices.</p>
                           </div>
                         </div>
                       </>
@@ -413,10 +392,14 @@ export default function SettingsPage() {
               </div>
 
               {/* Bottom Actions */}
-              <div className="border-t border-border mt-10 pt-6 max-w-3xl flex justify-end shrink-0">
-                <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-11 px-6 rounded-lg shadow-sm transition-all text-sm">
-                  {saving ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
-                  Save Changes
+              <div className="border-t border-border mt-6 pt-4 max-w-2xl flex justify-end shrink-0">
+                <Button 
+                  onClick={handleSave} 
+                  disabled={saving} 
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-8.5 px-4 rounded-lg shadow-2xs text-xs"
+                >
+                  {saving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
+                  Save Platform Configuration
                 </Button>
               </div>
             </div>

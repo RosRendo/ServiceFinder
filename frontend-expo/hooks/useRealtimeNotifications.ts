@@ -95,6 +95,9 @@ export function useRealtimeNotifications() {
   useEffect(() => {
     if (!user?.id) return;
 
+    // ── Fetch existing persisted notifications from DB ──
+    useNotificationStore.getState().fetchNotifications();
+
     // ── Register push token with backend ──
     registerForPushNotifications().then(async (token) => {
       if (!token) return;

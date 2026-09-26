@@ -27,24 +27,24 @@ export default function NewCategory() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.slug) {
-      Alert.alert("Error", "Name and slug are required");
+    if (!formData.name.trim() || !formData.slug.trim()) {
+      Alert.alert("Validation Error", "Category name and URL slug are required.");
       return;
     }
     setIsSubmitting(true);
     try {
       await api.post('/api/categories', {
-        name: formData.name,
-        slug: formData.slug,
-        description: formData.description,
-        icon: formData.icon,
-        imageUrl: formData.imageUrl,
+        name: formData.name.trim(),
+        slug: formData.slug.trim(),
+        description: formData.description.trim(),
+        icon: formData.icon.trim() || "shape-outline",
+        imageUrl: formData.imageUrl.trim(),
         displayOrder: parseInt(formData.displayOrder) || 0,
         status: 'active',
       });
       router.back();
     } catch (error: any) {
-      Alert.alert("Error", error.response?.data?.message || "Failed to create category");
+      Alert.alert("Submission Failed", error.response?.data?.message || "Failed to create category");
     } finally {
       setIsSubmitting(false);
     }
@@ -55,7 +55,7 @@ export default function NewCategory() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={T.text1} />
+          <MaterialCommunityIcons name="arrow-left" size={20} color={T.text1} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Add New Category</Text>
       </View>
@@ -66,11 +66,10 @@ export default function NewCategory() {
           <View style={s.formGroup}>
             <Text style={s.label}>Category Name</Text>
             <View style={s.inputBox}>
-              <MaterialCommunityIcons name="format-title" size={20} color={T.text3} />
               <TextInput
                 style={s.input}
-                placeholder="e.g. Home Cleaning"
-                placeholderTextColor={T.text3}
+                placeholder="e.g. Electrical Services"
+                placeholderTextColor={T.mgmtTextSecondary || T.text3}
                 value={formData.name}
                 onChangeText={handleNameChange}
               />
@@ -80,17 +79,16 @@ export default function NewCategory() {
           <View style={s.formGroup}>
             <Text style={s.label}>URL Slug</Text>
             <View style={s.inputBox}>
-              <MaterialCommunityIcons name="link-variant" size={20} color={T.text3} />
               <TextInput
                 style={s.input}
-                placeholder="e.g. home-cleaning"
-                placeholderTextColor={T.text3}
+                placeholder="e.g. electrical-services"
+                placeholderTextColor={T.mgmtTextSecondary || T.text3}
                 value={formData.slug}
                 onChangeText={(text) => setFormData({ ...formData, slug: text })}
                 autoCapitalize="none"
               />
             </View>
-            <Text style={s.helperText}>Unique identifier used in URLs</Text>
+            <Text style={s.helperText}>Unique identifier used in routes and search filters</Text>
           </View>
 
           <View style={s.formGroup}>
@@ -98,12 +96,12 @@ export default function NewCategory() {
             <View style={[s.inputBox, s.textAreaBox]}>
               <TextInput
                 style={s.textArea}
-                placeholder="Brief description of this category..."
-                placeholderTextColor={T.text3}
+                placeholder="Brief administrative description of this service tier..."
+                placeholderTextColor={T.mgmtTextSecondary || T.text3}
                 value={formData.description}
                 onChangeText={(text) => setFormData({ ...formData, description: text })}
                 multiline
-                numberOfLines={4}
+                numberOfLines={3}
               />
             </View>
           </View>
@@ -111,11 +109,11 @@ export default function NewCategory() {
           <View style={s.formGroup}>
             <Text style={s.label}>Material Design Icon</Text>
             <View style={s.inputBox}>
-              <MaterialCommunityIcons name={formData.icon as any} size={20} color={T.text3} />
+              <MaterialCommunityIcons name={formData.icon as any} size={16} color={T.mgmtTextSecondary || T.text3} style={{ marginRight: 8 }} />
               <TextInput
                 style={s.input}
-                placeholder="e.g. shape-outline"
-                placeholderTextColor={T.text3}
+                placeholder="e.g. flash-outline"
+                placeholderTextColor={T.mgmtTextSecondary || T.text3}
                 value={formData.icon}
                 onChangeText={(text) => setFormData({ ...formData, icon: text })}
                 autoCapitalize="none"
@@ -126,11 +124,10 @@ export default function NewCategory() {
           <View style={s.formGroup}>
             <Text style={s.label}>Category Image URL</Text>
             <View style={s.inputBox}>
-              <MaterialCommunityIcons name="image-outline" size={20} color={T.text3} />
               <TextInput
                 style={s.input}
-                placeholder="e.g. https://example.com/image.png"
-                placeholderTextColor={T.text3}
+                placeholder="e.g. https://cdn.example.com/icons/electrical.png"
+                placeholderTextColor={T.mgmtTextSecondary || T.text3}
                 value={formData.imageUrl}
                 onChangeText={(text) => setFormData({ ...formData, imageUrl: text })}
                 autoCapitalize="none"
@@ -140,13 +137,12 @@ export default function NewCategory() {
           </View>
 
           <View style={s.formGroup}>
-            <Text style={s.label}>Display Order</Text>
+            <Text style={s.label}>Display Sort Order</Text>
             <View style={s.inputBox}>
-              <MaterialCommunityIcons name="sort" size={20} color={T.text3} />
               <TextInput
                 style={s.input}
                 placeholder="e.g. 0"
-                placeholderTextColor={T.text3}
+                placeholderTextColor={T.mgmtTextSecondary || T.text3}
                 value={formData.displayOrder}
                 onChangeText={(text) => setFormData({ ...formData, displayOrder: text.replace(/[^0-9]/g, '') })}
                 keyboardType="numeric"
@@ -156,7 +152,7 @@ export default function NewCategory() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Footer */}
+      {/* Footer Action */}
       <View style={s.footer}>
         <TouchableOpacity
           style={[s.submitBtn, isSubmitting && s.submitBtnDisabled]}
@@ -164,7 +160,7 @@ export default function NewCategory() {
           disabled={isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator size="small" color={T.bg} />
           ) : (
             <Text style={s.submitBtnText}>Create Category</Text>
           )}
@@ -175,31 +171,31 @@ export default function NewCategory() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: T.mgmtBg || T.bg },
   header: {
     flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 16, paddingVertical: 16, backgroundColor: T.surface,
-    borderBottomWidth: 1, borderBottomColor: T.border,
+    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.mgmtSurface || T.surface,
+    borderBottomWidth: 1, borderBottomColor: T.mgmtBorder || T.border,
   },
-  backBtn: { padding: 8, marginLeft: -8, marginRight: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
+  backBtn: { padding: 4, marginRight: 8 },
+  headerTitle: { fontSize: 16, fontWeight: "700", color: T.text1 },
   
-  content: { padding: 24, paddingBottom: 40 },
+  content: { padding: 16, paddingBottom: 32 },
   
-  formGroup: { marginBottom: 24 },
-  label: { fontSize: 12, fontWeight: "700", color: T.text2, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, marginLeft: 4 },
+  formGroup: { marginBottom: 16 },
+  label: { fontSize: 11, fontWeight: "600", color: T.mgmtTextSecondary || T.text2, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 },
   inputBox: { 
-    flexDirection: "row", alignItems: "center", backgroundColor: T.surface, 
-    borderRadius: 16, paddingHorizontal: 16, height: 56, borderWidth: 1, borderColor: T.border, 
+    flexDirection: "row", alignItems: "center", backgroundColor: T.mgmtSurface || T.surface, 
+    borderRadius: 8, paddingHorizontal: 12, height: 42, borderWidth: 1, borderColor: T.mgmtBorder || T.border, 
   },
-  input: { flex: 1, fontSize: 16, color: T.text1, fontWeight: "500", marginLeft: 12 },
+  input: { flex: 1, fontSize: 13, color: T.text1, fontWeight: "500" },
   
-  textAreaBox: { height: 120, alignItems: "flex-start", paddingVertical: 16 },
-  textArea: { flex: 1, fontSize: 16, color: T.text1, textAlignVertical: "top" },
-  helperText: { fontSize: 12, color: T.text3, marginTop: 6, marginLeft: 4 },
+  textAreaBox: { height: 88, alignItems: "flex-start", paddingVertical: 10 },
+  textArea: { flex: 1, fontSize: 13, color: T.text1, textAlignVertical: "top" },
+  helperText: { fontSize: 11, color: T.mgmtTextSecondary || T.text3, marginTop: 4 },
   
-  footer: { padding: 24, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border },
-  submitBtn: { backgroundColor: T.accent, borderRadius: 16, height: 56, alignItems: "center", justifyContent: "center" },
-  submitBtnDisabled: { opacity: 0.7 },
-  submitBtnText: { fontSize: 16, fontWeight: "700", color: "#fff", letterSpacing: 0.5 },
+  footer: { padding: 16, backgroundColor: T.mgmtSurface || T.surface, borderTopWidth: 1, borderTopColor: T.mgmtBorder || T.border },
+  submitBtn: { backgroundColor: T.text1, borderRadius: 8, height: 44, alignItems: "center", justifyContent: "center" },
+  submitBtnDisabled: { opacity: 0.6 },
+  submitBtnText: { fontSize: 13, fontWeight: "600", color: T.bg },
 });

@@ -637,7 +637,7 @@ export default function BookingDetailsScreen() {
                   "Select a new date and time. This must be approved by the company.",
                   [
                     { text: "Cancel", style: "cancel" },
-                    { text: "Select Time", onPress: () => router.push(`/(customer)/booking/reschedule?bookingId=${id}` as any) }
+                    { text: "Select Time", onPress: () => router.push(`/(customer)/booking/reschedule?bookingId=${id}&id=${id}` as any) }
                   ]
                 );
               }}

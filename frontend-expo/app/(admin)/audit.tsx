@@ -18,26 +18,26 @@ const T = Theme.colors;
 
 
 
-type ActionType = "all" | "login" | "create" | "update" | "delete" | "approve";
-
-const ACTION_CONFIG: Record<string, { icon: string; color: string; bg: string }> = {
-  login:   { icon: "login",            color: T.blue,    bg: T.blue + "15" },
-  create:  { icon: "plus-circle",      color: T.success, bg: T.success + "15" },
-  update:  { icon: "pencil-circle",    color: T.warning, bg: T.warning + "15" },
-  delete:  { icon: "delete-circle",    color: T.error,   bg: T.error + "15" },
-  approve: { icon: "check-circle",     color: T.purple,  bg: T.purple + "15" },
-  default: { icon: "shield-check",     color: T.gray,    bg: T.gray + "15" },
-};
+type ActionType = "all" | "login" | "register" | "settings" | "security";
 
 const FILTER_TABS: { id: ActionType; label: string }[] = [
   { id: "all", label: "All" },
   { id: "login", label: "Login" },
-  { id: "create", label: "Create" },
-  { id: "update", label: "Update" },
-  { id: "delete", label: "Delete" },
-  { id: "approve", label: "Approve" },
+  { id: "register", label: "Registered" },
+  { id: "settings", label: "Settings" },
+  { id: "security", label: "Security" },
 ];
 
+const getActionConfig = (action: string = "") => {
+  const act = action.toLowerCase();
+  if (act.includes("login")) return { icon: "login", color: T.blue, bg: T.blue + "15", label: "Login" };
+  if (act.includes("register")) return { icon: "account-plus", color: T.success, bg: T.success + "15", label: "Registered" };
+  if (act.includes("setting")) return { icon: "cog-outline", color: T.warning, bg: T.warning + "15", label: "Settings" };
+  if (act.includes("delete") || act.includes("reject") || act.includes("suspend")) return { icon: "close-circle-outline", color: T.error, bg: T.error + "15", label: "Action" };
+  if (act.includes("approve") || act.includes("confirm")) return { icon: "check-circle-outline", color: T.success, bg: T.success + "15", label: "Approved" };
+  if (act.includes("update") || act.includes("edit")) return { icon: "pencil-outline", color: T.warning, bg: T.warning + "15", label: "Update" };
+  return { icon: "shield-check-outline", color: T.gray, bg: T.gray + "15", label: action || "Event" };
+};
 
 export default function AuditLogs() {
   const { t } = useTranslation();
@@ -53,9 +53,22 @@ export default function AuditLogs() {
   const fetchLogs = async () => {
     try {
       const response = await api.get("/api/audit-logs");
-      const data = response.data?.data ?? [];
+      let data: any[] = [];
+      const raw = response.data;
+      if (Array.isArray(raw)) {
+        data = raw;
+      } else if (Array.isArray(raw?.data)) {
+        data = raw.data;
+      } else if (Array.isArray(raw?.data?.data)) {
+        data = raw.data.data;
+      } else if (Array.isArray(raw?.logs)) {
+        data = raw.logs;
+      }
       setLogs(data);
-    } catch {
+      setHasError(false);
+    } catch (err) {
+      console.error("Failed to fetch audit logs:", err);
+      setHasError(true);
       setLogs([]);
     } finally {
       setIsLoading(false);
@@ -66,22 +79,37 @@ export default function AuditLogs() {
   useEffect(() => { fetchLogs(); }, []);
 
   useEffect(() => {
-    let result = logs;
-    if (activeFilter !== "all") result = result.filter(l => l.action === activeFilter);
+    let result = Array.isArray(logs) ? logs : [];
+    if (activeFilter !== "all") {
+      result = result.filter(l => {
+        const act = (l.action || "").toLowerCase();
+        if (activeFilter === "login") return act.includes("login");
+        if (activeFilter === "register") return act.includes("register");
+        if (activeFilter === "settings") return act.includes("setting");
+        if (activeFilter === "security") return act.includes("security") || act.includes("suspend") || act.includes("delete");
+        return act.includes(activeFilter);
+      });
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(l =>
-        l.user?.fullName?.toLowerCase().includes(q) ||
-        l.action?.toLowerCase().includes(q) ||
-        l.entityType?.toLowerCase().includes(q) ||
-        l.entityId?.toLowerCase().includes(q)
+        (l.user?.fullName || l.actor || "").toLowerCase().includes(q) ||
+        (l.user?.email || "").toLowerCase().includes(q) ||
+        (l.action || "").toLowerCase().includes(q) ||
+        (l.entityType || l.targetType || "").toLowerCase().includes(q) ||
+        (l.description || "").toLowerCase().includes(q) ||
+        String(l.entityId || "").toLowerCase().includes(q)
       );
     }
     setFiltered(result);
   }, [logs, activeFilter, search]);
 
   const renderLog = ({ item }: { item: any }) => {
-    const cfg = ACTION_CONFIG[item.action] ?? ACTION_CONFIG.default;
+    const cfg = getActionConfig(item.action);
+    const actorName = item.actor || item.user?.fullName || "System";
+    const actorEmail = item.user?.email;
+    const actorRole = item.actorRole || item.user?.role || "system";
+
     return (
       <View style={s.card}>
         <View style={s.cardTopRow}>
@@ -91,21 +119,27 @@ export default function AuditLogs() {
           <View style={s.cardInfo}>
             <View style={s.cardHeaderRow}>
               <View style={[s.badge, { backgroundColor: cfg.bg }]}>
-                <Text style={[s.badgeText, { color: cfg.color }]}>{item.action}</Text>
+                <Text style={[s.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
               </View>
               <Text style={s.timeText}>
                 {new Date(item.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
               </Text>
             </View>
-            <Text style={s.userName}>{item.user?.fullName ?? "System"}</Text>
-            <Text style={s.userEmail}>{item.user?.email}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
+              <Text style={s.userName}>{actorName}</Text>
+              <View style={s.rolePill}>
+                <Text style={s.rolePillText}>{actorRole}</Text>
+              </View>
+            </View>
+            {actorEmail ? <Text style={s.userEmail}>{actorEmail}</Text> : null}
+            {item.description ? <Text style={s.descText}>{item.description}</Text> : null}
           </View>
         </View>
         <View style={s.cardFooterRow}>
           <Text style={s.footerText}>
-            <Text style={s.footerTextBold}>{item.entityType}</Text> #{item.entityId}
+            <Text style={s.footerTextBold}>{item.entityType || item.targetType || "Target"}</Text> #{item.entityId || "N/A"}
           </Text>
-          <Text style={s.footerText}>IP: {item.ipAddress ?? "Unknown"}</Text>
+          <Text style={s.footerText}>IP: {item.ipAddress || "127.0.0.1"}</Text>
         </View>
       </View>
     );
@@ -241,8 +275,26 @@ const s = StyleSheet.create({
   badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
   badgeText: { fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
   timeText: { fontSize: 11, color: T.text3 },
-  userName: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 2 },
-  userEmail: { fontSize: 13, color: T.text3 },
+  userName: { fontSize: 15, fontWeight: "700", color: T.text1 },
+  userEmail: { fontSize: 13, color: T.text3, marginTop: 1 },
+  rolePill: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+    backgroundColor: T.accentLight,
+  },
+  rolePillText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: T.accent,
+    textTransform: "uppercase",
+  },
+  descText: {
+    fontSize: 12,
+    color: T.text2,
+    marginTop: 4,
+    lineHeight: 16,
+  },
 
   cardFooterRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: T.border },
   footerText: { fontSize: 12, color: T.text2 },

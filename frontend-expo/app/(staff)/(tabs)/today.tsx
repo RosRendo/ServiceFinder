@@ -146,7 +146,10 @@ export default function TodayScreen() {
 
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        const servicesEnabled = await Location.hasServicesEnabledAsync().catch(() => false);
+        if (!servicesEnabled) return;
+
+        const { status } = await Location.requestForegroundPermissionsAsync().catch(() => ({ status: 'denied' }));
         if (status !== 'granted') return;
 
         socket = io(SOCKET_URL || API_URL, { transports: ['websocket'] });
@@ -156,9 +159,9 @@ export default function TodayScreen() {
 
         sub = await Location.watchPositionAsync(
           {
-            accuracy: Location.Accuracy.High,
-            timeInterval: 2000,
-            distanceInterval: 3,
+            accuracy: Location.Accuracy.Balanced,
+            timeInterval: 3000,
+            distanceInterval: 5,
           },
           (newLoc) => {
             let coords = newLoc.coords;
@@ -180,9 +183,9 @@ export default function TodayScreen() {
               });
             }
           }
-        );
-      } catch (err) {
-        console.warn("Location watch error:", err);
+        ).catch(() => null);
+      } catch {
+        // Location watch unavailable — graceful fallback
       }
     })();
 
@@ -300,45 +303,50 @@ export default function TodayScreen() {
     React.useCallback(() => {
       (async () => {
         try {
-          let { status } = await Location.requestForegroundPermissionsAsync();
-          if (status === 'granted') {
-            let loc = await Location.getLastKnownPositionAsync();
-            if (!loc) {
-              loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            }
-            
-            // Normalize simulator coordinates to Phnom Penh BKK1
-            if (loc) {
-              const lat = loc.coords.latitude;
-              const lng = loc.coords.longitude;
-              const isAndroidEmu = Math.abs(lat - 37.422) < 0.2 && Math.abs(lng - (-122.084)) < 0.2;
-              const isIosEmu = (Math.abs(lat - 37.785) < 0.3 && Math.abs(lng - (-122.406)) < 0.3) || 
-                               (Math.abs(lat - 37.332) < 0.3 && Math.abs(lng - (-122.030)) < 0.3);
+          const servicesEnabled = await Location.hasServicesEnabledAsync().catch(() => false);
+          if (servicesEnabled) {
+            let { status } = await Location.requestForegroundPermissionsAsync().catch(() => ({ status: 'denied' }));
+            if (status === 'granted') {
+              let loc = await Location.getLastKnownPositionAsync().catch(() => null);
+              if (!loc) {
+                loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).catch(() => null);
+              }
               
-              if (isAndroidEmu || isIosEmu) {
-                loc = {
-                  ...loc,
-                  coords: { ...loc.coords, latitude: 11.5564, longitude: 104.9282 }
-                };
+              // Normalize simulator coordinates to Phnom Penh BKK1
+              if (loc) {
+                const lat = loc.coords.latitude;
+                const lng = loc.coords.longitude;
+                const isAndroidEmu = Math.abs(lat - 37.422) < 0.2 && Math.abs(lng - (-122.084)) < 0.2;
+                const isIosEmu = (Math.abs(lat - 37.785) < 0.3 && Math.abs(lng - (-122.406)) < 0.3) || 
+                                 (Math.abs(lat - 37.332) < 0.3 && Math.abs(lng - (-122.030)) < 0.3);
+                
+                if (isAndroidEmu || isIosEmu) {
+                  loc = {
+                    ...loc,
+                    coords: { ...loc.coords, latitude: 11.5564, longitude: 104.9282 }
+                  };
+                }
               }
-            }
-            
-            setLocation(loc);
+              
+              if (loc) {
+                setLocation(loc);
 
-            try {
-              if (loc?.coords) {
-                await api.patch('/api/users/me/location', {
-                  latitude: loc.coords.latitude,
-                  longitude: loc.coords.longitude
-                });
+                try {
+                  if (loc?.coords) {
+                    await api.patch('/api/users/me/location', {
+                      latitude: loc.coords.latitude,
+                      longitude: loc.coords.longitude
+                    });
+                  }
+                  await api.patch('/api/users/me/staff-status', { status: 'active' });
+                } catch {
+                  // Non-critical background sync
+                }
               }
-              await api.patch('/api/users/me/staff-status', { status: 'active' });
-            } catch (err) {
-              console.warn("Failed to sync location/status to server:", err);
             }
           }
-        } catch (e) {
-          console.warn("Location not available:", e);
+        } catch {
+          // Location unavailable — silent fallback
         }
 
         loadJobs();

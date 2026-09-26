@@ -27,6 +27,7 @@ import {
   AssignStaffDto,
   UpdateProgressDto,
   CancelBookingDto,
+  RescheduleBookingDto,
 } from './dto/booking-actions.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -220,6 +221,19 @@ export class BookingsController {
   ) {
     const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
     return this.bookingsService.cancelBooking(BigInt(id), dto.reason, user);
+  }
+
+  @Post(':id/reschedule')
+  @Patch(':id/reschedule')
+  @ApiOperation({ summary: 'Reschedule a booking' })
+  @ApiResponse({ status: 200, description: 'Booking successfully rescheduled.' })
+  rescheduleBooking(
+    @Param('id') id: string,
+    @Body() dto: RescheduleBookingDto,
+    @Request() req,
+  ) {
+    const user = { ...req.user, id: req.user?.id || req.user?.userId || 0 };
+    return this.bookingsService.rescheduleBooking(BigInt(id), dto, user);
   }
 
   @Post('photos')

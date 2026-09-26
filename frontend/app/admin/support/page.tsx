@@ -7,6 +7,7 @@ import { useSupportTickets } from "@/lib/hooks/useSupportTickets";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
 import { SupportDrawer } from "@/components/drawers/SupportDrawer";
+import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
 
 type TicketStatus = "open" | "pending" | "resolved" | "closed" | "in_progress";
 type TicketPriority = "low" | "medium" | "high" | "urgent";
@@ -36,6 +37,21 @@ export default function AdminSupportPage() {
   const { tickets: fetchedTickets, loading, updateTicketStatus, addTicketReply } = useSupportTickets();
   const [localTickets, setLocalTickets] = useState<UISupportTicket[]>([]);
 
+  const exportCSV = () => {
+    const rows = [
+      ["ID", "Subject", "User", "User Type", "Status", "Priority", "Created At"],
+      ...localTickets.map((t) => [t.id, t.subject, t.userName, t.userType, t.status, t.priority, new Date(t.createdAt).toLocaleDateString()]),
+    ];
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `support-tickets-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(() => {
     if (fetchedTickets && fetchedTickets.length > 0) {
       const mapped = fetchedTickets.map(t => ({
@@ -53,6 +69,7 @@ export default function AdminSupportPage() {
   
   const [selectedTicket, setSelectedTicket] = useState<UISupportTicket | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
 
   const filteredTickets = localTickets.filter(ticket => {
     const matchesSearch = ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -129,8 +146,12 @@ export default function AdminSupportPage() {
     }
   ];
 
-  const handleBulkResolve = async () => {
-    if (!window.confirm(`Mark ${selectedIds.size} ticket(s) as resolved?`)) return;
+  const handleBulkResolve = () => {
+    if (selectedIds.size === 0) return;
+    setResolveDialogOpen(true);
+  };
+
+  const confirmBulkResolve = async () => {
     try {
       await Promise.all(
         Array.from(selectedIds).map((id) =>
@@ -178,7 +199,7 @@ export default function AdminSupportPage() {
           ))}
         </div>
         <div className="flex-1" />
-        <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-foreground hover:bg-muted/50 bg-background transition-colors">
+        <button onClick={exportCSV} className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-foreground hover:bg-muted/50 bg-background transition-colors">
           <Download className="w-3.5 h-3.5 opacity-70" /> Export
         </button>
       </div>
@@ -225,6 +246,16 @@ export default function AdminSupportPage() {
           ticket={selectedTicket as any}
         />
       )}
+
+      <ConfirmationDialog
+        isOpen={resolveDialogOpen}
+        onClose={() => setResolveDialogOpen(false)}
+        title="Resolve Support Tickets"
+        description={`Are you sure you want to mark ${selectedIds.size} ticket(s) as resolved?`}
+        actionType="warning"
+        confirmLabel="Mark as Resolved"
+        onConfirm={confirmBulkResolve}
+      />
     </div>
   );
 }

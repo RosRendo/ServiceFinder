@@ -22,7 +22,7 @@ interface ReviewRow {
 
 const STATUS_COLORS: Record<string, string> = {
   visible: "text-emerald-400 bg-emerald-400/10 border border-emerald-400/20",
-  hidden: "text-slate-400 bg-slate-400/10 border border-slate-400/20",
+  hidden: "text-muted-foreground/70 bg-muted/50 border border-border",
   flagged: "text-rose-400 bg-rose-400/10 border border-rose-400/20",
 };
 

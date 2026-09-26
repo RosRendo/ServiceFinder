@@ -64,26 +64,35 @@ export default function StaffTrackMapScreen() {
   useEffect(() => {
     if (!permGranted) return;
     (async () => {
-      watchRef.current = await ExpoLocation.watchPositionAsync(
-        { accuracy: ExpoLocation.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
-        (loc) => {
-          const c: GeoCoords = {
-            lat:      loc.coords.latitude,
-            lng:      loc.coords.longitude,
-            accuracy: loc.coords.accuracy ?? undefined,
-            heading:  loc.coords.heading ?? undefined,
-          };
-          setMyCoords(c);
-          // Live inject staff marker into map
-          if (webviewRef.current && mapReady) {
-            webviewRef.current.injectJavaScript(`
-              if (window.myMarker) map.removeLayer(window.myMarker);
-              window.myMarker = L.marker([${c.lat},${c.lng}], { icon: myIcon }).addTo(map);
-              true;
-            `);
-          }
+      try {
+        const servicesEnabled = await ExpoLocation.hasServicesEnabledAsync().catch(() => false);
+        if (!servicesEnabled) {
+          setMyCoords({ lat: 11.5564, lng: 104.9282 });
+          return;
         }
-      );
+        watchRef.current = await ExpoLocation.watchPositionAsync(
+          { accuracy: ExpoLocation.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
+          (loc) => {
+            const c: GeoCoords = {
+              lat:      loc.coords.latitude,
+              lng:      loc.coords.longitude,
+              accuracy: loc.coords.accuracy ?? undefined,
+              heading:  loc.coords.heading ?? undefined,
+            };
+            setMyCoords(c);
+            // Live inject staff marker into map
+            if (webviewRef.current && mapReady) {
+              webviewRef.current.injectJavaScript(`
+                if (window.myMarker) map.removeLayer(window.myMarker);
+                window.myMarker = L.marker([${c.lat},${c.lng}], { icon: myIcon }).addTo(map);
+                true;
+              `);
+            }
+          }
+        ).catch(() => null);
+      } catch {
+        setMyCoords({ lat: 11.5564, lng: 104.9282 });
+      }
     })();
   }, [permGranted, mapReady]);
 

@@ -56,10 +56,15 @@ export function useAPI<T = any>(
   const abortController = useRef<AbortController | null>(null);
   const cachedData = useRef<Map<string, any>>(new Map());
 
+  // Format endpoint to ensure /api prefix is present
+  const formattedEndpoint = endpoint.startsWith("/api") || endpoint.startsWith("http")
+    ? endpoint
+    : `/api${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+
   const fetchData = useCallback(async () => {
     // Check cache first
-    if (cache && cachedData.current.has(endpoint)) {
-      setData(cachedData.current.get(endpoint));
+    if (cache && cachedData.current.has(formattedEndpoint)) {
+      setData(cachedData.current.get(formattedEndpoint));
       setLoading(false);
       return;
     }
@@ -75,7 +80,7 @@ export function useAPI<T = any>(
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`,
+        `${process.env.NEXT_PUBLIC_API_URL}${formattedEndpoint}`,
         {
           signal: abortController.current.signal,
           credentials: "include",
@@ -113,7 +118,7 @@ export function useAPI<T = any>(
 
       // Cache if enabled
       if (cache) {
-        cachedData.current.set(endpoint, normalizedData);
+        cachedData.current.set(formattedEndpoint, normalizedData);
       }
 
       setData(normalizedData);
@@ -137,12 +142,12 @@ export function useAPI<T = any>(
       onError?.(errorMessage);
 
       if (process.env.NODE_ENV === "development") {
-        console.error(`API Error [${endpoint}]:`, errorMessage);
+        console.error(`API Error [${formattedEndpoint}]:`, errorMessage);
       }
     } finally {
       setLoading(false);
     }
-  }, [endpoint, skip, cache, retry, onSuccess, onError]);
+  }, [formattedEndpoint, skip, cache, retry, onSuccess, onError]);
 
   useEffect(() => {
     if (!skip) {
@@ -154,7 +159,7 @@ export function useAPI<T = any>(
         abortController.current.abort();
       }
     };
-  }, [endpoint, skip]);
+  }, [formattedEndpoint, skip]);
 
   return {
     data,
@@ -186,6 +191,11 @@ export function usePaginatedAPI<T = any>(
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
+  // Format endpoint to ensure /api prefix is present
+  const formattedEndpoint = endpoint.startsWith("/api") || endpoint.startsWith("http")
+    ? endpoint
+    : `/api${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+
   const fetchPage = useCallback(
     async (pageNum: number = 1, append = false) => {
       setLoading(true);
@@ -197,7 +207,7 @@ export function usePaginatedAPI<T = any>(
         params.append("limit", limit.toString());
 
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}${endpoint}?${params}`
+          `${process.env.NEXT_PUBLIC_API_URL}${formattedEndpoint}?${params}`
         );
 
         if (!response.ok) {
@@ -221,14 +231,14 @@ export function usePaginatedAPI<T = any>(
         setLoading(false);
       }
     },
-    [endpoint, limit]
+    [formattedEndpoint, limit]
   );
 
   useEffect(() => {
     if (!skip) {
       fetchPage(1);
     }
-  }, [endpoint]);
+  }, [formattedEndpoint]);
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore) {
@@ -268,9 +278,14 @@ export function useMutation() {
       setLoading(true);
       setError(null);
 
+      // Format endpoint to ensure /api prefix is present
+      const formattedEndpoint = endpoint.startsWith("/api") || endpoint.startsWith("http")
+        ? endpoint
+        : `/api${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`,
+          `${process.env.NEXT_PUBLIC_API_URL}${formattedEndpoint}`,
           {
             method,
             headers: {

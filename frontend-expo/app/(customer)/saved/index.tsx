@@ -8,6 +8,7 @@ import { api } from "@/store/authStore";
 import FadeIn from "@/components/FadeIn";
 import ScaleButton from "@/components/ScaleButton";
 import { Theme } from "@/constants/theme";
+import { EmptySavedSvg } from "@/components/svg";
 
 type Tab = "service" | "company";
 
@@ -117,8 +118,8 @@ export default function SavedScreen() {
         ) : items.length === 0 ? (
           <FadeIn delay={100}>
             <View style={s.emptyState}>
-              <View style={s.emptyIconBox}>
-                <MaterialCommunityIcons name="heart-outline" size={40} color={T.text3} />
+              <View style={{ marginBottom: 16 }}>
+                <EmptySavedSvg size={105} />
               </View>
               <Text style={s.emptyTitle}>Nothing saved yet</Text>
               <Text style={s.emptyBody}>

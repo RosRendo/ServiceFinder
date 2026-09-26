@@ -1,24 +1,36 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Edit2, Trash2, Search, Loader2, Tag, Layers } from "lucide-react";
-import { useToast } from "@/lib/hooks/use-toast";
-import api from "@/lib/api/client";
-import { DataGrid, Column } from "@/components/grid/DataGrid";
-import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { useState, useEffect } from "react";
+import { ManagementDataGrid, ColumnDef } from "@/components/admin/ManagementDataGrid";
+import { StatusPill } from "@/components/admin/StatusPill";
 import { ServiceTypeDrawer, ServiceTypeFormData } from "@/components/drawers/ServiceTypeDrawer";
-import { StatusBadge } from "@/components/grid/StatusBadge";
+import { Plus, Edit2, Trash2, Tag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
+import { toast } from "sonner";
+import api from "@/lib/api/client";
+
+interface ServiceTypeRow {
+  id: string | number;
+  name: string;
+  slug: string;
+  description?: string;
+  categoryId: string | number;
+  icon?: string;
+  status: string;
+  category?: { id: string | number; name: string };
+}
 
 export default function AdminServiceTypesPage() {
-  const [serviceTypes, setServiceTypes] = useState<any[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<ServiceTypeRow[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editing, setEditing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<ServiceTypeRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ServiceTypeRow | null>(null);
   const [search, setSearch] = useState("");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const { toast } = useToast();
+  const [page, setPage] = useState(1);
 
   const [formData, setFormData] = useState<ServiceTypeFormData>({
     name: "",
@@ -33,10 +45,10 @@ export default function AdminServiceTypesPage() {
     setLoading(true);
     try {
       const res = await api.get("/service-types");
-      const payload = res.data.data || res.data;
+      const payload = res.data?.data || res.data;
       setServiceTypes(Array.isArray(payload) ? payload : payload.data || []);
     } catch {
-      toast({ title: "Error", description: "Failed to load service types", variant: "destructive" });
+      toast.error("Failed to load service types catalog.");
     } finally {
       setLoading(false);
     }
@@ -45,11 +57,9 @@ export default function AdminServiceTypesPage() {
   const fetchCategories = async () => {
     try {
       const res = await api.get("/categories");
-      const payload = res.data.data || res.data;
+      const payload = res.data?.data || res.data;
       setCategories(Array.isArray(payload) ? payload : payload.data || []);
     } catch (e) {
-      // Non-fatal: the form's category dropdown falls back to manual entry,
-      // but log it so the empty-dropdown case is diagnosable.
       console.error("Failed to load categories", e);
     }
   };
@@ -71,13 +81,13 @@ export default function AdminServiceTypesPage() {
     setDrawerOpen(true);
   };
 
-  const openEdit = (type: any) => {
+  const openEdit = (type: ServiceTypeRow) => {
     setEditing(type);
     setFormData({
       name: type.name,
       slug: type.slug,
       description: type.description || "",
-      categoryId: type.categoryId.toString(),
+      categoryId: String(type.categoryId),
       icon: type.icon || "",
       status: type.status || "active"
     });
@@ -86,7 +96,7 @@ export default function AdminServiceTypesPage() {
 
   const handleSave = async () => {
     if (!formData.name.trim() || !formData.categoryId) {
-      toast({ title: "Error", description: "Name and Category are required", variant: "destructive" });
+      toast.error("Name and parent category are required.");
       return;
     }
 
@@ -98,160 +108,152 @@ export default function AdminServiceTypesPage() {
       };
       if (editing) {
         await api.put(`/service-types/${editing.id}`, payload);
-        toast({ title: "Success", description: "Service type updated successfully" });
+        toast.success("Service type updated successfully.");
       } else {
         await api.post("/service-types", payload);
-        toast({ title: "Success", description: "Service type created successfully" });
+        toast.success("Service type created successfully.");
       }
       setDrawerOpen(false);
       fetchServiceTypes();
     } catch (e: any) {
-      toast({ title: "Error", description: e.response?.data?.message || "Failed to save service type", variant: "destructive" });
+      toast.error(e.response?.data?.message || "Failed to save service type.");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this service type?")) return;
+  const handleDelete = (row: ServiceTypeRow) => {
+    setDeleteTarget(row);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await api.delete(`/service-types/${id}`);
-      toast({ title: "Success", description: "Service type deleted successfully" });
+      await api.delete(`/service-types/${deleteTarget.id}`);
+      toast.success("Service type deleted.");
       fetchServiceTypes();
-    } catch {
-      toast({ title: "Error", description: "Failed to delete service type", variant: "destructive" });
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || "Failed to delete service type.");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
-  const toggleRow = useCallback((id: string) => {
-    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
-  }, []);
-  
-  const toggleAll = useCallback(() => {
-    setSelectedIds((prev) => prev.size === filtered.length ? new Set() : new Set(filtered.map((s) => s.id)));
-  }, [filtered]);
-
-  const columns: Column<any>[] = [
+  const columns: ColumnDef<ServiceTypeRow>[] = [
     {
-      key: "name", header: "Service Type", sortable: true,
-      render: (s) => (
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-xl shrink-0 border border-violet-500/20">
-            {s.icon || "✨"}
-          </div>
-          <div>
-            <div className="font-bold text-foreground text-sm">{s.name}</div>
-            <div className="text-[10px] font-mono font-medium text-muted-foreground uppercase tracking-wider mt-0.5">{s.slug}</div>
-          </div>
+      id: "name",
+      header: "Service Type",
+      sortable: true,
+      accessorFn: (r) => r.name,
+      cell: (r) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-foreground text-sm">{r.name}</span>
+          {r.description ? (
+            <span className="text-xs text-muted-foreground line-clamp-1">{r.description}</span>
+          ) : null}
         </div>
-      )
+      ),
     },
     {
-      key: "category", header: "Category", sortable: true,
-      render: (s) => (
-        <span className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-lg inline-flex">
-          <Layers className="w-3.5 h-3.5 text-muted-foreground/70" />
-          {s.category?.name || "—"}
+      id: "slug",
+      header: "URL Slug",
+      accessorFn: (r) => r.slug,
+      cell: (r) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {r.slug}
         </span>
-      )
+      ),
     },
     {
-      key: "status", header: "Status",
-      render: (s) => <StatusBadge status={s.status || "active"} />
+      id: "category",
+      header: "Parent Category",
+      sortable: true,
+      accessorFn: (r) => r.category?.name || "Uncategorized",
+      cell: (r) => (
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
+          <Tag className="w-3.5 h-3.5 text-muted-foreground" />
+          {r.category?.name || "Unassigned"}
+        </span>
+      ),
     },
     {
-      key: "actions", header: "Actions",
-      render: (s) => (
-        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-          <button 
-            onClick={() => openEdit(s)} 
-            className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-violet-600 hover:border-violet-500/30 hover:bg-violet-500/5 transition-colors"
+      id: "status",
+      header: "Status",
+      sortable: true,
+      accessorFn: (r) => r.status,
+      cell: (r) => (
+        <StatusPill status={r.status} />
+      ),
+    },
+    {
+      id: "actions",
+      header: "",
+      cell: (r) => (
+        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+            onClick={() => openEdit(r)}
           >
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button 
-            onClick={() => handleDelete(s.id)} 
-            className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-rose-600 hover:border-rose-500/30 hover:bg-rose-500/5 transition-colors"
+            <Edit2 className="w-3.5 h-3.5 mr-1" />
+            Edit
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+            onClick={() => handleDelete(r)}
           >
-            <Trash2 className="w-4 h-4" />
-          </button>
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
         </div>
-      )
-    }
-  ];
-
-  const handleBulkDelete = async () => {
-    if (!window.confirm(`Delete ${selectedIds.size} service type(s)? This cannot be undone.`)) return;
-    try {
-      await Promise.all(Array.from(selectedIds).map((id) => api.delete(`/service-types/${id}`)));
-      toast({ title: "Deleted", description: `${selectedIds.size} service type(s) deleted.` });
-      setSelectedIds(new Set());
-      fetchServiceTypes();
-    } catch {
-      toast({ title: "Error", description: "Failed to delete one or more service types.", variant: "destructive" });
-    }
-  };
-
-  const bulkActions = [
-    { label: "Delete Selected", icon: Trash2, onClick: handleBulkDelete, variant: "danger" as const },
+      ),
+    },
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden relative bg-background font-sans">
-      {/* Flush Top Header */}
-      <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input 
-            className="w-full pl-9 pr-3 h-9 bg-muted/30 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60 transition-colors" 
-            placeholder="Search service types..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-          />
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Service Types</h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Global service type definitions categorizing company offerings across the marketplace
+          </p>
         </div>
-        <div className="flex-1" />
-        <button 
-          onClick={openAdd} 
-          className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 shadow-sm transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" /> Add Service Type
-        </button>
+        <div>
+          <Button
+            onClick={openAdd}
+            size="sm"
+            className="h-8 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            Add Service Type
+          </Button>
+        </div>
       </div>
 
-      {/* Flush Stats Row */}
-      <div className="shrink-0 flex items-center gap-6 px-6 py-2.5 border-b border-border bg-muted/10">
-        {[
-          { label: "Total Service Types", value: filtered.length, color: "text-foreground" },
-        ].map((s) => (
-          <div key={s.label} className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">{s.label}</span>
-            <span className={`font-bold ${s.color}`}>{s.value}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Full-height DataGrid */}
-      <div className="flex-1 overflow-hidden relative">
-        <DataGrid
-          columns={columns}
-          data={filtered}
-          loading={loading}
-          selectedIds={selectedIds}
-          onToggleRow={toggleRow}
-          onToggleAll={toggleAll}
-          onRowClick={(type) => openEdit(type)}
-          emptyIcon={Tag}
-          emptyMessage="No service types found matching your search."
-        />
-      </div>
-
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        onClear={() => setSelectedIds(new Set())}
-        actions={bulkActions}
+      {/* DataGrid */}
+      <ManagementDataGrid
+        data={filtered}
+        columns={columns}
+        isLoading={loading}
+        searchPlaceholder="Filter service types by name, slug, or category..."
+        searchValue={search}
+        onSearchChange={setSearch}
+        page={page}
+        pageSize={15}
+        totalItems={filtered.length}
+        onPageChange={setPage}
+        onRowClick={(row) => openEdit(row)}
+        emptyState={{
+          title: "No service types found",
+          description: "No service type definitions match the current search query.",
+        }}
       />
 
-      {/* Drawer */}
+      {/* Slideout Form Drawer */}
       <ServiceTypeDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
@@ -261,6 +263,17 @@ export default function AdminServiceTypesPage() {
         categories={categories}
         onSave={handleSave}
         loading={saving}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title={deleteTarget ? `Delete Service Type "${deleteTarget.name}"` : "Delete Service Type"}
+        description="Permanently delete this service type? Existing services mapped to this type may be affected."
+        actionType="danger"
+        confirmLabel="Permanently Delete"
+        onConfirm={confirmDelete}
       />
     </div>
   );

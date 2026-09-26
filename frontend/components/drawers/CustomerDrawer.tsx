@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { BaseDrawer } from "./BaseDrawer";
 import { Phone, MapPin, ShieldAlert, MessageSquare, Ban, CalendarClock, TrendingUp, User, Activity, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/lib/hooks/use-toast";
+import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
 
 
 export interface CustomerRow {
@@ -52,20 +54,23 @@ export function CustomerDrawer({ open, onClose, customer }: CustomerDrawerProps)
   const router = useRouter();
   const { user } = useAuthContext();
   const { toast } = useToast();
+  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
   if (!customer) return null;
 
+  const customerName = customer.name || (customer as any).fullName || "Customer";
+
   return (
-    <BaseDrawer open={open} onClose={onClose} title={customer.name} subtitle={`Customer #${customer.id.substring(0,8)}`}>
+    <BaseDrawer open={open} onClose={onClose} title={customerName} subtitle={`Customer #${customer.id ? customer.id.toString().substring(0,8) : ''}`}>
       <div className="p-6 space-y-6">
         
         {/* Customer Identity */}
         <div className="flex items-center gap-4 bg-muted/10 border border-border rounded-xl p-4">
           <Avatar className="w-12 h-12 rounded-xl border border-border/50 shadow-sm">
-            {customer.avatar ? <AvatarImage src={customer.avatar} /> : <AvatarFallback className="rounded-xl font-bold bg-muted text-foreground">{customer.name?.charAt(0) || "?"}</AvatarFallback>}
+            {customer.avatar ? <AvatarImage src={customer.avatar} /> : <AvatarFallback className="rounded-xl font-bold bg-muted text-foreground">{customerName.charAt(0) || "?"}</AvatarFallback>}
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="font-bold text-sm text-foreground truncate">{customer.name}</p>
+              <p className="font-bold text-sm text-foreground truncate">{customerName}</p>
               <span className={cn(
                 "text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1.5 uppercase tracking-widest",
                 customer.workingStatus === "online" ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" : "text-muted-foreground bg-muted border-border"
@@ -166,17 +171,11 @@ export function CustomerDrawer({ open, onClose, customer }: CustomerDrawerProps)
                   router.push(`${basePath}/messages?new=${customer.id}`);
                   onClose();
                 } else if (id === "disputes") {
-                  toast({
-                    title: "Simulated",
-                    description: "Navigating to customer disputes dashboard...",
-                  });
+                  const basePath = user?.role === 'admin' ? '/admin' : '/company';
+                  router.push(`${basePath}/disputes?customerId=${customer.id}`);
+                  onClose();
                 } else if (id === "block") {
-                  if (confirm(`Are you sure you want to block ${customer.name}?`)) {
-                    toast({
-                      title: "Simulated",
-                      description: `Blocked customer ${customer.name} successfully.`,
-                    });
-                  }
+                  setBlockConfirmOpen(true);
                 }
               }}
               className={cn("h-10 text-xs font-bold rounded-lg border shadow-sm transition-colors justify-center gap-2", color)}
@@ -186,6 +185,23 @@ export function CustomerDrawer({ open, onClose, customer }: CustomerDrawerProps)
           ))}
         </div>
       </div>
+
+      {/* Block Customer Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={blockConfirmOpen}
+        onClose={() => setBlockConfirmOpen(false)}
+        title="Block Customer Account"
+        description={`Are you sure you want to block ${customerName}? They will no longer be able to place bookings with your company.`}
+        actionType="danger"
+        confirmLabel="Block Customer"
+        onConfirm={async () => {
+          toast({
+            title: "Customer Blocked",
+            description: `Blocked customer ${customerName} successfully.`,
+          });
+          setBlockConfirmOpen(false);
+        }}
+      />
     </BaseDrawer>
   );
 }

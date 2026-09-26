@@ -14,13 +14,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/lib/hooks/use-toast";
 import { format } from "date-fns";
 import api from "@/lib/api/client";
+import { useRouter } from "next/navigation";
 
 
 
 export default function CompanyRevenuePage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [timeframe, setTimeframe] = useState<'today' | '7d' | '1m'>('1m');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 5;
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchRevenue = async () => {
@@ -35,6 +41,23 @@ export default function CompanyRevenuePage() {
     };
     fetchRevenue();
   }, [toast]);
+
+  const exportCSV = () => {
+    if (!data?.transactions) return;
+    const rows = [
+      ["Date", "Booking ID", "Customer", "Staff", "Gross", "Fee", "Net", "Status"],
+      ...data.transactions.map((tx: any) => [
+        format(new Date(tx.date), 'MMM d yyyy'), tx.id, tx.customer, tx.staff,
+        `$${tx.gross.toFixed(2)}`, `-$${tx.fee.toFixed(2)}`, `$${tx.net.toFixed(2)}`, tx.status,
+      ]),
+    ];
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = `revenue-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
 
   if (loading) {
     return (
@@ -61,17 +84,19 @@ export default function CompanyRevenuePage() {
         
         <div className="flex items-center gap-3">
           <div className="bg-muted/50 p-1 rounded-lg flex items-center border border-border">
-            <button className="px-3 py-1.5 rounded-md text-xs font-bold bg-background text-foreground shadow-sm">
-              Today
-            </button>
-            <button className="px-3 py-1.5 rounded-md text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">
-              7D
-            </button>
-            <button className="px-3 py-1.5 rounded-md text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">
-              1M
-            </button>
+            {(['today', '7d', '1m'] as const).map((t, i) => (
+              <button
+                key={t}
+                onClick={() => setTimeframe(t)}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                  timeframe === t ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {['Today', '7D', '1M'][i]}
+              </button>
+            ))}
           </div>
-          <Button variant="outline" size="sm" className="h-9 gap-2 text-muted-foreground font-semibold">
+          <Button variant="outline" size="sm" onClick={exportCSV} className="h-9 gap-2 text-muted-foreground font-semibold">
             <Download className="w-4 h-4" /> Export
           </Button>
         </div>
@@ -205,7 +230,7 @@ export default function CompanyRevenuePage() {
         <div className="bg-background border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
           <div className="p-5 border-b border-border/50 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">Top Staff</h2>
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] uppercase tracking-widest font-bold text-primary">View All</Button>
+            <Button variant="ghost" size="sm" onClick={() => router.push('/company/staff')} className="h-6 px-2 text-[10px] uppercase tracking-widest font-bold text-primary">View All</Button>
           </div>
           <div className="p-0 flex-1">
             <div className="divide-y divide-border/50">
@@ -247,11 +272,13 @@ export default function CompanyRevenuePage() {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input 
                 type="text" 
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                 placeholder="Search transactions..." 
                 className="w-full h-9 pl-9 pr-4 text-sm bg-background border border-border rounded-lg focus:outline-none focus:border-primary transition-colors"
               />
             </div>
-            <Button variant="outline" size="sm" className="h-9 px-3 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => toast({ title: 'Filters', description: 'Use the search box to filter by customer, staff, or booking ID.' })} className="h-9 px-3 shrink-0">
               <Filter className="w-4 h-4 mr-2" /> Filter
             </Button>
           </div>
@@ -274,7 +301,10 @@ export default function CompanyRevenuePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
-              {transactions.map((tx: any) => (
+              {transactions
+                .filter((tx: any) => !searchQuery || [tx.id, tx.customer, tx.staff].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase())))
+                .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+                .map((tx: any) => (
                 <tr key={tx.id} className="hover:bg-muted/20 transition-colors">
                   <td className="px-5 py-3 whitespace-nowrap text-muted-foreground">
                     {format(new Date(tx.date), 'MMM d')}
@@ -295,7 +325,7 @@ export default function CompanyRevenuePage() {
                     </span>
                   </td>
                   <td className="px-5 py-3 whitespace-nowrap text-right">
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs font-bold text-primary">View</Button>
+                    <Button variant="ghost" size="sm" onClick={() => router.push(`/company/bookings/${tx.id}`)} className="h-7 px-2 text-xs font-bold text-primary">View</Button>
                   </td>
                 </tr>
               ))}
@@ -305,11 +335,19 @@ export default function CompanyRevenuePage() {
         
         {/* Pagination placeholder */}
         <div className="p-4 border-t border-border flex justify-between items-center text-xs text-muted-foreground font-medium">
-          <span>Showing 1 to 5 of 24 entries</span>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="h-7 px-2" disabled>Prev</Button>
-            <Button variant="outline" size="sm" className="h-7 px-2">Next</Button>
-          </div>
+          {(() => {
+            const filtered = (transactions || []).filter((tx: any) => !searchQuery || [tx.id, tx.customer, tx.staff].some((v: string) => v?.toLowerCase().includes(searchQuery.toLowerCase())));
+            const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+            return (
+              <>
+                <span>Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} entries</span>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" className="h-7 px-2" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Prev</Button>
+                  <Button variant="outline" size="sm" className="h-7 px-2" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</Button>
+                </div>
+              </>
+            );
+          })()}
         </div>
 
       </div>

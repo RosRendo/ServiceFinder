@@ -1,262 +1,293 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { DataGrid, Column } from "@/components/grid/DataGrid";
-import { StatusBadge } from "@/components/grid/StatusBadge";
-import { BulkActionBar } from "@/components/grid/BulkActionBar";
-import { StaffDrawer } from "@/components/drawers/StaffDrawer";
-import { InviteStaffDrawer } from "@/components/drawers/InviteStaffDrawer";
-import { Search, Download, UserPlus, Star, Loader2, Eye, Edit, Trash2, Edit2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { UserPlus, Star, Edit2, Phone, Mail } from "lucide-react";
 import api from "@/lib/api/client";
 import { useToast } from "@/lib/hooks/use-toast";
 import { useSocket } from "@/lib/hooks/useSocket";
+import { ManagementDataGrid, ColumnDef } from "@/components/admin/ManagementDataGrid";
+import { StatusPill } from "@/components/admin/StatusPill";
+import { StaffDrawer } from "@/components/drawers/StaffDrawer";
+import { InviteStaffDrawer } from "@/components/drawers/InviteStaffDrawer";
+import { cn } from "@/lib/utils";
 
-const STATUS_DOT: Record<string, string> = {
-  online: "bg-emerald-400",
-  offline: "bg-slate-400",
-  on_job: "bg-violet-400",
-  inactive: "bg-rose-400",
-};
+const STATUS_FILTERS = [
+  { id: "all", label: "All Staff" },
+  { id: "online", label: "Online" },
+  { id: "on_job", label: "On Job" },
+  { id: "offline", label: "Offline" },
+];
 
 export default function CompanyStaffPage() {
-  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [inviteDrawerOpen, setInviteDrawerOpen] = useState(false);
   const [activeStaff, setActiveStaff] = useState<any | null>(null);
   const [editStaff, setEditStaff] = useState<any | null>(null);
-  
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
   const { toast } = useToast();
   const { socket } = useSocket();
 
   const fetchStaff = async () => {
-      setLoading(true);
-      try {
-          const response = await api.get('/companies/my-company/staff');
-          const payload = response.data.data || response.data;
-          setStaff(Array.isArray(payload) ? payload : (payload.staff || []));
-      } catch (err: any) {
-          toast({ title: "Error", description: err.message || "Failed to load staff", variant: "destructive" });
-      } finally {
-          setLoading(false);
-      }
+    setLoading(true);
+    try {
+      const response = await api.get("/companies/my-company/staff");
+      const payload = response.data.data || response.data;
+      setStaff(Array.isArray(payload) ? payload : payload.staff || []);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to load staff", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-      fetchStaff();
+    fetchStaff();
   }, []);
 
   useEffect(() => {
     if (!socket) return;
-    
-    const handleStatusChange = (data: { userId: string, status: string, lastSeen: string }) => {
-      setStaff(prev => prev.map(s => {
-        if (s.user?.id?.toString() === data.userId) {
-          return {
-            ...s,
-            user: {
-              ...s.user,
-              workingStatus: data.status,
-              lastSeen: data.lastSeen,
-            }
-          };
-        }
-        return s;
-      }));
+    const handleStatusChange = (data: { userId: string; status: string; lastSeen: string }) => {
+      setStaff((prev) =>
+        prev.map((s) => {
+          if (s.user?.id?.toString() === data.userId) {
+            return {
+              ...s,
+              user: {
+                ...s.user,
+                workingStatus: data.status,
+                lastSeen: data.lastSeen,
+              },
+            };
+          }
+          return s;
+        })
+      );
     };
 
-    socket.on('user_status_changed', handleStatusChange);
+    socket.on("staff:status_change", handleStatusChange);
     return () => {
-      socket.off('user_status_changed', handleStatusChange);
+      socket.off("staff:status_change", handleStatusChange);
     };
   }, [socket]);
 
-  const filtered = staff.filter((s) => {
-    const name = s.user?.fullName || s.fullName || s.name || "";
-    const status = s.user?.workingStatus || s.user?.status || s.status || "offline";
-    const matchSearch = !search || [name, s.role, s.id].some((v) => v?.toString().toLowerCase().includes(search.toLowerCase()));
-    const matchStatus = statusFilter === "all" || status === statusFilter;
-    return matchSearch && matchStatus;
+  const filteredStaff = staff.filter((s) => {
+    const rawStatus = (s.user?.workingStatus || s.user?.status || s.status || "offline").toLowerCase();
+    if (statusFilter !== "all" && rawStatus !== statusFilter) return false;
+    if (!search) return true;
+    const query = search.toLowerCase();
+    const name = (s.user?.fullName || s.name || "").toLowerCase();
+    const phone = (s.user?.phone || s.phone || "").toLowerCase();
+    const email = (s.user?.email || s.email || "").toLowerCase();
+    return name.includes(query) || phone.includes(query) || email.includes(query);
   });
 
-  const toggleRow = useCallback((id: string) => {
-    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
-  }, []);
-  const toggleAll = useCallback(() => {
-    setSelectedIds((prev) => prev.size === filtered.length ? new Set() : new Set(filtered.map((s) => s.id)));
-  }, [filtered]);
-
-  const columns: Column<any>[] = [
+  const columns: ColumnDef<any>[] = [
     {
-      key: "name", header: "Name", sortable: true,
-      render: (r) => {
-        const name = r.user?.fullName || r.fullName || r.name || "Unknown Staff";
-        const status = r.user?.workingStatus || r.user?.status || r.status || "offline";
+      id: "name",
+      header: "Staff Member",
+      isSortable: true,
+      cell: ({ row }) => {
+        const name = row.user?.fullName || row.name || "Technician";
+        const role = row.role || "Field Technician";
+        const initials = name
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase();
         return (
           <div className="flex items-center gap-2.5">
-            <div className="relative">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                {name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
-              </div>
-              <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-background ${STATUS_DOT[status] || 'bg-slate-400'}`} />
+            <div className="w-8 h-8 rounded-full bg-muted dark:bg-muted border border-border dark:border-border flex items-center justify-center font-bold text-xs text-foreground/90 dark:text-muted-foreground/50 shrink-0">
+              {initials}
             </div>
-            <span className="font-medium">{name}</span>
+            <div>
+              <div className="font-semibold text-foreground dark:text-foreground text-xs">{name}</div>
+              <div className="text-[11px] text-muted-foreground font-medium">{role}</div>
+            </div>
           </div>
         );
-      }
+      },
     },
-    { key: "email", header: "Email", sortable: true, render: (r) => <span className="text-muted-foreground text-sm">{r.user?.email || r.email || "N/A"}</span> },
-    { key: "role", header: "Role", render: (r) => <span className="text-muted-foreground text-xs">{r.role?.replace(/_/g, " ")}</span> },
-    { key: "status", header: "Status", render: (r) => <StatusBadge status={r.user?.workingStatus || r.user?.status || r.status || 'offline'} /> },
     {
-      key: "rating", header: "Rating", sortable: true,
-      render: (r) => (
-        <span className="flex items-center gap-1 text-amber-400 font-medium text-sm">
-          <Star className="w-3 h-3 fill-current" /> {r.rating || "5.0"}
+      id: "contact",
+      header: "Contact",
+      cell: ({ row }) => {
+        const phone = row.user?.phone || row.phone;
+        const email = row.user?.email || row.email;
+        return (
+          <div className="text-xs space-y-0.5">
+            {phone && (
+              <div className="text-foreground/90 dark:text-muted-foreground/50 flex items-center gap-1">
+                <Phone className="w-3 h-3 text-muted-foreground/70" />
+                <span>{phone}</span>
+              </div>
+            )}
+            {email && (
+              <div className="text-muted-foreground text-[11px] flex items-center gap-1">
+                <Mail className="w-3 h-3 text-muted-foreground/70" />
+                <span className="truncate max-w-[140px]">{email}</span>
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: "status",
+      header: "Status",
+      align: "center",
+      cell: ({ row }) => {
+        const rawStatus = row.user?.workingStatus || row.user?.status || row.status || "offline";
+        return <StatusPill status={rawStatus} />;
+      },
+    },
+    {
+      id: "rating",
+      header: "Rating",
+      align: "center",
+      isSortable: true,
+      cell: ({ row }) => (
+        <span className="inline-flex items-center gap-1 font-semibold text-xs text-foreground dark:text-foreground/90">
+          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+          {row.rating || "5.0"}
         </span>
       ),
     },
-    { key: "jobsCompleted", header: "Jobs", sortable: true, render: (r) => <span className="text-muted-foreground">{r._count?.assignedBookings || r.jobsCompleted || 0}</span> },
-    { key: "earningsToday", header: "Earned Today", sortable: true, render: (r) => <span className="font-medium">${r.earningsToday || 0}</span> },
     {
-      key: "actions",
-      header: "",
-      render: (r) => (
-        <div className="flex justify-end">
-          <button 
+      id: "jobsCompleted",
+      header: "Jobs",
+      align: "center",
+      isSortable: true,
+      cell: ({ row }) => (
+        <span className="font-mono text-xs font-medium text-foreground/90 dark:text-muted-foreground/50">
+          {row._count?.assignedBookings || row.jobsCompleted || 0}
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      align: "right",
+      cell: ({ row }) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
             onClick={(e) => {
               e.stopPropagation();
-              setEditStaff(r);
+              setEditStaff(row);
               setInviteDrawerOpen(true);
             }}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/80 transition-colors"
+            className="p-1 rounded text-muted-foreground/70 hover:text-foreground/90 dark:hover:text-foreground hover:bg-muted dark:hover:bg-muted transition"
           >
-            <Edit2 className="w-4 h-4" />
+            <Edit2 className="w-3.5 h-3.5" />
           </button>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
+  const onlineCount = staff.filter(
+    (s) => (s.user?.workingStatus || s.user?.status || s.status) === "online"
+  ).length;
+
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-            placeholder="Search staff..."
-            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60" 
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          {["all", "online", "on_job", "offline"].map((s) => (
-            <button key={s} onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === s ? "bg-violet-500/10 text-violet-500 border border-violet-500/20" : "text-muted-foreground hover:bg-muted/50 border border-transparent"}`}>
-              {s === "all" ? "All Staff" : s.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-            </button>
-          ))}
-        </div>
-        <div className="flex-1" />
-        <button 
-          onClick={() => {
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <ManagementDataGrid
+        title="Field Staff Roster"
+        description="Monitor staff availability, review performance ratings, and manage technician profiles."
+        primaryAction={{
+          label: "Add Staff Member",
+          icon: <UserPlus className="w-4 h-4" />,
+          onClick: () => {
             setEditStaff(null);
             setInviteDrawerOpen(true);
-          }}
-          className="flex items-center gap-2 h-9 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors shadow-sm"
-        >
-          <UserPlus className="w-4 h-4" /> Add Staff
-        </button>
-        <span className="text-xs text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 ml-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-          {staff.filter((s) => (s.user?.workingStatus || s.user?.status || s.status) === "online").length} online
-        </span>
-      </div>
-
-      <div className="flex-1 overflow-hidden">
-        {loading ? (
-           <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" /></div>
-        ) : (
-          <DataGrid
-            selectedIds={selectedIds}
-            onToggleRow={(id) => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; })}
-            onToggleAll={() => setSelectedIds(p => p.size === filtered.length ? new Set() : new Set(filtered.map((x: any) => x.id)))}
-            columns={columns} 
-            data={filtered} 
-            onRowClick={(r) => { setActiveStaff(r); setDrawerOpen(true); }}
-            emptyMessage="No staff found." 
-          />
-        )}
-      </div>
-
-      {activeStaff && (
-          <StaffDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onSuccess={fetchStaff} staff={{
-              id: activeStaff.id,
-              name: activeStaff.user?.fullName || "Unknown",
-              role: activeStaff.role,
-              status: activeStaff.user?.workingStatus || activeStaff.user?.status || activeStaff.status || "offline",
-              lastSeen: activeStaff.user?.lastSeen,
-              jobsCompleted: activeStaff._count?.assignedBookings || activeStaff.jobsCompleted || 0,
-              pendingPayout: activeStaff.walletBalance || 0,
-              phone: activeStaff.user?.phone || activeStaff.phone || "No phone",
-              activeJob: undefined,
-              splitPercent: activeStaff.splitPercent !== undefined && activeStaff.splitPercent !== null ? Number(activeStaff.splitPercent) : null,
-              compliance: [],
-              schedule: [],
-              currentLocation: "Unknown"
-          }} />
-      )}
-      
-      <InviteStaffDrawer 
-        open={inviteDrawerOpen} 
-        onClose={() => setInviteDrawerOpen(false)} 
-        onSuccess={() => fetchStaff()} 
-        staff={editStaff}
+          },
+        }}
+        data={filteredStaff}
+        columns={columns}
+        getRowId={(r) => r.id}
+        isLoading={loading}
+        onRowClick={(r) => {
+          setActiveStaff(r);
+          setDrawerOpen(true);
+        }}
+        searchPlaceholder="Search technician name, phone, or email..."
+        onSearchChange={setSearch}
+        filterSlots={
+          <div className="flex items-center gap-1">
+            {STATUS_FILTERS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setStatusFilter(tab.id)}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium transition",
+                  statusFilter === tab.id
+                    ? "bg-[#0A192F] text-white shadow-xs font-semibold"
+                    : "text-muted-foreground dark:text-muted-foreground/70 hover:bg-muted dark:hover:bg-muted"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+            {onlineCount > 0 && (
+              <span className="ml-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                {onlineCount} Online
+              </span>
+            )}
+          </div>
+        }
+        totalCount={filteredStaff.length}
+        pageSize={20}
+        currentPage={page}
+        onPageChange={setPage}
+        emptyState={{
+          title: "No staff members found",
+          description: "There are no technicians matching your active filter criteria.",
+          actionLabel: "Add First Technician",
+          onActionClick: () => {
+            setEditStaff(null);
+            setInviteDrawerOpen(true);
+          },
+        }}
       />
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        onClear={() => setSelectedIds(new Set())}
-        actions={[
-          {
-            icon: Eye,
-            label: "View Detail",
-            onClick: () => {
-              const id = Array.from(selectedIds)[0];
-              if (id) {
-                router.push(`/company/staff/${id}`);
-              }
-  
-            }
-          },
-          {
-            icon: Edit2,
-            label: "Edit",
-            onClick: () => {
-              const id = Array.from(selectedIds)[0];
 
-              const s = filtered.find((x: any) => x.id === id);
-              if (s) {
-                setActiveStaff(s);
-                setDrawerOpen(true);
-              }
-  
-            }
-          },
-          {
-            icon: Trash2,
-            label: "Delete",
-            variant: "danger",
-            onClick: () => {
-              setSelectedIds(new Set());
-            }
-          }
-        ]}
+      {/* Staff Detail Drawer */}
+      {activeStaff && (
+        <StaffDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          onSuccess={fetchStaff}
+          staff={{
+            id: activeStaff.id,
+            name: activeStaff.user?.fullName || activeStaff.name || "Technician",
+            role: activeStaff.role,
+            status: activeStaff.user?.workingStatus || activeStaff.user?.status || activeStaff.status || "offline",
+            lastSeen: activeStaff.user?.lastSeen,
+            jobsCompleted: activeStaff._count?.assignedBookings || activeStaff.jobsCompleted || 0,
+            pendingPayout: activeStaff.walletBalance || 0,
+            phone: activeStaff.user?.phone || activeStaff.phone || "No phone",
+            activeJob: undefined,
+            splitPercent:
+              activeStaff.splitPercent !== undefined && activeStaff.splitPercent !== null
+                ? Number(activeStaff.splitPercent)
+                : null,
+            compliance: [],
+            schedule: [],
+            currentLocation: "Unknown",
+          }}
+        />
+      )}
+
+      {/* Invite / Edit Staff Drawer */}
+      <InviteStaffDrawer
+        open={inviteDrawerOpen}
+        onClose={() => setInviteDrawerOpen(false)}
+        onSuccess={() => fetchStaff()}
+        staff={editStaff}
       />
     </div>
   );

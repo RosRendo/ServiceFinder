@@ -1,27 +1,40 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Edit2, Trash2, Search, Loader2, Layers } from "lucide-react";
-import { useToast } from "@/lib/hooks/use-toast";
-import api from "@/lib/api/client";
-import { DataGrid, Column } from "@/components/grid/DataGrid";
-import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { useState, useEffect } from "react";
+import { ManagementDataGrid, ColumnDef } from "@/components/admin/ManagementDataGrid";
+import { StatusPill } from "@/components/admin/StatusPill";
 import { CategoryDrawer, CategoryFormData } from "@/components/drawers/CategoryDrawer";
+import { Plus, Edit2, Trash2, Layers } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
+import { toast } from "sonner";
+import api from "@/lib/api/client";
+
+interface CategoryRow {
+  id: string | number;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  imageUrl?: string;
+  useImageAsBadge?: boolean;
+  status: string;
+}
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<any | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null);
+  const [deleteTargetCategory, setDeleteTargetCategory] = useState<CategoryRow | null>(null);
   const [search, setSearch] = useState("");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const { toast } = useToast();
-  
-  const [formData, setFormData] = useState<CategoryFormData>({ 
-    name: "", 
-    slug: "", 
-    description: "", 
+  const [page, setPage] = useState(1);
+
+  const [formData, setFormData] = useState<CategoryFormData>({
+    name: "",
+    slug: "",
+    description: "",
     icon: "",
     imageUrl: "",
     useImageAsBadge: false,
@@ -32,17 +45,17 @@ export default function CategoriesPage() {
     setLoading(true);
     try {
       const res = await api.get("/categories?all=true");
-      const payload = res.data.data || res.data;
+      const payload = res.data?.data || res.data;
       setCategories(Array.isArray(payload) ? payload : payload.data || []);
     } catch {
-      toast({ title: "Error", description: "Failed to load categories", variant: "destructive" });
+      toast.error("Failed to load category taxonomy.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { 
-    fetchCategories(); 
+  useEffect(() => {
+    fetchCategories();
   }, []);
 
   const filtered = categories.filter((c) =>
@@ -50,200 +63,177 @@ export default function CategoriesPage() {
     c.slug?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const openAdd = () => { 
-    setEditingCategory(null); 
-    setFormData({ name: "", slug: "", description: "", icon: "", imageUrl: "", useImageAsBadge: false, status: "active" }); 
-    setDrawerOpen(true); 
+  const openAdd = () => {
+    setEditingCategory(null);
+    setFormData({ name: "", slug: "", description: "", icon: "", imageUrl: "", useImageAsBadge: false, status: "active" });
+    setDrawerOpen(true);
   };
 
-  const openEdit = (c: any) => { 
-    setEditingCategory(c); 
-    setFormData({ 
-      name: c.name || "", 
-      slug: c.slug || "", 
-      description: c.description || "", 
+  const openEdit = (c: CategoryRow) => {
+    setEditingCategory(c);
+    setFormData({
+      name: c.name || "",
+      slug: c.slug || "",
+      description: c.description || "",
       icon: c.icon || "",
       imageUrl: c.imageUrl || "",
       useImageAsBadge: !!c.useImageAsBadge,
       status: c.status || "active"
-    }); 
-    setDrawerOpen(true); 
+    });
+    setDrawerOpen(true);
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim()) { 
-      toast({ title: "Error", description: "Name is required", variant: "destructive" }); 
-      return; 
+    if (!formData.name.trim()) {
+      toast.error("Category name is required.");
+      return;
     }
-    
+
     setSaving(true);
     try {
       if (editingCategory) {
         await api.put(`/categories/${editingCategory.id}`, formData);
-        toast({ title: "Success", description: "Category updated successfully" });
+        toast.success("Category updated successfully.");
       } else {
         await api.post("/categories", formData);
-        toast({ title: "Success", description: "Category created successfully" });
+        toast.success("Category created successfully.");
       }
-      setDrawerOpen(false); 
+      setDrawerOpen(false);
       fetchCategories();
-    } catch (e: any) { 
-      toast({ title: "Error", description: e.response?.data?.message || "Failed to save category", variant: "destructive" }); 
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || "Failed to save category.");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (c: any) => {
-    if (!confirm(`Delete category "${c.name}"?`)) return;
-    try { 
-      await api.delete(`/categories/${c.id}`); 
-      toast({ title: "Success", description: "Category deleted successfully" }); 
-      fetchCategories(); 
-    } catch { 
-      toast({ title: "Error", description: "Failed to delete category", variant: "destructive" }); 
+  const handleDelete = (c: CategoryRow) => {
+    setDeleteTargetCategory(c);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetCategory) return;
+    try {
+      await api.delete(`/categories/${deleteTargetCategory.id}`);
+      toast.success("Category deleted.");
+      fetchCategories();
+    } catch {
+      toast.error("Failed to delete category.");
+    } finally {
+      setDeleteTargetCategory(null);
     }
   };
 
-  const toggleRow = useCallback((id: string) => {
-    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
-  }, []);
-  
-  const toggleAll = useCallback(() => {
-    setSelectedIds((prev) => prev.size === filtered.length ? new Set() : new Set(filtered.map((c) => c.id)));
-  }, [filtered]);
-
-  const columns: Column<any>[] = [
+  const columns: ColumnDef<CategoryRow>[] = [
     {
-      key: "name", header: "Category", sortable: true,
-      render: (c) => (
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-xl shrink-0 border border-violet-500/20 overflow-hidden">
+      id: "name",
+      header: "Category",
+      sortable: true,
+      accessorFn: (c) => c.name,
+      cell: (c) => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-md bg-muted border border-border flex items-center justify-center text-sm shrink-0 overflow-hidden">
             {c.imageUrl ? (
               <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-xl">{c.icon || "📁"}</span>
+              <span>{c.icon || "📁"}</span>
             )}
           </div>
-          <div>
-            <div className="font-bold text-foreground text-sm">{c.name}</div>
-            <div className="text-[10px] font-mono font-medium text-muted-foreground uppercase tracking-wider mt-0.5">{c.slug}</div>
+          <div className="flex flex-col">
+            <span className="font-semibold text-foreground text-sm">{c.name}</span>
+            <span className="text-xs font-mono text-muted-foreground">{c.slug}</span>
           </div>
         </div>
-      )
+      ),
     },
     {
-      key: "description", header: "Description",
-      render: (c) => (
-        <span className="text-sm font-medium text-muted-foreground max-w-xs truncate block">
+      id: "description",
+      header: "Description",
+      accessorFn: (c) => c.description || "—",
+      cell: (c) => (
+        <span className="text-xs text-muted-foreground line-clamp-1 max-w-sm">
           {c.description || "—"}
         </span>
-      )
+      ),
     },
     {
-      key: "status", header: "Status", sortable: true,
-      render: (c) => (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-          c.status === "active" 
-            ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" 
-            : "bg-slate-500/10 text-slate-500 border border-slate-500/20"
-        }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${c.status === "active" ? "bg-emerald-500" : "bg-slate-400"}`} />
-          {c.status === "active" ? "Active" : "Inactive"}
-        </span>
-      )
+      id: "status",
+      header: "Status",
+      sortable: true,
+      accessorFn: (c) => c.status,
+      cell: (c) => (
+        <StatusPill status={c.status} />
+      ),
     },
     {
-      key: "actions", header: "Actions",
-      render: (c) => (
-        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-          <button 
-            onClick={() => openEdit(c)} 
-            className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-violet-600 hover:border-violet-500/30 hover:bg-violet-500/5 transition-colors"
+      id: "actions",
+      header: "",
+      cell: (c) => (
+        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+            onClick={() => openEdit(c)}
           >
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button 
-            onClick={() => handleDelete(c)} 
-            className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-rose-600 hover:border-rose-500/30 hover:bg-rose-500/5 transition-colors"
+            <Edit2 className="w-3.5 h-3.5 mr-1" />
+            Edit
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+            onClick={() => handleDelete(c)}
           >
-            <Trash2 className="w-4 h-4" />
-          </button>
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
         </div>
-      )
-    }
-  ];
-
-  const handleBulkDelete = async () => {
-    if (!window.confirm(`Delete ${selectedIds.size} categor${selectedIds.size === 1 ? 'y' : 'ies'}? This cannot be undone.`)) return;
-    try {
-      await Promise.all(Array.from(selectedIds).map((id) => api.delete(`/categories/${id}`)));
-      toast({ title: "Deleted", description: `${selectedIds.size} categor${selectedIds.size === 1 ? 'y' : 'ies'} deleted.` });
-      setSelectedIds(new Set());
-      fetchCategories();
-    } catch {
-      toast({ title: "Error", description: "Failed to delete one or more categories.", variant: "destructive" });
-    }
-  };
-
-  const bulkActions = [
-    { label: "Delete Selected", icon: Trash2, onClick: handleBulkDelete, variant: "danger" as const },
+      ),
+    },
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden relative bg-background font-sans">
-      {/* Flush Top Header */}
-      <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input 
-            value={search} onChange={(e) => setSearch(e.target.value)} 
-            placeholder="Search categories..."
-            className="w-full pl-9 pr-3 h-9 bg-muted/30 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60 transition-colors" 
-          />
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Categories</h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Top-level taxonomy defining consumer discovery categories across web and mobile apps
+          </p>
         </div>
-        <div className="flex-1" />
-        <button 
-          onClick={openAdd} 
-          className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 shadow-sm transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" /> Add Category
-        </button>
+        <div>
+          <Button
+            onClick={openAdd}
+            size="sm"
+            className="h-8 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            Add Category
+          </Button>
+        </div>
       </div>
 
-      {/* Flush Stats Row */}
-      <div className="shrink-0 flex items-center gap-6 px-6 py-2.5 border-b border-border bg-muted/10">
-        {[
-          { label: "Total Categories", value: filtered.length, color: "text-foreground" },
-        ].map((s) => (
-          <div key={s.label} className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">{s.label}</span>
-            <span className={`font-bold ${s.color}`}>{s.value}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Full-height DataGrid */}
-      <div className="flex-1 overflow-hidden relative">
-        <DataGrid
-          columns={columns}
-          data={filtered}
-          loading={loading}
-          selectedIds={selectedIds}
-          onToggleRow={toggleRow}
-          onToggleAll={toggleAll}
-          onRowClick={(cat) => openEdit(cat)}
-          emptyIcon={Layers}
-          emptyMessage="No categories found matching your search."
-        />
-      </div>
-
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        onClear={() => setSelectedIds(new Set())}
-        actions={bulkActions}
+      {/* DataGrid */}
+      <ManagementDataGrid
+        data={filtered}
+        columns={columns}
+        isLoading={loading}
+        searchPlaceholder="Filter categories by name or slug..."
+        searchValue={search}
+        onSearchChange={setSearch}
+        page={page}
+        pageSize={15}
+        totalItems={filtered.length}
+        onPageChange={setPage}
+        onRowClick={(row) => openEdit(row)}
+        emptyState={{
+          title: "No categories found",
+          description: "No categories match the active filter or search criteria.",
+        }}
       />
 
+      {/* Slideout Category Form Drawer */}
       <CategoryDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
@@ -252,6 +242,17 @@ export default function CategoriesPage() {
         setFormData={setFormData}
         onSave={handleSave}
         loading={saving}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={!!deleteTargetCategory}
+        onClose={() => setDeleteTargetCategory(null)}
+        title={deleteTargetCategory ? `Delete Category "${deleteTargetCategory.name}"` : "Delete Category"}
+        description="Are you sure you want to delete this category? Linked services and catalog listings may be affected."
+        actionType="danger"
+        confirmLabel="Delete Category"
+        onConfirm={confirmDelete}
       />
     </div>
   );

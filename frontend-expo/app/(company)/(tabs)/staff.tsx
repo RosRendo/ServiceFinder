@@ -13,6 +13,7 @@ import ErrorState from "@/components/common/ErrorState";
 import InitialsAvatar from "@/components/common/InitialsAvatar";
 import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
 import { Theme } from "@/constants/theme";
+import { MobileStatusPill } from "@/components/admin/ManagementCard";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 const FlashList = ShopifyFlashList as any;
 
@@ -335,9 +336,7 @@ export default function Staff() {
                       <Text style={s.userName} numberOfLines={1}>{member.fullName || "Unknown"}</Text>
                       <Text style={s.userEmail} numberOfLines={1}>{member.email || "No Email"}</Text>
                     </View>
-                    <View style={[s.statusBadge, { backgroundColor: sStyle.bg }]}>
-                      <Text style={[s.statusText, { color: sStyle.color }]}>{member.status || "inactive"}</Text>
-                    </View>
+                    <MobileStatusPill status={member.status || "offline"} />
                   </View>
 
                   <View style={s.cardBody}>

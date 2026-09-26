@@ -30,12 +30,15 @@ export function SupportDrawer({
 }: SupportDrawerProps) {
   if (!ticket) return null;
 
+  const ticketIdDisplay = (ticket.id?.toString() || "").slice(0, 8);
+  const requesterName = ticket.userName || "Customer";
+
   return (
     <BaseDrawer
       open={open}
       onClose={onClose}
-      title={ticket.subject}
-      subtitle={`Ticket #${ticket.id.slice(0, 8)} • Requested by ${ticket.userName}`}
+      title={ticket.subject || "Support Ticket"}
+      subtitle={`Ticket #${ticketIdDisplay} • Requested by ${requesterName}`}
       width="xl"
     >
       <div className="flex flex-col h-full bg-background relative font-sans">
@@ -49,14 +52,14 @@ export function SupportDrawer({
               ticket.status === 'resolved' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
               'bg-amber-500/10 text-amber-500 border-amber-500/20'
             )}>
-              {ticket.status.replace("_", " ")}
+              {(ticket.status || "open").replace("_", " ")}
             </span>
             <span className={cn(
               "inline-flex px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-widest",
               ticket.priority === 'high' || ticket.priority === 'urgent' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
               'bg-muted/50 text-muted-foreground border-transparent'
             )}>
-              {ticket.priority}
+              {ticket.priority || "normal"}
             </span>
           </div>
           <div>
@@ -84,33 +87,40 @@ export function SupportDrawer({
 
         {/* Chat Thread */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {ticket.messages.map((msg, idx) => (
-            <div 
-              key={msg.id} 
-              className={`flex gap-4 ${msg.senderRole === 'admin' ? 'flex-row-reverse' : ''}`}
-            >
-              <div className={cn(
-                "shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm border",
-                msg.senderRole === 'admin' ? 'bg-primary text-primary-foreground border-primary/20' : 'bg-muted text-foreground border-border/50'
-              )}>
-                {msg.senderName.substring(0, 2).toUpperCase()}
-              </div>
-              <div className={`flex flex-col ${msg.senderRole === 'admin' ? 'items-end' : 'items-start'} max-w-[85%]`}>
-                <div className="flex items-baseline gap-2 mb-1.5">
-                  <span className="text-sm font-bold text-foreground">{msg.senderName}</span>
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{new Date(msg.createdAt).toLocaleString()}</span>
-                </div>
+          {(ticket.messages || []).map((msg, idx) => {
+            const senderName = msg.senderName || (msg.senderRole === "admin" ? "Support Admin" : "User");
+            const senderInitials = senderName.slice(0, 2).toUpperCase();
+
+            return (
+              <div 
+                key={msg.id || idx} 
+                className={`flex gap-4 ${msg.senderRole === 'admin' ? 'flex-row-reverse' : ''}`}
+              >
                 <div className={cn(
-                  "p-4 text-sm font-medium shadow-sm leading-relaxed",
-                  msg.senderRole === 'admin' 
-                    ? 'bg-primary text-primary-foreground rounded-2xl rounded-tr-sm' 
-                    : 'bg-muted/30 text-foreground border border-border/50 rounded-2xl rounded-tl-sm'
+                  "shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm border",
+                  msg.senderRole === 'admin' ? 'bg-primary text-primary-foreground border-primary/20' : 'bg-muted text-foreground border-border/50'
                 )}>
-                  {msg.content}
+                  {senderInitials}
+                </div>
+                <div className={`flex flex-col ${msg.senderRole === 'admin' ? 'items-end' : 'items-start'} max-w-[85%]`}>
+                  <div className="flex items-baseline gap-2 mb-1.5">
+                    <span className="text-sm font-bold text-foreground">{senderName}</span>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                      {msg.createdAt ? new Date(msg.createdAt).toLocaleString() : ""}
+                    </span>
+                  </div>
+                  <div className={cn(
+                    "p-4 text-sm font-medium shadow-sm leading-relaxed",
+                    msg.senderRole === 'admin' 
+                      ? 'bg-primary text-primary-foreground rounded-2xl rounded-tr-sm' 
+                      : 'bg-muted/30 text-foreground border border-border/50 rounded-2xl rounded-tl-sm'
+                  )}>
+                    {msg.content}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Reply Box */}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
+import "leaflet/dist/leaflet.css";
 
 interface MapMarker {
     lat: number;
@@ -9,6 +10,9 @@ interface MapMarker {
     type: "company" | "customer" | "staff";
     label?: string;
     popupHtml?: string;
+    color?: string;
+    icon?: string;
+    rawPayload?: any;
 }
 
 interface InteractiveMapProps {
@@ -20,6 +24,7 @@ interface InteractiveMapProps {
     /** If true, the staff marker position will be watched via geolocation (staff navigation mode) */
     trackStaff?: boolean;
     onStaffMoved?: (lat: number, lng: number) => void;
+    onMarkerClick?: (marker: MapMarker) => void;
 }
 
 export default function InteractiveMap({
@@ -29,12 +34,13 @@ export default function InteractiveMap({
     className = "",
     trackStaff = false,
     onStaffMoved,
+    onMarkerClick,
 }: InteractiveMapProps) {
     const mapRef = useRef<HTMLDivElement>(null);
-    const mapInstanceRef = useRef<any>(null);
-    const markersRef = useRef<Map<string, any>>(new Map());
     const watchIdRef = useRef<number | null>(null);
     const [isMounted, setIsMounted] = useState(false);
+    const [mapInstance, setMapInstance] = useState<any>(null);
+    const leafletMarkersRef = useRef<any[]>([]);
 
     // Color palette for different marker types
     const markerColors: Record<MapMarker["type"], string> = {
@@ -52,13 +58,14 @@ export default function InteractiveMap({
         };
     }, []);
 
+    // 1. Initialize Map Instance once
     useEffect(() => {
         if (!isMounted || !mapRef.current) return;
-        if (mapInstanceRef.current) return; // already initialised
+        if (mapInstance) return;
 
-        // Lazy-import leaflet (SSR safe)
+        let activeMap: any;
+
         import("leaflet").then((L) => {
-            // Fix broken default icon paths in webpack builds
             delete (L.Icon.Default.prototype as any)._getIconUrl;
             L.Icon.Default.mergeOptions({
                 iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -66,7 +73,7 @@ export default function InteractiveMap({
                 shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
             });
 
-            const defaultCenter = center ?? (markers[0] ? { lat: markers[0].lat, lng: markers[0].lng } : { lat: 11.5564, lng: 104.9282 }); // fallback: Phnom Penh
+            const defaultCenter = center ?? (markers[0] ? { lat: markers[0].lat, lng: markers[0].lng } : { lat: 11.5564, lng: 104.9282 });
             const map = L.map(mapRef.current!, {
                 center: [defaultCenter.lat, defaultCenter.lng],
                 zoom,
@@ -79,9 +86,30 @@ export default function InteractiveMap({
                 maxZoom: 19,
             }).addTo(map);
 
-            // Draw markers
+            activeMap = map;
+            setMapInstance(map);
+        });
+
+        return () => {
+            if (activeMap) {
+                activeMap.remove();
+                setMapInstance(null);
+            }
+        };
+    }, [isMounted]);
+
+    // 2. Draw and update markers reactively
+    useEffect(() => {
+        if (!mapInstance) return;
+
+        // Clear existing markers and paths
+        leafletMarkersRef.current.forEach((m) => m.remove());
+        leafletMarkersRef.current = [];
+
+        import("leaflet").then((L) => {
             markers.forEach((m) => {
-                const color = markerColors[m.type];
+                const color = m.color || markerColors[m.type];
+                const iconEmoji = m.icon || (m.type === "company" ? "🏢" : m.type === "staff" ? "👷" : "📍");
                 const svgIcon = L.divIcon({
                     html: `
             <div style="
@@ -92,7 +120,7 @@ export default function InteractiveMap({
               display:flex;align-items:center;justify-content:center;
             ">
               <div style="transform:rotate(45deg);color:white;font-size:13px;font-weight:bold;">
-                ${m.type === "company" ? "🏢" : m.type === "staff" ? "👷" : "📍"}
+                ${iconEmoji}
               </div>
             </div>
           `,
@@ -102,7 +130,13 @@ export default function InteractiveMap({
                     popupAnchor: [0, -36],
                 });
 
-                const marker = L.marker([m.lat, m.lng], { icon: svgIcon }).addTo(map);
+                const marker = L.marker([m.lat, m.lng], { icon: svgIcon }).addTo(mapInstance);
+
+                marker.on("click", () => {
+                    if (onMarkerClick) {
+                        onMarkerClick(m);
+                    }
+                });
 
                 const popupContent = m.popupHtml || `
           <div style="font-family:Inter,sans-serif;padding:4px 2px">
@@ -111,51 +145,45 @@ export default function InteractiveMap({
           </div>
         `;
                 marker.bindPopup(popupContent);
-                markersRef.current.set(m.type, marker);
+                leafletMarkersRef.current.push(marker);
             });
 
-            // Draw route line between customer & company if both present
+            // Draw route line if both company and customer exist
             const companyM = markers.find((m) => m.type === "company");
             const customerM = markers.find((m) => m.type === "customer");
             if (companyM && customerM) {
-                L.polyline([[customerM.lat, customerM.lng], [companyM.lat, companyM.lng]], {
+                const polyline = L.polyline([[customerM.lat, customerM.lng], [companyM.lat, companyM.lng]], {
                     color: "#7C3AED",
                     weight: 2.5,
                     dashArray: "8,6",
                     opacity: 0.6,
-                }).addTo(map);
-            }
-
-            mapInstanceRef.current = map;
-
-            // Staff real-time tracking
-            if (trackStaff && "geolocation" in navigator) {
-                watchIdRef.current = navigator.geolocation.watchPosition(
-                    (pos) => {
-                        const { latitude, longitude } = pos.coords;
-                        onStaffMoved?.(latitude, longitude);
-
-                        const staffMarker = markersRef.current.get("staff");
-                        if (staffMarker) {
-                            staffMarker.setLatLng([latitude, longitude]);
-                            map.panTo([latitude, longitude]);
-                        }
-                    },
-                    undefined,
-                    { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
-                );
+                }).addTo(mapInstance);
+                leafletMarkersRef.current.push(polyline);
             }
         });
+    }, [mapInstance, markers]);
 
-        // Add Leaflet CSS dynamically
-        if (!document.getElementById("leaflet-css")) {
-            const link = document.createElement("link");
-            link.id = "leaflet-css";
-            link.rel = "stylesheet";
-            link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-            document.head.appendChild(link);
-        }
-    }, [isMounted]);
+    // 3. Geolocation watch for staff
+    useEffect(() => {
+        if (!mapInstance || !trackStaff || !("geolocation" in navigator)) return;
+
+        watchIdRef.current = navigator.geolocation.watchPosition(
+            (pos) => {
+                const { latitude, longitude } = pos.coords;
+                onStaffMoved?.(latitude, longitude);
+                mapInstance.panTo([latitude, longitude]);
+            },
+            undefined,
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+        );
+
+        return () => {
+            if (watchIdRef.current !== null) {
+                navigator.geolocation.clearWatch(watchIdRef.current);
+                watchIdRef.current = null;
+            }
+        };
+    }, [mapInstance, trackStaff]);
 
     if (!isMounted) {
         return (

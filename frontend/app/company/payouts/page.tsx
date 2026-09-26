@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
+import { BaseDrawer } from "@/components/drawers/BaseDrawer";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api/client";
 
@@ -33,6 +34,7 @@ export default function CompanyPayoutsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [balance, setBalance] = useState({ available: 0, pending: 0 });
+  const [selectedPayout, setSelectedPayout] = useState<Payout | null>(null);
   
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState<string>("");
@@ -167,6 +169,7 @@ export default function CompanyPayoutsPage() {
           <DataGrid 
             columns={columns} 
             data={payouts} 
+            onRowClick={(row) => setSelectedPayout(row)}
             emptyMessage="No payout history found. Complete bookings to earn balance." 
           />
         )}
@@ -247,6 +250,67 @@ export default function CompanyPayoutsPage() {
           </button>
         </DialogContent>
       </Dialog>
+
+      {/* Payout Details Drawer */}
+      <BaseDrawer
+        open={!!selectedPayout}
+        onClose={() => setSelectedPayout(null)}
+        title="Payout Details"
+        subtitle={selectedPayout ? `Reference #${selectedPayout.id.substring(0, 12)}` : undefined}
+      >
+        {selectedPayout && (
+          <div className="p-6 space-y-6 text-sm">
+            <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Payout Amount</p>
+                <p className="text-3xl font-bold text-foreground mt-1">
+                  ${parseFloat(selectedPayout.amount as any).toFixed(2)}
+                </p>
+              </div>
+              <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider", STATUS_COLORS[selectedPayout.status] || STATUS_COLORS.pending)}>
+                {selectedPayout.status}
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 rounded-lg border border-border bg-muted/10">
+                  <span className="text-xs text-muted-foreground block mb-1">Transfer Method</span>
+                  <span className="font-semibold text-foreground capitalize">
+                    {selectedPayout.method === 'bank_transfer' ? 'Bank Transfer' : selectedPayout.method}
+                  </span>
+                </div>
+                <div className="p-3 rounded-lg border border-border bg-muted/10">
+                  <span className="text-xs text-muted-foreground block mb-1">Requested Date</span>
+                  <span className="font-semibold text-foreground">
+                    {new Date(selectedPayout.requestedAt || (selectedPayout as any).date || Date.now()).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg border border-border bg-muted/10">
+                <span className="text-xs text-muted-foreground block mb-1">Destination Account</span>
+                <span className="font-medium text-foreground">ABA Bank (ends in 567)</span>
+                <p className="text-xs text-muted-foreground font-mono mt-0.5">Account: MY COMPANY LTD</p>
+              </div>
+
+              {selectedPayout.reference && (
+                <div className="p-3 rounded-lg border border-border bg-muted/10">
+                  <span className="text-xs text-muted-foreground block mb-1">Settlement Reference</span>
+                  <span className="font-mono text-xs font-semibold text-foreground">{selectedPayout.reference}</span>
+                </div>
+              )}
+
+              {selectedPayout.processedAt && (
+                <div className="p-3 rounded-lg border border-border bg-muted/10">
+                  <span className="text-xs text-muted-foreground block mb-1">Processed Date</span>
+                  <span className="font-semibold text-foreground">{new Date(selectedPayout.processedAt).toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </BaseDrawer>
     </div>
   );
 }

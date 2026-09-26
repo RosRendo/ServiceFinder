@@ -16,6 +16,8 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
+import { BaseDrawer } from "@/components/drawers/BaseDrawer";
 import { toast } from "sonner";
 import api from "@/lib/api/client";
 
@@ -44,6 +46,8 @@ export default function CompanyMarketing() {
   const [showNewForm, setShowNewForm] = useState(false);
   const [newCode, setNewCode] = useState({ code: "", discount: "", expiry: "", maxUses: "" });
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -95,9 +99,18 @@ export default function CompanyMarketing() {
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm("Are you sure you want to delete this campaign?")) return;
-    setCampaigns(prev => prev.filter(c => c.id !== id));
-    toast.success("Campaign deleted successfully!");
+    setDeleteTargetId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteTargetId) {
+      setCampaigns(prev => prev.filter(c => c.id !== deleteTargetId));
+      if (selectedCampaign?.id === deleteTargetId) {
+        setSelectedCampaign(null);
+      }
+      setDeleteTargetId(null);
+      toast.success("Campaign deleted successfully!");
+    }
   };
 
   return (
@@ -219,7 +232,11 @@ export default function CompanyMarketing() {
                     </tr>
                   ) : (
                     campaigns.map((c) => (
-                      <tr key={c.id} className="hover:bg-muted/50/50 transition-colors">
+                      <tr 
+                        key={c.id} 
+                        onClick={() => setSelectedCampaign(c)}
+                        className="hover:bg-muted/50 transition-colors cursor-pointer"
+                      >
                         <td className="px-4 py-3">
                           <div className="font-medium text-foreground">{c.name}</div>
                           <div className="text-xs text-muted-foreground mt-0.5">Expires: {c.expires}</div>
@@ -227,7 +244,13 @@ export default function CompanyMarketing() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-mono font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-xs border border-blue-100">{c.code}</span>
-                            <button onClick={() => handleCopy(c.code)} className="text-gray-400 hover:text-muted-foreground transition-colors">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(c.code);
+                              }} 
+                              className="text-gray-400 hover:text-muted-foreground transition-colors"
+                            >
                               {copiedCode === c.code ? <CopyCheck className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                             </button>
                           </div>
@@ -246,7 +269,7 @@ export default function CompanyMarketing() {
                             {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-muted-foreground">
@@ -301,6 +324,75 @@ export default function CompanyMarketing() {
         </div>
 
       </div>
+
+      {/* Campaign Details Drawer */}
+      <BaseDrawer
+        open={!!selectedCampaign}
+        onClose={() => setSelectedCampaign(null)}
+        title="Promotional Campaign"
+        subtitle={selectedCampaign ? selectedCampaign.name : undefined}
+      >
+        {selectedCampaign && (
+          <div className="p-6 space-y-6 text-sm">
+            <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Promo Code</p>
+                <p className="text-2xl font-mono font-bold text-foreground mt-1">{selectedCampaign.code}</p>
+              </div>
+              <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
+                selectedCampaign.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                selectedCampaign.status === 'paused' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                'bg-muted text-muted-foreground border-border'
+              }`}>
+                {selectedCampaign.status}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 rounded-lg border border-border bg-muted/10">
+                <span className="text-xs text-muted-foreground block mb-1">Discount Amount</span>
+                <span className="text-base font-bold text-foreground">{selectedCampaign.discount}</span>
+              </div>
+              <div className="p-3 rounded-lg border border-border bg-muted/10">
+                <span className="text-xs text-muted-foreground block mb-1">Expires</span>
+                <span className="text-base font-semibold text-foreground">{selectedCampaign.expires}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 rounded-lg border border-border bg-muted/10">
+                <span className="text-xs text-muted-foreground block mb-1">Total Redemptions</span>
+                <span className="text-base font-bold text-foreground">{selectedCampaign.uses} / {selectedCampaign.maxUses || '∞'}</span>
+              </div>
+              <div className="p-3 rounded-lg border border-border bg-muted/10">
+                <span className="text-xs text-muted-foreground block mb-1">Revenue Generated</span>
+                <span className="text-base font-bold text-emerald-600">${selectedCampaign.revenue.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border">
+              <Button
+                variant="outline"
+                onClick={() => handleDelete(selectedCampaign.id)}
+                className="w-full text-rose-600 border-rose-200 hover:bg-rose-50 font-bold"
+              >
+                <Trash2 className="w-4 h-4 mr-2" /> Delete Campaign
+              </Button>
+            </div>
+          </div>
+        )}
+      </BaseDrawer>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={!!deleteTargetId}
+        onClose={() => setDeleteTargetId(null)}
+        title="Delete Promo Campaign"
+        description="Are you sure you want to delete this promotional campaign? Customers will no longer be able to apply this code."
+        actionType="danger"
+        confirmLabel="Delete Campaign"
+        onConfirm={async () => confirmDelete()}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -97,7 +98,7 @@ export default function SupportPage() {
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Priority</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Priority</label>
                 <select 
                   value={formData.priority} 
                   onChange={(e) => setFormData({...formData, priority: e.target.value})}
@@ -109,7 +110,7 @@ export default function SupportPage() {
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subject</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Subject</label>
                 <Input 
                   placeholder="Brief summary of your issue" 
                   value={formData.subject} 
@@ -118,7 +119,7 @@ export default function SupportPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Message</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Message</label>
                 <Textarea 
                   placeholder="Describe your issue in detail..." 
                   value={formData.message} 
@@ -143,7 +144,7 @@ export default function SupportPage() {
         {/* Main Ticket List */}
         <div className="md:col-span-2 space-y-4">
           <div className="bg-background rounded-xl border border-border shadow-sm p-2 flex items-center gap-2">
-            <Search className="w-4 h-4 text-slate-400 ml-2" />
+            <Search className="w-4 h-4 text-muted-foreground/70 ml-2" />
             <Input 
               placeholder="Search tickets by ID or subject..." 
               value={searchQuery}
@@ -228,10 +229,10 @@ export default function SupportPage() {
           <div className="bg-background rounded-xl border border-border p-6 shadow-sm">
             <h3 className="font-semibold text-foreground mb-4">Help Center Guides</h3>
             <ul className="space-y-3 text-sm">
-              <li><a href="#" className="text-blue-600 hover:underline">How to optimize your service areas</a></li>
-              <li><a href="#" className="text-blue-600 hover:underline">Understanding payout schedules</a></li>
-              <li><a href="#" className="text-blue-600 hover:underline">Managing staff schedules and dispatch</a></li>
-              <li><a href="#" className="text-blue-600 hover:underline">Handling customer disputes effectively</a></li>
+              <li><Link href="/company/service-areas" className="text-blue-600 hover:underline">How to optimize your service areas</Link></li>
+              <li><Link href="/company/payouts" className="text-blue-600 hover:underline">Understanding payout schedules</Link></li>
+              <li><Link href="/company/schedule" className="text-blue-600 hover:underline">Managing staff schedules and dispatch</Link></li>
+              <li><Link href="/company/disputes" className="text-blue-600 hover:underline">Handling customer disputes effectively</Link></li>
             </ul>
           </div>
         </div>

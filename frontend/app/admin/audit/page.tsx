@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { Search, Download, Trash2, Calendar, FileText } from "lucide-react";
+import { Search, Download, Trash2, Calendar, FileText, X, Clock, MapPin, User, Monitor } from "lucide-react";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
 import { BulkActionBar } from "@/components/grid/BulkActionBar";
 import { ErrorState } from "@/components/common/ErrorState";
+import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
+import { BaseDrawer } from "@/components/drawers/BaseDrawer";
 import api from "@/lib/api/client";
 import { toast } from "sonner";
 
@@ -13,6 +15,9 @@ const ACTION_LABELS: Record<string, { label: string; class: string }> = {
   company_rejected: { label: "Company Rejected", class: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
   user_created: { label: "User Created", class: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
   user_suspended: { label: "User Suspended", class: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
+  user_login: { label: "User Login", class: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  user_registered: { label: "User Registered", class: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  UPDATE_SETTINGS: { label: "Settings Updated", class: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
   payout_approved: { label: "Payout Approved", class: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
   payout_rejected: { label: "Payout Rejected", class: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
   category_created: { label: "Category Created", class: "bg-violet-500/10 text-violet-600 border-violet-500/20" },
@@ -27,6 +32,7 @@ const ROLE: Record<string, string> = {
   admin: "bg-blue-500/10 text-blue-600 border-blue-500/20", 
   system: "bg-foreground text-background border-border",
   company: "bg-violet-500/10 text-violet-600 border-violet-500/20", 
+  company_admin: "bg-violet-500/10 text-violet-600 border-violet-500/20", 
   customer: "bg-muted/50 text-muted-foreground border-transparent",
 };
 
@@ -39,7 +45,7 @@ interface AuditLog {
   targetType: string; 
   description: string; 
   ipAddress: string; 
-  timestamp: string;
+  createdAt: string;
 }
 
 export default function AuditLogsPage() {
@@ -49,14 +55,55 @@ export default function AuditLogsPage() {
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await api.get("/admin/audit-logs");
-        setLogs(res.data.logs || []);
+        const res = await api.get("/audit-logs");
+        let rawList: any[] = [];
+        if (res.data) {
+          if (res.data.data && Array.isArray(res.data.data.data)) {
+            rawList = res.data.data.data;
+          } else if (Array.isArray(res.data.data)) {
+            rawList = res.data.data;
+          } else if (Array.isArray(res.data.logs)) {
+            rawList = res.data.logs;
+          } else if (Array.isArray(res.data)) {
+            rawList = res.data;
+          }
+        }
+
+        const normalized: AuditLog[] = rawList.map((item: any) => {
+          const actor = item.actor || item.user?.fullName || item.user?.email || "System";
+          const actorRole = item.actorRole || item.user?.role || "system";
+          const targetType = item.targetType || item.entityType || "system";
+          const target = item.target || (item.entityId ? `${targetType} #${item.entityId}` : targetType);
+          const description = item.description || (
+            item.action === "user_login" ? `${actor} logged in` :
+            item.action === "user_registered" ? `New account registered: ${actor}` :
+            item.action === "UPDATE_SETTINGS" ? `Updated system configuration` :
+            `${actor} performed ${item.action}`
+          );
+
+          return {
+            id: String(item.id),
+            action: item.action || "unknown",
+            actor,
+            actorRole,
+            target,
+            targetType,
+            description,
+            ipAddress: item.ipAddress || "127.0.0.1",
+            createdAt: item.createdAt || new Date().toISOString(),
+          };
+        });
+
+        setLogs(normalized);
         setFetchError(null);
-      } catch {
+      } catch (err: any) {
+        console.error("Failed to load audit logs:", err);
         setFetchError("Could not load audit logs.");
       }
       finally { setLoading(false); }
@@ -67,12 +114,12 @@ export default function AuditLogsPage() {
   const today = new Date().toISOString().split("T")[0];
   const stats = useMemo(() => ({
     total: logs.length,
-    today: logs.filter((l) => l.timestamp.startsWith(today)).length,
+    today: logs.filter((l) => l.createdAt && l.createdAt.startsWith(today)).length,
     admins: logs.filter((l) => l.actorRole === "admin").length,
   }), [logs, today]);
 
   const filtered = useMemo(() => logs.filter((l) => {
-    const s = `${l.actor} ${l.target} ${l.description} ${l.id}`.toLowerCase();
+    const s = `${l.actor || ""} ${l.target || ""} ${l.description || ""} ${l.id || ""}`.toLowerCase();
     return s.includes(search.toLowerCase()) && (actionFilter === "all" || l.action === actionFilter);
   }), [logs, search, actionFilter]);
 
@@ -90,7 +137,10 @@ export default function AuditLogsPage() {
     {
       key: "action", header: "Action", sortable: true,
       render: (log) => {
-        const action = ACTION_LABELS[log.action] || { label: log.action, class: "bg-muted/50 text-muted-foreground border-transparent" };
+        const action = ACTION_LABELS[log.action] || { 
+          label: log.action.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()), 
+          class: "bg-muted/50 text-muted-foreground border-transparent" 
+        };
         return (
           <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-widest ${action.class}`}>
             {action.label}
@@ -123,10 +173,10 @@ export default function AuditLogsPage() {
       render: (log) => <span className="text-xs font-medium text-foreground">{log.description}</span>
     },
     {
-      key: "timestamp", header: "Time & Origin", sortable: true,
+      key: "createdAt", header: "Time & Origin", sortable: true,
       render: (log) => (
         <div className="flex flex-col gap-0.5">
-          <div className="text-sm font-semibold text-foreground">{new Date(log.timestamp).toLocaleDateString()} {new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+          <div className="text-sm font-semibold text-foreground">{log.createdAt ? `${new Date(log.createdAt).toLocaleDateString()} ${new Date(log.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "-"}</div>
           <code className="text-[10px] font-medium font-mono text-muted-foreground mt-0.5">{log.ipAddress}</code>
         </div>
       )
@@ -134,7 +184,10 @@ export default function AuditLogsPage() {
   ];
 
   const handleDeleteLogs = async () => {
-    if (!window.confirm(`Permanently delete ${selectedIds.size} audit log(s)? This cannot be undone.`)) return;
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteLogs = async () => {
     try {
       await api.delete("/audit-logs", { data: { ids: Array.from(selectedIds) } });
       setLogs((prev) => prev.filter((l) => !selectedIds.has(l.id)));
@@ -207,6 +260,7 @@ export default function AuditLogsPage() {
             selectedIds={selectedIds}
             onToggleRow={toggleRow}
             onToggleAll={toggleAll}
+            onRowClick={(row) => setSelectedLog(row)}
             emptyIcon={FileText}
             emptyMessage="No audit logs found matching your criteria."
           />
@@ -217,6 +271,81 @@ export default function AuditLogsPage() {
         selectedCount={selectedIds.size}
         onClear={() => setSelectedIds(new Set())}
         actions={bulkActions}
+      />
+
+      {/* Audit Log Detail Drawer */}
+      <BaseDrawer
+        open={!!selectedLog}
+        onClose={() => setSelectedLog(null)}
+        title="Audit Log Detail"
+        subtitle={selectedLog ? `Event #${selectedLog.id}` : ""}
+      >
+        {selectedLog && (
+          <div className="space-y-5 p-1">
+            <div className="flex items-center gap-2">
+              <span className={`inline-flex items-center px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-widest ${
+                ACTION_LABELS[selectedLog.action]?.class || "bg-muted/50 text-muted-foreground border-transparent"
+              }`}>
+                {ACTION_LABELS[selectedLog.action]?.label || selectedLog.action.replace(/_/g, " ")}
+              </span>
+              <span className={`inline-flex px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-widest ${
+                ROLE[selectedLog.actorRole] || "bg-muted/50 text-muted-foreground border-transparent"
+              }`}>{selectedLog.actorRole}</span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <User className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-0.5">Actor</p>
+                    <p className="text-sm font-semibold text-foreground">{selectedLog.actor}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Monitor className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-0.5">Target</p>
+                    <p className="text-sm font-semibold text-foreground">{selectedLog.target}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">{selectedLog.targetType?.replace("_", " ")}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-0.5">IP Address</p>
+                    <code className="text-sm font-mono text-foreground">{selectedLog.ipAddress}</code>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Clock className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-0.5">Timestamp</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {selectedLog.createdAt ? new Date(selectedLog.createdAt).toLocaleString() : "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-muted/20 rounded-xl p-4">
+                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-2">Description</p>
+                <p className="text-sm text-foreground leading-relaxed">{selectedLog.description}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </BaseDrawer>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        title={`Delete ${selectedIds.size} Audit Log${selectedIds.size !== 1 ? "s" : ""}`}
+        description="Permanently deleting audit logs is irreversible. These records will be erased from the system and cannot be recovered."
+        actionType="danger"
+        confirmLabel="Yes, Delete Logs"
+        onConfirm={confirmDeleteLogs}
       />
     </div>
   );

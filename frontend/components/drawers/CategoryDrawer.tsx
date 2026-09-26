@@ -28,8 +28,8 @@ interface CategoryDrawerProps {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border-b border-slate-200 px-8 py-5">
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{title}</p>
+    <div className="border-b border-border px-8 py-5">
+      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4">{title}</p>
       {children}
     </div>
   );
@@ -54,14 +54,14 @@ export function CategoryDrawer({ open, onClose, category, formData, setFormData,
           <button 
             onClick={onClose}
             disabled={loading}
-            className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 h-12 rounded-xl font-bold flex items-center justify-center transition-colors disabled:opacity-50 shadow-sm"
+            className="flex-1 bg-background hover:bg-muted border border-border text-foreground h-11 rounded-xl font-bold flex items-center justify-center transition-colors disabled:opacity-50 shadow-sm"
           >
             Cancel
           </button>
           <button 
             onClick={onSave}
             disabled={loading}
-            className="flex-1 bg-violet-600 hover:bg-violet-700 text-white h-12 rounded-xl font-bold flex items-center justify-center transition-colors disabled:opacity-50 shadow-sm gap-2"
+            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground h-11 rounded-xl font-bold flex items-center justify-center transition-colors disabled:opacity-50 shadow-sm gap-2"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             {isEditing ? "Save Changes" : "Create Category"}
@@ -73,9 +73,9 @@ export function CategoryDrawer({ open, onClose, category, formData, setFormData,
         <Section title="Basic Details">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-xs font-bold text-slate-700">Category Name <span className="text-rose-500">*</span></Label>
+              <Label htmlFor="name" className="text-xs font-bold text-foreground">Category Name <span className="text-rose-500">*</span></Label>
               <div className="relative">
-                <Type className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Type className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
                   id="name" 
                   value={formData.name} 
@@ -84,29 +84,29 @@ export function CategoryDrawer({ open, onClose, category, formData, setFormData,
                     setFormData((p) => ({ ...p, name: v, slug: isEditing ? p.slug : slugify(v) }));
                   }}
                   placeholder="e.g. Cleaning Services" 
-                  className="pl-10 h-11 bg-slate-50 border-slate-200 focus:border-violet-500 focus:ring-violet-500/20 font-medium rounded-xl"
+                  className="pl-10 h-11 bg-muted/20 border-border focus:border-primary focus:ring-primary/20 font-medium rounded-xl"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="slug" className="text-xs font-bold text-slate-700">URL Slug <span className="text-rose-500">*</span></Label>
+                <Label htmlFor="slug" className="text-xs font-bold text-foreground">URL Slug <span className="text-rose-500">*</span></Label>
                 <div className="relative">
-                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input 
                     id="slug" 
                     value={formData.slug} 
                     onChange={(e) => setFormData((p) => ({ ...p, slug: slugify(e.target.value) }))} 
                     placeholder="cleaning-services" 
-                    className="pl-10 h-11 font-mono text-xs bg-slate-50 border-slate-200 focus:border-violet-500 focus:ring-violet-500/20 rounded-xl" 
+                    className="pl-10 h-11 font-mono text-xs bg-muted/20 border-border focus:border-primary focus:ring-primary/20 rounded-xl" 
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="icon" className="text-xs font-bold text-slate-700">Icon (Emoji)</Label>
+                <Label htmlFor="icon" className="text-xs font-bold text-foreground">Icon (Emoji)</Label>
                 <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-slate-400 text-sm">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-muted-foreground text-sm">
                     {formData.icon || "✨"}
                   </div>
                   <Input 
@@ -114,36 +114,36 @@ export function CategoryDrawer({ open, onClose, category, formData, setFormData,
                     value={formData.icon} 
                     onChange={(e) => setFormData((p) => ({ ...p, icon: e.target.value }))} 
                     placeholder="🧹" 
-                    className="pl-10 h-11 bg-slate-50 border-slate-200 focus:border-violet-500 focus:ring-violet-500/20 font-medium rounded-xl" 
+                    className="pl-10 h-11 bg-muted/20 border-border focus:border-primary focus:ring-primary/20 font-medium rounded-xl" 
                   />
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="imageUrl" className="text-xs font-bold text-slate-700">Category Image URL</Label>
+              <Label htmlFor="imageUrl" className="text-xs font-bold text-foreground">Category Image URL</Label>
               <div className="relative">
-                <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
                   id="imageUrl" 
                   value={formData.imageUrl || ""} 
                   onChange={(e) => setFormData((p) => ({ ...p, imageUrl: e.target.value }))} 
                   placeholder="https://images.unsplash.com/photo-..." 
-                  className="pl-10 h-11 bg-slate-50 border-slate-200 focus:border-violet-500 focus:ring-violet-500/20 font-medium rounded-xl"
+                  className="pl-10 h-11 bg-muted/20 border-border focus:border-primary focus:ring-primary/20 font-medium rounded-xl"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl mt-4">
+            <div className="flex items-center justify-between p-4 bg-muted/20 border border-border rounded-xl mt-4">
               <div>
-                <Label htmlFor="status" className="text-xs font-bold text-slate-700 block">Active Status</Label>
-                <span className="text-[10px] text-slate-400 font-medium">Toggle whether this category is visible to customers.</span>
+                <Label htmlFor="status" className="text-xs font-bold text-foreground block">Active Status</Label>
+                <span className="text-[10px] text-muted-foreground font-medium">Toggle whether this category is visible to customers.</span>
               </div>
               <button
                 type="button"
                 onClick={() => setFormData((p) => ({ ...p, status: p.status === "active" ? "inactive" : "active" }))}
                 className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  formData.status === "active" ? "bg-violet-600" : "bg-slate-200"
+                  formData.status === "active" ? "bg-primary" : "bg-muted"
                 }`}
               >
                 <span
@@ -154,16 +154,16 @@ export function CategoryDrawer({ open, onClose, category, formData, setFormData,
               </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl mt-4">
+            <div className="flex items-center justify-between p-4 bg-muted/20 border border-border rounded-xl mt-4">
               <div>
-                <Label htmlFor="useImageAsBadge" className="text-xs font-bold text-slate-700 block">Render Category as Image</Label>
-                <span className="text-[10px] text-slate-400 font-medium">Show the category cover image instead of the vector icon/emoji throughout the app.</span>
+                <Label htmlFor="useImageAsBadge" className="text-xs font-bold text-foreground block">Render Category as Image</Label>
+                <span className="text-[10px] text-muted-foreground font-medium">Show the category cover image instead of the vector icon/emoji throughout the app.</span>
               </div>
               <button
                 type="button"
                 onClick={() => setFormData((p) => ({ ...p, useImageAsBadge: !p.useImageAsBadge }))}
                 className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  formData.useImageAsBadge ? "bg-violet-600" : "bg-slate-200"
+                  formData.useImageAsBadge ? "bg-primary" : "bg-muted"
                 }`}
               >
                 <span
@@ -178,16 +178,16 @@ export function CategoryDrawer({ open, onClose, category, formData, setFormData,
 
         <Section title="Additional Information">
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-xs font-bold text-slate-700">Description</Label>
+            <Label htmlFor="description" className="text-xs font-bold text-foreground">Description</Label>
             <div className="relative">
-              <FileText className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+              <FileText className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
               <Textarea 
                 id="description" 
                 value={formData.description} 
                 onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} 
                 placeholder="Describe this category..." 
                 rows={4} 
-                className="pl-10 pt-2.5 bg-slate-50 border-slate-200 focus:border-violet-500 focus:ring-violet-500/20 font-medium rounded-xl resize-none"
+                className="pl-10 pt-2.5 bg-muted/20 border-border focus:border-primary focus:ring-primary/20 font-medium rounded-xl resize-none"
               />
             </div>
           </div>

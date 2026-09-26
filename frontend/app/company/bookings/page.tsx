@@ -1,214 +1,246 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Calendar, Eye, CheckCircle2, XCircle, Clock, UserPlus, Loader2, CheckCircle, Search, Download, Edit, Trash2, Edit2, Plus } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useToast } from "@/lib/hooks/use-toast";
-import { Textarea } from "@/components/ui/textarea";
-import api from "@/lib/api/client";
-import { DataGrid, Column } from "@/components/grid/DataGrid";
-import { BulkActionBar } from "@/components/grid/BulkActionBar";
-import { StatusBadge } from "@/components/grid/StatusBadge";
-import { BookingDrawer } from "@/components/drawers/BookingDrawer";
-import { CreateBookingDrawer } from "@/components/drawers/CreateBookingDrawer";
 
-export default function Bookings() {
-  const router = useRouter();
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Calendar, Plus, Clock, UserCheck } from "lucide-react";
+import { useToast } from "@/lib/hooks/use-toast";
+import api from "@/lib/api/client";
+import { ManagementDataGrid, ColumnDef } from "@/components/admin/ManagementDataGrid";
+import { StatusPill } from "@/components/admin/StatusPill";
+import { BookingDispatchDrawer } from "@/components/company/BookingDispatchDrawer";
+import { CreateBookingDrawer } from "@/components/drawers/CreateBookingDrawer";
+import { cn } from "@/lib/utils";
+
+const FILTER_TABS = [
+  { id: "all", label: "All" },
+  { id: "need_assignment", label: "Need Dispatch" },
+  { id: "pending", label: "Pending" },
+  { id: "assigned", label: "Assigned" },
+  { id: "in_progress", label: "In Progress" },
+  { id: "completed", label: "Completed" },
+  { id: "cancelled", label: "Cancelled" },
+];
+
+export default function CompanyBookingsPage() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const { toast } = useToast();
-
-
-  
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [dispatchDrawerOpen, setDispatchDrawerOpen] = useState(false);
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
-  const [activeBookingId, setActiveBookingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const fetchBookings = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (activeTab !== "all") params.append("status", activeTab);
+      if (activeTab !== "all" && activeTab !== "need_assignment" && activeTab !== "assigned") {
+        params.append("status", activeTab);
+      } else if (activeTab === "need_assignment" || activeTab === "assigned") {
+        params.append("status", "confirmed");
+      }
       const response = await api.get(`/bookings?${params.toString()}`);
       const payload = response.data.data || response.data;
       setBookings(payload.bookings || []);
     } catch {
       toast({ title: "Error", description: "Failed to load bookings", variant: "destructive" });
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchBookings();
   }, [activeTab]);
 
-  const filtered = bookings.filter((b) => {
+  const filteredBookings = bookings.filter((b) => {
+    if (activeTab === "need_assignment" && (b.status !== "confirmed" || b.assignedStaff)) {
+      return false;
+    }
+    if (activeTab === "assigned" && (b.status !== "confirmed" || !b.assignedStaff)) {
+      return false;
+    }
     if (!search) return true;
     const query = search.toLowerCase();
-    return b.customer?.fullName?.toLowerCase().includes(query) || 
-           b.service?.name?.toLowerCase().includes(query) || 
-           b.id.toLowerCase().includes(query);
+    return (
+      b.customer?.fullName?.toLowerCase().includes(query) ||
+      b.service?.name?.toLowerCase().includes(query) ||
+      b.id.toLowerCase().includes(query)
+    );
   });
 
-  const toggleRow = useCallback((id: string) => {
-    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
-  }, []);
-  const toggleAll = useCallback(() => {
-    setSelectedIds((prev) => prev.size === filtered.length ? new Set() : new Set(filtered.map((s) => s.id)));
-  }, [filtered]);
-
-  const openDrawer = (id: string) => {
-      setActiveBookingId(id);
-      setDrawerOpen(true);
+  const handleRowClick = (booking: any) => {
+    setSelectedBookingId(booking.id);
+    setDispatchDrawerOpen(true);
   };
 
-  const columns: Column<any>[] = [
+  const columns: ColumnDef<any>[] = [
     {
-      key: "customer", header: "Customer & Service", sortable: true,
-      render: (r) => (
-        <div className="flex items-center gap-2.5">
-          <div className="relative">
-            {r.customer?.avatar ? (
-              <img src={r.customer.avatar} alt="avatar" className="w-7 h-7 rounded-full shrink-0 object-cover" />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                {r.customer?.fullName?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) ?? "?"}
-              </div>
-            )}
-          </div>
-          <div>
-            <div className="font-medium text-sm text-foreground leading-tight">{r.customer?.fullName}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">{r.service?.name}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "bookingDate", header: "Schedule", sortable: true,
-      render: (r) => (
-        <div>
-          <div className="font-medium text-foreground text-sm">{new Date(r.bookingDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Clock className="w-3 h-3" />{new Date(r.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
-        </div>
-      ),
-    },
-    { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
-    {
-      key: "assignedStaff", header: "Assigned Staff", sortable: true,
-      render: (r) => (
-        r.assignedStaff ? (
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-               {r.assignedStaff.fullName?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) ?? "?"}
+      id: "customer",
+      header: "Customer",
+      isSortable: true,
+      cell: ({ row }) => {
+        const initials = row.customer?.fullName
+          ?.split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase() || "CU";
+        return (
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-muted dark:bg-muted border border-border dark:border-border flex items-center justify-center text-xs font-bold text-foreground/90 dark:text-muted-foreground/50 shrink-0">
+              {initials}
             </div>
-            <span className="text-sm font-medium text-foreground">{r.assignedStaff.fullName}</span>
+            <div>
+              <div className="font-semibold text-foreground dark:text-foreground text-xs">
+                {row.customer?.fullName || "Guest Customer"}
+              </div>
+              <div className="text-[11px] text-muted-foreground font-mono">
+                #{row.id.slice(-6).toUpperCase()}
+              </div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "service",
+      header: "Service",
+      isSortable: true,
+      cell: ({ row }) => (
+        <span className="text-xs font-medium text-foreground dark:text-foreground/90">
+          {row.service?.name || "General Service"}
+        </span>
+      ),
+    },
+    {
+      id: "schedule",
+      header: "Schedule",
+      isSortable: true,
+      cell: ({ row }) => (
+        <div className="text-xs">
+          <div className="font-medium text-foreground dark:text-foreground">
+            {row.bookingDate ? new Date(row.bookingDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "N/A"}
+          </div>
+          <div className="text-muted-foreground text-[11px] flex items-center gap-1 mt-0.5">
+            <Clock className="w-3 h-3 text-muted-foreground/70" />
+            {row.startTime ? new Date(row.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Flexible"}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      align: "center",
+      cell: ({ row }) => <StatusPill status={row.status} />,
+    },
+    {
+      id: "staff",
+      header: "Technician",
+      isSortable: true,
+      cell: ({ row }) =>
+        row.assignedStaff ? (
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-background dark:bg-muted border border-border dark:border-border text-xs font-medium text-foreground/90 dark:text-muted-foreground/50">
+            <UserCheck className="w-3 h-3 text-emerald-600" />
+            <span>{row.assignedStaff.fullName}</span>
           </div>
         ) : (
-          <span className="text-sm font-medium text-muted-foreground italic">Unassigned</span>
-        )
-      )
+          <span className="text-xs text-amber-700 dark:text-amber-400 font-medium italic">
+            Needs Assignment
+          </span>
+        ),
     },
-    { key: "totalPrice", header: "Amount", sortable: true, render: (r) => <span className="font-medium text-sm text-foreground">${Number(r.totalPrice).toFixed(2)}</span> },
+    {
+      id: "totalPrice",
+      header: "Amount",
+      align: "right",
+      isSortable: true,
+      cell: ({ row }) => (
+        <span className="font-mono font-semibold text-xs text-foreground dark:text-foreground">
+          ${Number(row.totalPrice || 0).toFixed(2)}
+        </span>
+      ),
+    },
   ];
 
+  const pendingCount = bookings.filter((b) => b.status === "pending" || (!b.assignedStaff && b.status === "confirmed")).length;
+
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-            placeholder="Search bookings..."
-            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60" 
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          {["all", "pending", "confirmed", "in_progress", "completed", "cancelled"].map((s) => (
-            <button key={s} onClick={() => setActiveTab(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTab === s ? "bg-violet-500/10 text-violet-500 border border-violet-500/20" : "text-muted-foreground hover:bg-muted/50 border border-transparent"}`}>
-              {s === "all" ? "All Bookings" : s.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-            </button>
-          ))}
-        </div>
-        <div className="flex-1" />
-        <Link href="/company/bookings/calendar">
-          <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted/50 transition-colors shadow-sm bg-background">
-            <Calendar className="w-3.5 h-3.5 text-muted-foreground" /> Calendar
-          </button>
-        </Link>
-        <button 
-          onClick={() => setCreateDrawerOpen(true)}
-          className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-xs font-medium hover:bg-violet-700 transition-colors shadow-sm"
-        >
-          <Plus className="w-3.5 h-3.5" /> New Booking
-        </button>
-
-        <span className="text-xs text-indigo-500 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 ml-1">
-          <Clock className="w-3 h-3" />
-          {bookings.filter(b => b.status === 'pending').length} pending
-        </span>
-      </div>
-
-      <div className="flex-1 overflow-hidden">
-         {loading ? (
-           <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" /></div>
-         ) : (
-           <DataGrid
-            selectedIds={selectedIds}
-            onToggleRow={(id) => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; })}
-            onToggleAll={() => setSelectedIds(p => p.size === filtered.length ? new Set() : new Set(filtered.map((x: any) => x.id)))}
-            columns={columns} 
-             data={filtered} 
-             onRowClick={(r) => openDrawer(r.id)}
-             emptyMessage="No bookings found." 
-           />
-         )}
-      </div>
-
-      <BookingDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} bookingId={activeBookingId} onBookingUpdated={fetchBookings} />
-      <CreateBookingDrawer open={createDrawerOpen} onClose={() => setCreateDrawerOpen(false)} onSuccess={fetchBookings} companyId="my-company" />
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        onClear={() => setSelectedIds(new Set())}
-        actions={[
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <ManagementDataGrid
+        title="Booking Operations"
+        description="Monitor active customer orders, dispatch field technicians, and review execution status."
+        primaryAction={{
+          label: "New Booking",
+          icon: <Plus className="w-4 h-4" />,
+          onClick: () => setCreateDrawerOpen(true),
+        }}
+        secondaryActions={[
           {
-            icon: Eye,
-            label: "View Detail",
-            onClick: () => {
-              const id = Array.from(selectedIds)[0];
-              if (id) {
-                router.push(`/company/bookings/${id}`);
-              }
-  
-            }
+            label: "Calendar View",
+            icon: <Calendar className="w-3.5 h-3.5" />,
+            onClick: () => window.location.assign("/company/bookings/calendar"),
           },
-          {
-            icon: Edit2,
-            label: "Edit",
-            onClick: () => {
-              const id = Array.from(selectedIds)[0];
-
-              const b = filtered.find((x: any) => x.id === id);
-              if (b) {
-                setActiveBookingId(b.id);
-                setDrawerOpen(true);
-              }
-  
-            }
-          },
-          {
-            icon: Trash2,
-            label: "Delete",
-            variant: "danger",
-            onClick: () => {
-              setSelectedIds(new Set());
-            }
-          }
         ]}
+        data={filteredBookings}
+        columns={columns}
+        getRowId={(r) => r.id}
+        isLoading={loading}
+        onRowClick={handleRowClick}
+        searchPlaceholder="Search customer, service, or booking ID..."
+        onSearchChange={setSearch}
+        filterSlots={
+          <div className="flex items-center gap-1">
+            {FILTER_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium transition",
+                  activeTab === tab.id
+                    ? "bg-[#0A192F] text-white shadow-xs font-semibold"
+                    : "text-muted-foreground dark:text-muted-foreground/70 hover:bg-muted dark:hover:bg-muted"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+            {pendingCount > 0 && (
+              <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-[11px] font-semibold text-amber-800">
+                <Clock className="w-3 h-3 text-amber-600" />
+                {pendingCount} Pending Dispatch
+              </span>
+            )}
+          </div>
+        }
+        totalCount={filteredBookings.length}
+        pageSize={20}
+        currentPage={page}
+        onPageChange={setPage}
+        emptyState={{
+          title: "No bookings found",
+          description: "There are no service bookings matching your current filter criteria.",
+          actionLabel: "Create First Booking",
+          onActionClick: () => setCreateDrawerOpen(true),
+        }}
+      />
+
+      {/* Slide-over Inspection & Dispatch Drawer */}
+      <BookingDispatchDrawer
+        isOpen={dispatchDrawerOpen}
+        onClose={() => setDispatchDrawerOpen(false)}
+        bookingId={selectedBookingId}
+        onAssigned={fetchBookings}
+      />
+
+      {/* Create Booking Drawer */}
+      <CreateBookingDrawer
+        open={createDrawerOpen}
+        onClose={() => setCreateDrawerOpen(false)}
+        onSuccess={fetchBookings}
       />
     </div>
   );

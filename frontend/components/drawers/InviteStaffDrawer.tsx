@@ -93,8 +93,8 @@ export function InviteStaffDrawer({ open, onClose, onSuccess, staff }: InviteSta
       subtitle={staff ? "Update details for this staff member." : "Add a new member to your workforce."}
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        <div className="w-16 h-16 rounded-2xl bg-violet-100 flex items-center justify-center text-violet-600 mx-auto mb-6 shadow-sm border border-violet-200">
-          <UserPlus className="w-8 h-8" />
+        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto mb-5 shadow-xs border border-primary/20">
+          <UserPlus className="w-7 h-7" />
         </div>
         
         <div>
@@ -106,7 +106,7 @@ export function InviteStaffDrawer({ open, onClose, onSuccess, staff }: InviteSta
               value={formData.fullName}
               onChange={e => setFormData({ ...formData, fullName: e.target.value })}
               placeholder="e.g. John Doe" 
-              className="w-full h-11 pl-10 pr-3 bg-muted/50 border border-border rounded-lg text-sm text-foreground outline-none focus:border-violet-500/60 transition-colors" 
+              className="w-full h-11 pl-10 pr-3 bg-muted/40 border border-border rounded-xl text-sm text-foreground outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all" 
             />
           </div>
         </div>
@@ -121,7 +121,7 @@ export function InviteStaffDrawer({ open, onClose, onSuccess, staff }: InviteSta
               value={formData.email}
               onChange={e => setFormData({ ...formData, email: e.target.value })}
               placeholder="e.g. john@example.com" 
-              className="w-full h-11 pl-10 pr-3 bg-muted/50 border border-border rounded-lg text-sm text-foreground outline-none focus:border-violet-500/60 transition-colors" 
+              className="w-full h-11 pl-10 pr-3 bg-muted/40 border border-border rounded-xl text-sm text-foreground outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all" 
             />
           </div>
         </div>
@@ -135,7 +135,7 @@ export function InviteStaffDrawer({ open, onClose, onSuccess, staff }: InviteSta
               value={formData.phone}
               onChange={e => setFormData({ ...formData, phone: e.target.value })}
               placeholder="e.g. +855 12 345 678" 
-              className="w-full h-11 pl-10 pr-3 bg-muted/50 border border-border rounded-lg text-sm text-foreground outline-none focus:border-violet-500/60 transition-colors" 
+              className="w-full h-11 pl-10 pr-3 bg-muted/40 border border-border rounded-xl text-sm text-foreground outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all" 
             />
           </div>
         </div>
@@ -147,7 +147,7 @@ export function InviteStaffDrawer({ open, onClose, onSuccess, staff }: InviteSta
             <select 
               value={formData.role}
               onChange={e => setFormData({ ...formData, role: e.target.value })}
-              className="w-full h-11 pl-10 pr-8 bg-muted/50 border border-border rounded-lg text-sm text-foreground outline-none focus:border-violet-500/60 appearance-none transition-colors"
+              className="w-full h-11 pl-10 pr-8 bg-muted/40 border border-border rounded-xl text-sm text-foreground outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 appearance-none transition-all" 
             >
               <option value="cleaner">Cleaning Specialist</option>
               <option value="plumber">Plumber</option>
@@ -162,7 +162,7 @@ export function InviteStaffDrawer({ open, onClose, onSuccess, staff }: InviteSta
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-violet-600 text-white font-semibold hover:bg-violet-700 transition-all disabled:opacity-50"
+            className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (staff ? "Save Changes" : "Create Staff Account")}
           </button>
@@ -171,7 +171,7 @@ export function InviteStaffDrawer({ open, onClose, onSuccess, staff }: InviteSta
 
       {successData && (
         <div className="absolute inset-0 bg-background/95 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 mb-6 shadow-sm border border-emerald-200">
+          <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-6 shadow-sm border border-emerald-500/20">
             <UserPlus className="w-8 h-8" />
           </div>
           <h3 className="text-xl font-bold text-foreground mb-2">Account Created!</h3>
@@ -181,7 +181,7 @@ export function InviteStaffDrawer({ open, onClose, onSuccess, staff }: InviteSta
               : "They were successfully linked to your company."}
           </p>
 
-          <div className="w-full bg-muted border border-border rounded-xl p-4 mb-8 text-left space-y-3">
+          <div className="w-full bg-muted/30 border border-border rounded-xl p-4 mb-8 text-left space-y-3">
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Login Email</p>
               <p className="font-medium text-foreground">{successData.email}</p>
@@ -196,7 +196,7 @@ export function InviteStaffDrawer({ open, onClose, onSuccess, staff }: InviteSta
                       navigator.clipboard.writeText(successData.password!);
                       toast({ title: "Copied!", description: "Password copied to clipboard." });
                     }}
-                    className="text-xs font-semibold text-violet-600 hover:text-violet-700 bg-violet-100 px-2 py-1 rounded"
+                    className="text-xs font-bold text-primary hover:text-primary/80 bg-primary/10 px-2.5 py-1 rounded-md"
                   >
                     Copy
                   </button>
@@ -211,7 +211,7 @@ export function InviteStaffDrawer({ open, onClose, onSuccess, staff }: InviteSta
               setFormData({ fullName: "", email: "", phone: "", role: "cleaner" });
               onClose();
             }}
-            className="w-full h-11 flex items-center justify-center rounded-xl bg-violet-600 text-white font-semibold hover:bg-violet-700 transition-all"
+            className="w-full h-11 flex items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all shadow-sm"
           >
             Done
           </button>

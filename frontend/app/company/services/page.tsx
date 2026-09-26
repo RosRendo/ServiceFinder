@@ -1,23 +1,25 @@
 "use client";
+
 import { useState, useEffect } from "react";
-import { Briefcase, Loader2, Plus, Edit2, Tag } from "lucide-react";
+import { Briefcase, Plus, Edit2, Tag } from "lucide-react";
 import { useAPI } from "@/lib/hooks/useAPI";
-import { DataGrid, Column } from "@/components/grid/DataGrid";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import api from "@/lib/api/client";
+import { ManagementDataGrid, ColumnDef } from "@/components/admin/ManagementDataGrid";
+import { StatusPill } from "@/components/admin/StatusPill";
 import { useToast } from "@/lib/hooks/use-toast";
 import { ServiceDrawer, ServiceRow } from "@/components/drawers/ServiceDrawer";
 import { EditServiceModal } from "@/components/company/EditServiceModal";
 
 export default function CompanyServicesPage() {
   const { toast } = useToast();
-  const { data, loading } = useAPI<any>('/api/companies/my-company/services');
+  const { data, loading, refetch } = useAPI<any>("/api/companies/my-company/services");
   const [services, setServices] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [active, setActive] = useState<ServiceRow | null>(null);
-  
+  const [activeService, setActiveService] = useState<ServiceRow | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editService, setEditService] = useState<ServiceRow | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (data && Array.isArray(data)) {
@@ -27,135 +29,165 @@ export default function CompanyServicesPage() {
     }
   }, [data]);
 
-  const columns: Column<any>[] = [
-    { 
-      key: "name", 
-      header: "Service", 
-      sortable: true, 
-      render: (s) => (
+  const handleToggleActive = async (s: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await api.patch(`/companies/my-company/services/${s.id}`, {
+        isActive: !s.isActive,
+      });
+      toast({ title: "Updated", description: `Service ${!s.isActive ? "activated" : "deactivated"}` });
+      refetch();
+    } catch {
+      toast({ title: "Error", description: "Failed to update service status", variant: "destructive" });
+    }
+  };
+
+  const filteredServices = services.filter((s) => {
+    if (!search) return true;
+    const query = search.toLowerCase();
+    const name = (s.name || "").toLowerCase();
+    const cat = (s.serviceType?.name || "").toLowerCase();
+    return name.includes(query) || cat.includes(query);
+  });
+
+  const columns: ColumnDef<any>[] = [
+    {
+      id: "name",
+      header: "Service",
+      isSortable: true,
+      cell: ({ row }) => (
         <div className="flex items-center gap-3 py-1">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
-            {s.image ? (
-              <img src={s.image} alt={s.name} className="w-full h-full object-cover" />
+          <div className="w-9 h-9 rounded-lg bg-muted dark:bg-muted border border-border dark:border-border flex items-center justify-center shrink-0 overflow-hidden">
+            {row.image ? (
+              <img src={row.image} alt={row.name} className="w-full h-full object-cover" />
             ) : (
-              <Briefcase className="w-4 h-4 text-primary" />
+              <Briefcase className="w-4 h-4 text-muted-foreground" />
             )}
           </div>
           <div>
-            <p className="font-semibold text-sm text-foreground">{s.name}</p>
-            <p className="text-[10px] text-muted-foreground line-clamp-1">{s.description || "No description provided"}</p>
+            <p className="font-semibold text-xs text-foreground dark:text-foreground">{row.name}</p>
+            <p className="text-[11px] text-muted-foreground line-clamp-1">{row.description || "Standard service offering"}</p>
           </div>
         </div>
-      ) 
-    },
-    { 
-      key: "serviceType", 
-      header: "Category", 
-      render: (s) => (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 w-fit px-2 py-1 rounded-md border border-border">
-          <Tag className="w-3 h-3" />
-          {s.serviceType?.name || "Standard"}
-        </div>
-      )
-    },
-    { 
-      key: "basePrice", 
-      header: "Price", 
-      sortable: true, 
-      render: (s) => (
-        <div>
-          <span className="font-bold text-foreground">${Number(s.basePrice).toFixed(2)}</span>
-          {s.discountPrice && (
-            <span className="text-xs text-rose-500 line-through ml-2">${Number(s.discountPrice).toFixed(2)}</span>
-          )}
-        </div>
-      ) 
-    },
-    { 
-      key: "isActive", 
-      header: "Status", 
-      render: (s) => (
-        <span className={cn(
-          "text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider",
-          s.isActive ? "text-emerald-500 bg-emerald-500/10" : "text-muted-foreground bg-muted/500/10"
-        )}>
-          {s.isActive ? "Active" : "Inactive"}
-        </span>
-      ) 
+      ),
     },
     {
-      key: "actions",
-      header: "",
-      render: (s) => (
-        <div className="flex justify-end">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 text-muted-foreground hover:text-primary"
+      id: "category",
+      header: "Category",
+      isSortable: true,
+      cell: ({ row }) => (
+        <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground dark:text-muted-foreground/70 bg-muted dark:bg-muted px-2 py-0.5 rounded-md border border-border dark:border-border">
+          <Tag className="w-3 h-3 text-muted-foreground/70" />
+          <span>{row.serviceType?.name || "General"}</span>
+        </div>
+      ),
+    },
+    {
+      id: "price",
+      header: "Base Price",
+      align: "right",
+      isSortable: true,
+      cell: ({ row }) => (
+        <div className="font-mono text-xs">
+          <span className="font-bold text-foreground dark:text-foreground">${Number(row.basePrice || 0).toFixed(2)}</span>
+          {row.discountPrice && (
+            <span className="text-[11px] text-rose-500 line-through ml-1.5 font-medium">
+              ${Number(row.discountPrice).toFixed(2)}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      align: "center",
+      cell: ({ row }) => (
+        <button
+          onClick={(e) => handleToggleActive(row, e)}
+          className="cursor-pointer hover:opacity-80 transition"
+          title="Click to toggle status"
+        >
+          <StatusPill status={row.isActive ? "active" : "inactive"} />
+        </button>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      align: "right",
+      cell: ({ row }) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
             onClick={(e) => {
               e.stopPropagation();
-              setEditService(s);
+              setEditService(row);
               setEditModalOpen(true);
             }}
+            className="p-1 rounded text-muted-foreground/70 hover:text-foreground/90 dark:hover:text-foreground hover:bg-muted dark:hover:bg-muted transition"
           >
-            <Edit2 className="w-4 h-4" />
-          </Button>
+            <Edit2 className="w-3.5 h-3.5" />
+          </button>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-background">
-      {/* Header */}
-      <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Services</h1>
-          <p className="text-sm font-medium text-muted-foreground mt-1">Manage the services you offer and their pricing.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button 
-            className="rounded-full px-6 shadow-lg shadow-primary/20"
-            onClick={() => {
-              setEditService(null);
-              setEditModalOpen(true);
-            }}
-          >
-            <Plus className="w-4 h-4 mr-2" /> New Service
-          </Button>
-        </div>
-      </div>
-
-      {/* Data Grid */}
-      <div className="flex-1 overflow-hidden p-6 pt-0 mt-6 relative">
-        {loading ? (
-          <div className="absolute inset-0 z-50 bg-background/50 backdrop-blur-sm flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <DataGrid 
-            columns={columns} 
-            data={services} 
-            onRowClick={(row) => { setActive(row); setDrawerOpen(true); }}
-            emptyMessage="You haven't added any services yet." 
-          />
-        )}
-      </div>
-
-      <ServiceDrawer 
-        open={drawerOpen} 
-        onClose={() => setDrawerOpen(false)} 
-        service={active} 
-        onSuccess={() => window.location.reload()}
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <ManagementDataGrid
+        title="Service Catalog"
+        description="Configure your active service offerings, hourly pricing, and promotional discounts."
+        primaryAction={{
+          label: "Add New Service",
+          icon: <Plus className="w-4 h-4" />,
+          onClick: () => {
+            setEditService(null);
+            setEditModalOpen(true);
+          },
+        }}
+        data={filteredServices}
+        columns={columns}
+        getRowId={(r) => r.id}
+        isLoading={loading}
+        onRowClick={(r) => {
+          setActiveService(r);
+          setDrawerOpen(true);
+        }}
+        searchPlaceholder="Search service name or category..."
+        onSearchChange={setSearch}
+        totalCount={filteredServices.length}
+        pageSize={20}
+        currentPage={page}
+        onPageChange={setPage}
+        emptyState={{
+          title: "No services created",
+          description: "Define your company's home service offerings to start receiving customer bookings.",
+          actionLabel: "Add First Service",
+          onActionClick: () => {
+            setEditService(null);
+            setEditModalOpen(true);
+          },
+        }}
       />
 
-      <EditServiceModal 
-        open={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        service={editService}
-        onSuccess={() => window.location.reload()}
+      {/* Service Detail Drawer */}
+      <ServiceDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        service={activeService}
+        onSuccess={() => refetch()}
       />
+
+      {/* Edit / Create Modal */}
+      {editModalOpen && (
+        <EditServiceModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          service={editService}
+          onSuccess={() => refetch()}
+        />
+      )}
     </div>
   );
 }
-

@@ -15,6 +15,7 @@ import { api, useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
 import { GuestCTA } from "@/components/common/GuestCTA";
+import { EmptyActivitySvg } from "@/components/svg";
 
 // ─── Design Tokens ───────────────────────────────────────────
 const T = Theme.colors;
@@ -405,7 +406,7 @@ export default function ActivityScreen() {
         ) : bookings.length === 0 ? (
           /* Empty State */
           <Animated.View style={s.emptyState}>
-              <AnimatedEmptyIcon activeTab={activeTab} />
+            <EmptyActivitySvg activeTab={activeTab} size={150} />
             <Text style={s.emptyTitle}>
               {activeTab === "upcoming" ? "No Active Services" :
                activeTab === "past" ? "No Completed Services" : "No Cancelled Services"}

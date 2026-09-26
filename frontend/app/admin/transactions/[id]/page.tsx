@@ -38,7 +38,7 @@ export default function AdminPaymentDetailPage() {
   const params = useParams();
   const paymentId = params.id as string;
 
-  const { data: paymentData, loading } = useAPI<any>(`/admin/payments/${paymentId}`);
+  const { data: paymentData, loading } = useAPI<any>(`/api/admin/payments/${paymentId}`);
   const { mutate } = useMutation();
 
   const [localPayment, setLocalPayment] = useState(INITIAL_PAYMENT);
@@ -62,7 +62,7 @@ export default function AdminPaymentDetailPage() {
     setIsProcessing(true);
     try {
       const refundValue = refundType === "full" ? payment.amount : parseFloat(refundAmount);
-      await mutate(`/admin/payments/${paymentId}/refund`, { amount: refundValue, reason: refundReason, notes: refundNotes }, "POST");
+      await mutate(`/api/admin/payments/${paymentId}/refund`, { amount: refundValue, reason: refundReason, notes: refundNotes }, "POST");
       setLocalPayment((prev) => ({
         ...prev,
         status: refundType === "full" ? "refunded" : "partial_refund",

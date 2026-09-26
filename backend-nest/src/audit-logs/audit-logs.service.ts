@@ -28,12 +28,26 @@ export class AuditLogsService {
   }
 
   async getAllLogs(query: any) {
-    const { page = 1, limit = 50 } = query;
+    const { page = 1, limit = 50, action, search } = query;
     const skip = (Number(page) - 1) * Number(limit);
     const take = Number(limit);
 
+    const where: any = {};
+    if (action && action !== 'all') {
+      where.action = { contains: action, mode: 'insensitive' };
+    }
+    if (search) {
+      where.OR = [
+        { action: { contains: search, mode: 'insensitive' } },
+        { entityType: { contains: search, mode: 'insensitive' } },
+        { user: { fullName: { contains: search, mode: 'insensitive' } } },
+        { user: { email: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
     const [logs, total] = await Promise.all([
       this.prisma.auditLog.findMany({
+        where,
         skip,
         take,
         orderBy: { createdAt: 'desc' },
@@ -43,29 +57,58 @@ export class AuditLogsService {
               id: true,
               fullName: true,
               email: true,
+              role: true,
               avatar: true,
             },
           },
         },
       }),
-      this.prisma.auditLog.count(),
+      this.prisma.auditLog.count({ where }),
     ]);
 
-    // Format BigInts for JSON serialization
-    const formattedLogs = logs.map((log) => ({
-      ...log,
-      id: log.id.toString(),
-      userId: log.userId ? log.userId.toString() : null,
-      entityId: log.entityId ? log.entityId.toString() : null,
-      user: log.user
-        ? {
-            ...log.user,
-            id: log.user.id.toString(),
-          }
-        : null,
-    }));
+    // Format BigInts for JSON serialization and provide compatibility fields for Web & Mobile
+    const formattedLogs = logs.map((log) => {
+      const actorName = log.user?.fullName || log.user?.email || 'System';
+      const actorRole = log.user?.role || 'system';
+      const targetType = log.entityType || 'system';
+      const target = log.entityId ? `${targetType} #${log.entityId}` : targetType;
+
+      let description = '';
+      if (log.action === 'user_login') {
+        description = `${actorName} logged in`;
+      } else if (log.action === 'user_registered') {
+        description = `New account registered: ${actorName}`;
+      } else if (log.action === 'UPDATE_SETTINGS') {
+        description = `${actorName} updated system configuration`;
+      } else {
+        description = `${actorName} performed ${log.action} on ${target}`;
+      }
+
+      return {
+        id: log.id.toString(),
+        userId: log.userId ? log.userId.toString() : null,
+        action: log.action || 'system_event',
+        entityType: log.entityType,
+        entityId: log.entityId ? log.entityId.toString() : null,
+        ipAddress: log.ipAddress || '127.0.0.1',
+        createdAt: log.createdAt,
+        user: log.user
+          ? {
+              ...log.user,
+              id: log.user.id.toString(),
+            }
+          : null,
+        // Dual-compatibility fields for Web DataGrid and Mobile cards
+        actor: actorName,
+        actorRole: actorRole,
+        target: target,
+        targetType: targetType,
+        description: description,
+      };
+    });
 
     return {
+      success: true,
       data: formattedLogs,
       meta: {
         total,
@@ -81,6 +124,6 @@ export class AuditLogsService {
     const { count } = await this.prisma.auditLog.deleteMany({
       where: { id: { in: bigIntIds } },
     });
-    return { message: `${count} audit log(s) deleted successfully.`, count };
+    return { success: true, message: `${count} audit log(s) deleted successfully.`, count };
   }
 }

@@ -59,6 +59,8 @@ function RootLayout() {
     'KantumruyPro-Medium': KantumruyPro_500Medium,
     'KantumruyPro-SemiBold': KantumruyPro_600SemiBold,
     'KantumruyPro-Bold': KantumruyPro_700Bold,
+    'KantumruyPro': KantumruyPro_400Regular,
+    'Kantumruy': KantumruyPro_400Regular,
   });
 
   // Connect Socket.io + push notifications once authenticated

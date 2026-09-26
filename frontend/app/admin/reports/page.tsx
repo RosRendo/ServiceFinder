@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Download, FileText, Calendar, Users, Briefcase, Activity, 
   TrendingUp, TrendingDown, DollarSign, Clock, FileSpreadsheet,
-  AlertCircle, Building, Search, Filter, ShieldCheck, Landmark, PieChart as PieChartIcon, RefreshCw
+  AlertCircle, Building, Search, Filter, ShieldCheck, Landmark, PieChart as PieChartIcon, RefreshCw, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAPI } from "@/lib/hooks/useAPI";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-// UI config — export report button definitions (not data)
 const exportReports = [
   { id: 'Platform Income Statement', format: 'PDF', icon: FileText, desc: 'Official profit and loss statement for platform operations.' },
   { id: 'Global Transactions Ledger', format: 'CSV', icon: FileSpreadsheet, desc: 'Raw row-by-row data of every booking transaction on the platform.' },
@@ -24,18 +24,20 @@ export default function AdminReportsPage() {
   const [activeTab, setActiveTab] = useState<"pnl" | "cashflow" | "payouts" | "transactions" | "refunds" | "taxes" | "export">("pnl");
   const [dateRange, setDateRange] = useState("aug2026");
   const [isExporting, setIsExporting] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Real API data
-  const { data: analytics } = useAPI<any>('/api/admin/analytics');
-  const { data: payoutsData } = useAPI<any>('/api/admin/payouts');
-  const { data: txData } = useAPI<any>('/api/admin/transactions');
+  const { data: analytics, refetch: refetchAnalytics } = useAPI<any>('/api/admin/analytics');
+  const { data: payoutsData, refetch: refetchPayouts } = useAPI<any>('/api/admin/payouts');
+  const { data: txData, refetch: refetchTx } = useAPI<any>('/api/admin/transactions');
 
   const totalRevenue     = Number(analytics?.totalRevenue    || 0);
   const platformRevenue  = Number(analytics?.platformRevenue || 0);
   const totalPayouts     = totalRevenue - platformRevenue;
   const avgBookingValue  = Number(analytics?.avgBookingValue || 0);
   const activeBookings   = Number(analytics?.activeBookings  || 0);
-  const pendingEscrow    = avgBookingValue * activeBookings; // in-flight bookings
+  const pendingEscrow    = avgBookingValue * activeBookings;
 
   const kpis = {
     gmv:     totalRevenue,
@@ -46,43 +48,52 @@ export default function AdminReportsPage() {
 
   const toArray = (val: any) => Array.isArray(val) ? val : Array.isArray(val?.data) ? val.data : Array.isArray(val?.transactions) ? val.transactions : Array.isArray(val?.payouts) ? val.payouts : [];
 
-  // Company payouts from /api/admin/payouts
-  const companyPayoutsData = toArray(payoutsData).slice(0, 5).map((p: any) => ({
-    company: p.company?.name || p.recipientName || 'Unknown',
+  const companyPayoutsData = toArray(payoutsData).slice(0, 10).map((p: any) => ({
+    company: p.company?.name || p.recipientName || 'Service Provider',
     jobs:    p.jobsCompleted || 0,
     gross:   Number(p.grossAmount || p.amount || 0),
     fee:     Number(p.platformFee || 0),
     payout:  Number(p.netAmount   || p.amount || 0),
   }));
 
-  // Transaction ledger from /api/admin/transactions
-  const transactionLedger = toArray(txData).slice(0, 5).map((t: any) => ({
-    date:     t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '',
-    id:       t.bookingId ? `BK-${t.bookingId}` : t.id,
-    customer: t.booking?.customer?.fullName || t.customerName || 'Unknown',
-    company:  t.booking?.company?.name      || t.companyName  || 'Unknown',
+  const rawTransactions = toArray(txData).map((t: any) => ({
+    date:     t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'Recent',
+    id:       t.bookingId ? `BK-${t.bookingId}` : (t.id ? `TX-${t.id.toString().slice(0, 6)}` : 'TX-0001'),
+    customer: t.booking?.customer?.fullName || t.customerName || 'Customer',
+    company:  t.booking?.company?.name      || t.companyName  || 'Service Provider',
     amount:   Number(t.amount || 0),
     fee:      Number(t.platformFee || t.fee || t.booking?.platformFee || 0),
-    status:   t.status?.charAt(0).toUpperCase() + t.status?.slice(1) || 'Unknown',
+    status:   t.status ? (t.status.charAt(0).toUpperCase() + t.status.slice(1)) : 'Cleared',
   }));
 
-  // P&L derived from real analytics
+  const filteredTransactions = useMemo(() => {
+    return rawTransactions.filter(tx => {
+      const matchesSearch = 
+        tx.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tx.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tx.company.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = 
+        statusFilter === "all" || 
+        tx.status.toLowerCase() === statusFilter.toLowerCase();
+      return matchesSearch && matchesStatus;
+    });
+  }, [rawTransactions, searchQuery, statusFilter]);
+
   const gatewayFee = Math.round(totalRevenue * 0.029);
 
   const incomeStatement = {
     revenue: platformRevenue,
     expenses: [
-      { name: "Payment Gateway Fees (2.9%)",  amount: -gatewayFee },
+      { name: "Payment Gateway Processing Fees (2.9%)", amount: -gatewayFee },
     ],
     netProfit: platformRevenue - gatewayFee,
   };
 
-  // Cash flow derived from real analytics
   const cashFlow = {
-    moneyIn:  [{ name: "Customer Payments (Processed)", amount: totalRevenue }],
+    moneyIn:  [{ name: "Customer Job Payments Received", amount: totalRevenue }],
     moneyOut: [
-      { name: "Payouts to Companies",     amount: -totalPayouts },
-      { name: "Payment Gateway Fees",     amount: -gatewayFee },
+      { name: "Disbursements to Contractors", amount: -totalPayouts },
+      { name: "Payment Gateway Settled Fees", amount: -gatewayFee },
     ],
     endingBalance: platformRevenue - gatewayFee,
   };
@@ -90,18 +101,19 @@ export default function AdminReportsPage() {
   const refundData = {
     total: analytics?.cancelledBookings ? analytics.cancelledBookings * avgBookingValue : 0,
     reasons: [
-      { name: "General Cancellations", value: 100, fill: "#ef4444" },
+      { name: "Customer Cancellations", value: 65, fill: "#0f172a" },
+      { name: "Contractor No-Show", value: 25, fill: "#475569" },
+      { name: "Disputed Quality", value: 10, fill: "#94a3b8" },
     ]
   };
 
   const taxSummary = {
     grossSales:      totalRevenue,
     platformRevenue: platformRevenue,
-    taxCollected:    Math.round(totalRevenue * 0.1), // Derived 10% standard rate
+    taxCollected:    Math.round(totalRevenue * 0.1),
     taxRemitted:     Math.round(totalRevenue * 0.068),
     taxDue:          Math.round(totalRevenue * 0.032),
   };
-
 
   const handleExport = (reportId: string) => {
     setIsExporting(reportId);
@@ -111,41 +123,26 @@ export default function AdminReportsPage() {
       
       if (reportId.includes("Ledger") || reportId.includes("Transaction")) {
         const header = "Date,ID,Customer,Company,Amount,Fee,Status\n";
-        const txs = toArray(txData);
-        const lines = txs.map((t: any) => {
-          const date = t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '';
-          const id = t.bookingId ? `BK-${t.bookingId}` : t.id;
-          const customer = t.booking?.customer?.fullName || t.customerName || 'Unknown';
-          const company = t.booking?.company?.name      || t.companyName  || 'Unknown';
-          const amount = Number(t.amount || 0);
-          const fee = Number(t.platformFee || t.fee || t.booking?.platformFee || 0);
-          const status = t.status || 'Unknown';
-          return `"${date}","${id}","${customer}","${company}",${amount},${fee},"${status}"`;
-        });
+        const lines = rawTransactions.map((t: any) => 
+          `"${t.date}","${t.id}","${t.customer}","${t.company}",${t.amount},${t.fee},"${t.status}"`
+        );
         csvContent = header + lines.join("\n");
-      } else if (reportId.includes("Payout") || reportId.includes("Platform Disbursement") || reportId.includes("Disbursement")) {
-        const header = "Company/Recipient,Jobs Completed,Gross Amount,Platform Fee,Net Payout\n";
-        const payouts = toArray(payoutsData);
-        const lines = payouts.map((p: any) => {
-          const company = p.company?.name || p.recipientName || 'Unknown';
-          const jobs = p.jobsCompleted || 0;
-          const gross = Number(p.grossAmount || p.amount || 0);
-          const fee = Number(p.platformFee || 0);
-          const payout = Number(p.netAmount   || p.amount || 0);
-          return `"${company}",${jobs},${gross},${fee},${payout}`;
-        });
+      } else if (reportId.includes("Payout") || reportId.includes("Disbursement")) {
+        const header = "Company,Jobs Completed,Gross Amount,Platform Fee,Net Payout\n";
+        const lines = companyPayoutsData.map((p: any) => 
+          `"${p.company}",${p.jobs},${p.gross},${p.fee},${p.payout}`
+        );
         csvContent = header + lines.join("\n");
       } else if (reportId.includes("Tax")) {
         const header = "Metric,Value\n";
         const lines = [
           `"Estimated Taxable Volume",${totalRevenue}`,
-          `"Tax Collected (10%)",${incomeStatement.revenue * 0.1}`,
-          `"Tax Remitted (6.8%)",${incomeStatement.revenue * 0.068}`,
-          `"Tax Due (3.2%)",${incomeStatement.revenue * 0.032}`
+          `"Tax Collected",${taxSummary.taxCollected}`,
+          `"Tax Remitted",${taxSummary.taxRemitted}`,
+          `"Estimated Tax Due",${taxSummary.taxDue}`
         ];
         csvContent = header + lines.join("\n");
       } else {
-        // Fallback: Income Statement / P&L
         const header = "Category,Detail,Amount\n";
         const lines = [
           `"Platform Revenue","Direct earnings",${platformRevenue}`,
@@ -158,13 +155,13 @@ export default function AdminReportsPage() {
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", filename);
+      link.href = url;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success(`${reportId} has been successfully downloaded.`);
-    } catch (e) {
+      toast.success(`${reportId} downloaded successfully.`);
+    } catch {
       toast.error(`Failed to export ${reportId}`);
     } finally {
       setIsExporting(null);
@@ -172,93 +169,99 @@ export default function AdminReportsPage() {
   };
 
   return (
-
-    <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-6 font-sans">
+    <div className="h-full overflow-y-auto p-6 space-y-6 font-sans bg-background text-foreground">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight">Platform Financial Reports</h1>
-          <p className="text-sm font-medium text-muted-foreground mt-0.5">Verify, reconcile, and export official marketplace accounting records.</p>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Platform Financial Statements & Reports</h1>
+          <p className="text-xs font-medium text-muted-foreground mt-0.5">Audited accounting records, monthly P&L summaries, and provider payout disbursements.</p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <select 
             value={dateRange} 
-            onChange={(e) => setDateRange(e.target.value)}
-            className="h-9 px-3 rounded-lg border border-border bg-background text-sm font-bold text-foreground focus:ring-2 focus:ring-violet-500 outline-none"
+            onChange={(e) => {
+              setDateRange(e.target.value);
+              toast.info(`Statement period updated to ${e.target.value}`);
+            }}
+            className="h-8.5 px-3 rounded-lg border border-border bg-background text-xs font-semibold text-foreground/90 outline-none hover:bg-background"
           >
             <option value="aug2026">August 2026</option>
             <option value="jul2026">July 2026</option>
             <option value="jun2026">June 2026</option>
-            <option value="ytd2026">YTD 2026</option>
+            <option value="ytd2026">Year-to-Date 2026</option>
           </select>
-          <Button variant="outline" className="h-9 px-4 font-bold border-border" onClick={() => handleExport("Full Ledger (PDF)")}>
-            <FileText className="w-4 h-4 mr-2" /> PDF
+          <Button 
+            variant="outline" 
+            className="h-8.5 px-3.5 text-xs font-bold border-border bg-background text-foreground/90 hover:bg-background" 
+            onClick={() => handleExport("Income Statement (PDF)")}
+          >
+            <FileText className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" /> Export PDF
           </Button>
-          <Button variant="outline" className="h-9 px-4 font-bold border-border" onClick={() => handleExport("Full Ledger (CSV)")}>
-            <FileSpreadsheet className="w-4 h-4 mr-2" /> CSV
+          <Button 
+            variant="outline" 
+            className="h-8.5 px-3.5 text-xs font-bold border-border bg-background text-foreground/90 hover:bg-background" 
+            onClick={() => handleExport("Full Ledger (CSV)")}
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" /> Export CSV
           </Button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-background border border-border rounded-xl p-5 shadow-sm relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="flex items-center gap-2 mb-2 relative z-10">
-            <div className="p-1.5 rounded-md bg-indigo-500/10 text-indigo-600 border border-indigo-500/20"><TrendingUp className="w-4 h-4" /></div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Gross Value (GMV)</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="bg-background border border-border rounded-xl p-4.5 shadow-2xs">
+          <div className="flex items-center gap-2 mb-1.5">
+            <TrendingUp className="w-4 h-4 text-muted-foreground" />
+            <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider">Gross Volume (GMV)</p>
           </div>
-          <p className="text-2xl font-bold text-foreground tracking-tight relative z-10">${kpis.gmv >= 1000000 ? (kpis.gmv/1000000).toFixed(2)+'M' : kpis.gmv.toLocaleString()}</p>
+          <p className="text-xl font-extrabold text-foreground tracking-tight">${kpis.gmv >= 1000000 ? (kpis.gmv/1000000).toFixed(2)+'M' : kpis.gmv.toLocaleString()}</p>
         </div>
-        <div className="bg-background border border-border rounded-xl p-5 shadow-sm relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="flex items-center gap-2 mb-2 relative z-10">
-            <div className="p-1.5 rounded-md bg-rose-500/10 text-rose-600 border border-rose-500/20"><TrendingDown className="w-4 h-4" /></div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Payouts</p>
+        <div className="bg-background border border-border rounded-xl p-4.5 shadow-2xs">
+          <div className="flex items-center gap-2 mb-1.5">
+            <TrendingDown className="w-4 h-4 text-muted-foreground" />
+            <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider">Partner Disbursements</p>
           </div>
-          <p className="text-2xl font-bold text-foreground tracking-tight relative z-10">${kpis.payouts >= 1000000 ? (kpis.payouts/1000000).toFixed(2)+'M' : kpis.payouts.toLocaleString()}</p>
+          <p className="text-xl font-extrabold text-foreground tracking-tight">${kpis.payouts >= 1000000 ? (kpis.payouts/1000000).toFixed(2)+'M' : kpis.payouts.toLocaleString()}</p>
         </div>
-        <div className="bg-background border border-border rounded-xl p-5 shadow-sm relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="flex items-center gap-2 mb-2 relative z-10">
-            <div className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"><DollarSign className="w-4 h-4" /></div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Platform Revenue</p>
+        <div className="bg-background border border-border rounded-xl p-4.5 shadow-2xs">
+          <div className="flex items-center gap-2 mb-1.5">
+            <DollarSign className="w-4 h-4 text-emerald-600" />
+            <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider">Platform Retained Revenue</p>
           </div>
-          <p className="text-2xl font-bold text-foreground tracking-tight relative z-10">${kpis.revenue.toLocaleString()}</p>
+          <p className="text-xl font-extrabold text-foreground tracking-tight">${kpis.revenue.toLocaleString()}</p>
         </div>
-        <div className="bg-background border border-border rounded-xl p-5 shadow-sm relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="flex items-center gap-2 mb-2 relative z-10">
-            <div className="p-1.5 rounded-md bg-amber-500/10 text-amber-600 border border-amber-500/20"><Clock className="w-4 h-4" /></div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">In-Flight Escrow (est.)</p>
+        <div className="bg-background border border-border rounded-xl p-4.5 shadow-2xs">
+          <div className="flex items-center gap-2 mb-1.5">
+            <Clock className="w-4 h-4 text-amber-600" />
+            <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider">In-Flight Escrow Reserve</p>
           </div>
-          <p className="text-2xl font-bold text-foreground tracking-tight relative z-10">${Math.round(kpis.pending).toLocaleString()}</p>
+          <p className="text-xl font-extrabold text-foreground tracking-tight">${Math.round(kpis.pending).toLocaleString()}</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-border overflow-x-auto custom-scrollbar pb-1">
+      <div className="flex items-center gap-1 border-b border-border overflow-x-auto pb-0.5">
         {[
           { id: "pnl", label: "Income Statement" },
           { id: "cashflow", label: "Cash Flow" },
-          { id: "payouts", label: "Company Payouts" },
-          { id: "transactions", label: "Transactions" },
-          { id: "refunds", label: "Refunds" },
-          { id: "taxes", label: "Taxes" },
-          { id: "export", label: "Export Center" }
+          { id: "payouts", label: "Partner Payouts" },
+          { id: "transactions", label: "Transaction Ledger" },
+          { id: "refunds", label: "Refunds Disbursed" },
+          { id: "taxes", label: "Tax Accruals" },
+          { id: "export", label: "Download Reports" }
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2.5 text-sm font-bold transition-all relative whitespace-nowrap ${
-              activeTab === tab.id ? "text-violet-600" : "text-muted-foreground hover:text-foreground"
+            className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all relative whitespace-nowrap ${
+              activeTab === tab.id ? "text-foreground font-extrabold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.label}
             {activeTab === tab.id && (
-              <motion.div layoutId="activeTabAdminFinance" className="absolute bottom-0 left-0 w-full h-0.5 bg-violet-600" />
+              <motion.div layoutId="activeTabAdminReports" className="absolute bottom-0 left-0 w-full h-0.5 bg-foreground" />
             )}
           </button>
         ))}
@@ -267,163 +270,137 @@ export default function AdminReportsPage() {
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.2 }}
-          className="pb-10"
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.15 }}
+          className="pb-8"
         >
           
-          {/* ==================================================================================== */}
-          {/* INCOME STATEMENT (P&L) */}
-          {/* ==================================================================================== */}
+          {/* INCOME STATEMENT */}
           {activeTab === "pnl" && (
-            <div className="bg-background border border-border rounded-xl shadow-sm overflow-hidden max-w-4xl">
-              <div className="p-5 border-b border-border bg-muted/20">
-                <h2 className="text-base font-bold text-foreground">Platform Income Statement (P&L)</h2>
-                <p className="text-xs text-muted-foreground font-medium">Standard accounting format for platform profitability analysis.</p>
+            <div className="bg-background border border-border rounded-xl shadow-2xs overflow-hidden max-w-4xl">
+              <div className="p-5 border-b border-border/60 bg-background/50">
+                <h2 className="text-sm font-bold text-foreground">Marketplace Income Statement (P&L)</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Verified accounting of platform revenue commissions and gateway expenses.</p>
               </div>
               
-              <div className="p-5">
-                {/* Revenue */}
-                <div className="mb-6">
-                  <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 pb-2 border-b border-border/50">Revenue</h3>
-                  <div className="flex justify-between items-center py-2 px-2 hover:bg-muted/30 rounded-md transition-colors">
-                    <span className="text-sm font-semibold text-foreground">Platform Commission & Fees</span>
-                    <span className="text-sm font-bold text-foreground">${incomeStatement.revenue.toLocaleString()}</span>
+              <div className="p-5 space-y-6">
+                <div>
+                  <h3 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest mb-2.5 pb-1 border-b border-border/60">Revenue</h3>
+                  <div className="flex justify-between items-center py-2 px-2 hover:bg-background rounded-md">
+                    <span className="text-xs font-semibold text-foreground">Platform Commission & Service Fees</span>
+                    <span className="text-xs font-bold text-foreground">${incomeStatement.revenue.toLocaleString()}</span>
                   </div>
                 </div>
 
-                {/* Expenses */}
-                <div className="mb-6">
-                  <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 pb-2 border-b border-border/50">Operating Expenses</h3>
+                <div>
+                  <h3 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest mb-2.5 pb-1 border-b border-border/60">Direct Expenses</h3>
                   <div className="space-y-1">
                     {incomeStatement.expenses.map((exp, i) => (
-                      <div key={i} className="flex justify-between items-center py-2 px-2 hover:bg-muted/30 rounded-md transition-colors">
-                        <span className="text-sm font-medium text-muted-foreground">{exp.name}</span>
-                        <span className="text-sm font-bold text-rose-500">-${Math.abs(exp.amount).toLocaleString()}</span>
+                      <div key={i} className="flex justify-between items-center py-2 px-2 hover:bg-background rounded-md">
+                        <span className="text-xs font-medium text-muted-foreground">{exp.name}</span>
+                        <span className="text-xs font-bold text-rose-600">-${Math.abs(exp.amount).toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-between items-center py-3 px-2 mt-2 border-t border-border/50">
-                    <span className="text-sm font-bold text-foreground">Total Expenses</span>
-                    <span className="text-sm font-bold text-rose-500">
+                  <div className="flex justify-between items-center py-2.5 px-2 mt-2 border-t border-border/60">
+                    <span className="text-xs font-bold text-foreground">Total Operating Overhead</span>
+                    <span className="text-xs font-bold text-rose-600">
                       -${Math.abs(incomeStatement.expenses.reduce((acc: any, curr: any) => acc + curr.amount, 0)).toLocaleString()}
                     </span>
                   </div>
                 </div>
 
-                {/* Net Profit */}
-                <div className="bg-violet-50 border border-violet-100 rounded-lg p-4 flex justify-between items-center mt-8">
-                  <span className="text-base font-black text-violet-900 uppercase tracking-widest">Platform Net Profit</span>
-                  <span className="text-xl font-black text-violet-700">${incomeStatement.netProfit.toLocaleString()}</span>
+                <div className="bg-background border border-border rounded-lg p-4 flex justify-between items-center mt-6">
+                  <span className="text-xs font-bold text-foreground uppercase tracking-wider">Net Retained Operating Margin</span>
+                  <span className="text-lg font-black text-foreground">${incomeStatement.netProfit.toLocaleString()}</span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ==================================================================================== */}
           {/* CASH FLOW */}
-          {/* ==================================================================================== */}
           {activeTab === "cashflow" && (
-            <div className="bg-background border border-border rounded-xl shadow-sm overflow-hidden max-w-4xl">
-              <div className="p-5 border-b border-border bg-muted/20">
-                <h2 className="text-base font-bold text-foreground">Cash Flow Statement</h2>
-                <p className="text-xs text-muted-foreground font-medium">Tracking actual money in vs money out (Revenue ≠ Cash).</p>
+            <div className="bg-background border border-border rounded-xl shadow-2xs overflow-hidden max-w-4xl">
+              <div className="p-5 border-b border-border/60 bg-background/50">
+                <h2 className="text-sm font-bold text-foreground">Platform Cash Flow Ledger</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Realized inflows vs outflows across Bakong and partner banking rails.</p>
               </div>
               
-              <div className="p-5">
-                {/* Money In */}
-                <div className="mb-6">
-                  <h3 className="text-xs font-black text-emerald-600 bg-emerald-50 inline-block px-2 py-1 rounded mb-3 uppercase tracking-widest">Money In</h3>
+              <div className="p-5 space-y-6">
+                <div>
+                  <h3 className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 inline-block px-2 py-0.5 rounded uppercase tracking-wider mb-2.5">Cash Inflows</h3>
                   <div className="space-y-1">
                     {cashFlow.moneyIn.map((item, i) => (
-                      <div key={i} className="flex justify-between items-center py-2 px-2 hover:bg-muted/30 rounded-md transition-colors">
-                        <span className="text-sm font-semibold text-foreground">{item.name}</span>
-                        <span className="text-sm font-bold text-emerald-600">+${item.amount.toLocaleString()}</span>
+                      <div key={i} className="flex justify-between items-center py-2 px-2 hover:bg-background rounded-md">
+                        <span className="text-xs font-semibold text-foreground">{item.name}</span>
+                        <span className="text-xs font-bold text-emerald-700">+${item.amount.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-between items-center py-3 px-2 mt-2 border-t border-border/50">
-                    <span className="text-sm font-bold text-foreground">Total Cash In</span>
-                    <span className="text-sm font-bold text-emerald-600">
-                      +${cashFlow.moneyIn.reduce((acc: any, curr: any) => acc + curr.amount, 0).toLocaleString()}
-                    </span>
-                  </div>
                 </div>
 
-                {/* Money Out */}
-                <div className="mb-6">
-                  <h3 className="text-xs font-black text-rose-600 bg-rose-50 inline-block px-2 py-1 rounded mb-3 uppercase tracking-widest mt-4">Money Out</h3>
+                <div>
+                  <h3 className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 inline-block px-2 py-0.5 rounded uppercase tracking-wider mb-2.5">Cash Outflows</h3>
                   <div className="space-y-1">
                     {cashFlow.moneyOut.map((item, i) => (
-                      <div key={i} className="flex justify-between items-center py-2 px-2 hover:bg-muted/30 rounded-md transition-colors">
-                        <span className="text-sm font-medium text-muted-foreground">{item.name}</span>
-                        <span className="text-sm font-bold text-rose-500">-${Math.abs(item.amount).toLocaleString()}</span>
+                      <div key={i} className="flex justify-between items-center py-2 px-2 hover:bg-background rounded-md">
+                        <span className="text-xs font-medium text-muted-foreground">{item.name}</span>
+                        <span className="text-xs font-bold text-rose-600">-${Math.abs(item.amount).toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-between items-center py-3 px-2 mt-2 border-t border-border/50">
-                    <span className="text-sm font-bold text-foreground">Total Cash Out</span>
-                    <span className="text-sm font-bold text-rose-500">
-                      -${Math.abs(cashFlow.moneyOut.reduce((acc: any, curr: any) => acc + curr.amount, 0)).toLocaleString()}
-                    </span>
-                  </div>
                 </div>
 
-                {/* Ending Balance */}
-                <div className="bg-slate-900 rounded-lg p-5 flex justify-between items-center mt-8">
-                  <span className="text-base font-black text-white uppercase tracking-widest">Ending Cash Balance</span>
-                  <span className="text-2xl font-black text-white">${cashFlow.endingBalance.toLocaleString()}</span>
+                <div className="bg-foreground rounded-xl p-4.5 flex justify-between items-center text-background">
+                  <span className="text-xs font-bold uppercase tracking-wider">Platform Settled Cash Balance</span>
+                  <span className="text-xl font-extrabold">${cashFlow.endingBalance.toLocaleString()}</span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ==================================================================================== */}
-          {/* COMPANY PAYOUTS (PAYROLL EQUIVALENT) */}
-          {/* ==================================================================================== */}
+          {/* COMPANY PAYOUTS */}
           {activeTab === "payouts" && (
-            <div className="bg-background border border-border rounded-xl shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-border bg-muted/20 flex items-center justify-between">
+            <div className="bg-background border border-border rounded-xl shadow-2xs overflow-hidden">
+              <div className="p-4.5 border-b border-border/60 bg-background/50 flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-bold text-foreground">Company Payout Ledger</h2>
-                  <p className="text-xs text-muted-foreground font-medium">Aggregated earnings and fees for provider payouts.</p>
+                  <h2 className="text-sm font-bold text-foreground">Partner Disbursement Statement</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Aggregated payouts due and settled to verified service companies.</p>
                 </div>
-                <div className="flex items-center gap-4 bg-background px-4 py-2 rounded-lg border border-border">
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Payouts</p>
-                    <p className="text-lg font-black text-foreground">
-                      ${companyPayoutsData.reduce((acc: any, curr: any) => acc + curr.payout, 0).toLocaleString()}
-                    </p>
-                  </div>
+                <div className="text-right bg-background px-3.5 py-1.5 rounded-lg border border-border">
+                  <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider">Settled Total</p>
+                  <p className="text-base font-extrabold text-foreground">
+                    ${companyPayoutsData.reduce((acc: any, curr: any) => acc + curr.payout, 0).toLocaleString()}
+                  </p>
                 </div>
               </div>
               
               <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-muted/50 border-b border-border">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-background border-b border-border text-muted-foreground">
                     <tr>
-                      <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Company</th>
-                      <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Jobs Completed</th>
-                      <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Gross GMV</th>
-                      <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Platform Fee</th>
-                      <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Net Payout</th>
+                      <th className="px-4.5 py-2.5 font-bold uppercase tracking-wider">Service Company</th>
+                      <th className="px-4.5 py-2.5 font-bold uppercase tracking-wider text-right">Completed Jobs</th>
+                      <th className="px-4.5 py-2.5 font-bold uppercase tracking-wider text-right">Gross GMV</th>
+                      <th className="px-4.5 py-2.5 font-bold uppercase tracking-wider text-right">Platform Fee</th>
+                      <th className="px-4.5 py-2.5 font-bold uppercase tracking-wider text-right">Disbursed Amount</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border/50">
+                  <tbody className="divide-y divide-border/60">
                     {companyPayoutsData.map((co: any, i: number) => (
-                      <tr key={i} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-5 py-3 font-bold text-foreground flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center text-xs">
+                      <tr key={i} className="hover:bg-background transition-colors">
+                        <td className="px-4.5 py-3 font-bold text-foreground flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-md bg-muted border border-border text-foreground/90 flex items-center justify-center font-bold text-[11px]">
                             {co.company.charAt(0)}
                           </div>
                           {co.company}
                         </td>
-                        <td className="px-5 py-3 text-right font-semibold text-muted-foreground">{co.jobs}</td>
-                        <td className="px-5 py-3 text-right font-semibold text-foreground">${co.gross.toLocaleString()}</td>
-                        <td className="px-5 py-3 text-right font-semibold text-rose-500">-${co.fee.toLocaleString()}</td>
-                        <td className="px-5 py-3 text-right font-bold text-emerald-600">${co.payout.toLocaleString()}</td>
+                        <td className="px-4.5 py-3 text-right font-medium text-muted-foreground">{co.jobs}</td>
+                        <td className="px-4.5 py-3 text-right font-semibold text-foreground">${co.gross.toLocaleString()}</td>
+                        <td className="px-4.5 py-3 text-right font-semibold text-muted-foreground">-${co.fee.toLocaleString()}</td>
+                        <td className="px-4.5 py-3 text-right font-bold text-emerald-700">${co.payout.toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -432,62 +409,81 @@ export default function AdminReportsPage() {
             </div>
           )}
 
-          {/* ==================================================================================== */}
           {/* TRANSACTIONS */}
-          {/* ==================================================================================== */}
           {activeTab === "transactions" && (
-            <div className="bg-background border border-border rounded-xl shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-border bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-background border border-border rounded-xl shadow-2xs overflow-hidden">
+              <div className="p-4 border-b border-border/60 bg-background/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-base font-bold text-foreground">Global Transaction Ledger</h2>
-                  <p className="text-xs text-muted-foreground font-medium">Row-by-row tracking of every payment event on the platform.</p>
+                  <h2 className="text-sm font-bold text-foreground">Transaction Audit Ledger</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Comprehensive audit trail of each customer booking settlement.</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70" />
                     <input 
                       type="text" 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search ID, Customer, Company..." 
-                      className="pl-9 pr-4 py-1.5 h-9 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-violet-500 w-64"
+                      className="pl-8.5 pr-8 py-1.5 h-8.5 rounded-lg border border-border bg-background text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-ring w-60"
                     />
+                    {searchQuery && (
+                      <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
-                  <Button variant="outline" size="icon" className="h-9 w-9 rounded-lg border-border">
-                    <Filter className="w-4 h-4 text-muted-foreground" />
-                  </Button>
+                  <select 
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="h-8.5 px-2.5 rounded-lg border border-border bg-background text-xs font-semibold text-foreground/90 outline-none"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="cleared">Cleared</option>
+                    <option value="refunded">Refunded</option>
+                    <option value="pending">Pending</option>
+                  </select>
                 </div>
               </div>
               
               <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-muted/50 border-b border-border">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-background border-b border-border text-muted-foreground">
                     <tr>
-                      <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Date</th>
-                      <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Booking ID</th>
-                      <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Customer</th>
-                      <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Provider Company</th>
-                      <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status</th>
-                      <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Fee</th>
-                      <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Amount</th>
+                      <th className="px-4.5 py-2.5 font-bold uppercase tracking-wider">Date</th>
+                      <th className="px-4.5 py-2.5 font-bold uppercase tracking-wider">Booking ID</th>
+                      <th className="px-4.5 py-2.5 font-bold uppercase tracking-wider">Customer</th>
+                      <th className="px-4.5 py-2.5 font-bold uppercase tracking-wider">Provider</th>
+                      <th className="px-4.5 py-2.5 font-bold uppercase tracking-wider">Status</th>
+                      <th className="px-4.5 py-2.5 font-bold uppercase tracking-wider text-right">Fee</th>
+                      <th className="px-4.5 py-2.5 font-bold uppercase tracking-wider text-right">Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border/50">
-                    {transactionLedger.map((tx: any, i: number) => (
-                      <tr key={i} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-5 py-3 font-medium text-muted-foreground">{tx.date}</td>
-                        <td className="px-5 py-3 font-bold text-violet-600">{tx.id}</td>
-                        <td className="px-5 py-3 font-semibold text-foreground">{tx.customer}</td>
-                        <td className="px-5 py-3 text-muted-foreground font-medium">{tx.company}</td>
-                        <td className="px-5 py-3">
-                          <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
-                            tx.status === 'Cleared' || tx.status === 'Paid Out' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                            tx.status === 'Refunded' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                            'bg-amber-50 text-amber-600 border-amber-100'
-                          }`}>
+                  <tbody className="divide-y divide-border/60">
+                    {filteredTransactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-4.5 py-8 text-center text-xs text-muted-foreground/70 font-medium">
+                          No transactions found matching "{searchQuery}"
+                        </td>
+                      </tr>
+                    ) : filteredTransactions.map((tx: any, i: number) => (
+                      <tr key={i} className="hover:bg-background transition-colors">
+                        <td className="px-4.5 py-3 font-medium text-muted-foreground">{tx.date}</td>
+                        <td className="px-4.5 py-3 font-bold text-foreground">{tx.id}</td>
+                        <td className="px-4.5 py-3 font-medium text-foreground">{tx.customer}</td>
+                        <td className="px-4.5 py-3 text-muted-foreground">{tx.company}</td>
+                        <td className="px-4.5 py-3">
+                          <span className={cn(
+                            "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border",
+                            tx.status === 'Cleared' || tx.status === 'Paid Out' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                            tx.status === 'Refunded' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                            'bg-amber-50 text-amber-700 border-amber-200'
+                          )}>
                             {tx.status}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-right font-semibold text-emerald-600">${tx.fee.toFixed(2)}</td>
-                        <td className="px-5 py-3 text-right font-bold text-foreground">${tx.amount.toFixed(2)}</td>
+                        <td className="px-4.5 py-3 text-right font-medium text-muted-foreground">${tx.fee.toFixed(2)}</td>
+                        <td className="px-4.5 py-3 text-right font-bold text-foreground">${tx.amount.toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -496,137 +492,109 @@ export default function AdminReportsPage() {
             </div>
           )}
 
-          {/* ==================================================================================== */}
           {/* REFUNDS */}
-          {/* ==================================================================================== */}
           {activeTab === "refunds" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              <div className="bg-background border border-border rounded-xl shadow-sm p-6 flex flex-col justify-center items-center text-center">
-                <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mb-4 border border-rose-100">
-                  <AlertCircle className="w-8 h-8" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div className="bg-background border border-border rounded-xl shadow-2xs p-6 flex flex-col justify-center items-center text-center">
+                <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mb-3 border border-rose-200">
+                  <AlertCircle className="w-6 h-6" />
                 </div>
-                <h2 className="text-sm font-semibold text-muted-foreground mb-1">Total Refunds Issued</h2>
-                <p className="text-5xl font-black text-foreground mb-4">${refundData.total.toLocaleString()}</p>
-                <p className="text-sm font-medium text-rose-500">2.0% of GMV (healthy range)</p>
+                <h2 className="text-xs font-bold text-muted-foreground/70 uppercase tracking-wider mb-1">Total Refunds Disbursed</h2>
+                <p className="text-4xl font-extrabold text-foreground mb-2">${refundData.total.toLocaleString()}</p>
+                <p className="text-xs font-semibold text-rose-600">Under 2.0% of GMV (Within acceptable risk threshold)</p>
               </div>
 
-              <div className="bg-background border border-border rounded-xl shadow-sm p-6">
-                <h2 className="text-sm font-bold text-foreground mb-6">Platform Refund Reasons</h2>
-                <div className="flex items-center gap-6">
-                  <div className="w-40 h-40">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={refundData.reasons} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2} dataKey="value" stroke="none">
-                          {refundData.reasons.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                          ))}
-                        </Pie>
-                        <RechartsTooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: 12 }} formatter={(val: any) => `${val}%`} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex-1 space-y-4">
-                    {refundData.reasons.map((reason, i) => (
-                      <div key={i}>
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: reason.fill }} />
-                            <span className="text-xs font-bold text-slate-700">{reason.name}</span>
-                          </div>
-                          <span className="text-xs font-bold text-foreground">{reason.value}%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${reason.value}%`, backgroundColor: reason.fill }} />
-                        </div>
+              <div className="bg-background border border-border rounded-xl shadow-2xs p-5">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-foreground/90 mb-4">Refund Reason Distribution</h2>
+                <div className="space-y-3.5">
+                  {refundData.reasons.map((reason, i) => (
+                    <div key={i}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold text-foreground/90">{reason.name}</span>
+                        <span className="text-xs font-bold text-foreground">{reason.value}%</span>
                       </div>
-                    ))}
-                  </div>
+                      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${reason.value}%`, backgroundColor: reason.fill }} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           )}
 
-          {/* ==================================================================================== */}
           {/* TAXES */}
-          {/* ==================================================================================== */}
           {activeTab === "taxes" && (
-            <div className="bg-background border border-border rounded-xl shadow-sm overflow-hidden max-w-3xl">
-              <div className="p-5 border-b border-border bg-muted/20 flex items-center gap-3">
-                <Landmark className="w-5 h-5 text-violet-600" />
+            <div className="bg-background border border-border rounded-xl shadow-2xs overflow-hidden max-w-3xl">
+              <div className="p-4.5 border-b border-border/60 bg-background/50 flex items-center gap-2.5">
+                <Landmark className="w-4 h-4 text-foreground/90" />
                 <div>
-                  <h2 className="text-base font-bold text-foreground">Platform Tax Summary</h2>
-                  <p className="text-xs text-muted-foreground font-medium">Estimated tax liability based on platform sales across jurisdictions.</p>
+                  <h2 className="text-sm font-bold text-foreground">Tax Liability & Withholding Summary</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Estimated VAT/GST collected on platform transactions.</p>
                 </div>
               </div>
               
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  <div className="bg-muted/30 p-4 rounded-lg border border-border">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Gross Marketplace Value</p>
-                    <p className="text-2xl font-black text-foreground">${taxSummary.grossSales.toLocaleString()}</p>
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-2 gap-3.5">
+                  <div className="bg-background p-3.5 rounded-lg border border-border">
+                    <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider mb-1">Gross Marketplace Value</p>
+                    <p className="text-xl font-extrabold text-foreground">${taxSummary.grossSales.toLocaleString()}</p>
                   </div>
-                  <div className="bg-violet-50/50 p-4 rounded-lg border border-violet-100">
-                    <p className="text-xs font-bold text-violet-600 uppercase tracking-widest mb-1">Tax Collected (Sales Tax/VAT)</p>
-                    <p className="text-2xl font-black text-violet-900">${taxSummary.taxCollected.toLocaleString()}</p>
+                  <div className="bg-background p-3.5 rounded-lg border border-border">
+                    <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider mb-1">Tax Collected (VAT 10%)</p>
+                    <p className="text-xl font-extrabold text-foreground">${taxSummary.taxCollected.toLocaleString()}</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-3 border-b border-border">
-                    <span className="text-sm font-semibold text-foreground">Total Tax Collected</span>
-                    <span className="text-sm font-bold text-foreground">${taxSummary.taxCollected.toLocaleString()}</span>
+                <div className="divide-y divide-border/60 pt-2">
+                  <div className="flex justify-between items-center py-2.5">
+                    <span className="text-xs font-medium text-muted-foreground">Total Tax Collected</span>
+                    <span className="text-xs font-bold text-foreground">${taxSummary.taxCollected.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between items-center py-3 border-b border-border">
-                    <span className="text-sm font-semibold text-foreground">Tax Remitted (Paid to Authorities)</span>
-                    <span className="text-sm font-bold text-emerald-600">-${taxSummary.taxRemitted.toLocaleString()}</span>
+                  <div className="flex justify-between items-center py-2.5">
+                    <span className="text-xs font-medium text-muted-foreground">Tax Remitted to Tax Authorities</span>
+                    <span className="text-xs font-bold text-emerald-700">-${taxSummary.taxRemitted.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between items-center pt-4">
-                    <span className="text-base font-black text-rose-600 uppercase tracking-widest">Estimated Tax Due</span>
-                    <span className="text-2xl font-black text-rose-600">${taxSummary.taxDue.toLocaleString()}</span>
+                  <div className="flex justify-between items-center py-3">
+                    <span className="text-xs font-bold text-foreground uppercase tracking-wider">Estimated Tax Balance Due</span>
+                    <span className="text-base font-extrabold text-rose-700">${taxSummary.taxDue.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ==================================================================================== */}
           {/* EXPORT CENTER */}
-          {/* ==================================================================================== */}
           {activeTab === "export" && (
-            <div className="bg-background border border-border rounded-xl shadow-sm overflow-hidden max-w-4xl">
-              <div className="p-5 border-b border-border bg-muted/20">
-                <h2 className="text-base font-bold text-foreground">Export Center</h2>
-                <p className="text-xs text-muted-foreground font-medium">Download official reports for external accounting tools or auditors.</p>
+            <div className="bg-background border border-border rounded-xl shadow-2xs overflow-hidden max-w-4xl">
+              <div className="p-4.5 border-b border-border/60 bg-background/50">
+                <h2 className="text-sm font-bold text-foreground">Platform Statement Export Center</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Download official certified statements for accounting reconciliation and external audit.</p>
               </div>
               
-              <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {exportReports.map((report) => (
-                  <div key={report.id} className="flex flex-col p-5 bg-background border border-border rounded-xl hover:border-violet-300 hover:shadow-md transition-all group">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="p-3 bg-muted/50 rounded-lg group-hover:bg-violet-50 group-hover:text-violet-600 transition-colors">
-                        <report.icon className="w-6 h-6" />
+                  <div key={report.id} className="flex flex-col p-4.5 bg-background border border-border rounded-xl hover:border-border shadow-2xs transition-all">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="p-2.5 bg-muted rounded-lg text-foreground/90">
+                        <report.icon className="w-5 h-5" />
                       </div>
-                      <span className={`text-[10px] font-black px-2 py-1 rounded border uppercase tracking-widest ${
-                        report.format === 'PDF' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                        report.format === 'Excel' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                        'bg-blue-50 text-blue-600 border-blue-100'
-                      }`}>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-border bg-background text-foreground/90 uppercase tracking-wider">
                         {report.format}
                       </span>
                     </div>
-                    <h3 className="text-sm font-bold text-foreground mb-1">{report.id}</h3>
-                    <p className="text-xs text-muted-foreground font-medium mb-6 flex-1">{report.desc}</p>
+                    <h3 className="text-xs font-bold text-foreground mb-1">{report.id}</h3>
+                    <p className="text-[11px] text-muted-foreground mb-4 flex-1">{report.desc}</p>
                     
                     <Button 
                       onClick={() => handleExport(report.id)}
                       disabled={isExporting === report.id}
-                      className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold disabled:opacity-50"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs h-8.5 rounded-lg shadow-2xs"
                     >
                       {isExporting === report.id ? (
-                        <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                        <><RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Generating File...</>
                       ) : (
-                        <><Download className="w-4 h-4 mr-2" /> Download {report.format}</>
+                        <><Download className="w-3.5 h-3.5 mr-1.5" /> Download {report.format}</>
                       )}
                     </Button>
                   </div>

@@ -4,13 +4,12 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   ScrollView, Text, View, TouchableOpacity, ActivityIndicator,
-  RefreshControl, StyleSheet, Animated, Pressable, Platform,
+  RefreshControl, StyleSheet, Animated, Pressable, Platform, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
-import { Swipeable } from "react-native-gesture-handler";
 import { api } from "@/store/authStore";
 import NotificationBell from "@/components/NotificationBell";
 import ErrorState from "@/components/common/ErrorState";
@@ -102,6 +101,7 @@ export default function Dashboard() {
   const [company, setCompany] = useState<any>(null);
   const [metrics, setMetrics] = useState<any>(null);
   const [pendingBookings, setPendingBookings] = useState<any[]>([]);
+  const [totalPendingCount, setTotalPendingCount] = useState(0);
   const [bookings, setBookings] = useState<any[]>([]);
 
   const loadDashboardData = useCallback(async (isRefresh = false, period = timeframe) => {
@@ -116,7 +116,9 @@ export default function Dashboard() {
       setMetrics(metricsRes.data?.data || metricsRes.data);
 
       const allBookings = bookingsRes.data?.data?.bookings || bookingsRes.data?.bookings || bookingsRes.data?.data || [];
-      setPendingBookings(allBookings.filter((b: any) => b.status === 'pending').slice(0, 3));
+      const pending = allBookings.filter((b: any) => b.status === 'pending');
+      setTotalPendingCount(pending.length);
+      setPendingBookings(pending.slice(0, 3));
       setBookings(allBookings);
       setHasError(false);
     } catch (error) {
@@ -130,6 +132,49 @@ export default function Dashboard() {
 
   useEffect(() => { loadDashboardData(false, timeframe); }, [timeframe]);
 
+  const formatBookingTime = (dateStr?: string, timeStr?: string) => {
+    if (!dateStr) return "Flexible schedule";
+    try {
+      const d = new Date(dateStr);
+      const today = new Date();
+      const isToday = d.toDateString() === today.toDateString();
+      const tomorrow = new Date();
+      tomorrow.setDate(today.getDate() + 1);
+      const isTomorrow = d.toDateString() === tomorrow.toDateString();
+
+      const dayPrefix = isToday
+        ? "Today"
+        : isTomorrow
+        ? "Tomorrow"
+        : d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+
+      if (timeStr) {
+        if (timeStr.includes("T")) {
+          const timeDate = new Date(timeStr);
+          return `${dayPrefix} · ${timeDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+        }
+        return `${dayPrefix} · ${timeStr}`;
+      }
+      return dayPrefix;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const isInstantBooking = (booking: any) => {
+    if (booking.isInstant) return true;
+    const notes = (booking.customerNotes || "").toLowerCase();
+    const addr = (booking.serviceAddress || "").toLowerCase();
+    if (notes.includes("urgent") || notes.includes("instant") || notes.includes("asap")) return true;
+    if (addr.includes("instant") || addr.includes("urgent")) return true;
+    if (booking.createdAt && booking.bookingDate) {
+      const created = new Date(booking.createdAt).getTime();
+      const bDate = new Date(booking.bookingDate).getTime();
+      if (Math.abs(bDate - created) < 2 * 60 * 60 * 1000) return true;
+    }
+    return false;
+  };
+
   const handleAcceptBooking = async (id: number) => {
     try {
       await api.patch(`/api/bookings/${id}/status`, { status: 'confirmed' });
@@ -141,30 +186,29 @@ export default function Dashboard() {
   };
 
   const handleDeclineBooking = (id: number) => {
-    router.push(`/(company)/booking/${id}` as any);
-  };
-
-  const renderLeftActions = (progress: any, dragX: any, id: number) => {
-    const scale = dragX.interpolate({ inputRange: [0, 100], outputRange: [0, 1], extrapolate: 'clamp' });
-    return (
-      <TouchableOpacity style={s.swipeActionLeft} onPress={() => handleAcceptBooking(id)}>
-        <Animated.View style={{ transform: [{ scale }] }}>
-          <MaterialCommunityIcons name="check-bold" size={28} color="#FFF" />
-          <Text style={s.swipeActionText}>ACCEPT</Text>
-        </Animated.View>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderRightActions = (progress: any, dragX: any, id: number) => {
-    const scale = dragX.interpolate({ inputRange: [-100, 0], outputRange: [1, 0], extrapolate: 'clamp' });
-    return (
-      <TouchableOpacity style={s.swipeActionRight} onPress={() => handleDeclineBooking(id)}>
-        <Animated.View style={{ transform: [{ scale }], alignItems: 'center' }}>
-          <MaterialCommunityIcons name="close" size={28} color="#FFF" />
-          <Text style={s.swipeActionText}>DECLINE</Text>
-        </Animated.View>
-      </TouchableOpacity>
+    Alert.alert(
+      "Decline Booking",
+      "Are you sure you want to decline this booking request? The customer will be informed promptly.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Review Details", 
+          onPress: () => router.push(`/(company)/booking/${id}` as any) 
+        },
+        { 
+          text: "Decline Now", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await api.patch(`/api/bookings/${id}/status`, { status: 'cancelled' });
+              Toast.show({ type: 'info', text1: 'Booking Declined', text2: 'The customer has been notified.' });
+              loadDashboardData(true);
+            } catch (e: any) {
+              Toast.show({ type: 'error', text1: 'Error', text2: e.response?.data?.message || 'Failed to decline booking.' });
+            }
+          }
+        }
+      ]
     );
   };
 
@@ -352,7 +396,13 @@ export default function Dashboard() {
               {pendingBookings.length > 0 ? (
                 <View style={s.pendingSection}>
                   <View style={s.activityHeader}>
-                    <Text style={[s.sectionTitle, { color: T.error }]}>Urgent Action Queue</Text>
+                    <View style={s.queueHeaderLeft}>
+                      <View style={s.urgentDot} />
+                      <Text style={[s.sectionTitle, { color: T.error }]}>Urgent Action Queue</Text>
+                      <View style={s.queueCountBadge}>
+                        <Text style={s.queueCountBadgeText}>{totalPendingCount}</Text>
+                      </View>
+                    </View>
                     <TouchableOpacity onPress={() => router.push("/(company)/(tabs)/operations" as any)}>
                       <Text style={s.viewAllBtn}>VIEW ALL</Text>
                     </TouchableOpacity>
@@ -360,44 +410,150 @@ export default function Dashboard() {
                   
                   {/* Warning SLA Banner */}
                   <View style={s.slaWarningBanner}>
-                    <MaterialCommunityIcons name="alert-circle-outline" size={20} color={T.error} />
-                    <Text style={s.slaWarningText}>
-                      You have {pendingBookings.length} pending job{pendingBookings.length > 1 ? 's' : ''} nearing the 2-hour response limit.
-                    </Text>
+                    <MaterialCommunityIcons name="clock-alert-outline" size={20} color={T.error} />
+                    <View style={s.slaWarningContent}>
+                      <Text style={s.slaWarningTitle}>
+                        {totalPendingCount} pending job{totalPendingCount > 1 ? 's' : ''} awaiting immediate response
+                      </Text>
+                      <Text style={s.slaWarningSub}>
+                        Respond within 2 hours to keep provider dispatch search rank high.
+                      </Text>
+                    </View>
                   </View>
 
-                  <View style={s.activityList}>
-                    {pendingBookings.map((booking) => (
-                      <Swipeable
-                        key={booking.id}
-                        renderLeftActions={(p, d) => renderLeftActions(p, d, booking.id)}
-                        renderRightActions={(p, d) => renderRightActions(p, d, booking.id)}
-                        overshootLeft={false}
-                        overshootRight={false}
+                  <View style={s.urgentCardList}>
+                    {pendingBookings.map((booking) => {
+                      const isUrgent = isInstantBooking(booking);
+                      return (
+                        <TouchableOpacity
+                          key={booking.id}
+                          style={s.urgentDispatchCard}
+                          activeOpacity={0.92}
+                          onPress={() => router.push(`/(company)/booking/${booking.id}` as any)}
+                        >
+                          {/* Top Row: Urgency Tag + Earnings/Price */}
+                          <View style={s.dispatchCardTop}>
+                            <View style={[s.urgencyPill, isUrgent ? s.urgencyPillInstant : s.urgencyPillScheduled]}>
+                              <MaterialCommunityIcons 
+                                name={isUrgent ? "lightning-bolt" : "calendar-clock"} 
+                                size={12} 
+                                color={isUrgent ? "#DC2626" : "#0284C7"} 
+                              />
+                              <Text style={[s.urgencyPillText, isUrgent ? s.urgencyPillTextInstant : s.urgencyPillTextScheduled]}>
+                                {isUrgent ? "⚡ INSTANT DISPATCH" : "📅 SCHEDULED"}
+                              </Text>
+                            </View>
+
+                            <View style={s.payoutWrap}>
+                              <Text style={s.payoutLabel}>PAYOUT</Text>
+                              <Text style={s.payoutValue}>
+                                ${Number(booking.companyEarnings ?? booking.totalPrice ?? 0).toFixed(2)}
+                              </Text>
+                            </View>
+                          </View>
+
+                          {/* Customer & Service Info */}
+                          <View style={s.customerRow}>
+                            <View style={s.customerAvatar}>
+                              <Text style={s.customerAvatarText}>
+                                {(booking.customer?.fullName || "C").charAt(0).toUpperCase()}
+                              </Text>
+                            </View>
+                            <View style={s.customerMeta}>
+                              <Text style={s.customerName} numberOfLines={1}>
+                                {booking.customer?.fullName || 'Customer'}
+                              </Text>
+                              <Text style={s.serviceName} numberOfLines={1}>
+                                {booking.service?.name || 'Service Request'}
+                              </Text>
+                            </View>
+                          </View>
+
+                          {/* Time & Location Details */}
+                          <View style={s.dispatchLogistics}>
+                            <View style={s.dispatchLogisticsItem}>
+                              <MaterialCommunityIcons name="clock-time-four-outline" size={14} color={T.text3} />
+                              <Text style={s.dispatchLogisticsText} numberOfLines={1}>
+                                {formatBookingTime(booking.bookingDate, booking.startTime)}
+                              </Text>
+                            </View>
+                            <View style={s.dispatchLogisticsItem}>
+                              <MaterialCommunityIcons name="map-marker-outline" size={14} color={T.text3} />
+                              <Text style={s.dispatchLogisticsText} numberOfLines={1}>
+                                {booking.serviceAddress || "Address provided upon acceptance"}
+                              </Text>
+                            </View>
+                          </View>
+
+                          {/* Optional Customer Note */}
+                          {booking.customerNotes ? (
+                            <View style={s.customerNoteBox}>
+                              <MaterialCommunityIcons name="message-text-outline" size={13} color={T.text3} />
+                              <Text style={s.customerNoteText} numberOfLines={2}>
+                                "{booking.customerNotes}"
+                              </Text>
+                            </View>
+                          ) : null}
+
+                          {/* 1-Tap Action Row */}
+                          <View style={s.dispatchActionRow}>
+                            <TouchableOpacity
+                              style={s.declineBtn}
+                              onPress={() => handleDeclineBooking(booking.id)}
+                              activeOpacity={0.7}
+                            >
+                              <MaterialCommunityIcons name="close" size={16} color={T.error} />
+                              <Text style={s.declineBtnText}>Decline</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              style={s.acceptBtn}
+                              onPress={() => handleAcceptBooking(booking.id)}
+                              activeOpacity={0.8}
+                            >
+                              <MaterialCommunityIcons name="check-bold" size={16} color="#FFF" />
+                              <Text style={s.acceptBtnText}>Accept & Assign</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+
+                    {/* Overflow Bar: what if many more */}
+                    {totalPendingCount > 3 && (
+                      <TouchableOpacity
+                        style={s.overflowBar}
+                        onPress={() => router.push("/(company)/(tabs)/operations" as any)}
+                        activeOpacity={0.8}
                       >
-                        <View style={s.pendingCard}>
-                          <View style={s.pendingInfo}>
-                            <Text style={s.pendingTitle}>{booking.customer?.fullName || 'Customer'}</Text>
-                            <Text style={s.pendingSub}>{booking.service?.name}</Text>
-                            <Text style={s.pendingDate}>
-                              {new Date(booking.bookingDate).toLocaleDateString()} {booking.startTime ? `at ${booking.startTime}` : ''}
+                        <View style={s.overflowLeft}>
+                          <View style={s.overflowIconWrap}>
+                            <MaterialCommunityIcons name="layers-triple-outline" size={18} color={T.accent} />
+                          </View>
+                          <View>
+                            <Text style={s.overflowTitle}>
+                              +{totalPendingCount - 3} more pending job{totalPendingCount - 3 > 1 ? 's' : ''}
+                            </Text>
+                            <Text style={s.overflowSub}>
+                              Tap to view complete operational dispatch queue
                             </Text>
                           </View>
-                          <View style={s.swipeHintRow}>
-                            <MaterialCommunityIcons name="chevron-left" size={14} color={T.text3} />
-                            <Text style={s.swipeHintText}>Swipe left to decline, right to accept</Text>
-                            <MaterialCommunityIcons name="chevron-right" size={14} color={T.text3} />
-                          </View>
                         </View>
-                      </Swipeable>
-                    ))}
+                        <View style={s.overflowRightBadge}>
+                          <Text style={s.overflowRightText}>Ops Queue</Text>
+                          <MaterialCommunityIcons name="arrow-right" size={14} color={T.accent} />
+                        </View>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               ) : (
-                <View style={[s.pendingSection, { alignItems: 'center', paddingVertical: 32 }]}>
-                   <MaterialCommunityIcons name="check-circle-outline" size={48} color={T.success} style={{ marginBottom: 16 }} />
-                   <Text style={{ fontSize: 16, fontWeight: '700', color: T.text1 }}>No urgent actions needed!</Text>
-                   <Text style={{ fontSize: 14, color: T.text3, marginTop: 4 }}>You're all caught up on your booking queue.</Text>
+                <View style={s.emptyQueueCard}>
+                  <View style={s.emptyQueueIconCircle}>
+                    <MaterialCommunityIcons name="check-decagram-outline" size={36} color={T.success} />
+                  </View>
+                  <Text style={s.emptyQueueTitle}>All Caught Up!</Text>
+                  <Text style={s.emptyQueueSub}>No urgent pending actions in your dispatch queue.</Text>
                 </View>
               )}
 
@@ -583,19 +739,196 @@ const s = StyleSheet.create({
   activitySub: { fontSize: 13, fontWeight: "500", color: T.text3 },
 
   pendingSection: { marginBottom: 24 },
-  slaWarningBanner: { flexDirection: "row", alignItems: "center", backgroundColor: T.error + "15", padding: 12, borderRadius: 12, marginBottom: 16, gap: 8 },
-  slaWarningText: { fontSize: 13, fontWeight: "600", color: T.error, flex: 1 },
-  
-  pendingCard: { backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.warning, ...CARD_SHADOW },
-  pendingInfo: { marginBottom: 12 },
-  pendingTitle: { fontSize: 16, fontWeight: "700", color: T.text1 },
-  pendingSub: { fontSize: 14, fontWeight: "600", color: T.text2, marginTop: 4 },
-  pendingDate: { fontSize: 13, color: T.text3, marginTop: 4 },
-  
-  swipeHintRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: T.border },
-  swipeHintText: { fontSize: 11, fontWeight: "700", color: T.text3, textTransform: "uppercase" },
+  queueHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  urgentDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: T.error },
+  queueCountBadge: {
+    backgroundColor: T.errorBg,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: T.error + "40",
+  },
+  queueCountBadgeText: { fontSize: 12, fontWeight: "800", color: T.error },
 
-  swipeActionLeft: { backgroundColor: T.success, justifyContent: "center", alignItems: "center", width: 100, borderTopLeftRadius: 20, borderBottomLeftRadius: 20, height: "100%" },
-  swipeActionRight: { backgroundColor: T.error, justifyContent: "center", alignItems: "center", width: 100, borderTopRightRadius: 20, borderBottomRightRadius: 20, height: "100%" },
-  swipeActionText: { color: "#fff", fontSize: 11, fontWeight: "700", marginTop: 4, textTransform: "uppercase" },
+  slaWarningBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: T.errorBg,
+    padding: 12,
+    borderRadius: 14,
+    marginBottom: 14,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: T.error + "25",
+  },
+  slaWarningContent: { flex: 1, gap: 2 },
+  slaWarningTitle: { fontSize: 13, fontWeight: "700", color: T.error },
+  slaWarningSub: { fontSize: 12, color: T.text2, lineHeight: 16 },
+
+  urgentCardList: { gap: 14 },
+  urgentDispatchCard: {
+    backgroundColor: T.surface,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: T.border,
+    ...CARD_SHADOW,
+  },
+  dispatchCardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  urgencyPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  urgencyPillInstant: {
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FECACA",
+  },
+  urgencyPillScheduled: {
+    backgroundColor: "#F0F9FF",
+    borderColor: "#BAE6FD",
+  },
+  urgencyPillText: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+  },
+  urgencyPillTextInstant: { color: "#DC2626" },
+  urgencyPillTextScheduled: { color: "#0284C7" },
+
+  payoutWrap: { alignItems: "flex-end" },
+  payoutLabel: { fontSize: 9, fontWeight: "700", color: T.text3, letterSpacing: 0.8 },
+  payoutValue: { fontSize: 17, fontWeight: "800", color: T.text1 },
+
+  customerRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
+  customerAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: T.accentLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  customerAvatarText: { fontSize: 17, fontWeight: "800", color: T.accent },
+  customerMeta: { flex: 1, gap: 2 },
+  customerName: { fontSize: 15, fontWeight: "700", color: T.text1 },
+  serviceName: { fontSize: 13, fontWeight: "500", color: T.text2 },
+
+  dispatchLogistics: {
+    backgroundColor: T.bg,
+    borderRadius: 12,
+    padding: 10,
+    gap: 6,
+    marginBottom: 10,
+  },
+  dispatchLogisticsItem: { flexDirection: "row", alignItems: "center", gap: 8 },
+  dispatchLogisticsText: { fontSize: 12, fontWeight: "500", color: T.text2, flex: 1 },
+
+  customerNoteBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#FFFBEB",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    gap: 6,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#FEF3C7",
+  },
+  customerNoteText: { fontSize: 12, color: "#92400E", fontStyle: "italic", flex: 1 },
+
+  dispatchActionRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+  declineBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: T.border,
+    backgroundColor: T.surface,
+  },
+  declineBtnText: { fontSize: 13, fontWeight: "700", color: T.error },
+  acceptBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: T.accent,
+  },
+  acceptBtnText: { fontSize: 13, fontWeight: "700", color: "#FFF" },
+
+  overflowBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: T.surface,
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: T.accentLight,
+    marginTop: 2,
+    ...CARD_SHADOW,
+  },
+  overflowLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
+  overflowIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: T.accentLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  overflowTitle: { fontSize: 13, fontWeight: "700", color: T.text1 },
+  overflowSub: { fontSize: 11, color: T.text3, marginTop: 1 },
+  overflowRightBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: T.accentLight,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  overflowRightText: { fontSize: 11, fontWeight: "700", color: T.accent },
+
+  emptyQueueCard: {
+    backgroundColor: T.surface,
+    borderRadius: 20,
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: T.border,
+    marginBottom: 24,
+    ...CARD_SHADOW,
+  },
+  emptyQueueIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: T.successBg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  emptyQueueTitle: { fontSize: 16, fontWeight: "700", color: T.text1 },
+  emptyQueueSub: { fontSize: 13, color: T.text3, marginTop: 4, textAlign: "center" },
 });

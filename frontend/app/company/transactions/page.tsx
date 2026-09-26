@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Receipt, Download, Loader2, ArrowUpRight, ArrowDownRight, Tag } from "lucide-react";
 import { useAPI } from "@/lib/hooks/useAPI";
 import { DataGrid, Column } from "@/components/grid/DataGrid";
+import { BaseDrawer } from "@/components/drawers/BaseDrawer";
 import { cn } from "@/lib/utils";
 
 interface Transaction {
@@ -23,6 +24,29 @@ const TYPE_COLORS: Record<string, string> = {
 export default function CompanyTransactionsPage() {
   const { data, loading } = useAPI<{ transactions: Transaction[] }>('/api/wallets/my-company');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+
+  const exportCSV = () => {
+    const rows = [
+      ["Date", "Transaction ID", "Description", "Category", "Type", "Amount"],
+      ...transactions.map((t) => [
+        new Date(t.createdAt).toLocaleDateString(),
+        t.id,
+        `"${t.description.replace(/"/g, '""')}"`,
+        t.category,
+        t.type,
+        `${t.type === 'credit' ? '+' : '-'}${Math.abs(t.amount).toFixed(2)}`,
+      ]),
+    ];
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     if (data?.transactions) {
@@ -67,7 +91,7 @@ export default function CompanyTransactionsPage() {
           <p className="text-sm font-medium text-muted-foreground mt-1">A complete ledger of all your earnings, fees, and payouts.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted/60 transition-colors">
+          <button onClick={exportCSV} className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted/60 transition-colors">
             <Download className="w-3.5 h-3.5" /> Export Ledger
           </button>
         </div>
@@ -106,10 +130,60 @@ export default function CompanyTransactionsPage() {
           <DataGrid 
             columns={columns} 
             data={transactions} 
+            onRowClick={(row) => setSelectedTx(row)}
             emptyMessage="No transactions found. Your ledger will populate when you complete bookings." 
           />
         )}
       </div>
+
+      <BaseDrawer
+        open={!!selectedTx}
+        onClose={() => setSelectedTx(null)}
+        title="Transaction Details"
+        subtitle={selectedTx ? `ID: ${selectedTx.id}` : undefined}
+      >
+        {selectedTx && (
+          <div className="p-6 space-y-6 text-sm">
+            <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Amount</p>
+                <p className={cn("text-2xl font-bold mt-1", selectedTx.type === 'credit' ? "text-emerald-500" : "text-foreground")}>
+                  {selectedTx.type === 'credit' ? "+" : "-"}${Math.abs(selectedTx.amount).toFixed(2)}
+                </p>
+              </div>
+              <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1", TYPE_COLORS[selectedTx.type] || "text-muted-foreground bg-muted")}>
+                {selectedTx.type === 'credit' ? <ArrowDownRight className="w-3.5 h-3.5" /> : <ArrowUpRight className="w-3.5 h-3.5" />}
+                {selectedTx.type}
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Description</span>
+                <p className="font-medium text-foreground">{selectedTx.description}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 rounded-lg border border-border bg-muted/10">
+                  <span className="text-xs text-muted-foreground block mb-1">Category</span>
+                  <span className="font-semibold text-foreground capitalize">{selectedTx.category.replace('_', ' ')}</span>
+                </div>
+                <div className="p-3 rounded-lg border border-border bg-muted/10">
+                  <span className="text-xs text-muted-foreground block mb-1">Date</span>
+                  <span className="font-semibold text-foreground">{new Date(selectedTx.createdAt).toLocaleString()}</span>
+                </div>
+              </div>
+
+              {selectedTx.bookingId && (
+                <div className="p-3 rounded-lg border border-border bg-muted/10">
+                  <span className="text-xs text-muted-foreground block mb-1">Associated Booking</span>
+                  <span className="font-mono text-xs font-semibold text-foreground">#{selectedTx.bookingId}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </BaseDrawer>
     </div>
   );
 }

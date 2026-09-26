@@ -1,77 +1,53 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DataGrid, Column } from "@/components/grid/DataGrid";
-import { StatusBadge } from "@/components/grid/StatusBadge";
-import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { Building2, Plus, Star, Phone, Mail, Ban, CheckCircle, ExternalLink, RefreshCw } from "lucide-react";
+import { ManagementDataGrid, ColumnDef } from "@/components/admin/ManagementDataGrid";
+import { StatusPill } from "@/components/admin/StatusPill";
+import { ConfirmationDialog, ReasonOption } from "@/components/admin/ConfirmationDialog";
 import { CompanyDrawer, CompanyRow } from "@/components/drawers/CompanyDrawer";
 import { AddCompanyModal } from "@/components/admin/AddCompanyModal";
-import { EditCompanyModal } from "@/components/admin/EditCompanyModal";
-import { Search, Download, Building2, Star, Loader2, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 
-function CompanyLogo({ src, name, className }: { src?: string; name: string; className?: string }) {
-  const [error, setError] = useState(false);
+const SUSPEND_REASONS: ReasonOption[] = [
+  { code: "FRAUD_ACTIVITY", label: "Fraudulent Activity or Fake Bookings" },
+  { code: "COMPLIANCE_BREACH", label: "Lapsed Trade License or Compliance Failure" },
+  { code: "CUSTOMER_DISPUTES", label: "Excessive Unresolved Customer Disputes" },
+  { code: "POLICY_VIOLATION", label: "Platform Terms of Service Violation" },
+  { code: "NON_PAYMENT", label: "Unpaid Commission or Chargeback Debt" },
+];
 
-  let imageUrl = src;
-  if (!imageUrl || error) {
-    imageUrl = `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}`;
-  } else if (!imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5000";
-    const slash = imageUrl.startsWith("/") ? "" : "/";
-    imageUrl = `${backendUrl}${slash}${imageUrl}`;
-  }
-
-  return (
-    <img 
-      src={imageUrl} 
-      alt={name} 
-      className={cn("object-cover", className)} 
-      onError={() => setError(true)} 
-    />
-  );
-}
+const STATUS_FILTERS = [
+  { id: "all", label: "All Companies" },
+  { id: "verified", label: "Verified" },
+  { id: "pending_verification", label: "Pending" },
+  { id: "suspended", label: "Suspended" },
+];
 
 export default function CompaniesPage() {
   const router = useRouter();
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [timeFilter, setTimeFilter] = useState("all");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [addModalOpen, setAddModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [activeCompany, setActiveCompany] = useState<CompanyRow | null>(null);
-  const [rawActiveCompany, setRawActiveCompany] = useState<any>(null);
-  
+  const { toast } = useToast();
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  const exportCSV = () => {
-    const rows = mappedCompanies.filter((c) => !selectedIds.size || selectedIds.has(c.id));
-    if (!rows.length) { toast({ title: "No data", description: "No companies to export.", variant: "destructive" }); return; }
-    const header = "ID,Name,Owner,Phone,Staff Count,Platform Fee,Rating,Total Revenue,Total Bookings,Status";
-    const lines = rows.map((c) =>
-      `${c.id},"${c.name}","${c.owner}","${c.phone}",${c.staffCount},${c.platformFee}%,${c.rating},${c.totalRevenue},${c.totalBookings},${c.status}`
-    );
-    const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `companies-${Date.now()}.csv`; a.click();
-    URL.revokeObjectURL(url);
-  };
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [activeCompany, setActiveCompany] = useState<CompanyRow | null>(null);
+  const [suspendCompanyTarget, setSuspendCompanyTarget] = useState<any | null>(null);
+  const [page, setPage] = useState(1);
 
   const fetchCompanies = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/admin/companies?limit=100');
+      const response = await api.get("/admin/companies?limit=100");
       const payload = response.data.data || response.data;
-      const dataList = Array.isArray(payload) ? payload : (payload.data || []);
-      setCompanies(dataList);
-    } catch (err: any) {
+      const list = Array.isArray(payload) ? payload : (payload.companies || payload.data || []);
+      setCompanies(list);
+    } catch {
       toast({ title: "Error", description: "Failed to load companies", variant: "destructive" });
     } finally {
       setLoading(false);
@@ -82,249 +58,236 @@ export default function CompaniesPage() {
     fetchCompanies();
   }, []);
 
-  const filtered = companies.filter((c) => {
-    const matchSearch = !search || [c.name, c.owner?.fullName, c.id].some((v) => v?.toString().toLowerCase().includes(search.toLowerCase()));
-    const displayStatus = c.subscriptionStatus === "suspended" ? "suspended" : (c.verificationStatus || "pending_verification");
-    const matchStatus = statusFilter === "all" || displayStatus === statusFilter;
-    
-    let matchTime = true;
-    if (timeFilter !== "all") {
-      const activeTime = new Date(c.owner?.lastLoginAt || c.owner?.lastSeen || c.updatedAt || c.createdAt).getTime();
-      const now = Date.now();
-      const diffHrs = (now - activeTime) / (1000 * 60 * 60);
-      if (timeFilter === "1h") matchTime = diffHrs <= 1;
-      if (timeFilter === "1d") matchTime = diffHrs <= 24;
-      if (timeFilter === "1m") matchTime = diffHrs <= 24 * 30;
-      if (timeFilter === "inactive") matchTime = diffHrs > 24 * 30; // Inactive for > 1 month
+  const handleSuspendConfirm = async (reasonCode?: string, notes?: string) => {
+    if (!suspendCompanyTarget) return;
+    try {
+      const isCurrentlySuspended = suspendCompanyTarget.subscriptionStatus === "suspended";
+      const newStatus = isCurrentlySuspended ? "active" : "suspended";
+      await api.patch(`/admin/companies/${suspendCompanyTarget.id}`, {
+        subscriptionStatus: newStatus,
+        statusReason: reasonCode,
+        statusNotes: notes,
+      });
+      toast({
+        title: "Success",
+        description: `Company ${isCurrentlySuspended ? "reactivated" : "suspended"} successfully.`,
+      });
+      fetchCompanies();
+    } catch {
+      toast({ title: "Error", description: "Failed to update company suspension status", variant: "destructive" });
+    } finally {
+      setSuspendCompanyTarget(null);
     }
+  };
 
-    return matchSearch && matchStatus && matchTime;
+  const filteredCompanies = companies.filter((c) => {
+    const rawStatus = c.subscriptionStatus === "suspended" ? "suspended" : (c.verificationStatus || "pending_verification");
+    if (statusFilter !== "all" && rawStatus !== statusFilter) return false;
+    if (!search) return true;
+    const query = search.toLowerCase();
+    const name = (c.name || "").toLowerCase();
+    const owner = (c.owner?.fullName || "").toLowerCase();
+    const city = (c.city || "").toLowerCase();
+    return name.includes(query) || owner.includes(query) || city.includes(query);
   });
 
-  const mappedCompanies: CompanyRow[] = filtered.map(c => ({
-    id: c.id.toString(),
-    name: c.name || "Unknown Company",
-    owner: c.owner?.fullName || "Unknown Owner",
-    ownerEmail: c.owner?.email || "No email",
-    phone: c.phone || "No phone",
-    staffCount: c.staffCount || c._count?.staffMembers || 0,
-    platformFee: c.platformFeePercent || 15, // default
-    rating: c.rating || 5.0,
-    totalRevenue: c.totalRevenue || 0,
-    totalBookings: c.totalBookings || 0,
-    status: c.subscriptionStatus === "suspended" ? "suspended" : (c.verificationStatus || "pending_verification"),
-    joinedDate: new Date(c.createdAt).toLocaleDateString(),
-    lastActive: c.owner?.lastLoginAt || c.owner?.lastSeen || c.updatedAt || c.createdAt,
-    workingStatus: c.owner?.workingStatus || "offline",
-    verified: c.verificationStatus === "active" || c.verificationStatus === "verified",
-    services: [],
-    documents: c.verificationDocumentUrl ? [{ label: "KYC Documents", verified: c.verificationStatus === "active" || c.verificationStatus === "verified" }] : [],
-    verificationDocumentUrl: c.verificationDocumentUrl || undefined,
-    ownerId: c.ownerId?.toString(),
-    logoUrl: c.logoUrl || undefined,
-  })).sort((a, b) => {
-    const timeA = new Date(a.lastActive || 0).getTime();
-    const timeB = new Date(b.lastActive || 0).getTime();
-    return timeB - timeA; // Descending (most recently active on top)
-  });
-
-  const columns: Column<CompanyRow>[] = [
+  const columns: ColumnDef<any>[] = [
     {
-      key: "name", header: "Company", sortable: true,
-      render: (r) => (
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 overflow-hidden border border-border bg-muted">
-            <CompanyLogo src={r.logoUrl} name={r.name} className="w-full h-full" />
+      id: "company",
+      header: "Organization",
+      isSortable: true,
+      cell: ({ row }) => {
+        const initials = (row.name || "CO")
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase();
+        return (
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-muted dark:bg-muted border border-border dark:border-border flex items-center justify-center font-bold text-xs text-foreground/90 dark:text-muted-foreground/50 shrink-0">
+              {initials}
+            </div>
+            <div>
+              <div className="font-semibold text-xs text-foreground dark:text-foreground">{row.name}</div>
+              <div className="text-[11px] text-muted-foreground font-mono">
+                {row.city || "Phnom Penh"}
+              </div>
+            </div>
           </div>
-          <span className="font-medium text-foreground">{r.name}</span>
+        );
+      },
+    },
+    {
+      id: "owner",
+      header: "Owner",
+      cell: ({ row }) => (
+        <div className="text-xs">
+          <div className="font-medium text-foreground dark:text-foreground/90">{row.owner?.fullName || "Unassigned"}</div>
+          <div className="text-[11px] text-muted-foreground/70">{row.owner?.email || "No email"}</div>
         </div>
       ),
     },
-    { 
-      key: "owner", 
-      header: "Owner", 
-      sortable: true, 
-      render: (r) => (
-        <div className="flex flex-col">
-          <span className="text-foreground">{r.owner}</span>
-          <span className="text-xs text-muted-foreground">{r.ownerEmail}</span>
-        </div>
-      ) 
-    },
-    { 
-      key: "phone", 
-      header: "Contact", 
-      sortable: true, 
-      render: (r) => <span className="text-muted-foreground">{r.phone}</span> 
-    },
-    { key: "staffCount", header: "Staff", sortable: true, render: (r) => <span className="text-muted-foreground">{r.staffCount}</span> },
-    { key: "platformFee", header: "Platform Fee", sortable: true, render: (r) => <span className="font-medium text-amber-500">{r.platformFee}%</span> },
     {
-      key: "rating", header: "Rating", sortable: true,
-      render: (r) => <span className="flex items-center gap-1 text-amber-500 text-sm"><Star className="w-3 h-3 fill-current" />{r.rating}</span>,
+      id: "contact",
+      header: "Contact",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground dark:text-muted-foreground/70">
+          {row.phone || row.owner?.phone || "—"}
+        </span>
+      ),
     },
-    { key: "totalRevenue", header: "Revenue", sortable: true, render: (r) => <span className="text-emerald-500 font-semibold">${r.totalRevenue.toLocaleString()}</span> },
-    { 
-      key: "lastActive", 
-      header: "Last Active", 
-      sortable: true, 
-      render: (r) => {
-        if (r.workingStatus === "online") {
-          return (
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs text-emerald-500 font-bold">Online</span>
-            </div>
-          );
-        }
-
-        if (!r.lastActive) return <span className="text-muted-foreground text-xs">Unknown</span>;
-        const activeDate = new Date(r.lastActive);
-        const diffHrs = (Date.now() - activeDate.getTime()) / (1000 * 60 * 60);
-        
-        let text = "";
-        let color = "text-muted-foreground";
-        
-        if (diffHrs <= 1) { 
-          text = "< 1h ago"; 
-          color = "text-amber-500 font-medium"; 
-        }
-        else if (diffHrs <= 24) { 
-          text = "Today"; 
-          color = "text-muted-foreground"; 
-        }
-        else if (diffHrs <= 24 * 30) { 
-          text = "This Month"; 
-          color = "text-muted-foreground/70"; 
-        }
-        else { 
-          text = activeDate.toLocaleDateString(); 
-          color = "text-rose-500/70"; 
-        }
-        
-        return <span className={`text-xs ${color}`}>{text}</span>;
-      }
+    {
+      id: "staff",
+      header: "Staff",
+      align: "center",
+      isSortable: true,
+      cell: ({ row }) => (
+        <span className="font-mono text-xs font-semibold text-foreground/90 dark:text-muted-foreground/50">
+          {row.staffCount || row._count?.staffMembers || 0}
+        </span>
+      ),
     },
-    { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
+    {
+      id: "rating",
+      header: "CSAT",
+      align: "center",
+      isSortable: true,
+      cell: ({ row }) => (
+        <span className="inline-flex items-center gap-1 font-semibold text-xs text-foreground dark:text-foreground/90">
+          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+          {row.rating ? Number(row.rating).toFixed(1) : "5.0"}
+        </span>
+      ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      align: "center",
+      cell: ({ row }) => {
+        const isSuspended = row.subscriptionStatus === "suspended";
+        return <StatusPill status={isSuspended ? "suspended" : (row.verificationStatus || "pending")} />;
+      },
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      align: "right",
+      cell: ({ row }) => {
+        const isSuspended = row.subscriptionStatus === "suspended";
+        return (
+          <div className="flex items-center justify-end gap-1.5">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/admin/companies/${row.id}`);
+              }}
+              className="px-2 py-1 rounded text-xs font-semibold text-muted-foreground dark:text-muted-foreground/50 hover:bg-muted dark:hover:bg-muted transition"
+            >
+              360° Profile
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSuspendCompanyTarget(row);
+              }}
+              className={cn(
+                "p-1 rounded text-xs font-semibold transition",
+                isSuspended
+                  ? "text-emerald-600 hover:bg-emerald-50"
+                  : "text-rose-600 hover:bg-rose-50"
+              )}
+              title={isSuspended ? "Reactivate Organization" : "Suspend Organization"}
+            >
+              <Ban className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        );
+      },
+    },
   ];
 
-  const toggleRow = useCallback((id: string) => {
-    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
-  }, []);
-
   return (
-    <div className="flex flex-col h-full overflow-hidden relative">
-      <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search companies..."
-            className="w-full pl-9 pr-3 h-9 bg-muted/30 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60" />
-        </div>
-        <div className="flex items-center gap-1">
-          {["all", "active", "pending_verification", "suspended"].map((s) => (
-            <button key={s} onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === s ? "bg-violet-500/10 text-violet-500 border border-violet-500/20" : "text-muted-foreground hover:bg-muted/50 border border-transparent"}`}>
-              {s === "all" ? "All" : s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-            </button>
-          ))}
-          <div className="w-px h-6 bg-border mx-2" />
-          <select 
-            value={timeFilter} 
-            onChange={(e) => setTimeFilter(e.target.value)}
-            className="h-8 px-2 bg-muted/30 border border-border rounded-lg text-xs text-foreground outline-none focus:border-violet-500/60"
-          >
-            <option value="all">Any Time</option>
-            <option value="1h">Active &lt; 1h</option>
-            <option value="1d">Active Today</option>
-            <option value="1m">Active This Month</option>
-            <option value="inactive">Inactive &gt; 1m</option>
-          </select>
-        </div>
-        <div className="flex-1" />
-        <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-foreground hover:bg-muted/50 bg-background">
-          <Download className="w-3.5 h-3.5 opacity-70" /> Export
-        </button>
-        <button onClick={() => setAddModalOpen(true)} className="flex items-center gap-2 h-9 px-3 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 shadow-sm transition-colors">
-          <Plus className="w-3.5 h-3.5" /> New Company
-        </button>
-      </div>
-
-      <div className="shrink-0 flex items-center gap-6 px-6 py-2.5 border-b border-border bg-muted/10">
-        {[
-          { label: "Total Companies", value: mappedCompanies.length, color: "text-foreground" },
-          { label: "Active", value: mappedCompanies.filter((c) => c.status === "active").length, color: "text-emerald-500" },
-          { label: "Pending Verification", value: mappedCompanies.filter((c) => c.status === "pending_verification").length, color: "text-amber-500" },
-          { label: "Suspended", value: mappedCompanies.filter((c) => c.status === "suspended").length, color: "text-rose-500" },
-        ].map((s) => (
-          <div key={s.label} className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">{s.label}</span>
-            <span className={`font-bold ${s.color}`}>{s.value}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex-1 overflow-hidden relative">
-        {loading ? (
-          <div className="absolute inset-0 z-50 bg-background/50 backdrop-blur-sm flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
-          </div>
-        ) : (
-          <DataGrid columns={columns} data={mappedCompanies} onRowClick={(r) => { setActiveCompany(r); setDrawerOpen(true); }}
-            selectedIds={selectedIds} onToggleRow={toggleRow}
-            onToggleAll={() => setSelectedIds((prev) => prev.size === mappedCompanies.length ? new Set() : new Set(mappedCompanies.map((c) => c.id)))}
-            emptyMessage="No companies found." />
-        )}
-      </div>
-
-      <BulkActionBar selectedCount={selectedIds.size} onClear={() => setSelectedIds(new Set())}
-        actions={[
-          ...(selectedIds.size === 1 ? [
-            { icon: Eye, label: "View Profile", onClick: () => {
-                const id = Array.from(selectedIds)[0];
-                router.push(`/admin/companies/${id}`);
-              }
-            },
-            { icon: Edit, label: "Edit", onClick: () => {
-                const rawCompany = companies.find(c => c.id.toString() === Array.from(selectedIds)[0]);
-                if (rawCompany) {
-                  setRawActiveCompany(rawCompany);
-                  setEditModalOpen(true);
-                }
-              }
-            }
-          ] : []),
-          { icon: Trash2, label: "Delete", onClick: async () => {
-              if (!confirm(`Are you sure you want to delete ${selectedIds.size} companie(s)?`)) return;
-              let successCount = 0;
-              for (const id of Array.from(selectedIds)) {
-                try {
-                  await api.delete(`/companies/${id}`);
-                  successCount++;
-                } catch (e) {
-                  console.error(e);
-                }
-              }
-              if (successCount === 0) {
-                toast({ title: "Error", description: "Failed to delete companies.", variant: "destructive" });
-                return;
-              }
-              if (successCount < selectedIds.size) {
-                toast({ title: "Partial", description: `Deleted ${successCount} of ${selectedIds.size} companie(s).`, variant: "destructive" });
-              } else {
-                toast({ title: "Companies Deleted", description: `Successfully deleted ${successCount} companie(s).` });
-              }
-              setSelectedIds(new Set());
-              fetchCompanies();
-            }
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <ManagementDataGrid
+        title="Marketplace Organizations"
+        description="Comprehensive directory of registered service provider companies, compliance standing, and operational metrics."
+        primaryAction={{
+          label: "Onboard Company",
+          icon: <Plus className="w-4 h-4" />,
+          onClick: () => setAddModalOpen(true),
+        }}
+        secondaryActions={[
+          {
+            label: "Refresh List",
+            icon: <RefreshCw className="w-3.5 h-3.5" />,
+            onClick: fetchCompanies,
           },
-          { icon: Download, label: "Export CSV", onClick: exportCSV },
-        ]} />
+        ]}
+        data={filteredCompanies}
+        columns={columns}
+        getRowId={(r) => r.id}
+        isLoading={loading}
+        onRowClick={(r) => router.push(`/admin/companies/${r.id}`)}
+        searchPlaceholder="Search company, owner, or city..."
+        onSearchChange={setSearch}
+        filterSlots={
+          <div className="flex items-center gap-1">
+            {STATUS_FILTERS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setStatusFilter(tab.id)}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium transition",
+                  statusFilter === tab.id
+                    ? "bg-[#0A192F] text-white shadow-xs font-semibold"
+                    : "text-muted-foreground dark:text-muted-foreground/70 hover:bg-muted dark:hover:bg-muted"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        }
+        totalCount={filteredCompanies.length}
+        pageSize={25}
+        currentPage={page}
+        onPageChange={setPage}
+        emptyState={{
+          title: "No companies found",
+          description: "There are no service organizations matching your selected filter parameters.",
+          actionLabel: "Onboard First Organization",
+          onActionClick: () => setAddModalOpen(true),
+        }}
+      />
 
-      <AddCompanyModal open={addModalOpen} onClose={() => setAddModalOpen(false)} onSuccess={fetchCompanies} />
-      <CompanyDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} company={activeCompany} onSuccess={fetchCompanies} />
-      {rawActiveCompany && (
-        <EditCompanyModal open={editModalOpen} onClose={() => setEditModalOpen(false)} company={rawActiveCompany} onSuccess={fetchCompanies} />
-      )}
+      {/* Two-step Destructive Action Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={Boolean(suspendCompanyTarget)}
+        onClose={() => setSuspendCompanyTarget(null)}
+        title={
+          suspendCompanyTarget?.subscriptionStatus === "suspended"
+            ? `Reactivate ${suspendCompanyTarget?.name}`
+            : `Suspend ${suspendCompanyTarget?.name}`
+        }
+        description={
+          suspendCompanyTarget?.subscriptionStatus === "suspended"
+            ? "Reactivating this organization will restore their active marketplace listings and staff dispatch abilities."
+            : "Suspending this organization will immediately disable their listings, cancel pending dispatches, and notify company management."
+        }
+        actionType={suspendCompanyTarget?.subscriptionStatus === "suspended" ? "warning" : "danger"}
+        confirmLabel={suspendCompanyTarget?.subscriptionStatus === "suspended" ? "Confirm Reactivation" : "Suspend Organization"}
+        reasonOptions={SUSPEND_REASONS}
+        requireReason={suspendCompanyTarget?.subscriptionStatus !== "suspended"}
+        onConfirm={handleSuspendConfirm}
+      />
+
+      {/* Onboard Company Modal */}
+      <AddCompanyModal
+        open={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onSuccess={fetchCompanies}
+      />
     </div>
   );
 }

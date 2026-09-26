@@ -44,7 +44,7 @@ const statusConfig: Record<string, { label: string; class: string; icon: any }> 
   },
   closed: {
     label: "Closed",
-    class: "bg-muted text-slate-700 border-border",
+    class: "bg-muted text-foreground/90 border-border",
     icon: XCircle,
   },
 };
@@ -137,7 +137,7 @@ export default function CompanyDisputesPage() {
         {/* Filters */}
         <div className="bg-background/60 backdrop-blur-xl border border-white/40 p-4 rounded-3xl shadow-sm flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/70" />
                 <Input
                 type="text"
                 placeholder="Search by ID, Customer, or Company..."
@@ -154,7 +154,7 @@ export default function CompanyDisputesPage() {
                     onClick={() => setStatusFilter(status)}
                     className={`rounded-2xl h-12 px-6 font-bold capitalize whitespace-nowrap ${
                     statusFilter === status
-                        ? "bg-slate-900 text-white shadow-md hover:bg-slate-800"
+                        ? "bg-primary text-primary-foreground shadow-md hover:bg-muted"
                         : "bg-background/80 border-border text-muted-foreground hover:bg-muted/50"
                     }`}
                 >
@@ -167,7 +167,7 @@ export default function CompanyDisputesPage() {
         {/* Disputes List */}
         <div className="bg-background rounded-xl border border-border overflow-hidden shadow-sm">
             {loading ? (
-                <div className="p-12 flex flex-col items-center justify-center text-slate-400">
+                <div className="p-12 flex flex-col items-center justify-center text-muted-foreground/70">
                     <div className="w-10 h-10 border-4 border-rose-500/20 border-t-rose-500 rounded-full animate-spin mb-4" />
                     <p className="font-semibold text-sm">Loading disputes...</p>
                 </div>
@@ -177,15 +177,15 @@ export default function CompanyDisputesPage() {
                     <p>Failed to load disputes. Please try again.</p>
                 </div>
             ) : filteredDisputes.length === 0 ? (
-                <div className="p-16 flex flex-col items-center justify-center text-slate-400">
+                <div className="p-16 flex flex-col items-center justify-center text-muted-foreground/70">
                     <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                        <CheckCircle className="w-8 h-8 text-slate-300" />
+                        <CheckCircle className="w-8 h-8 text-muted-foreground/50" />
                     </div>
                     <p className="font-bold text-foreground text-lg">No disputes found</p>
                     <p className="font-medium text-muted-foreground mt-1">Everything looks peaceful!</p>
                 </div>
             ) : (
-                <div className="divide-y divide-slate-100/80">
+                <div className="divide-y divide-border/60/80">
                     <AnimatePresence>
                         {filteredDisputes.map((dispute, index) => {
                             const status = statusConfig[dispute.status] || statusConfig.open;
@@ -207,7 +207,7 @@ export default function CompanyDisputesPage() {
                                         <span className="text-xs font-bold text-muted-foreground font-medium">
                                             #{dispute.id ? dispute.id.toString().padStart(6, '0') : "----"}
                                         </span>
-                                        <span className="text-xs font-bold text-slate-400 flex items-center gap-1">
+                                        <span className="text-xs font-bold text-muted-foreground/70 flex items-center gap-1">
                                             <Clock className="w-3.5 h-3.5" /> {dispute.createdAt ? new Date(dispute.createdAt).toLocaleDateString() : "N/A"}
                                         </span>
                                     </div>
@@ -224,7 +224,7 @@ export default function CompanyDisputesPage() {
                                             </div>
                                             <div>
                                                 <p className="text-[10px] font-bold text-muted-foreground font-medium">Customer</p>
-                                                <p className="text-sm font-semibold text-slate-700">{dispute.customer?.fullName || "Unknown"}</p>
+                                                <p className="text-sm font-semibold text-foreground/90">{dispute.customer?.fullName || "Unknown"}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -233,7 +233,7 @@ export default function CompanyDisputesPage() {
                                             </div>
                                             <div>
                                                 <p className="text-[10px] font-bold text-muted-foreground font-medium">Company</p>
-                                                <p className="text-sm font-semibold text-slate-700">{dispute.company?.name || "Unknown"}</p>
+                                                <p className="text-sm font-semibold text-foreground/90">{dispute.company?.name || "Unknown"}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -242,7 +242,7 @@ export default function CompanyDisputesPage() {
                                 <div className="w-full lg:w-auto shrink-0 flex gap-3 lg:justify-end border-t lg:border-t-0 pt-4 lg:pt-0">
                                     <Button
                                         onClick={() => router.push(`/company/disputes/${dispute.id}`)}
-                                        className="w-full lg:w-auto h-12 lg:h-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-md"
+                                        className="w-full lg:w-auto h-12 lg:h-10 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md"
                                     >
                                         Review Dispute <ArrowRight className="w-4 h-4 ml-2" />
                                     </Button>

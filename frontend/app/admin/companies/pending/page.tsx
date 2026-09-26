@@ -106,7 +106,7 @@ export default function PendingCompaniesPage() {
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 rounded-lg">
             <AvatarFallback className="rounded-lg bg-warning/10 text-warning text-sm font-medium">
-              {item.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+              {(item.name || "C").split(" ").filter(Boolean).map((n) => n[0]).slice(0, 2).join("")}
             </AvatarFallback>
           </Avatar>
           <div>
@@ -225,7 +225,7 @@ export default function PendingCompaniesPage() {
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16 rounded-lg">
                   <AvatarFallback className="rounded-lg bg-warning/10 text-warning text-xl font-medium">
-                    {selectedCompany.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                    {(selectedCompany.name || "C").split(" ").filter(Boolean).map((n) => n[0]).slice(0, 2).join("")}
                   </AvatarFallback>
                 </Avatar>
                 <div>

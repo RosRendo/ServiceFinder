@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, MapPin, Clock, Upload, Building2, Loader2, Landmark, Settings2 } from "lucide-react";
+import { Save, MapPin, Clock, Upload, Building2, Loader2, Landmark, Settings2, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
@@ -28,8 +28,30 @@ export default function CompanySettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
-  const [bookingMode, setBookingMode] = useState<"dispatch" | "open_pool">("dispatch");
+  const [bookingMode, setBookingMode] = useState<"dispatch" | "open_pool" | "auto_match">("dispatch");
   const [savingMode, setSavingMode] = useState(false);
+  const [matchPriorities, setMatchPriorities] = useState<string[]>([
+    "Skill Match",
+    "Distance",
+    "Rating",
+    "Availability",
+    "Workload"
+  ]);
+
+  const movePriority = (index: number, direction: "up" | "down") => {
+    const next = [...matchPriorities];
+    if (direction === "up" && index > 0) {
+      const temp = next[index - 1];
+      next[index - 1] = next[index];
+      next[index] = temp;
+    } else if (direction === "down" && index < next.length - 1) {
+      const temp = next[index + 1];
+      next[index + 1] = next[index];
+      next[index] = temp;
+    }
+    setMatchPriorities(next);
+    toast({ title: "Rules Updated", description: "Dispatch matching rules priority updated." });
+  };
 
   const [companyId, setCompanyId] = useState<string>("");
   const [form, setForm] = useState({
@@ -91,6 +113,16 @@ export default function CompanySettingsPage() {
     fetchCompanyDetails();
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab") as Tab;
+      if (tabParam && TABS.some(t => t.key === tabParam)) {
+        setTab(tabParam);
+      }
+    }
+  }, [typeof window !== "undefined" ? window.location.search : ""]);
+
   const handleUpdateField = (key: keyof typeof form, val: any) => {
     setForm(prev => ({ ...prev, [key]: val }));
   };
@@ -115,7 +147,7 @@ export default function CompanySettingsPage() {
     }
   };
 
-  const handleSaveBookingMode = async (mode: "dispatch" | "open_pool") => {
+  const handleSaveBookingMode = async (mode: "dispatch" | "open_pool" | "auto_match") => {
     if (!companyId) return;
     setBookingMode(mode);
     setSavingMode(true);
@@ -471,7 +503,74 @@ export default function CompanySettingsPage() {
                         </div>
                       </button>
 
+                      {/* Auto Match Mode Card */}
+                      <button
+                        id="mode-auto-match"
+                        onClick={() => handleSaveBookingMode("auto_match")}
+                        disabled={savingMode}
+                        className={cn(
+                          "w-full text-left p-4 rounded-xl border-2 transition-all",
+                          bookingMode === "auto_match"
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-muted/20 hover:border-primary/40"
+                        )}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", bookingMode === "auto_match" ? "bg-primary/10" : "bg-muted")}>
+                            <Activity className={cn("w-5 h-5", bookingMode === "auto_match" ? "text-primary" : "text-muted-foreground")} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-foreground">Auto-Match Mode</span>
+                              {bookingMode === "auto_match" && <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">ACTIVE</span>}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">The system automatically matches and assigns incoming bookings to the closest qualified staff candidate based on priority rules.</p>
+                          </div>
+                        </div>
+                      </button>
+
                     </div>
+
+                    {bookingMode === "auto_match" && (
+                      <div className="mt-6 p-4 bg-muted/20 border border-border rounded-xl space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div>
+                          <h4 className="text-sm font-bold text-foreground">Auto-Match Priority Rules</h4>
+                          <p className="text-xs text-muted-foreground mt-0.5">Order matching rules by priority weights. The engine resolves candidates sequentially.</p>
+                        </div>
+                        <div className="space-y-2">
+                          {matchPriorities.map((rule, idx) => (
+                            <div key={rule} className="flex items-center justify-between p-3 bg-background border border-border rounded-lg shadow-sm">
+                              <div className="flex items-center gap-3">
+                                <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center">
+                                  {idx + 1}
+                                </span>
+                                <span className="text-xs font-bold text-foreground">{rule}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  variant="outline" 
+                                  size="icon" 
+                                  className="w-7 h-7 rounded-md border-border"
+                                  disabled={idx === 0}
+                                  onClick={() => movePriority(idx, "up")}
+                                >
+                                  ▲
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="icon" 
+                                  className="w-7 h-7 rounded-md border-border"
+                                  disabled={idx === matchPriorities.length - 1}
+                                  onClick={() => movePriority(idx, "down")}
+                                >
+                                  ▼
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {savingMode && <p className="text-xs text-muted-foreground animate-pulse">Saving...</p>}
                   </div>
                 </div>

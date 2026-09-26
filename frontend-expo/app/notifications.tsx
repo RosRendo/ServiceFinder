@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useEffect, useCallback } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Platform,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
 } from "react-native";
 import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,6 +15,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useNotificationStore, AppNotification, NotificationType } from "@/store/notificationStore";
 import { Theme } from "@/constants/theme";
+import { EmptyNotificationsSvg } from "@/components/svg";
 const FlashList = ShopifyFlashList as any;
 
 const T = Theme.colors;
@@ -21,7 +25,7 @@ const SHADOW = Platform.select({
   android: { elevation: 3 },
 });
 
-const TYPE_CONFIG: Record<NotificationType, { icon: string; color: string; bg: string }> = {
+const TYPE_CONFIG: Record<string, { icon: string; color: string; bg: string }> = {
   new_booking:       { icon: "calendar-plus",           color: "#1d4ed8", bg: "#dbeafe" },
   booking_confirmed: { icon: "calendar-check",          color: "#059669", bg: "#d1fae5" },
   booking_cancelled: { icon: "calendar-remove",         color: "#dc2626", bg: "#fee2e2" },
@@ -34,6 +38,7 @@ const TYPE_CONFIG: Record<NotificationType, { icon: string; color: string; bg: s
   company_verified:  { icon: "shield-check",            color: "#1d4ed8", bg: "#dbeafe" },
   review_received:   { icon: "star",                    color: "#d97706", bg: "#fef3c7" },
   support_reply:     { icon: "ticket-confirmation",     color: "#6b7280", bg: "#f3f4f6" },
+  system:            { icon: "bell",                    color: "#6b7280", bg: "#f3f4f6" },
 };
 
 function timeAgo(date: Date): string {
@@ -49,14 +54,53 @@ function timeAgo(date: Date): string {
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { notifications, unreadCount, markRead, markAllRead, clearAll, connected } = useNotificationStore();
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    fetchNotifications,
+    markRead,
+    markAllRead,
+    deleteNotification,
+    clearAll,
+    connected,
+  } = useNotificationStore();
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  const handlePressItem = useCallback((item: AppNotification) => {
+    if (!item.read) {
+      markRead(item.id);
+    }
+    if (item.link) {
+      // Map e.g. /bookings/79 -> /(customer)/booking/79
+      const bookingMatch = item.link.match(/\/bookings\/(\d+)/);
+      if (bookingMatch) {
+        router.push(`/(customer)/booking/${bookingMatch[1]}` as any);
+      } else {
+        try {
+          router.push(item.link as any);
+        } catch {}
+      }
+    }
+  }, [markRead, router]);
+
+  const handleLongPressItem = useCallback((item: AppNotification) => {
+    Alert.alert("Delete Notification", "Remove this notification?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => deleteNotification(item.id) },
+    ]);
+  }, [deleteNotification]);
 
   const renderItem = ({ item }: { item: AppNotification }) => {
-    const cfg = TYPE_CONFIG[item.type] ?? { icon: "bell", color: "#6b7280", bg: "#f3f4f6" };
+    const cfg = TYPE_CONFIG[item.type] ?? TYPE_CONFIG.system;
     return (
       <TouchableOpacity
         activeOpacity={0.8}
-        onPress={() => markRead(item.id)}
+        onPress={() => handlePressItem(item)}
+        onLongPress={() => handleLongPressItem(item)}
         style={[s.itemRow, !item.read && s.itemUnread]}
       >
         {/* Avatar/Icon */}
@@ -102,7 +146,7 @@ export default function NotificationsScreen() {
           <View style={[s.liveIndicator, connected ? s.liveIndicatorActive : s.liveIndicatorOff]}>
             <View style={[s.liveDot, connected ? s.liveDotActive : s.liveDotOff]} />
             <Text style={[s.liveText, connected ? s.liveTextActive : s.liveTextOff]}>
-              {connected ? "LIVE" : "OFFLINE"}
+              {connected ? "LIVE" : "SYNCED"}
             </Text>
           </View>
         </View>
@@ -147,24 +191,38 @@ export default function NotificationsScreen() {
       )}
 
       {/* List */}
-      <FlashList
-        data={notifications}
-        keyExtractor={(item: any) => item.id}
-        renderItem={renderItem}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={s.listContent}
-        ListEmptyComponent={
-          <View style={s.emptyState}>
-            <View style={s.emptyIconWrap}>
-              <MaterialCommunityIcons name="bell-off-outline" size={36} color={T.text3} />
+      {loading && notifications.length === 0 ? (
+        <View style={s.loaderWrap}>
+          <ActivityIndicator size="large" color={T.accent} />
+        </View>
+      ) : (
+        <FlashList
+          data={notifications}
+          keyExtractor={(item: any) => item.id}
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={s.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={fetchNotifications}
+              tintColor={T.accent}
+              colors={[T.accent]}
+            />
+          }
+          ListEmptyComponent={
+            <View style={s.emptyState}>
+              <View style={{ marginBottom: 20 }}>
+                <EmptyNotificationsSvg size={105} />
+              </View>
+              <Text style={s.emptyTitle}>All caught up!</Text>
+              <Text style={s.emptyDesc}>
+                You have no notifications right now. New events will appear here in real-time.
+              </Text>
             </View>
-            <Text style={s.emptyTitle}>All caught up!</Text>
-            <Text style={s.emptyDesc}>
-              You have no notifications right now. New events will appear here in real-time.
-            </Text>
-          </View>
-        }
-      />
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -181,48 +239,65 @@ const s = StyleSheet.create({
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   headerTitleWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
   headerTitle: { fontSize: 18, fontWeight: "800", color: T.text1 },
-  liveIndicator: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 12 },
-  liveIndicatorActive: { backgroundColor: T.greenBg },
-  liveIndicatorOff: { backgroundColor: T.grayBg },
-  liveDot: { width: 6, height: 6, borderRadius: 3 },
-  liveDotActive: { backgroundColor: T.greenDot },
-  liveDotOff: { backgroundColor: T.grayDot },
-  liveText: { fontSize: 9, fontWeight: "800", letterSpacing: 0.5 },
-  liveTextActive: { color: T.greenText },
-  liveTextOff: { color: T.grayText },
-  headerActions: { flexDirection: "row", gap: 4 },
-  actionBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 4 },
+  actionBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
 
-  // Banner
-  unreadBanner: {
-    marginHorizontal: 16, marginTop: 16, marginBottom: 4,
-    flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: T.blueBg, borderWidth: 1, borderColor: T.blueBorder,
-    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12,
+  // Live indicator
+  liveIndicator: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8,
   },
-  unreadBadge: { width: 24, height: 24, borderRadius: 12, backgroundColor: T.blueDot, alignItems: "center", justifyContent: "center" },
-  unreadBadgeText: { color: "#fff", fontSize: 12, fontWeight: "800" },
-  unreadBannerText: { flex: 1, fontSize: 14, fontWeight: "700", color: T.blueText },
-  markAllText: { fontSize: 12, fontWeight: "800", color: T.blueDot },
+  liveIndicatorActive: { backgroundColor: "#d1fae5" },
+  liveIndicatorOff: { backgroundColor: "#f3f4f6" },
+  liveDot: { width: 6, height: 6, borderRadius: 3 },
+  liveDotActive: { backgroundColor: "#059669" },
+  liveDotOff: { backgroundColor: "#9ca3af" },
+  liveText: { fontSize: 10, fontWeight: "700" },
+  liveTextActive: { color: "#065f46" },
+  liveTextOff: { color: "#6b7280" },
+
+  // Unread banner
+  unreadBanner: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: T.surface, marginHorizontal: 16, marginTop: 12,
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
+    borderWidth: 1, borderColor: T.border,
+  },
+  unreadBadge: {
+    backgroundColor: T.accent, borderRadius: 10,
+    minWidth: 20, height: 20, alignItems: "center", justifyContent: "center", paddingHorizontal: 6,
+  },
+  unreadBadgeText: { color: "#fff", fontSize: 11, fontWeight: "800" },
+  unreadBannerText: { flex: 1, fontSize: 13, color: T.text2, fontWeight: "500" },
+  markAllText: { fontSize: 13, color: T.accent, fontWeight: "700" },
 
   // List
-  listContent: { paddingBottom: 40 },
-  itemRow: { flexDirection: "row", gap: 16, paddingHorizontal: 16, paddingVertical: 16, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
-  itemUnread: { backgroundColor: T.blueBg },
-  itemIconWrap: { position: "relative", marginTop: 2 },
-  iconBox: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  unreadDot: { position: "absolute", top: -2, right: -2, width: 12, height: 12, borderRadius: 6, backgroundColor: T.blueDot, borderWidth: 2, borderColor: "#fff" },
-  
+  listContent: { paddingVertical: 8 },
+  loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: 60 },
+
+  // Item row
+  itemRow: {
+    flexDirection: "row", alignItems: "flex-start", gap: 12,
+    paddingHorizontal: 16, paddingVertical: 14,
+    backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
+  },
+  itemUnread: { backgroundColor: "#F0F7FF" },
+  itemIconWrap: { position: "relative" },
+  iconBox: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  unreadDot: {
+    position: "absolute", top: -2, right: -2,
+    width: 9, height: 9, borderRadius: 5,
+    backgroundColor: T.accent, borderWidth: 1.5, borderColor: "#fff",
+  },
   itemContent: { flex: 1 },
-  itemHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 },
-  itemTitle: { flex: 1, fontSize: 15, fontWeight: "600", color: T.text1 },
-  itemTitleUnread: { fontWeight: "800" },
-  itemTime: { fontSize: 11, color: T.text3, fontWeight: "600" },
+  itemHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 3 },
+  itemTitle: { fontSize: 14, fontWeight: "600", color: T.text1, flex: 1, marginRight: 8 },
+  itemTitleUnread: { fontWeight: "800", color: T.text1 },
+  itemTime: { fontSize: 11, color: T.text3, fontWeight: "500" },
   itemBody: { fontSize: 13, color: T.text2, lineHeight: 18 },
 
-  // Empty
-  emptyState: { alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 32 },
-  emptyIconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", marginBottom: 16, borderWidth: 1, borderColor: T.border },
-  emptyTitle: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 8 },
-  emptyDesc: { fontSize: 14, color: T.text3, textAlign: "center", lineHeight: 20 },
+  // Empty state
+  emptyState: { alignItems: "center", justifyContent: "center", paddingVertical: 64, paddingHorizontal: 32 },
+  emptyTitle: { fontSize: 18, fontWeight: "800", color: T.text1, marginBottom: 8 },
+  emptyDesc: { fontSize: 13, color: T.text3, textAlign: "center", lineHeight: 20 },
 });

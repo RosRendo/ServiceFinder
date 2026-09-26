@@ -76,6 +76,33 @@ export const Theme = {
     bubbleThem: "#F1F5F9",
     bubbleMeText: "#FFFFFF",
     bubbleThemText: "#0F172A",
+
+    // ── Management Anti-AI-Slop Tokens ─────────────────────────────
+    mgmtBg: "#F8FAFC",
+    mgmtSurface: "#FFFFFF",
+    mgmtSurfaceSubtle: "#F1F5F9",
+    mgmtBorder: "#E2E8F0",
+    mgmtCard: "#FFFFFF",
+    mgmtCardBorder: "#E2E8F0",
+    mgmtRowHover: "#F8FAFC",
+    mgmtTextPrimary: "#0F172A",
+    mgmtTextSecondary: "#475569",
+    mgmtTextTertiary: "#94A3B8",
+    mgmtPillSuccessBg: "#ECFDF5",
+    mgmtPillSuccessText: "#047857",
+    mgmtPillSuccessBorder: "#A7F3D0",
+    mgmtPillWarningBg: "#FFFBEB",
+    mgmtPillWarningText: "#B45309",
+    mgmtPillWarningBorder: "#FDE68A",
+    mgmtPillCriticalBg: "#FEF2F2",
+    mgmtPillCriticalText: "#B91C1C",
+    mgmtPillCriticalBorder: "#FECACA",
+    mgmtPillInfoBg: "#F0F9FF",
+    mgmtPillInfoText: "#0369A1",
+    mgmtPillInfoBorder: "#BAE6FD",
+    mgmtPillNeutralBg: "#F8FAFC",
+    mgmtPillNeutralText: "#475569",
+    mgmtPillNeutralBorder: "#E2E8F0",
   }
 };
 
@@ -98,23 +125,14 @@ export const Colors = {
   },
 };
 
-export const Fonts = Platform.select({
-  ios: {
-    sans: 'system-ui',
-    serif: 'ui-serif',
-    rounded: 'ui-rounded',
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});
+export const Fonts = {
+  regular: 'KantumruyPro-Regular',
+  medium: 'KantumruyPro-Medium',
+  semiBold: 'KantumruyPro-SemiBold',
+  bold: 'KantumruyPro-Bold',
+  sans: 'KantumruyPro-Regular',
+  heading: 'KantumruyPro-Bold',
+  khmer: 'KantumruyPro-Regular',
+  khmerBold: 'KantumruyPro-Bold',
+  mono: Platform.select({ ios: 'Courier', default: 'monospace' }),
+};

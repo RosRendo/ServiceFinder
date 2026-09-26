@@ -57,11 +57,11 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://maps.googleapis.com https://us.i.posthog.com https://eu.i.posthog.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://maps.googleapis.com https://us.i.posthog.com https://eu.i.posthog.com https://*.posthog.com https://*.i.posthog.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
               "font-src 'self' https://fonts.gstatic.com",
               `img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://via.placeholder.com https://i.pravatar.cc https://lh3.googleusercontent.com https://*.cartocdn.com https://cdnjs.cloudflare.com https://unpkg.com https://cambodiaservice.com https://api.dicebear.com ${SITE_URL}`,
-              `connect-src 'self' ws: wss: ${API_URL} https://accounts.google.com https://us.i.posthog.com https://eu.i.posthog.com`,
+              `connect-src 'self' ws: wss: ${API_URL} https://accounts.google.com https://us.i.posthog.com https://eu.i.posthog.com https://*.posthog.com https://*.i.posthog.com`,
               "frame-src 'self' https://accounts.google.com https://www.google.com",
               "object-src 'none'",
               "base-uri 'self'",

@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
 import { cn } from "@/lib/utils";
 
 interface PricingRule {
@@ -26,6 +27,7 @@ export default function PricingRulesPage() {
   const [rules, setRules] = useState<PricingRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteTargetRule, setDeleteTargetRule] = useState<PricingRule | null>(null);
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -94,11 +96,16 @@ export default function PricingRulesPage() {
     }
   };
 
-  const handleDelete = async (rule: PricingRule) => {
-    if (!confirm(`Delete pricing rule "${rule.name}"?`)) return;
+  const handleDelete = (rule: PricingRule) => {
+    setDeleteTargetRule(rule);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetRule) return;
     try {
-      await api.delete(`/companies/my-company/pricing-rules/${rule.id}`);
+      await api.delete(`/companies/my-company/pricing-rules/${deleteTargetRule.id}`);
       toast({ title: "Success", description: "Pricing rule deleted successfully" });
+      setDeleteTargetRule(null);
       fetchRules();
     } catch {
       toast({ title: "Error", description: "Failed to delete pricing rule", variant: "destructive" });
@@ -270,6 +277,17 @@ export default function PricingRulesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Rule Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={!!deleteTargetRule}
+        onClose={() => setDeleteTargetRule(null)}
+        title="Delete Pricing Rule"
+        description={deleteTargetRule ? `Are you sure you want to delete the pricing rule "${deleteTargetRule.name}"? Peak surcharges will no longer be applied.` : ""}
+        actionType="danger"
+        confirmLabel="Delete Rule"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

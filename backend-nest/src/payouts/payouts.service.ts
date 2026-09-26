@@ -490,7 +490,8 @@ export class PayoutsService {
   async getAllPayouts(status?: string, type?: string) {
     const where: any = {};
     if (status) where.status = status;
-    if (type) where.payoutType = type;
+    // Admin only settles Company payouts by default
+    where.payoutType = type || 'company';
 
     const payouts = await this.prisma.payout.findMany({
       where,
@@ -500,21 +501,20 @@ export class PayoutsService {
           select: {
             id: true,
             name: true,
-            owner: { select: { fullName: true, email: true } },
-            paymentMethods: true,
-          },
-        },
-        staff: {
-          select: {
-            id: true,
-            user: { select: { fullName: true, email: true } },
+            khqrImageUrl: true,
+            owner: { select: { fullName: true, email: true, phone: true } },
             paymentMethods: true,
           },
         },
       },
     });
 
-    return { payouts };
+    return {
+      success: true,
+      data: payouts,
+      payouts,
+      meta: { total: payouts.length },
+    };
   }
 
   async processPayout(
@@ -536,10 +536,57 @@ export class PayoutsService {
       data: {
         status: 'completed',
         processedAt: new Date(),
-        transactionId,
+        transactionId: transactionId || `TXN-${Date.now().toString().slice(-6)}`,
       },
     });
 
-    return { message: 'Payout marked as completed', payout: updated };
+    return { success: true, message: 'Payout marked as completed', payout: updated };
+  }
+
+  async rejectPayout(
+    payoutId: number,
+    adminUserId: bigint,
+    reason?: string,
+  ) {
+    const payout = await this.prisma.payout.findUnique({
+      where: { id: payoutId },
+    });
+    if (!payout) throw new NotFoundException('Payout not found');
+
+    if (payout.status !== 'pending') {
+      throw new BadRequestException('Only pending payouts can be rejected');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const p = await tx.payout.update({
+        where: { id: payoutId },
+        data: {
+          status: 'rejected',
+          processedAt: new Date(),
+        },
+      });
+
+      if (payout.companyId) {
+        await tx.company.update({
+          where: { id: payout.companyId },
+          data: { availableBalance: { increment: payout.amount } },
+        });
+
+        await tx.transaction.create({
+          data: {
+            ownerType: 'company',
+            ownerId: payout.companyId,
+            amount: Number(payout.amount),
+            type: 'credit',
+            category: 'payout_refund',
+            description: `Payout #${payout.id} rejected: ${reason || 'Admin rejected'}. Refunded to balance.`,
+          },
+        });
+      }
+
+      return p;
+    });
+
+    return { success: true, message: 'Payout rejected and refunded to company balance', payout: updated };
   }
 }

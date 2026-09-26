@@ -29,3 +29,17 @@ export class CancelBookingDto {
   @IsOptional()
   reason?: string;
 }
+
+export class RescheduleBookingDto {
+  @IsString()
+  @IsNotEmpty()
+  newDate: string;
+
+  @IsString()
+  @IsNotEmpty()
+  newTime: string;
+
+  @IsString()
+  @IsOptional()
+  reason?: string;
+}

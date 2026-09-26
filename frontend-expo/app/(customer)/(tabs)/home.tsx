@@ -26,6 +26,14 @@ import FadeIn from "@/components/FadeIn";
 import ScaleButton from "@/components/ScaleButton";
 import { Theme } from "@/constants/theme";
 import * as Location from "expo-location";
+import {
+  AirconCategorySvg,
+  PlumbingCategorySvg,
+  CleaningCategorySvg,
+  ElectricianCategorySvg,
+  HandymanCategorySvg,
+  MovingCategorySvg,
+} from "@/components/svg";
 
 const { width } = Dimensions.get("window");
 
@@ -39,6 +47,16 @@ const ICON_MAP: Record<string, any> = {
   Scissors: "content-cut", Flower2: "local-florist", Fuel: "local-gas-station",
 };
 const mapIcon = (icon: string): any => ICON_MAP[icon] || "home-repair-service";
+
+function CategoryMarkRenderer({ name, size = 60 }: { name: string; size?: number }) {
+  const n = (name || "").toLowerCase();
+  if (n.includes("ac") || n.includes("air") || n.includes("cool")) return <AirconCategorySvg size={size} />;
+  if (n.includes("plumb") || n.includes("pipe") || n.includes("water")) return <PlumbingCategorySvg size={size} />;
+  if (n.includes("clean") || n.includes("maid") || n.includes("spark")) return <CleaningCategorySvg size={size} />;
+  if (n.includes("electric") || n.includes("wire") || n.includes("volt") || n.includes("zap")) return <ElectricianCategorySvg size={size} />;
+  if (n.includes("move") || n.includes("truck") || n.includes("pack")) return <MovingCategorySvg size={size} />;
+  return <HandymanCategorySvg size={size} />;
+}
 
 const getCategoryIcon = (text: string): any => {
   if (!text) return 'tools';
@@ -146,17 +164,24 @@ export default function Home() {
 
   const fetchLocationAndData = useCallback(async () => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({});
-        await fetchHomeData(loc.coords.latitude, loc.coords.longitude);
-      } else {
-        await fetchHomeData();
+      const servicesEnabled = await Location.hasServicesEnabledAsync().catch(() => false);
+      if (servicesEnabled) {
+        const { status } = await Location.requestForegroundPermissionsAsync().catch(() => ({ status: 'denied' }));
+        if (status === 'granted') {
+          let loc = await Location.getLastKnownPositionAsync().catch(() => null);
+          if (!loc) {
+            loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).catch(() => null);
+          }
+          if (loc?.coords) {
+            await fetchHomeData(loc.coords.latitude, loc.coords.longitude);
+            return;
+          }
+        }
       }
-    } catch (e) {
-      console.warn("Failed to get location: ", e);
-      await fetchHomeData();
+    } catch {
+      // Graceful fallback to default Phnom Penh location
     }
+    await fetchHomeData(11.5564, 104.9282);
   }, [fetchHomeData]);
 
   useEffect(() => {
@@ -332,17 +357,18 @@ export default function Home() {
             </View>
 
             {/* ─── INSTANT REQUEST & EXPLORE PATHS ─────────────────── */}
+            {/* ─── INSTANT REQUEST & EXPLORE PATHS ─────────────────── */}
             <View style={{ paddingHorizontal: 24, marginTop: 20 }}>
               <View style={{ flexDirection: "row", gap: 12 }}>
-                {/* Instant Request Option */}
+                {/* Instant Urgent Request Option */}
                 <TouchableOpacity
                   style={{
                     flex: 1,
                     backgroundColor: T.accentLight,
                     borderRadius: 20,
-                    padding: 18,
+                    padding: 16,
                     borderWidth: 1,
-                    borderColor: T.accent + "15",
+                    borderColor: T.accent + "20",
                     shadowColor: "#000",
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.04,
@@ -355,25 +381,41 @@ export default function Home() {
                 >
                   <View style={{
                     position: "absolute",
-                    top: -10,
-                    right: -10,
-                    backgroundColor: T.warning + "15",
-                    width: 60,
-                    height: 60,
-                    borderRadius: 30,
+                    top: -12,
+                    right: -12,
+                    backgroundColor: "#F59E0B20",
+                    width: 64,
+                    height: 64,
+                    borderRadius: 32,
                     alignItems: "center",
                     justifyContent: "center"
                   }}>
-                    <MaterialCommunityIcons name="flash" size={32} color={T.warning} style={{ opacity: 0.3, transform: [{ rotate: "15deg" }] }} />
+                    <MaterialCommunityIcons name="lightning-bolt" size={34} color="#D97706" style={{ opacity: 0.35, transform: [{ rotate: "12deg" }] }} />
                   </View>
 
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <Text style={{ fontSize: 10, fontWeight: "900", color: T.warning, letterSpacing: 1, backgroundColor: "#FFF", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: T.warning + "20" }}>
-                      POPULAR
-                    </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 8 }}>
+                    <View style={{ backgroundColor: "#F59E0B", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, flexDirection: "row", alignItems: "center", gap: 3 }}>
+                      <MaterialCommunityIcons name="flash" size={11} color="#FFF" />
+                      <Text style={{ fontSize: 9, fontWeight: "900", color: "#FFF", letterSpacing: 0.5 }}>
+                        {t("instantBooking.urgentProBadge", "LIVE DISPATCH")}
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={{ fontSize: 18, fontWeight: "800", color: T.accent, fontFamily: "System" }}>Need Help Now?</Text>
-                  <Text style={{ fontSize: 12, color: T.text2, marginTop: 4, lineHeight: 16 }}>Find nearby available service pros instantly.</Text>
+                  <Text style={{ fontSize: 16, fontWeight: "800", color: T.text1, lineHeight: 22 }}>
+                    {t("instantBooking.urgentProTitle", "Urgent Pro")}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: T.text2, marginTop: 4, lineHeight: 15 }} numberOfLines={1}>
+                    {t("instantBooking.urgentProDesc", "Arrives in 20–30 mins")}
+                  </Text>
+
+                  {/* Action pill */}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 12, backgroundColor: "#FFF", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: "flex-start", borderWidth: 0.5, borderColor: T.border }}>
+                    <MaterialCommunityIcons name="map-marker-radius-outline" size={12} color={T.accent} />
+                    <Text style={{ fontSize: 10, fontWeight: "700", color: T.accent }}>
+                      {t("instantBooking.urgentProAction", "Find on Map")}
+                    </Text>
+                    <MaterialIcons name="chevron-right" size={12} color={T.accent} style={{ marginLeft: -2 }} />
+                  </View>
                 </TouchableOpacity>
 
                 {/* Explore Services Option */}
@@ -382,30 +424,56 @@ export default function Home() {
                     flex: 1,
                     backgroundColor: "#FFF",
                     borderRadius: 20,
-                    padding: 18,
+                    padding: 16,
                     borderWidth: 1,
                     borderColor: T.border,
                     shadowColor: "#000",
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.04,
                     shadowRadius: 10,
-                    elevation: 2
+                    elevation: 2,
+                    position: "relative",
+                    overflow: "hidden"
                   }}
                   onPress={() => router.push("/(customer)/(tabs)/explore" as any)}
                 >
                   <View style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 10,
-                    backgroundColor: T.accent + "10",
+                    position: "absolute",
+                    top: -12,
+                    right: -12,
+                    backgroundColor: T.accent + "0D",
+                    width: 64,
+                    height: 64,
+                    borderRadius: 32,
                     alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: 10
+                    justifyContent: "center"
                   }}>
-                    <MaterialCommunityIcons name="map-search-outline" size={18} color={T.accent} />
+                    <MaterialCommunityIcons name="calendar-month-outline" size={34} color={T.accent} style={{ opacity: 0.25, transform: [{ rotate: "-8deg" }] }} />
                   </View>
-                  <Text style={{ fontSize: 18, fontWeight: "800", color: T.text1 }}>Explore Catalog</Text>
-                  <Text style={{ fontSize: 12, color: T.text2, marginTop: 4, lineHeight: 16 }}>Browse categories, services, & top companies.</Text>
+
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 8 }}>
+                    <View style={{ backgroundColor: T.accent + "18", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, flexDirection: "row", alignItems: "center", gap: 3 }}>
+                      <MaterialCommunityIcons name="calendar-clock" size={11} color={T.accent} />
+                      <Text style={{ fontSize: 9, fontWeight: "900", color: T.accent, letterSpacing: 0.5 }}>
+                        {t("instantBooking.exploreProBadge", "APPOINTMENT")}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: "800", color: T.text1, lineHeight: 22 }}>
+                    {t("instantBooking.exploreProTitle", "Schedule Ahead")}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: T.text2, marginTop: 4, lineHeight: 15 }} numberOfLines={1}>
+                    {t("instantBooking.exploreProDesc", "Choose date & time")}
+                  </Text>
+
+                  {/* Action chip */}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 12, backgroundColor: T.surface, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: "flex-start", borderWidth: 0.5, borderColor: T.border }}>
+                    <MaterialCommunityIcons name="book-open-variant" size={12} color={T.text1} />
+                    <Text style={{ fontSize: 10, fontWeight: "700", color: T.text1 }}>
+                      {t("instantBooking.exploreProAction", "Browse Catalog")}
+                    </Text>
+                    <MaterialIcons name="chevron-right" size={12} color={T.text1} style={{ marginLeft: -2 }} />
+                  </View>
                 </TouchableOpacity>
               </View>
             </View>
@@ -461,7 +529,7 @@ export default function Home() {
                             {cat.useImageAsBadge && cat.imageUrl ? (
                               <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
                             ) : (
-                              <MaterialCommunityIcons name={(cat.icon as any) || getCategoryIcon(cat.name)} size={26} color={T.accent} style={{ zIndex: 1 }} />
+                              <CategoryMarkRenderer name={cat.name} size={60} />
                             )}
                           </View>
                           <Text style={s.catLabel} numberOfLines={1}>{cat.name.split(" ")[0]}</Text>
@@ -927,11 +995,15 @@ const s = StyleSheet.create({
   seeAll: { fontSize: 13, color: T.accent, fontWeight: "600" },
   catItem: { alignItems: "center", gap: 8 },
   catIconBox: {
-    width: 60, height: 60, borderRadius: 18, backgroundColor: T.accentLight,
+    width: 60, height: 60, borderRadius: 18, backgroundColor: "#FFFFFF",
     alignItems: "center", justifyContent: "center", overflow: "hidden",
     borderWidth: 1, borderColor: T.border,
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      android: { elevation: 1 },
+    }),
   },
-  catLabel: { fontSize: 11, color: T.text2, fontWeight: "600", maxWidth: 60, textAlign: "center" },
+  catLabel: { fontSize: 12, color: T.text1, fontWeight: "600", maxWidth: 64, textAlign: "center" },
   serviceCard: {
     width: 152, backgroundColor: T.surface, borderRadius: 16,
     overflow: "hidden", borderWidth: 1, borderColor: T.border,

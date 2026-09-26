@@ -27,7 +27,8 @@ function getDaysAhead(count: number) {
 
 export default function RescheduleBookingScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id?: string; bookingId?: string }>();
+  const activeBookingId = params.bookingId || params.id;
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -35,20 +36,24 @@ export default function RescheduleBookingScreen() {
   const days = getDaysAhead(14);
 
   const handleReschedule = async () => {
+    if (!activeBookingId) {
+      Alert.alert("Error", "Missing booking ID. Please return to the booking details and try again.");
+      return;
+    }
     if (!selectedDate || !selectedTime) {
       Alert.alert("Missing Selection", "Please select both a date and time slot.");
       return;
     }
     setSubmitting(true);
     try {
-      await api.post(`/api/bookings/${id}/reschedule`, {
+      await api.post(`/api/bookings/${activeBookingId}/reschedule`, {
         newDate: selectedDate.toISOString().split("T")[0],
         newTime: selectedTime,
       });
       Alert.alert(
         "Booking Rescheduled!",
         "Your booking has been updated and the service provider has been notified.",
-        [{ text: "OK", onPress: () => router.replace(`/(customer)/booking/${id}`) }]
+        [{ text: "OK", onPress: () => router.replace(`/(customer)/booking/${activeBookingId}`) }]
       );
     } catch (err: any) {
       Alert.alert("Error", err?.response?.data?.message ?? "Could not reschedule. Please try again.");
@@ -66,7 +71,7 @@ export default function RescheduleBookingScreen() {
         </TouchableOpacity>
         <View>
           <Text style={s.headerTitle}>Reschedule Booking</Text>
-          <Text style={s.headerSubtitle}>Booking #{id}</Text>
+          <Text style={s.headerSubtitle}>Booking #{activeBookingId}</Text>
         </View>
       </View>
 

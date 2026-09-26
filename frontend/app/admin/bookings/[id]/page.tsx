@@ -136,13 +136,22 @@ export default function AdminBookingDetailPage() {
   const status = statusConfig[booking.status] || statusConfig.pending;
   const StatusIcon = status.icon;
 
-  const formatDate = (d: string) => new Date(d).toLocaleDateString("en-US", { weekday: "short", month: "long", day: "numeric", year: "numeric" });
-  const formatTime = (start: string, end: string) => {
-    const fmt = (iso: string) => {
-      return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-    };
+  const formatDate = (d: string) => {
+    if (!d) return "N/A";
+    return new Date(d).toLocaleDateString("en-US", { weekday: "short", month: "long", day: "numeric", year: "numeric" });
+  };
+
+  const formatTime = (start?: string, end?: string) => {
     if (!start) return "N/A";
-    return end ? `${fmt(start)} - ${fmt(end)}` : fmt(start);
+    const cleanTime = (t: string) => {
+      if (!t) return "";
+      if (t.includes("T")) {
+        const parts = t.split("T");
+        return parts[1] ? parts[1].slice(0, 5) : t;
+      }
+      return t.slice(0, 5);
+    };
+    return end ? `${cleanTime(start)} - ${cleanTime(end)}` : cleanTime(start);
   };
 
   return (
@@ -319,10 +328,10 @@ export default function AdminBookingDetailPage() {
           </div>
 
           {/* RIGHT COLUMN: Sidebar (Sticky) */}
-          <div className="space-y-6">
+          <div className="space-y-6 lg:sticky lg:top-0 self-start">
             
             {/* Admin Actions */}
-            <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden sticky top-0">
+            <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
               <div className="p-4 border-b border-border bg-muted/20">
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase tracking-wider">
                   <Activity className="w-4 h-4 text-violet-500" /> Admin Actions
@@ -391,9 +400,64 @@ export default function AdminBookingDetailPage() {
       </div>
 
       {/* ─── DRAWERS ───────────────────────────────────────────── */}
-      <UserDrawer open={customerDrawerOpen} onClose={() => setCustomerDrawerOpen(false)} user={booking.customer} />
-      <CompanyDrawer open={companyDrawerOpen} onClose={() => setCompanyDrawerOpen(false)} company={booking.company} />
-      {booking.assignedStaff && <StaffDrawer open={staffDrawerOpen} onClose={() => setStaffDrawerOpen(false)} staff={booking.assignedStaff} />}
+      {booking.customer && (
+        <UserDrawer 
+          open={customerDrawerOpen} 
+          onClose={() => setCustomerDrawerOpen(false)} 
+          user={{
+            id: booking.customer.id?.toString() || "",
+            fullName: booking.customer.fullName || "Customer",
+            email: booking.customer.email || "",
+            phone: booking.customer.phone || null,
+            role: "customer",
+            status: "active",
+            createdAt: booking.createdAt,
+          }} 
+        />
+      )}
+      {booking.company && (
+        <CompanyDrawer 
+          open={companyDrawerOpen} 
+          onClose={() => setCompanyDrawerOpen(false)} 
+          company={{
+            id: booking.company.id?.toString() || "",
+            name: booking.company.name || "Company",
+            owner: typeof booking.company.owner === 'object' ? booking.company.owner?.fullName : (booking.company.owner || "Owner"),
+            ownerEmail: typeof booking.company.owner === 'object' ? booking.company.owner?.email : (booking.company.email || ""),
+            phone: booking.company.phone || "",
+            staffCount: 0,
+            platformFee: 15,
+            rating: 5,
+            totalRevenue: 0,
+            totalBookings: 0,
+            status: "active",
+            joinedDate: booking.createdAt,
+            verified: true,
+            services: [],
+            documents: [],
+            logoUrl: booking.company.logoUrl,
+          }} 
+        />
+      )}
+      {booking.assignedStaff && (
+        <StaffDrawer 
+          open={staffDrawerOpen} 
+          onClose={() => setStaffDrawerOpen(false)} 
+          staff={{
+            id: booking.assignedStaff.id?.toString() || "",
+            name: booking.assignedStaff.user?.fullName || booking.assignedStaff.name || "Assigned Staff",
+            role: booking.assignedStaff.role || "worker",
+            status: booking.assignedStaff.status || "active",
+            phone: booking.assignedStaff.user?.phone || booking.assignedStaff.phone || "",
+            currentLocation: "Phnom Penh",
+            jobsCompleted: booking.assignedStaff.jobsCompleted ?? 0,
+            pendingPayout: booking.assignedStaff.pendingPayout ?? 0,
+            splitPercent: booking.assignedStaff.splitPercent ?? null,
+            compliance: [],
+            schedule: [],
+          }} 
+        />
+      )}
 
       {/* ─── MODALS ────────────────────────────────────────────── */}
       {/* Cancel Modal */}

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useNotificationStore } from '@/store/notificationStore';
+import { useAuthStore } from '@/store/authStore';
 
 interface NotificationBellProps {
   color?: string;
@@ -10,7 +11,15 @@ interface NotificationBellProps {
 
 export default function NotificationBell({ color = '#002045' }: NotificationBellProps) {
   const router = useRouter();
+  const { user } = useAuthStore();
   const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchNotifications();
+    }
+  }, [user?.id, fetchNotifications]);
 
   return (
     <TouchableOpacity

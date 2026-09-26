@@ -1,6 +1,6 @@
 import React from "react";
 import { View, StyleSheet, Modal, Text } from "react-native";
-import LottieView from "lottie-react-native";
+import { BookingSuccessSvg } from "@/components/svg";
 
 interface Props {
   visible: boolean;
@@ -16,7 +16,7 @@ const T = {
 export default function SuccessOverlay({ visible, onFinish, message = "Success!" }: Props) {
   React.useEffect(() => {
     if (visible && onFinish) {
-      const timer = setTimeout(onFinish, 3500);
+      const timer = setTimeout(onFinish, 3000);
       return () => clearTimeout(timer);
     }
   }, [visible]);
@@ -25,13 +25,7 @@ export default function SuccessOverlay({ visible, onFinish, message = "Success!"
     <Modal visible={visible} transparent animationType="fade">
       <View style={s.overlay}>
         <View style={s.container}>
-          <LottieView
-            source={require("@/assets/animations/success.json")}
-            autoPlay
-            loop={false}
-            style={{ width: 180, height: 180 }}
-            speed={0.8}
-          />
+          <BookingSuccessSvg size={180} />
           <Text style={s.text}>{message}</Text>
         </View>
       </View>

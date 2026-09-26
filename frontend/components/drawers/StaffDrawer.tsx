@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { BaseDrawer } from "./BaseDrawer";
-import { Phone, Star, MapPin, CheckCircle2, Circle, MessageSquare, Ban, ShieldCheck, Save, Loader2, Wallet, AlertTriangle, Briefcase } from "lucide-react";
+import { Phone, MapPin, ShieldCheck, Save, Loader2, Wallet, Ban, MessageSquare, Briefcase, User, Award, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api/client";
 import { useToast } from "@/lib/hooks/use-toast";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthContext } from "@/lib/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 
@@ -30,32 +31,13 @@ export interface StaffRow {
   schedule: { time: string; service: string; status: "done" | "active" | "upcoming" }[];
 }
 
-const STATUS_CONFIG = {
-  online: { label: "Online", color: "text-emerald-600 bg-emerald-50 border border-emerald-200" },
-  offline: { label: "Offline", color: "text-slate-500 bg-slate-100 border border-slate-200" },
-  on_job: { label: "On Job", color: "text-violet-600 bg-violet-50 border border-violet-200" },
-  active: { label: "Active", color: "text-emerald-600 bg-emerald-50 border border-emerald-200" },
-  inactive: { label: "Inactive", color: "text-rose-600 bg-rose-50 border border-rose-200" },
+const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; border: string; icon: any }> = {
+  online: { label: "Online", bg: "bg-emerald-500/10", text: "text-emerald-500", border: "border-emerald-500/20", icon: ShieldCheck },
+  offline: { label: "Offline", bg: "bg-slate-500/10", text: "text-slate-500", border: "border-slate-500/20", icon: User },
+  on_job: { label: "On Job", bg: "bg-indigo-500/10", text: "text-indigo-500", border: "border-indigo-500/20", icon: Briefcase },
+  active: { label: "Active", bg: "bg-emerald-500/10", text: "text-emerald-500", border: "border-emerald-500/20", icon: ShieldCheck },
+  inactive: { label: "Inactive", bg: "bg-rose-500/10", text: "text-rose-500", border: "border-rose-500/20", icon: Ban },
 };
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="border-b border-slate-200 px-8 py-5">
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{title}</p>
-      {children}
-    </div>
-  );
-}
-
-function MetricCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-sm text-center">
-      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{label}</p>
-      <p className="text-lg font-black text-slate-900">{value}</p>
-      {sub && <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{sub}</p>}
-    </div>
-  );
-}
 
 interface StaffDrawerProps {
   open: boolean;
@@ -83,9 +65,19 @@ export function StaffDrawer({ open, onClose, staff, onSuccess }: StaffDrawerProp
 
   if (!staff) return null;
 
-  // Safeguard status configuration index
+  const staffName = staff.name || (staff as any).user?.fullName || (staff as any).fullName || "Staff Member";
+  const staffPhone = staff.phone || (staff as any).user?.phone || "";
+  const staffInitials = staffName
+    .split(" ")
+    .filter(Boolean)
+    .map((n: string) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "ST";
+
   const statusKey = (staff.status in STATUS_CONFIG) ? staff.status : "offline";
   const cfg = STATUS_CONFIG[statusKey];
+  const StatusIcon = cfg.icon;
 
   const handleSaveSettings = async () => {
     setSaving(true);
@@ -106,61 +98,98 @@ export function StaffDrawer({ open, onClose, staff, onSuccess }: StaffDrawerProp
   };
 
   return (
-    <BaseDrawer open={open} onClose={onClose} title={staff.name} subtitle={staff.role?.replace(/_/g, " ")}>
+    <BaseDrawer open={open} onClose={onClose} title={`Staff Profile`} subtitle={staff.role?.replace(/_/g, " ").toUpperCase()} width="lg">
       <div className="p-6 space-y-6">
-        {/* Status + ID */}
-        <div className="flex items-center gap-4 border-b border-border pb-4">
-          <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center text-foreground font-bold text-lg shrink-0 border border-border">
-            {staff.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className={cn("text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1.5", 
-                cfg.label === "Online" || cfg.label === "Active" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" :
-                cfg.label === "On Job" ? "bg-violet-500/10 text-violet-500 border border-violet-500/20" :
-                cfg.label === "Inactive" ? "bg-rose-500/10 text-rose-500 border border-rose-500/20" :
-                "bg-slate-500/10 text-slate-500 border border-slate-500/20"
-              )}>
-                <div className="w-1.5 h-1.5 rounded-full bg-current shrink-0" />
-                {cfg.label}
-              </span>
-              {staff.status === "offline" && staff.lastSeen && (
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  Last seen {formatDistanceToNow(new Date(staff.lastSeen), { addSuffix: true })}
+        
+        {/* Header / Status Section */}
+        <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="flex items-center gap-4">
+            <Avatar className="w-12 h-12 rounded-xl border border-border/50 shadow-sm shrink-0">
+              <AvatarFallback className="rounded-xl font-bold bg-muted text-foreground">
+                {staffInitials}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="text-xl font-bold text-foreground mb-1">{staffName}</h3>
+              <div className="flex items-center gap-2">
+                <span className={cn("inline-flex px-2 py-0.5 rounded-md border items-center gap-1 font-bold text-[10px] uppercase tracking-widest relative overflow-hidden", cfg.bg, cfg.text, cfg.border)}>
+                  <StatusIcon className="w-3.5 h-3.5" />
+                  {cfg.label}
                 </span>
-              )}
+                {staff.status === "offline" && staff.lastSeen && (
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+                    Last seen {formatDistanceToNow(new Date(staff.lastSeen), { addSuffix: true })}
+                  </span>
+                )}
+              </div>
             </div>
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-1.5 flex items-center gap-2">
-               ID #{staff.id?.substring(0,8)} <span className="w-1 h-1 rounded-full bg-muted-foreground" /> {staff.phone}
-            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-xl h-10 px-4 border-border hover:bg-muted/50 font-bold"
+              onClick={() => {
+                const basePath = user?.role === 'admin' ? '/admin' : '/company';
+                router.push(`${basePath}/staff/${staff.id}`);
+                onClose();
+              }}
+            >
+              <ExternalLink className="w-4 h-4 mr-2" /> Full Profile
+            </Button>
           </div>
         </div>
 
-        {/* Real Performance Snapshot */}
+        {/* Contact & Info */}
+        <div className="space-y-3 text-sm bg-muted/10 border border-border rounded-xl p-4">
+          <p className="text-xs font-semibold text-foreground border-b border-border/50 pb-2 mb-2 flex items-center gap-2">
+            <User className="w-3.5 h-3.5" /> Contact Details
+          </p>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground flex items-center gap-2"><Phone className="w-3.5 h-3.5" /> Phone</span>
+            <span className="font-medium">
+              {staffPhone ? (
+                <a href={`tel:${staffPhone}`} className="hover:underline text-primary">{staffPhone}</a>
+              ) : "No phone number"}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground flex items-center gap-2"><MapPin className="w-3.5 h-3.5" /> City Location</span>
+            <span className="font-medium">{staff.currentLocation || "Phnom Penh"}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground flex items-center gap-2"><Briefcase className="w-3.5 h-3.5" /> Assigned Role</span>
+            <span className="font-medium capitalize">{staff.role?.replace(/_/g, " ")}</span>
+          </div>
+        </div>
+
+        {/* Performance Snapshot */}
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-foreground px-1">Performance Overview</p>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-muted/10 border border-border rounded-xl p-3 flex flex-col items-center justify-center text-center">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Total Jobs</span>
-              <span className="text-lg font-black text-foreground">{staff.jobsCompleted}</span>
+          <p className="text-xs font-semibold text-foreground px-1 flex items-center gap-2">
+            <Award className="w-3.5 h-3.5 text-primary" /> Performance Overview
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-muted/10 border border-border rounded-xl p-4 flex flex-col items-center justify-center text-center">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Jobs Completed</span>
+              <span className="text-2xl font-black text-foreground">{staff.jobsCompleted}</span>
             </div>
-            <div className="bg-muted/10 border border-border rounded-xl p-3 flex flex-col items-center justify-center text-center">
+            <div className="bg-muted/10 border border-border rounded-xl p-4 flex flex-col items-center justify-center text-center">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Pending Payout</span>
-              <span className="text-lg font-black text-emerald-500">${staff.pendingPayout}</span>
+              <span className="text-2xl font-black text-emerald-500">${staff.pendingPayout}</span>
             </div>
           </div>
         </div>
 
-        {/* Settings Form */}
+        {/* Settings & Commissions Form */}
         <div className="bg-muted/10 border border-border rounded-xl p-4 space-y-4">
           <p className="text-xs font-semibold text-foreground flex items-center gap-2 border-b border-border/50 pb-2">
-            <Save className="w-3.5 h-3.5" /> Settings & Commissions
+            <Save className="w-3.5 h-3.5 text-primary" /> Settings & Commissions
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">Role</Label>
               <Select value={role} onValueChange={setRole}>
-                <SelectTrigger className="h-9 mt-1.5 border-border bg-background shadow-sm focus:ring-violet-500/20 rounded-lg text-sm text-foreground">
+                <SelectTrigger className="h-9 mt-1.5 border-border bg-background shadow-xs focus:ring-primary/20 rounded-lg text-sm text-foreground">
                   <SelectValue placeholder="Role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -173,7 +202,7 @@ export function StaffDrawer({ open, onClose, staff, onSuccess }: StaffDrawerProp
             <div>
               <Label className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">Status</Label>
               <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="h-9 mt-1.5 border-border bg-background shadow-sm focus:ring-violet-500/20 rounded-lg text-sm text-foreground">
+                <SelectTrigger className="h-9 mt-1.5 border-border bg-background shadow-xs focus:ring-primary/20 rounded-lg text-sm text-foreground">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -195,7 +224,7 @@ export function StaffDrawer({ open, onClose, staff, onSuccess }: StaffDrawerProp
                 placeholder="Default global remainder"
                 value={splitPercent}
                 onChange={e => setSplitPercent(e.target.value)}
-                className="h-9 pr-8 border-border shadow-sm focus:ring-violet-500/20 rounded-lg text-sm text-foreground placeholder:text-muted-foreground"
+                className="h-9 pr-8 border-border shadow-xs focus:ring-primary/20 rounded-lg text-sm text-foreground placeholder:text-muted-foreground"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
             </div>
@@ -204,16 +233,15 @@ export function StaffDrawer({ open, onClose, staff, onSuccess }: StaffDrawerProp
             </p>
           </div>
 
-          <Button onClick={handleSaveSettings} disabled={saving} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs h-9 rounded-lg shadow-sm">
+          <Button onClick={handleSaveSettings} disabled={saving} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs h-10 rounded-lg shadow-sm">
             {saving ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-2" />}
             Save Settings
           </Button>
         </div>
 
-      </div>
-
-       {/* Quick Actions */}
-       <div className="pt-2 pb-6 mt-4 border-t border-border">
+        {/* Quick Actions */}
+        <div className="pt-4 border-t border-border">
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Quick Actions</p>
           <div className="grid grid-cols-4 gap-2">
             {[
               { id: "message", icon: MessageSquare, label: "Message", color: "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-emerald-500/20" },
@@ -226,7 +254,8 @@ export function StaffDrawer({ open, onClose, staff, onSuccess }: StaffDrawerProp
                 onClick={() => {
                   const basePath = user?.role === 'admin' ? '/admin' : '/company';
                   if (id === "message") {
-                    window.location.href = `${basePath}/messages?new=${staff.id}`;
+                    router.push(`${basePath}/messages?new=${staff.id}`);
+                    onClose();
                   } else if (id === "wallet" || id === "docs") {
                     if (user?.role === 'admin') {
                       router.push(`/admin/users/${staff.id}`);
@@ -234,16 +263,20 @@ export function StaffDrawer({ open, onClose, staff, onSuccess }: StaffDrawerProp
                       router.push(`/company/staff/${staff.id}`);
                     }
                     onClose();
+                  } else if (id === "suspend") {
+                    toast({ title: "Action Initiated", description: "Suspension workflow is managed on full profile page." });
                   }
                 }}
-                className={cn("flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors border", color)}
+                className={cn("flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors border", color)}
               >
                 <Icon className="w-3.5 h-3.5" />
                 {label}
               </button>
             ))}
           </div>
-       </div>
+        </div>
+
+      </div>
     </BaseDrawer>
   );
 }

@@ -16,6 +16,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
+import { EmptyNotificationsSvg } from "@/components/svg";
 
 const T = Theme.colors;
 
@@ -169,8 +170,8 @@ export default function NotificationsScreen() {
         <ActivityIndicator size="large" color={T.accent} style={{ marginTop: 60 }} />
       ) : notifications.length === 0 ? (
         <View style={s.empty}>
-          <View style={s.emptyIconBox}>
-            <MaterialCommunityIcons name="bell-off-outline" size={48} color={T.text3} />
+          <View style={{ marginBottom: 16 }}>
+            <EmptyNotificationsSvg size={105} />
           </View>
           <Text style={s.emptyTitle}>All caught up!</Text>
           <Text style={s.emptyDesc}>You have no notifications right now.</Text>

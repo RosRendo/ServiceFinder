@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "ServiceFinder Clean Management Design Tokens",
+  "version": "1.0.0",
+  "description": "Anti-AI-slop design token specification for Company and Admin management portals (Web and Mobile)",
+  "tokens": {
+    "surfaces": {
+      "pageBackground": { "light": "#F8FAFC", "dark": "#0B132B" },
+      "cardBackground": { "light": "#FFFFFF", "dark": "#111C38" },
+      "hoverRowBackground": { "light": "#F1F5F9", "dark": "#1A274E" },
+      "activeRowBackground": { "light": "#E2E8F0", "dark": "#233363" },
+      "drawerBackground": { "light": "#FFFFFF", "dark": "#111C38" }
+    },
+    "borders": {
+      "subtle": { "light": "#E2E8F0", "dark": "#1E293B" },
+      "strong": { "light": "#CBD5E1", "dark": "#334155" },
+      "focusRing": { "light": "#0A192F", "dark": "#38BDF8" }
+    },
+    "text": {
+      "primary": { "light": "#0F172A", "dark": "#F8FAFC" },
+      "secondary": { "light": "#475569", "dark": "#94A3B8" },
+      "tertiary": { "light": "#94A3B8", "dark": "#64748B" },
+      "brandPrimary": { "light": "#0A192F", "dark": "#38BDF8" }
+    },
+    "statusPills": {
+      "success": {
+        "bg": "#ECFDF5",
+        "text": "#047857",
+        "border": "#A7F3D0"
+      },
+      "warning": {
+        "bg": "#FFFBEB",
+        "text": "#B45309",
+        "border": "#FDE68A"
+      },
+      "critical": {
+        "bg": "#FEF2F2",
+        "text": "#B91C1C",
+        "border": "#FECACA"
+      },
+      "info": {
+        "bg": "#F0F9FF",
+        "text": "#0369A1",
+        "border": "#BAE6FD"
+      },
+      "neutral": {
+        "bg": "#F8FAFC",
+        "text": "#475569",
+        "border": "#E2E8F0"
+      }
+    },
+    "typography": {
+      "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      "monoFamily": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+      "headingWeight": "700",
+      "bodyWeight": "400",
+      "labelWeight": "600"
+    },
+    "shadows": {
+      "card": "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)",
+      "drawer": "-4px 0 24px -2px rgba(10, 25, 47, 0.12)",
+      "dropdown": "0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04)"
+    }
+  }
+}

@@ -174,7 +174,7 @@ export default function BookingsPage() {
             { icon: Edit, label: "Manage", onClick: () => openDrawer(Array.from(selectedIds)[0]) }
           ] : []),
           { icon: Download, label: "Export CSV", onClick: exportCSV },
-          { icon: SlidersHorizontal, label: "Go to Dispatch", onClick: () => router.push("/company/dispatch") },
+          { icon: SlidersHorizontal, label: "View All Bookings", onClick: () => router.push("/admin/bookings") },
         ]}
       />
 

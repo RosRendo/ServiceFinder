@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { BaseDrawer } from "./BaseDrawer";
-import { Calendar, Clock, MapPin, User, DollarSign, CheckCircle, XCircle, Timer, Loader2, UserPlus, Phone, Briefcase, Building2, ShieldCheck, Image as ImageIcon, Map, ArrowUpRight } from "lucide-react";
+import { Calendar, Clock, MapPin, User, DollarSign, CheckCircle, XCircle, Timer, Loader2, UserPlus, Phone, Briefcase, Building2, ShieldCheck, Image as ImageIcon, Map, ArrowUpRight, ExternalLink } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/lib/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ function Section({ title, children }: { title: React.ReactNode; children: React.
 }
 
 export function BookingDrawer({ open, onClose, bookingId, onBookingUpdated, isAdmin }: { open: boolean; onClose: () => void; bookingId: string | null; onBookingUpdated?: () => void; isAdmin?: boolean }) {
+    const router = useRouter();
     const [booking, setBooking] = useState<any | null>(null);
     const [loading, setLoading] = useState(false);
     const [staff, setStaff] = useState<any[]>([]);
@@ -120,13 +122,13 @@ export function BookingDrawer({ open, onClose, bookingId, onBookingUpdated, isAd
     const StatusIcon = cfg.icon;
 
     return (
-        <BaseDrawer open={open} onClose={onClose} title={`Booking #${booking.id.slice(-6)}`} subtitle={formatDate(booking.bookingDate)} width="lg">
+        <BaseDrawer open={open} onClose={onClose} title={`Booking #${booking.id?.toString().slice(-6)}`} subtitle={formatDate(booking.bookingDate)} width="lg">
             <div className="p-6 space-y-6">
 
                 {/* Header / Status Section */}
                 <div className="flex items-center justify-between border-b border-border pb-4">
                     <div>
-                        <h3 className="text-xl font-bold text-foreground mb-1">{booking.service.name}</h3>
+                        <h3 className="text-xl font-bold text-foreground mb-1">{booking.service?.name || "Service Booking"}</h3>
                         <div className="flex flex-col items-start gap-2">
                             <span className={cn("inline-flex px-2 py-1 rounded-md border items-center gap-1.5 font-bold text-[10px] uppercase tracking-widest relative overflow-hidden", cfg.bg, cfg.text, cfg.border)}>
                                 <StatusIcon className="w-3.5 h-3.5" />
@@ -141,11 +143,27 @@ export function BookingDrawer({ open, onClose, bookingId, onBookingUpdated, isAd
                             </span>
                         </div>
                     </div>
-                    {!booking.assignedStaff && booking.status !== "completed" && booking.status !== "cancelled" && (
-                        <Button size="sm" className="rounded-xl h-10 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm" onClick={() => { setShowAssign(!showAssign); fetchStaff(); }}>
-                            <UserPlus className="w-4 h-4 mr-2" /> Assign
+                    <div className="flex items-center gap-2">
+                        {!booking.assignedStaff && booking.status !== "completed" && booking.status !== "cancelled" && (
+                            <Button size="sm" className="rounded-xl h-10 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm" onClick={() => { setShowAssign(!showAssign); fetchStaff(); }}>
+                                <UserPlus className="w-4 h-4 mr-2" /> Assign
+                            </Button>
+                        )}
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="rounded-xl h-10 px-4 border-border hover:bg-muted/50 font-bold"
+                            onClick={() => {
+                                const path = isAdmin 
+                                    ? `/admin/bookings/${booking.id}` 
+                                    : `/company/bookings/${booking.id}`;
+                                router.push(path);
+                                onClose();
+                            }}
+                        >
+                            <ExternalLink className="w-4 h-4 mr-2" /> Full View
                         </Button>
-                    )}
+                    </div>
                 </div>
 
                 {/* Schedule & Location */}
@@ -174,13 +192,13 @@ export function BookingDrawer({ open, onClose, bookingId, onBookingUpdated, isAd
                 {/* Customer Details */}
                 <div className="flex items-center gap-4 bg-muted/10 border border-border rounded-xl p-4">
                     <Avatar className="w-12 h-12 rounded-xl border border-border/50 shadow-sm">
-                        <AvatarFallback className="rounded-xl font-bold bg-muted text-foreground">{booking.customer.fullName?.charAt(0) || "?"}</AvatarFallback>
+                        <AvatarFallback className="rounded-xl font-bold bg-muted text-foreground">{booking.customer?.fullName?.charAt(0) || "?"}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm text-foreground truncate">{booking.customer.fullName}</p>
-                        <p className="text-xs text-muted-foreground truncate">{booking.customer.email}</p>
+                        <p className="font-bold text-sm text-foreground truncate">{booking.customer?.fullName || "Customer"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{booking.customer?.email || "No email"}</p>
                     </div>
-                    {booking.customer.phone && (
+                    {booking.customer?.phone && (
                         <Button variant="outline" size="sm" className="rounded-lg h-8 font-medium text-foreground border-border hover:bg-muted/50" asChild>
                             <a href={`tel:${booking.customer.phone}`}><Phone className="w-3.5 h-3.5 mr-2" /> Call</a>
                         </Button>
@@ -195,14 +213,14 @@ export function BookingDrawer({ open, onClose, bookingId, onBookingUpdated, isAd
                     {booking.assignedStaff ? (
                         <div className="flex items-center gap-4">
                             <Avatar className="w-10 h-10 rounded-xl border border-border/50 shadow-sm">
-                                <AvatarFallback className="bg-muted text-foreground font-bold rounded-xl">{booking.assignedStaff.fullName?.charAt(0) || "?"}</AvatarFallback>
+                                <AvatarFallback className="bg-muted text-foreground font-bold rounded-xl">{(booking.assignedStaff.user?.fullName || booking.assignedStaff.fullName)?.charAt(0) || "?"}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
-                                    <p className="text-sm font-bold text-foreground truncate">{booking.assignedStaff.fullName}</p>
+                                    <p className="text-sm font-bold text-foreground truncate">{booking.assignedStaff.user?.fullName || booking.assignedStaff.fullName || "Staff Member"}</p>
                                     <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                                 </div>
-                                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-0.5">{booking.assignedStaff.role}</p>
+                                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-0.5">{booking.assignedStaff.role?.replace(/_/g, " ")}</p>
                             </div>
                             {!isAdmin && (
                                 <Button variant="outline" size="sm" className="rounded-lg h-7 text-xs font-medium border-border hover:bg-muted/50" onClick={() => { setShowAssign(!showAssign); fetchStaff(); }}>

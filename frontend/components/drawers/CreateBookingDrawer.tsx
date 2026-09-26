@@ -99,8 +99,8 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
       subtitle="Manually dispatch a booking. This bypasses normal customer scheduling rules."
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        <div className="w-16 h-16 rounded-2xl bg-violet-100 flex items-center justify-center text-violet-600 mx-auto mb-6 shadow-sm border border-violet-200">
-          <CalendarPlus className="w-8 h-8" />
+        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto mb-5 shadow-xs border border-primary/20">
+          <CalendarPlus className="w-7 h-7" />
         </div>
         
         {!companyId && (
@@ -112,7 +112,7 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
                 required
                 value={formData.companyId}
                 onChange={handleCompanyChange}
-                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm outline-none focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/10 transition-all appearance-none"
+                className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all appearance-none"
               >
                 <option value="">Select a company</option>
                 {companies.map(c => (
@@ -132,7 +132,7 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
                 required
                 value={formData.serviceId}
                 onChange={e => setFormData({...formData, serviceId: e.target.value})}
-                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm outline-none focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/10 transition-all appearance-none"
+                className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all appearance-none"
               >
                 <option value="">Select a service</option>
                 {services.map(s => (
@@ -145,7 +145,7 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
                 required
                 value={formData.serviceId}
                 onChange={e => setFormData({...formData, serviceId: e.target.value})}
-                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm outline-none focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/10 transition-all"
+                className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                 placeholder="Enter Service ID directly"
               />
             )}
@@ -160,7 +160,7 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
               required
               value={formData.bookingDate}
               onChange={e => setFormData({...formData, bookingDate: e.target.value})}
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg text-sm outline-none focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/10 transition-all"
+              className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
             />
           </div>
           <div>
@@ -170,7 +170,7 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
               required
               value={formData.startTime}
               onChange={e => setFormData({...formData, startTime: e.target.value})}
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg text-sm outline-none focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/10 transition-all"
+              className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
             />
           </div>
         </div>
@@ -183,7 +183,7 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
               required
               value={formData.serviceAddress}
               onChange={e => setFormData({...formData, serviceAddress: e.target.value})}
-              className="w-full pl-9 pr-4 py-2 h-20 resize-none bg-background border border-border rounded-lg text-sm outline-none focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/10 transition-all"
+              className="w-full pl-9 pr-4 py-2.5 h-20 resize-none bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
               placeholder="Full address for the worker..."
             />
           </div>
@@ -196,7 +196,7 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
             <textarea
               value={formData.notes}
               onChange={e => setFormData({...formData, notes: e.target.value})}
-              className="w-full pl-9 pr-4 py-2 h-20 resize-none bg-background border border-border rounded-lg text-sm outline-none focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/10 transition-all"
+              className="w-full pl-9 pr-4 py-2.5 h-20 resize-none bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
               placeholder="Manual override instructions..."
             />
           </div>
@@ -206,7 +206,7 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-violet-600 text-white font-medium hover:bg-violet-700 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarPlus className="w-4 h-4" />}
             {loading ? "Creating..." : "Create Booking"}

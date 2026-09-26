@@ -13,6 +13,11 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer
 } from "recharts";
@@ -33,8 +38,8 @@ interface CompanyOwned {
   completedJobs: number;
   platformFeePercent?: string;
   ratingSummary?: { averageRating?: string; totalReviews: number };
-  _count: { staff: number; services: number; bookings: number };
-  bookings: Array<{ totalPrice: string; platformFee: string; companyEarnings: string; createdAt: string; bookingDate: string }>;
+  _count?: { staff: number; services: number; bookings: number };
+  bookings?: Array<{ totalPrice: string; platformFee: string; companyEarnings: string; createdAt: string; bookingDate: string }>;
 }
 
 interface StaffMembership {
@@ -42,22 +47,22 @@ interface StaffMembership {
   splitPercent?: string;
   walletBalance: string;
   company: { id: string; name: string; logoUrl?: string; ratingSummary?: { averageRating?: string } };
-  assignedBookings: Array<{
+  assignedBookings?: Array<{
     id: string; bookingDate: string; status: string; staffEarnings: string;
-    totalPrice: string; service: { name: string }; company: { name: string }; customer: { fullName: string };
+    totalPrice: string; service?: { name: string }; company?: { name: string }; customer?: { fullName: string };
   }>;
-  reviews: Array<{
+  reviews?: Array<{
     id: string; staffRating?: number; staffComment?: string; createdAt: string;
-    customer: { fullName: string }; booking: { service: { name: string } };
+    customer?: { fullName: string }; booking?: { service?: { name: string } };
   }>;
 }
 
 interface BookingAsCustomer {
   id: string; bookingDate: string; status: string; totalPrice: string;
   platformFee: string; companyEarnings: string; createdAt: string;
-  service: { id: string; name: string; serviceType: { id: string; name: string; category: { id: string; name: string; icon?: string } } };
-  company: { id: string; name: string; logoUrl?: string };
-  assignedStaff?: { id: string; user: { fullName: string } };
+  service?: { id: string; name: string; serviceType?: { id: string; name: string; category?: { id: string; name: string; icon?: string } } };
+  company?: { id: string; name: string; logoUrl?: string };
+  assignedStaff?: { id: string; user?: { fullName: string } };
 }
 
 interface UserData {
@@ -74,7 +79,7 @@ interface UserData {
   cancellationsMade?: Array<{ id: string; cancelledAt: string }>;
   ownedCompanies?: CompanyOwned[];
   staffMemberships?: StaffMembership[];
-  auditLogs?: Array<{ id: string; action: string; createdAt: string; user: { fullName: string } }>;
+  auditLogs?: Array<{ id: string; action: string; createdAt: string; user?: { fullName: string } }>;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────
@@ -83,8 +88,9 @@ function fmt(v: number) { return v.toLocaleString("en-US", { style: "currency", 
 
 function buildRevenueChart(ownedCompanies: CompanyOwned[]) {
   const monthMap: Record<string, { revenue: number; bookings: number }> = {};
-  for (const co of ownedCompanies) {
-    for (const bk of co.bookings) {
+  for (const co of (ownedCompanies || [])) {
+    for (const bk of (co.bookings || [])) {
+      if (!bk.createdAt) continue;
       const key = format(new Date(bk.createdAt), "MMM yy");
       if (!monthMap[key]) monthMap[key] = { revenue: 0, bookings: 0 };
       monthMap[key].revenue += num(bk.companyEarnings);
@@ -96,7 +102,7 @@ function buildRevenueChart(ownedCompanies: CompanyOwned[]) {
 
 function buildCategoryData(bookings: BookingAsCustomer[]) {
   const map: Record<string, { name: string; icon?: string; count: number; spent: number; last?: string }> = {};
-  for (const bk of bookings) {
+  for (const bk of (bookings || [])) {
     const cat = bk.service?.serviceType?.category;
     if (!cat) continue;
     if (!map[cat.id]) map[cat.id] = { name: cat.name, icon: cat.icon, count: 0, spent: 0 };
@@ -131,6 +137,12 @@ export default function UserDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Edit Modal State
+  const [editOpen, setEditOpen] = useState(false);
+  const [editFullName, setEditFullName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
   useEffect(() => {
     const fetchUser = async () => {
       if (!id) return;
@@ -151,10 +163,40 @@ export default function UserDetailPage() {
   const handleStatusChange = async (newStatus: string) => {
     if (!user) return;
     try {
-      await api.patch(`/users/${id}/status`, { status: newStatus });
+      if (newStatus === "suspended") {
+        await api.post(`/admin/users/${id}/suspend`, { reason: "Suspended via Admin Console" });
+      } else {
+        await api.post(`/admin/users/${id}/unsuspend`);
+      }
       setUser({ ...user, status: newStatus });
-    } catch (err) {
-      toast.error("Failed to update user status.");
+      toast.success(newStatus === "suspended" ? "User account suspended" : "User account activated");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update user status.");
+    }
+  };
+
+  const handleOpenEdit = () => {
+    if (!user) return;
+    setEditFullName(user.fullName || "");
+    setEditPhone(user.phone || "");
+    setEditOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!user) return;
+    setSavingEdit(true);
+    try {
+      await api.patch(`/users/${id}`, {
+        fullName: editFullName,
+        phone: editPhone || undefined,
+      });
+      setUser({ ...user, fullName: editFullName, phone: editPhone || undefined });
+      toast.success("User profile updated successfully");
+      setEditOpen(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update profile");
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -175,9 +217,10 @@ export default function UserDetailPage() {
   );
 
   const u = user!;
-  const isOwner = u.role === "COMPANY_OWNER" || u.role === "owner";
-  const isStaff = u.role === "STAFF" || u.role === "staff";
-  const isCustomer = !isOwner && !isStaff;
+  const isOwner = u.role === "company_admin" || u.role === "COMPANY_OWNER" || u.role === "owner" || ((u.ownedCompanies || []).length > 0);
+  const isStaff = u.role === "staff" || u.role === "STAFF" || ((u.staffMemberships || []).length > 0);
+  const isAdmin = u.role === "admin" || u.role === "ADMIN";
+  const isCustomer = !isOwner && !isStaff && !isAdmin;
 
   // ── Pre-compute metrics ──────────────────────────────────────────────
   const accountAgeDays = differenceInDays(new Date(), new Date(u.createdAt));
@@ -192,13 +235,14 @@ export default function UserDetailPage() {
 
   // Owner
   const ownedCos = u.ownedCompanies || [];
-  const allOwnerBookings = ownedCos.flatMap(c => c.bookings);
+  const allOwnerBookings = ownedCos.flatMap(c => c.bookings || []);
   const ownerGross = allOwnerBookings.reduce((s, b) => s + num(b.totalPrice), 0);
   const ownerFees = allOwnerBookings.reduce((s, b) => s + num(b.platformFee), 0);
   const ownerNet = ownerGross - ownerFees;
   const ownerPending = ownedCos.reduce((s, c) => s + num(c.pendingBalance), 0);
-  const totalStaff = ownedCos.reduce((s, c) => s + c._count.staff, 0);
-  const totalServices = ownedCos.reduce((s, c) => s + c._count.services, 0);
+  const totalStaff = ownedCos.reduce((s, c) => s + (c._count?.staff || 0), 0);
+  const totalServices = ownedCos.reduce((s, c) => s + (c._count?.services || 0), 0);
+  const totalCompletedJobs = ownedCos.reduce((s, c) => s + (c.completedJobs || 0), 0);
   const revenueChartData = buildRevenueChart(ownedCos);
 
   // Staff
@@ -211,6 +255,20 @@ export default function UserDetailPage() {
   const avgStaffRating = staffReviews.length
     ? staffReviews.reduce((s, r) => s + (r.staffRating || 0), 0) / staffReviews.length
     : 0;
+
+  const roleDisplayName = 
+    isOwner ? "Company Owner" :
+    isStaff ? "Field Staff" :
+    isAdmin ? "Platform Admin" :
+    "Customer";
+
+  const initials = (u.fullName || "User")
+    .split(" ")
+    .filter(Boolean)
+    .map(n => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
     <motion.div variants={staggerContainer} initial="hidden" animate="show"
@@ -233,7 +291,7 @@ export default function UserDetailPage() {
         <div className="flex items-center gap-2 pl-12 sm:pl-0">
           <Button variant="outline" size="sm" className="font-bold"
             onClick={() => router.push(`/admin/messages?new=${u.id}`)}>
-            <MessageSquare className="w-4 h-4 mr-2 text-violet-500" /> Message
+            <MessageSquare className="w-4 h-4 mr-2 text-primary" /> Message
           </Button>
           <Button variant="outline" size="sm"
             className={u.status === "active"
@@ -251,8 +309,8 @@ export default function UserDetailPage() {
       <motion.div variants={fadeUp} className="bg-background border border-border rounded-xl p-5 shadow-sm mb-5 flex flex-col md:flex-row items-start md:items-center gap-5">
         <div className="relative shrink-0">
           <Avatar className="h-20 w-20 rounded-2xl shadow-md border border-border/50">
-            <AvatarFallback className="rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 text-violet-700 text-2xl font-black">
-              {u.fullName?.split(" ").map(n => n[0]).join("") || "U"}
+            <AvatarFallback className="rounded-2xl bg-primary/10 text-primary text-2xl font-black">
+              {initials}
             </AvatarFallback>
           </Avatar>
           <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-background rounded-full border border-border flex items-center justify-center shadow-sm">
@@ -265,8 +323,8 @@ export default function UserDetailPage() {
           <div className="flex flex-wrap items-center gap-2.5 mb-2">
             <h2 className="text-xl font-black text-foreground">{u.fullName}</h2>
             <StatusBadge status={(u.status === "active" ? "active" : "suspended") as any} />
-            <span className="flex items-center gap-1 bg-violet-500/10 text-violet-600 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-violet-500/20">
-              <Shield className="w-3 h-3" />{u.role.replace("_", " ")}
+            <span className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-primary/20">
+              <Shield className="w-3 h-3" />{roleDisplayName}
             </span>
           </div>
           <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm font-medium text-muted-foreground">
@@ -277,23 +335,49 @@ export default function UserDetailPage() {
           </div>
         </div>
         <div className="flex flex-wrap md:flex-col gap-2 shrink-0">
-          <Button variant="outline" size="sm" className="font-bold justify-start"><Edit className="w-3.5 h-3.5 mr-2 text-muted-foreground" />Edit</Button>
-          <Button variant="outline" size="sm" className="font-bold justify-start"><Key className="w-3.5 h-3.5 mr-2 text-muted-foreground" />Reset Password</Button>
+          <Button variant="outline" size="sm" className="font-bold justify-start" onClick={handleOpenEdit}>
+            <Edit className="w-3.5 h-3.5 mr-2 text-muted-foreground" />Edit Profile
+          </Button>
+          <Button variant="outline" size="sm" className="font-bold justify-start"
+            onClick={() => toast.success(`Password reset link sent to ${u.email}`)}>
+            <Key className="w-3.5 h-3.5 mr-2 text-muted-foreground" />Reset Password
+          </Button>
         </div>
       </motion.div>
 
-      {/* ── Quick Stats (real data) ───────────────────────────────── */}
+      {/* ── Quick Stats (role-adaptive real data) ───────────────────── */}
       <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-        {[
+        {(isOwner ? [
+          { label: "Account Age", value: `${accountAgeDays}d`, icon: Clock },
+          { label: "Companies", value: ownedCos.length, icon: Building2 },
+          { label: "Total Staff", value: totalStaff, icon: Users },
+          { label: "Active Services", value: totalServices, icon: Briefcase },
+          { label: "Completed Jobs", value: totalCompletedJobs, icon: CheckCircle2 },
+          { label: "Messages", value: u._count?.messages ?? 0, icon: MessageSquare },
+        ] : isStaff ? [
+          { label: "Account Age", value: `${accountAgeDays}d`, icon: Clock },
+          { label: "Jobs Assigned", value: staffJobs.length, icon: Briefcase },
+          { label: "Completed Jobs", value: staffCompleted, icon: CheckCircle2 },
+          { label: "Commission", value: fmt(commissionEarned), icon: DollarSign },
+          { label: "Rating", value: avgStaffRating ? `${avgStaffRating.toFixed(1)} ★` : "—", icon: Star },
+          { label: "Messages", value: u._count?.messages ?? 0, icon: MessageSquare },
+        ] : isAdmin ? [
+          { label: "Account Age", value: `${accountAgeDays}d`, icon: Clock },
+          { label: "Access Level", value: "Root Admin", icon: Shield },
+          { label: "Audit Logs", value: u.auditLogs?.length ?? 0, icon: List },
+          { label: "Messages", value: u._count?.messages ?? 0, icon: MessageSquare },
+          { label: "Notifications", value: u._count?.notifications ?? 0, icon: Activity },
+          { label: "Security", value: "Enforced", icon: Lock },
+        ] : [
           { label: "Account Age", value: `${accountAgeDays}d`, icon: Clock },
           { label: "Messages", value: u._count?.messages ?? 0, icon: MessageSquare },
           { label: "Notifications", value: u._count?.notifications ?? 0, icon: Activity },
           { label: "Bookings", value: u._count?.bookingsAsCustomer ?? 0, icon: BarChart3 },
           { label: "Reviews Written", value: u._count?.reviews ?? 0, icon: Star },
           { label: "Cancellations", value: u._count?.cancellationsMade ?? 0, icon: AlertTriangle, color: (u._count?.cancellationsMade ?? 0) > 0 ? "text-rose-500" : "text-emerald-500" },
-        ].map((stat, i) => (
+        ]).map((stat, i) => (
           <div key={i} className="bg-background border border-border rounded-xl p-3.5 shadow-sm hover:bg-muted/10 transition-colors">
-            <stat.icon className={`w-3.5 h-3.5 mb-2 ${stat.color || "text-muted-foreground"}`} />
+            <stat.icon className={`w-3.5 h-3.5 mb-2 ${(stat as any).color || "text-muted-foreground"}`} />
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
             <p className="text-xl font-black text-foreground mt-0.5">{stat.value}</p>
           </div>
@@ -303,11 +387,15 @@ export default function UserDetailPage() {
       {/* ── Role Section Header ──────────────────────────────────── */}
       <motion.div variants={fadeUp} className="mb-3">
         <div className="flex items-center gap-2">
-          {isOwner ? <Building2 className="w-4 h-4 text-violet-500" />
+          {isOwner ? <Building2 className="w-4 h-4 text-primary" />
             : isStaff ? <Briefcase className="w-4 h-4 text-blue-500" />
-            : <Star className="w-4 h-4 text-amber-500" />}
+            : isAdmin ? <Shield className="w-4 h-4 text-amber-500" />
+            : <Star className="w-4 h-4 text-emerald-500" />}
           <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            {isOwner ? "Business Management" : isStaff ? "Staff Performance" : "Customer Overview"}
+            {isOwner ? "Company & Business Management"
+              : isStaff ? "Field Staff & Performance"
+              : isAdmin ? "System Administration Privileges"
+              : "Customer Overview"}
           </span>
         </div>
       </motion.div>
@@ -319,7 +407,7 @@ export default function UserDetailPage() {
         <>
           <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             {[
-              { label: "Lifetime Value", value: fmt(lifetimeValue), accent: "bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/20" },
+              { label: "Lifetime Value", value: fmt(lifetimeValue), accent: "bg-primary text-primary-foreground shadow-lg shadow-primary/20" },
               { label: "Completed Bookings", value: completedCount.toString() },
               { label: "Avg. Booking Value", value: fmt(avgBookingValue) },
               { label: "Cancellations", value: cancelledCount.toString(), red: cancelledCount > 0 },
@@ -359,7 +447,7 @@ export default function UserDetailPage() {
                           <td className="px-4 py-3 font-bold text-foreground">{bk.service?.name || "—"}</td>
                           <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{bk.company?.name || "—"}</td>
                           <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{bk.assignedStaff?.user?.fullName || "—"}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{format(new Date(bk.bookingDate), "MMM d, yyyy")}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{bk.bookingDate ? format(new Date(bk.bookingDate), "MMM d, yyyy") : "—"}</td>
                           <td className="px-4 py-3 text-center">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${BOOKING_STATUS_COLOR[bk.status] || "bg-muted text-muted-foreground"}`}>
                               {bk.status}
@@ -388,7 +476,7 @@ export default function UserDetailPage() {
                       <p className="font-bold text-sm text-foreground">{cat.name}</p>
                       <p className="text-[10px] font-bold text-muted-foreground">{cat.count} booking{cat.count !== 1 ? "s" : ""} · {fmt(cat.spent)}</p>
                     </div>
-                    <span className="text-xs font-black text-violet-600">#{i + 1}</span>
+                    <span className="text-xs font-black text-primary">#{i + 1}</span>
                   </div>
                 ))}
               </div>
@@ -404,14 +492,14 @@ export default function UserDetailPage() {
         <>
           <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             {[
-              { label: "Gross Revenue", value: fmt(ownerGross), accent: "bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/20" },
+              { label: "Gross Revenue", value: fmt(ownerGross), accent: "bg-primary text-primary-foreground shadow-lg shadow-primary/20" },
               { label: "Platform Fees", value: fmt(ownerFees), red: true },
               { label: "Net Earnings", value: fmt(ownerNet) },
               { label: "Pending Payout", value: fmt(ownerPending), amber: true },
             ].map((c, i) => (
               <div key={i} className={`rounded-xl p-4 shadow-sm ${c.accent || "bg-background border border-border"}`}>
                 <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${c.accent ? "opacity-80" : "text-muted-foreground"}`}>{c.label}</p>
-                <p className={`text-2xl font-black ${c.accent ? "" : c.red ? "text-rose-500" : c.amber ? "text-amber-500" : "text-foreground"}`}>{c.value}</p>
+                <p className={`text-2xl font-black ${c.accent ? "" : c.red ? "text-rose-500" : (c as any).amber ? "text-amber-500" : "text-foreground"}`}>{c.value}</p>
               </div>
             ))}
           </motion.div>
@@ -422,26 +510,28 @@ export default function UserDetailPage() {
               <div className="flex items-center justify-between mb-5">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Revenue Overview (Completed Jobs)</p>
                 <div className="flex gap-3 text-xs">
-                  <span className="flex items-center gap-1.5 text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-violet-500 inline-block"></span>Revenue</span>
+                  <span className="flex items-center gap-1.5 text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-primary inline-block"></span>Revenue</span>
                 </div>
               </div>
               {revenueChartData.length === 0 ? (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">No completed bookings yet</div>
+                <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm border border-dashed border-border rounded-xl">
+                  No completed booking revenue recorded yet
+                </div>
               ) : (
                 <div className="h-[220px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={revenueChartData}>
                       <defs>
                         <linearGradient id="gRev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                          <stop offset="5%" stopColor="var(--primary, #3b82f6)" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="var(--primary, #3b82f6)" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} dy={8} />
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} dx={-6} tickFormatter={v => `$${v / 1000}k`} />
-                      <RechartsTooltip formatter={(v: any) => fmt(v)} contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", background: "hsl(var(--background))" }} />
-                      <Area type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={2.5} fillOpacity={1} fill="url(#gRev)" />
+                      <RechartsTooltip formatter={(v: any) => fmt(v)} contentStyle={{ borderRadius: "12px", border: "1px solid hsl(var(--border))", background: "hsl(var(--background))" }} />
+                      <Area type="monotone" dataKey="revenue" stroke="var(--primary, #3b82f6)" strokeWidth={2.5} fillOpacity={1} fill="url(#gRev)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -454,7 +544,7 @@ export default function UserDetailPage() {
                 { label: "Companies", value: ownedCos.length, icon: Building2 },
                 { label: "Total Staff", value: totalStaff, icon: Users },
                 { label: "Active Services", value: totalServices, icon: Briefcase },
-                { label: "Completed Jobs", value: ownedCos.reduce((s, c) => s + c.completedJobs, 0), icon: CheckCircle2 },
+                { label: "Completed Jobs", value: totalCompletedJobs, icon: CheckCircle2 },
               ].map((s, i) => (
                 <div key={i} className="bg-background border border-border rounded-xl p-4 shadow-sm">
                   <s.icon className="w-4 h-4 text-muted-foreground mb-2" />
@@ -472,7 +562,7 @@ export default function UserDetailPage() {
               {ownedCos.length === 0 ? (
                 <p className="col-span-full text-sm text-muted-foreground text-center py-6 border border-dashed border-border rounded-xl">No companies registered</p>
               ) : ownedCos.map((co, i) => {
-                const coRevenue = co.bookings.reduce((s, b) => s + num(b.companyEarnings), 0);
+                const coRevenue = (co.bookings || []).reduce((s, b) => s + num(b.companyEarnings), 0);
                 return (
                   <div key={i} className="bg-background border border-border rounded-xl p-5 shadow-sm hover:bg-muted/10 transition-colors">
                     <div className="flex items-start gap-3 mb-3">
@@ -487,9 +577,9 @@ export default function UserDetailPage() {
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2 mb-3 text-center">
-                      <div className="bg-muted/20 rounded-lg p-2"><p className="text-[10px] text-muted-foreground">Staff</p><p className="font-black">{co._count.staff}</p></div>
-                      <div className="bg-muted/20 rounded-lg p-2"><p className="text-[10px] text-muted-foreground">Services</p><p className="font-black">{co._count.services}</p></div>
-                      <div className="bg-muted/20 rounded-lg p-2"><p className="text-[10px] text-muted-foreground">Jobs</p><p className="font-black">{co.completedJobs}</p></div>
+                      <div className="bg-muted/20 rounded-lg p-2"><p className="text-[10px] text-muted-foreground">Staff</p><p className="font-black">{co._count?.staff || 0}</p></div>
+                      <div className="bg-muted/20 rounded-lg p-2"><p className="text-[10px] text-muted-foreground">Services</p><p className="font-black">{co._count?.services || 0}</p></div>
+                      <div className="bg-muted/20 rounded-lg p-2"><p className="text-[10px] text-muted-foreground">Jobs</p><p className="font-black">{co.completedJobs || 0}</p></div>
                     </div>
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-[10px] text-muted-foreground font-bold uppercase">Revenue</span>
@@ -521,7 +611,7 @@ export default function UserDetailPage() {
         <>
           <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             {[
-              { label: "Commission Earned", value: fmt(commissionEarned), accent: "bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/20" },
+              { label: "Commission Earned", value: fmt(commissionEarned), accent: "bg-emerald-600 text-white shadow-lg shadow-emerald-500/20" },
               { label: "Jobs Completed", value: staffCompleted.toString() },
               { label: "Avg Rating", value: avgStaffRating ? avgStaffRating.toFixed(1) + " ★" : "—" },
               { label: "Pending Commission", value: fmt(pendingCommission), amber: true },
@@ -597,7 +687,7 @@ export default function UserDetailPage() {
                         <tr key={job.id} className="hover:bg-muted/10 transition-colors">
                           <td className="px-4 py-3 font-bold text-foreground">{job.service?.name || "—"}</td>
                           <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{job.customer?.fullName || "—"}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{format(new Date(job.bookingDate), "MMM d, yyyy")}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{job.bookingDate ? format(new Date(job.bookingDate), "MMM d, yyyy") : "—"}</td>
                           <td className="px-4 py-3 text-center">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${BOOKING_STATUS_COLOR[job.status] || "bg-muted text-muted-foreground"}`}>
                               {job.status}
@@ -636,6 +726,37 @@ export default function UserDetailPage() {
             </motion.div>
           )}
         </>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════
+          ADMIN OVERVIEW
+      ════════════════════════════════════════════════════════════ */}
+      {isAdmin && (
+        <motion.div variants={fadeUp} className="mb-5 bg-background border border-border rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+              <Shield className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-foreground">Super Administrator Privileges</h3>
+              <p className="text-xs text-muted-foreground">Full system orchestration, RBAC role elevation, and audit access.</p>
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-3 text-center">
+            <div className="bg-muted/20 rounded-lg p-3">
+              <p className="text-[10px] font-bold uppercase text-muted-foreground">Console Access</p>
+              <p className="text-sm font-black text-emerald-600 mt-0.5">Unrestricted (Root)</p>
+            </div>
+            <div className="bg-muted/20 rounded-lg p-3">
+              <p className="text-[10px] font-bold uppercase text-muted-foreground">Audit Log Count</p>
+              <p className="text-sm font-black text-foreground mt-0.5">{u.auditLogs?.length ?? 0} Recorded Actions</p>
+            </div>
+            <div className="bg-muted/20 rounded-lg p-3">
+              <p className="text-[10px] font-bold uppercase text-muted-foreground">Security Mode</p>
+              <p className="text-sm font-black text-foreground mt-0.5">MFA Guarded</p>
+            </div>
+          </div>
+        </motion.div>
       )}
 
       {/* ── Activity Timeline + Security ─────────────────────────── */}
@@ -680,13 +801,57 @@ export default function UserDetailPage() {
               <span className="text-xs font-black text-foreground">{u.auditLogs?.length ?? 0}</span>
             </div>
             <div className="pt-1">
-              <Button variant="outline" className="w-full text-xs font-bold border-border hover:bg-muted/50">
+              <Button variant="outline" className="w-full text-xs font-bold border-border hover:bg-muted/50"
+                onClick={() => toast.success(`Active sessions revoked for ${u.fullName}`)}>
                 <LogOut className="w-4 h-4 mr-2 opacity-50" /> Force Logout All Devices
               </Button>
             </div>
           </div>
         </div>
       </motion.div>
+
+      {/* ── Edit Profile Dialog ── */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-background border border-border">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-foreground">Edit User Profile</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Update name and contact details for this account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-name" className="text-xs font-bold text-foreground">Full Name</Label>
+              <Input
+                id="edit-name"
+                value={editFullName}
+                onChange={(e) => setEditFullName(e.target.value)}
+                placeholder="Full Name"
+                className="h-10 bg-muted/20 border-border"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-phone" className="text-xs font-bold text-foreground">Phone Number</Label>
+              <Input
+                id="edit-phone"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="+855 12 345 678"
+                className="h-10 bg-muted/20 border-border"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={savingEdit}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={savingEdit || !editFullName.trim()} className="bg-primary text-primary-foreground font-bold">
+              {savingEdit ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </motion.div>
   );

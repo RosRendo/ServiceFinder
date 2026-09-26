@@ -15,7 +15,7 @@ export interface StaffPerformanceMetrics {
 }
 
 export function useStaffPerformance(staffId?: string) {
-  const endpoint = staffId ? `/staff/${staffId}/performance` : '/staff/performance';
+  const endpoint = staffId ? `/api/staff/${staffId}/performance` : '/api/staff/performance';
   const { data, loading, error, refetch } = useAPI<StaffPerformanceMetrics>(endpoint);
 
   return {

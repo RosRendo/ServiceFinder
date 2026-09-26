@@ -18,6 +18,35 @@ const CARD_SHADOW = Platform.select({
   android: { elevation: 3 },
 });
 
+const getServiceIconInfo = (name: string) => {
+  const n = (name || '').toLowerCase();
+  if (n.includes('clean') || n.includes('maid') || n.includes('wash') || n.includes('sanitize')) {
+    return { icon: 'sparkles', color: '#059669', bg: '#ECFDF5' };
+  }
+  if (n.includes('ac') || n.includes('air') || n.includes('cool') || n.includes('vent')) {
+    return { icon: 'fan', color: '#0284C7', bg: '#F0F9FF' };
+  }
+  if (n.includes('plumb') || n.includes('pipe') || n.includes('leak') || n.includes('water')) {
+    return { icon: 'pipe-wrench', color: '#2563EB', bg: '#EFF6FF' };
+  }
+  if (n.includes('electr') || n.includes('wire') || n.includes('light') || n.includes('power')) {
+    return { icon: 'lightning-bolt', color: '#D97706', bg: '#FFFBEB' };
+  }
+  if (n.includes('paint') || n.includes('decor')) {
+    return { icon: 'format-paint', color: '#7C3AED', bg: '#F5F3FF' };
+  }
+  if (n.includes('car') || n.includes('auto')) {
+    return { icon: 'car-wash', color: '#DC2626', bg: '#FEF2F2' };
+  }
+  if (n.includes('garden') || n.includes('lawn') || n.includes('tree')) {
+    return { icon: 'tree', color: '#16A34A', bg: '#F0FDF4' };
+  }
+  if (n.includes('pest') || n.includes('bug')) {
+    return { icon: 'shield-bug-outline', color: '#EA580C', bg: '#FFF7ED' };
+  }
+  return { icon: 'hammer-wrench', color: T.primary, bg: '#F1F5F9' };
+};
+
 export default function CompanyDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -180,7 +209,14 @@ export default function CompanyDetailScreen() {
             {heroImage ? (
               <Image source={{ uri: heroImage }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
             ) : (
-              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: T.primary }]} />
+              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#0B132B', overflow: 'hidden' }]}>
+                {/* Decorative ambient lighting elements */}
+                <View style={{ position: 'absolute', top: -50, right: -50, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(59, 130, 246, 0.18)' }} />
+                <View style={{ position: 'absolute', bottom: -30, left: -30, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(16, 185, 129, 0.12)' }} />
+                <View style={{ position: 'absolute', top: 50, right: 30, opacity: 0.10 }}>
+                  <MaterialCommunityIcons name="shield-star-outline" size={130} color="#FFFFFF" />
+                </View>
+              </View>
             )}
             <View style={s.heroOverlay} />
           </Animated.View>
@@ -213,23 +249,27 @@ export default function CompanyDetailScreen() {
             <View style={s.trustMetrics}>
               <View style={s.trustItem}>
                 <View style={[s.metricIconWrap, { backgroundColor: "rgba(245, 158, 11, 0.08)" }]}>
-                  <MaterialIcons name="star" size={20} color={T.gold} />
+                  <MaterialIcons name="star" size={18} color={T.gold} />
                 </View>
                 <Text style={s.trustVal}>{rating}</Text>
-                <Text style={s.trustLabel}>{reviewCount} reviews</Text>
+                <Text style={s.trustLabel}>{reviewCount > 0 ? `${reviewCount} reviews` : "Verified Pro"}</Text>
               </View>
               
+              <View style={s.metricDivider} />
+
               <View style={s.trustItem}>
                 <View style={[s.metricIconWrap, { backgroundColor: "rgba(10, 25, 47, 0.06)" }]}>
-                  <MaterialIcons name="work" size={20} color={T.primary} />
+                  <MaterialIcons name="work" size={18} color={T.primary} />
                 </View>
                 <Text style={s.trustVal}>{completedJobs > 1000 ? `${(completedJobs / 1000).toFixed(1)}k+` : completedJobs}</Text>
-                <Text style={s.trustLabel}>Jobs done</Text>
+                <Text style={s.trustLabel}>{completedJobs > 0 ? "Jobs done" : "Active & Ready"}</Text>
               </View>
+
+              <View style={s.metricDivider} />
 
               <View style={s.trustItem}>
                 <View style={[s.metricIconWrap, { backgroundColor: isInsured ? "rgba(16, 185, 129, 0.08)" : "rgba(37, 99, 235, 0.08)" }]}>
-                  <MaterialIcons name={isInsured ? "shield" : "check-circle"} size={20} color={isInsured ? T.success : T.blue} />
+                  <MaterialIcons name={isInsured ? "shield" : "check-circle"} size={18} color={isInsured ? T.success : T.blue} />
                 </View>
                 <Text style={s.trustVal}>{isInsured ? "Insured" : `${completionRate}%`}</Text>
                 <Text style={s.trustLabel}>{isInsured ? "Protected" : "Completion"}</Text>
@@ -262,34 +302,48 @@ export default function CompanyDetailScreen() {
                 </View>
               ) : (
                 <View style={s.serviceList}>
-                  {services.map((service: any) => (
-                    <TouchableOpacity
-                      key={service.id}
-                      style={s.serviceCard}
-                      onPress={() => router.push(`/(customer)/service/${service.id}` as any)}
-                    >
-                      <View style={s.serviceInfo}>
-                        <Text style={s.serviceTitle}>{service.name}</Text>
-                        <Text style={s.serviceMeta}>
-                          {service.durationMin} mins • Starting at ${Number(service.basePrice).toFixed(0)}
-                        </Text>
-                        {service.description && (
-                          <Text style={s.serviceDesc} numberOfLines={2}>{service.description}</Text>
+                  {services.map((service: any) => {
+                    const iconInfo = getServiceIconInfo(service.name);
+                    return (
+                      <TouchableOpacity
+                        key={service.id}
+                        style={s.serviceCard}
+                        activeOpacity={0.7}
+                        onPress={() => router.push(`/(customer)/service/${service.id}` as any)}
+                      >
+                        <View style={s.serviceInfo}>
+                          <Text style={s.serviceTitle}>{service.name}</Text>
+                          
+                          <View style={s.serviceMetaRow}>
+                            <View style={s.durationPill}>
+                              <MaterialCommunityIcons name="clock-outline" size={11} color={T.text2} />
+                              <Text style={s.durationText}>{service.durationMin} mins</Text>
+                            </View>
+                            <View style={s.pricePill}>
+                              <Text style={s.pricePillText}>${Number(service.basePrice).toFixed(0)}</Text>
+                            </View>
+                          </View>
+
+                          {service.description && (
+                            <Text style={s.serviceDesc} numberOfLines={2}>{service.description}</Text>
+                          )}
+
+                          <View style={s.serviceFooterRow}>
+                            <Text style={s.viewDetailsLink}>View Details</Text>
+                            <MaterialIcons name="chevron-right" size={15} color={T.primary} />
+                          </View>
+                        </View>
+
+                        {service.image ? (
+                          <Image source={{ uri: service.image }} style={s.serviceImg} contentFit="cover" />
+                        ) : (
+                          <View style={[s.serviceIconBox, { backgroundColor: iconInfo.bg }]}>
+                            <MaterialCommunityIcons name={iconInfo.icon as any} size={30} color={iconInfo.color} />
+                          </View>
                         )}
-                        <View style={s.bookBtnSm}>
-                          <Text style={s.bookBtnSmText}>View Details</Text>
-                          <MaterialIcons name="chevron-right" size={14} color={T.text1} />
-                        </View>
-                      </View>
-                      {service.image ? (
-                        <Image source={{ uri: service.image }} style={s.serviceImg} />
-                      ) : (
-                        <View style={s.serviceImgPlaceholder}>
-                          <MaterialIcons name="image" size={24} color={T.text3} />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               )}
             </View>
@@ -439,11 +493,12 @@ const s = StyleSheet.create({
 
   // Bento Trust Box
   bentoContainer: { paddingHorizontal: 20, marginTop: 16 },
-  trustMetrics: { flexDirection: 'row', backgroundColor: T.surface, borderRadius: 24, paddingVertical: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  trustItem: { flex: 1, alignItems: 'center' },
-  metricIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  trustVal: { fontSize: 16, fontWeight: '800', color: T.text1, letterSpacing: -0.3 },
-  trustLabel: { fontSize: 11, color: T.text3, fontWeight: '600', textTransform: "uppercase", marginTop: 2 },
+  trustMetrics: { flexDirection: 'row', backgroundColor: T.surface, borderRadius: 20, paddingVertical: 14, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW, alignItems: 'center' },
+  trustItem: { flex: 1, flexBasis: 0, minWidth: 0, alignItems: 'center' },
+  metricDivider: { width: 1, height: 32, backgroundColor: T.border, alignSelf: 'center', opacity: 0.8 },
+  metricIconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  trustVal: { fontSize: 15, fontWeight: '800', color: T.text1, letterSpacing: -0.3 },
+  trustLabel: { fontSize: 10, color: T.text3, fontWeight: '600', textTransform: "uppercase", marginTop: 2 },
 
   // Sticky Tab Bar
   stickyTabBar: { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, zIndex: 10 },
@@ -462,15 +517,44 @@ const s = StyleSheet.create({
 
   // Services Cards
   serviceList: { gap: 14 },
-  serviceCard: { flexDirection: 'row', backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW, gap: 16 },
-  serviceInfo: { flex: 1, justifyContent: 'space-between' },
-  serviceTitle: { fontSize: 16, fontWeight: '800', color: T.text1, marginBottom: 4 },
-  serviceMeta: { fontSize: 12, fontWeight: '600', color: T.text2, marginBottom: 6 },
+  serviceCard: {
+    flexDirection: 'row',
+    backgroundColor: T.surface,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: T.border,
+    ...CARD_SHADOW,
+    gap: 14,
+    alignItems: 'center',
+  },
+  serviceInfo: { flex: 1 },
+  serviceTitle: { fontSize: 16, fontWeight: '800', color: T.text1, marginBottom: 6, letterSpacing: -0.2 },
+  serviceMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  durationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: T.bg,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: T.border,
+  },
+  durationText: { fontSize: 11, fontWeight: '600', color: T.text2 },
+  pricePill: {
+    backgroundColor: 'rgba(10, 25, 47, 0.06)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  pricePillText: { fontSize: 12, fontWeight: '800', color: T.primary },
   serviceDesc: { fontSize: 12, color: T.text3, lineHeight: 16, marginBottom: 10 },
-  bookBtnSm: { flexDirection: "row", alignItems: "center", gap: 2, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, backgroundColor: T.bg, borderRadius: 8, borderWidth: 1, borderColor: T.border },
-  bookBtnSmText: { fontSize: 11, fontWeight: '700', color: T.text1 },
-  serviceImg: { width: 88, height: 88, borderRadius: 12, backgroundColor: T.bg },
-  serviceImgPlaceholder: { width: 88, height: 88, borderRadius: 12, backgroundColor: T.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: T.border },
+  serviceFooterRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  viewDetailsLink: { fontSize: 12, fontWeight: '700', color: T.primary },
+  serviceImg: { width: 80, height: 80, borderRadius: 16, backgroundColor: T.bg },
+  serviceIconBox: { width: 80, height: 80, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
 
   // Reviews Summary
   reviewsSummaryCard: { backgroundColor: T.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.border, flexDirection: "row", gap: 24, marginBottom: 20, ...CARD_SHADOW },
