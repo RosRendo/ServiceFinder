@@ -17,13 +17,16 @@ export function StatusPill({
   showDot = true,
   className,
 }: StatusPillProps) {
-  const cat = category || getSemanticStatusCategory(status);
+  const safeStatus = typeof status === 'string' ? status : (status != null ? String(status) : '');
+  const cat = category || getSemanticStatusCategory(safeStatus);
   const pillTokens = MANAGEMENT_TOKENS.statusPills[cat] || MANAGEMENT_TOKENS.statusPills.neutral;
 
   // Format display text: e.g. "under_review" -> "Under Review"
-  const displayLabel = label || status
-    .replace(/[_-]/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  const displayLabel = label || (safeStatus
+    ? safeStatus
+        .replace(/[_-]/g, ' ')
+        .replace(/\b\w/g, (char) => char.toUpperCase())
+    : 'Unknown');
 
   return (
     <span

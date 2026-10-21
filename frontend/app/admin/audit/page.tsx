@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { Search, Download, Trash2, Calendar, FileText, X, Clock, MapPin, User, Monitor } from "lucide-react";
-import { DataGrid, Column } from "@/components/grid/DataGrid";
-import { BulkActionBar } from "@/components/grid/BulkActionBar";
-import { ErrorState } from "@/components/common/ErrorState";
+import { Download, Trash2, Calendar, FileText, Clock, MapPin, User, Monitor, ShieldCheck, Activity, Filter } from "lucide-react";
+import { ManagementDataGrid, ColumnDef } from "@/components/admin/ManagementDataGrid";
 import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
 import { BaseDrawer } from "@/components/drawers/BaseDrawer";
 import api from "@/lib/api/client";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const ACTION_LABELS: Record<string, { label: string; class: string }> = {
   company_approved: { label: "Company Approved", class: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
@@ -30,11 +29,19 @@ const ACTION_LABELS: Record<string, { label: string; class: string }> = {
 
 const ROLE: Record<string, string> = {
   admin: "bg-blue-500/10 text-blue-600 border-blue-500/20", 
-  system: "bg-foreground text-background border-border",
+  system: "bg-muted text-muted-foreground border-border",
   company: "bg-violet-500/10 text-violet-600 border-violet-500/20", 
   company_admin: "bg-violet-500/10 text-violet-600 border-violet-500/20", 
   customer: "bg-muted/50 text-muted-foreground border-transparent",
 };
+
+const CATEGORY_TABS = [
+  { id: "all", label: "All Events" },
+  { id: "auth", label: "Authentication & Logins" },
+  { id: "company", label: "Merchant Lifecycle" },
+  { id: "settings", label: "System Config" },
+  { id: "payout", label: "Payouts & Finance" },
+];
 
 interface AuditLog {
   id: string; 
@@ -53,62 +60,67 @@ export default function AuditLogsPage() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [actionFilter, setActionFilter] = useState("all");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState("all");
+  const [selectedLogs, setSelectedLogs] = useState<AuditLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
+
+  const fetchLogs = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/audit-logs");
+      let rawList: any[] = [];
+      if (res.data) {
+        if (res.data.data && Array.isArray(res.data.data.data)) {
+          rawList = res.data.data.data;
+        } else if (Array.isArray(res.data.data)) {
+          rawList = res.data.data;
+        } else if (Array.isArray(res.data.logs)) {
+          rawList = res.data.logs;
+        } else if (Array.isArray(res.data)) {
+          rawList = res.data;
+        }
+      }
+
+      const normalized: AuditLog[] = rawList.map((item: any) => {
+        const actor = item.actor || item.user?.fullName || item.user?.email || "System";
+        const actorRole = item.actorRole || item.user?.role || "system";
+        const targetType = item.targetType || item.entityType || "system";
+        const target = item.target || (item.entityId ? `${targetType} #${item.entityId}` : targetType);
+        const description = item.description || (
+          item.action === "user_login" ? `${actor} logged in` :
+          item.action === "user_registered" ? `New account registered: ${actor}` :
+          item.action === "UPDATE_SETTINGS" ? `Updated system configuration` :
+          `${actor} performed ${item.action}`
+        );
+
+        return {
+          id: String(item.id),
+          action: item.action || "unknown",
+          actor,
+          actorRole,
+          target,
+          targetType,
+          description,
+          ipAddress: item.ipAddress || "127.0.0.1",
+          createdAt: item.createdAt || new Date().toISOString(),
+        };
+      });
+
+      setLogs(normalized);
+      setFetchError(null);
+    } catch (err: any) {
+      console.error("Failed to load audit logs:", err);
+      setFetchError("Could not load platform audit logs. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await api.get("/audit-logs");
-        let rawList: any[] = [];
-        if (res.data) {
-          if (res.data.data && Array.isArray(res.data.data.data)) {
-            rawList = res.data.data.data;
-          } else if (Array.isArray(res.data.data)) {
-            rawList = res.data.data;
-          } else if (Array.isArray(res.data.logs)) {
-            rawList = res.data.logs;
-          } else if (Array.isArray(res.data)) {
-            rawList = res.data;
-          }
-        }
-
-        const normalized: AuditLog[] = rawList.map((item: any) => {
-          const actor = item.actor || item.user?.fullName || item.user?.email || "System";
-          const actorRole = item.actorRole || item.user?.role || "system";
-          const targetType = item.targetType || item.entityType || "system";
-          const target = item.target || (item.entityId ? `${targetType} #${item.entityId}` : targetType);
-          const description = item.description || (
-            item.action === "user_login" ? `${actor} logged in` :
-            item.action === "user_registered" ? `New account registered: ${actor}` :
-            item.action === "UPDATE_SETTINGS" ? `Updated system configuration` :
-            `${actor} performed ${item.action}`
-          );
-
-          return {
-            id: String(item.id),
-            action: item.action || "unknown",
-            actor,
-            actorRole,
-            target,
-            targetType,
-            description,
-            ipAddress: item.ipAddress || "127.0.0.1",
-            createdAt: item.createdAt || new Date().toISOString(),
-          };
-        });
-
-        setLogs(normalized);
-        setFetchError(null);
-      } catch (err: any) {
-        console.error("Failed to load audit logs:", err);
-        setFetchError("Could not load audit logs.");
-      }
-      finally { setLoading(false); }
-    };
-    load();
+    fetchLogs();
   }, []);
 
   const today = new Date().toISOString().split("T")[0];
@@ -118,220 +130,274 @@ export default function AuditLogsPage() {
     admins: logs.filter((l) => l.actorRole === "admin").length,
   }), [logs, today]);
 
-  const filtered = useMemo(() => logs.filter((l) => {
-    const s = `${l.actor || ""} ${l.target || ""} ${l.description || ""} ${l.id || ""}`.toLowerCase();
-    return s.includes(search.toLowerCase()) && (actionFilter === "all" || l.action === actionFilter);
-  }), [logs, search, actionFilter]);
+  const filtered = useMemo(() => {
+    return logs.filter((l) => {
+      // Category filter
+      if (activeTab === "auth" && !l.action.includes("login") && !l.action.includes("register")) return false;
+      if (activeTab === "company" && !l.action.includes("company")) return false;
+      if (activeTab === "settings" && !l.action.toLowerCase().includes("setting") && !l.action.includes("category")) return false;
+      if (activeTab === "payout" && !l.action.includes("payout")) return false;
 
-  const toggleRow = useCallback((id: string) => {
-    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
-  }, []);
-  
-  const toggleAll = useCallback(() => {
-    setSelectedIds((prev) => prev.size === filtered.length ? new Set() : new Set(filtered.map((l) => l.id)));
-  }, [filtered]);
+      // Text search
+      if (!search) return true;
+      const s = `${l.actor || ""} ${l.target || ""} ${l.description || ""} ${l.id || ""} ${l.ipAddress || ""}`.toLowerCase();
+      return s.includes(search.toLowerCase());
+    });
+  }, [logs, search, activeTab]);
 
-  const uniqueActions = [...new Set(logs.map((l) => l.action))];
+  const paginatedLogs = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
 
-  const columns: Column<AuditLog>[] = [
-    {
-      key: "action", header: "Action", sortable: true,
-      render: (log) => {
-        const action = ACTION_LABELS[log.action] || { 
-          label: log.action.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()), 
-          class: "bg-muted/50 text-muted-foreground border-transparent" 
-        };
-        return (
-          <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-widest ${action.class}`}>
-            {action.label}
-          </span>
-        );
-      }
-    },
-    {
-      key: "actor", header: "Actor", sortable: true,
-      render: (log) => (
-        <div className="flex flex-col items-start gap-1">
-          <div className="font-bold text-foreground text-sm">{log.actor}</div>
-          <span className={`inline-flex px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-widest ${ROLE[log.actorRole] || "bg-muted/50 text-muted-foreground border-transparent"}`}>
-            {log.actorRole}
-          </span>
-        </div>
-      )
-    },
-    {
-      key: "target", header: "Target", sortable: true,
-      render: (log) => (
-        <div className="flex flex-col">
-          <div className="font-bold text-foreground text-sm">{log.target}</div>
-          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">{log.targetType?.replace("_", " ")}</div>
-        </div>
-      )
-    },
-    {
-      key: "description", header: "Description",
-      render: (log) => <span className="text-xs font-medium text-foreground">{log.description}</span>
-    },
-    {
-      key: "createdAt", header: "Time & Origin", sortable: true,
-      render: (log) => (
-        <div className="flex flex-col gap-0.5">
-          <div className="text-sm font-semibold text-foreground">{log.createdAt ? `${new Date(log.createdAt).toLocaleDateString()} ${new Date(log.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "-"}</div>
-          <code className="text-[10px] font-medium font-mono text-muted-foreground mt-0.5">{log.ipAddress}</code>
-        </div>
-      )
+  const handleExportCsv = useCallback(() => {
+    if (filtered.length === 0) {
+      toast.error("No audit logs to export.");
+      return;
     }
-  ];
-
-  const handleDeleteLogs = async () => {
-    setDeleteDialogOpen(true);
-  };
+    const headers = ["ID", "Action", "Actor", "Actor Role", "Target", "Target Type", "Description", "IP Address", "Timestamp"];
+    const rows = filtered.map((l) => [
+      `"${l.id}"`,
+      `"${l.action}"`,
+      `"${l.actor}"`,
+      `"${l.actorRole}"`,
+      `"${l.target}"`,
+      `"${l.targetType}"`,
+      `"${(l.description || "").replace(/"/g, '""')}"`,
+      `"${l.ipAddress}"`,
+      `"${l.createdAt}"`,
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `platform_audit_logs_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`Exported ${filtered.length} audit log entries.`);
+  }, [filtered]);
 
   const confirmDeleteLogs = async () => {
     try {
-      await api.delete("/audit-logs", { data: { ids: Array.from(selectedIds) } });
-      setLogs((prev) => prev.filter((l) => !selectedIds.has(l.id)));
-      setSelectedIds(new Set());
-      toast.success(`${selectedIds.size} log(s) deleted.`);
+      const ids = selectedLogs.map((l) => l.id);
+      await api.delete("/audit-logs", { data: { ids } });
+      setLogs((prev) => prev.filter((l) => !ids.includes(l.id)));
+      setSelectedLogs([]);
+      setDeleteDialogOpen(false);
+      toast.success(`${ids.length} audit log(s) permanently removed.`);
     } catch {
       toast.error("Failed to delete audit logs.");
     }
   };
 
-  const bulkActions = [
-    { label: "Delete Logs", icon: Trash2, onClick: handleDeleteLogs, variant: "danger" as const },
+  const columns: ColumnDef<AuditLog>[] = [
+    {
+      id: "action",
+      header: "Action",
+      isSortable: true,
+      cell: ({ row }) => {
+        const action = ACTION_LABELS[row.action] || { 
+          label: row.action.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()), 
+          class: "bg-muted/50 text-muted-foreground border-transparent" 
+        };
+        return (
+          <span className={cn("inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-widest", action.class)}>
+            {action.label}
+          </span>
+        );
+      },
+    },
+    {
+      id: "actor",
+      header: "Actor",
+      isSortable: true,
+      cell: ({ row }) => (
+        <div className="flex flex-col items-start gap-1">
+          <div className="font-bold text-foreground text-xs">{row.actor}</div>
+          <span className={cn("inline-flex px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-widest", ROLE[row.actorRole] || "bg-muted/50 text-muted-foreground border-transparent")}>
+            {row.actorRole}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: "target",
+      header: "Target",
+      isSortable: true,
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <div className="font-bold text-foreground text-xs">{row.target}</div>
+          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">
+            {row.targetType?.replace("_", " ")}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "description",
+      header: "Description",
+      cell: ({ row }) => (
+        <span className="text-xs font-medium text-foreground line-clamp-1 max-w-[340px]">
+          {row.description}
+        </span>
+      ),
+    },
+    {
+      id: "createdAt",
+      header: "Time & Origin",
+      isSortable: true,
+      cell: ({ row }) => (
+        <div className="flex flex-col gap-0.5">
+          <div className="text-xs font-semibold text-foreground">
+            {row.createdAt ? `${new Date(row.createdAt).toLocaleDateString()} ${new Date(row.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "-"}
+          </div>
+          <code className="text-[10px] font-mono text-muted-foreground">
+            {row.ipAddress}
+          </code>
+        </div>
+      ),
+    },
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden relative bg-background font-sans">
-      
-      {/* Flush Top Header */}
-      <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input 
-            value={search} onChange={(e) => setSearch(e.target.value)} 
-            placeholder="Search logs..."
-            className="w-full pl-9 pr-3 h-9 bg-muted/30 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60 transition-colors" 
-          />
-        </div>
-        
-        <select 
-          value={actionFilter} 
-          onChange={(e) => setActionFilter(e.target.value)} 
-          className="h-9 px-3 text-xs font-medium text-foreground bg-background rounded-lg border border-border outline-none focus:border-violet-500/60 cursor-pointer"
-        >
-          <option value="all">All Actions</option>
-          {uniqueActions.map((a) => <option key={a} value={a}>{ACTION_LABELS[a]?.label || a}</option>)}
-        </select>
-        
-        <div className="flex-1" />
-        
-        <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-foreground hover:bg-muted/50 bg-background transition-colors">
-          <Download className="w-3.5 h-3.5 opacity-70" /> Export CSV
-        </button>
-      </div>
-
-      {/* Flush Stats Row */}
-      <div className="shrink-0 flex items-center gap-6 px-6 py-2.5 border-b border-border bg-muted/10">
-        {[
-          { label: "Total Events", value: stats.total, color: "text-foreground" },
-          { label: "Today", value: stats.today, color: "text-emerald-500" },
-          { label: "Admin Actions", value: stats.admins, color: "text-violet-500" },
-        ].map((s) => (
-          <div key={s.label} className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">{s.label}</span>
-            <span className={`font-bold ${s.color}`}>{s.value}</span>
+    <div className="h-full flex flex-col p-4 sm:p-6 overflow-hidden bg-background">
+      <ManagementDataGrid
+        title="Platform Security & Audit Trail"
+        description="Comprehensive immutable record of administrative actions, user authentication events, and system changes."
+        data={paginatedLogs}
+        columns={columns}
+        getRowId={(r) => r.id}
+        isLoading={loading}
+        error={fetchError}
+        onRetry={fetchLogs}
+        onRowClick={(row) => setSelectedLog(row)}
+        searchValue={search}
+        onSearchChange={(val) => {
+          setSearch(val);
+          setPage(1);
+        }}
+        searchPlaceholder="Search by actor, target, IP address, or description..."
+        filterSlots={
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            {CATEGORY_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setPage(1);
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap",
+                  activeTab === tab.id
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        ))}
-      </div>
-
-      {/* Full-height DataGrid */}
-      <div className="flex-1 overflow-hidden relative">
-        {fetchError && logs.length === 0 && !loading ? (
-          <div className="p-6">
-            <ErrorState title="Couldn't load audit logs" message={fetchError} onRetry={() => window.location.reload()} />
-          </div>
-        ) : (
-          <DataGrid
-            columns={columns}
-            data={filtered}
-            loading={loading}
-            selectedIds={selectedIds}
-            onToggleRow={toggleRow}
-            onToggleAll={toggleAll}
-            onRowClick={(row) => setSelectedLog(row)}
-            emptyIcon={FileText}
-            emptyMessage="No audit logs found matching your criteria."
-          />
-        )}
-      </div>
-
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        onClear={() => setSelectedIds(new Set())}
-        actions={bulkActions}
+        }
+        secondaryActions={[
+          {
+            label: `Export CSV (${filtered.length})`,
+            icon: <Download className="w-3.5 h-3.5" />,
+            onClick: handleExportCsv,
+          },
+          ...(selectedLogs.length > 0 ? [{
+            label: `Delete Selected (${selectedLogs.length})`,
+            icon: <Trash2 className="w-3.5 h-3.5 text-rose-500" />,
+            onClick: () => setDeleteDialogOpen(true),
+          }] : []),
+        ]}
+        totalCount={filtered.length}
+        pageSize={pageSize}
+        currentPage={page}
+        onPageChange={setPage}
+        emptyState={{
+          title: "No audit events found",
+          description: search
+            ? "No security audit logs match your search criteria."
+            : "No events recorded in this category yet.",
+        }}
       />
 
       {/* Audit Log Detail Drawer */}
       <BaseDrawer
         open={!!selectedLog}
         onClose={() => setSelectedLog(null)}
-        title="Audit Log Detail"
-        subtitle={selectedLog ? `Event #${selectedLog.id}` : ""}
+        title="Audit Event Details"
+        subtitle={selectedLog ? `Transaction ID: #${selectedLog.id}` : ""}
       >
         {selectedLog && (
-          <div className="space-y-5 p-1">
+          <div className="space-y-6 p-2 font-sans">
             <div className="flex items-center gap-2">
-              <span className={`inline-flex items-center px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-widest ${
+              <span className={cn(
+                "inline-flex items-center px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-widest",
                 ACTION_LABELS[selectedLog.action]?.class || "bg-muted/50 text-muted-foreground border-transparent"
-              }`}>
+              )}>
                 {ACTION_LABELS[selectedLog.action]?.label || selectedLog.action.replace(/_/g, " ")}
               </span>
-              <span className={`inline-flex px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-widest ${
+              <span className={cn(
+                "inline-flex px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-widest",
                 ROLE[selectedLog.actorRole] || "bg-muted/50 text-muted-foreground border-transparent"
-              }`}>{selectedLog.actorRole}</span>
+              )}>
+                {selectedLog.actorRole}
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
-              <div className="bg-muted/30 rounded-xl p-4 space-y-3">
-                <div className="flex items-start gap-3">
-                  <User className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-0.5">Actor</p>
-                    <p className="text-sm font-semibold text-foreground">{selectedLog.actor}</p>
-                  </div>
+            <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                  <User className="w-4 h-4 text-foreground/80" />
                 </div>
-                <div className="flex items-start gap-3">
-                  <Monitor className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-0.5">Target</p>
-                    <p className="text-sm font-semibold text-foreground">{selectedLog.target}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">{selectedLog.targetType?.replace("_", " ")}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-0.5">IP Address</p>
-                    <code className="text-sm font-mono text-foreground">{selectedLog.ipAddress}</code>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Clock className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-0.5">Timestamp</p>
-                    <p className="text-sm font-semibold text-foreground">
-                      {selectedLog.createdAt ? new Date(selectedLog.createdAt).toLocaleString() : "N/A"}
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Actor</p>
+                  <p className="text-sm font-semibold text-foreground">{selectedLog.actor}</p>
                 </div>
               </div>
 
-              <div className="bg-muted/20 rounded-xl p-4">
-                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-2">Description</p>
-                <p className="text-sm text-foreground leading-relaxed">{selectedLog.description}</p>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                  <Monitor className="w-4 h-4 text-foreground/80" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Target Resource</p>
+                  <p className="text-sm font-semibold text-foreground">{selectedLog.target}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">{selectedLog.targetType?.replace("_", " ")}</p>
+                </div>
               </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                  <MapPin className="w-4 h-4 text-foreground/80" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Network IP Address</p>
+                  <code className="text-xs font-mono font-medium text-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border">
+                    {selectedLog.ipAddress}
+                  </code>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                  <Clock className="w-4 h-4 text-foreground/80" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Recorded Timestamp</p>
+                  <p className="text-xs font-semibold text-foreground">
+                    {selectedLog.createdAt ? new Date(selectedLog.createdAt).toLocaleString(undefined, { dateStyle: "full", timeStyle: "medium" }) : "N/A"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-4">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-2">Narrative Description</p>
+              <p className="text-xs text-foreground leading-relaxed">{selectedLog.description}</p>
             </div>
           </div>
         )}
@@ -341,7 +407,7 @@ export default function AuditLogsPage() {
       <ConfirmationDialog
         isOpen={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
-        title={`Delete ${selectedIds.size} Audit Log${selectedIds.size !== 1 ? "s" : ""}`}
+        title={`Delete ${selectedLogs.length} Audit Log${selectedLogs.length !== 1 ? "s" : ""}`}
         description="Permanently deleting audit logs is irreversible. These records will be erased from the system and cannot be recovered."
         actionType="danger"
         confirmLabel="Yes, Delete Logs"

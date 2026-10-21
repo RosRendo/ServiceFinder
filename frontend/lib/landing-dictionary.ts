@@ -36,7 +36,8 @@ export interface LandingDictionary {
     monthlyJobCapacity: string;
     monthlyGrossRevenue: string;
     estimatedNetGrowth: string;
-    annualUpliftLabel: string;
+    annualRevenueUplift: string;
+    annualUpliftLabel?: string;
     efficiencyUpliftNote: string;
     ctaButton: string;
     disclaimer: string;
@@ -76,7 +77,8 @@ export interface LandingDictionary {
     verifiedLicense: string;
     verifiedLicenseDesc: string;
     escrowProtection: string;
-    escrowProtectionDesc: string;
+    escrowProtectionDesc?: string;
+    escrowDesc?: string;
     disputeMediation: string;
     disputeMediationDesc: string;
     certifiedTechnicians: string;

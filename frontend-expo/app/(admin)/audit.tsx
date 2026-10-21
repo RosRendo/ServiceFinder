@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSidebarStore } from "@/store/sidebarStore";
+import { useRouter } from "expo-router";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
 import ErrorState from "@/components/common/ErrorState";
@@ -30,16 +31,17 @@ const FILTER_TABS: { id: ActionType; label: string }[] = [
 
 const getActionConfig = (action: string = "") => {
   const act = action.toLowerCase();
-  if (act.includes("login")) return { icon: "login", color: T.blue, bg: T.blue + "15", label: "Login" };
-  if (act.includes("register")) return { icon: "account-plus", color: T.success, bg: T.success + "15", label: "Registered" };
-  if (act.includes("setting")) return { icon: "cog-outline", color: T.warning, bg: T.warning + "15", label: "Settings" };
-  if (act.includes("delete") || act.includes("reject") || act.includes("suspend")) return { icon: "close-circle-outline", color: T.error, bg: T.error + "15", label: "Action" };
-  if (act.includes("approve") || act.includes("confirm")) return { icon: "check-circle-outline", color: T.success, bg: T.success + "15", label: "Approved" };
-  if (act.includes("update") || act.includes("edit")) return { icon: "pencil-outline", color: T.warning, bg: T.warning + "15", label: "Update" };
-  return { icon: "shield-check-outline", color: T.gray, bg: T.gray + "15", label: action || "Event" };
+  if (act.includes("login")) return { icon: "login", color: "#0F172A", bg: "#F1F5F9", label: "Login" };
+  if (act.includes("register")) return { icon: "account-plus", color: "#0F172A", bg: "#F1F5F9", label: "Registered" };
+  if (act.includes("setting")) return { icon: "cog-outline", color: "#0F172A", bg: "#F1F5F9", label: "Settings" };
+  if (act.includes("delete") || act.includes("reject") || act.includes("suspend")) return { icon: "close-circle-outline", color: "#DC2626", bg: "#F8FAFC", label: "Action" };
+  if (act.includes("approve") || act.includes("confirm")) return { icon: "check-circle-outline", color: "#059669", bg: "#F8FAFC", label: "Approved" };
+  if (act.includes("update") || act.includes("edit")) return { icon: "pencil-outline", color: "#0F172A", bg: "#F1F5F9", label: "Update" };
+  return { icon: "shield-check-outline", color: "#64748B", bg: "#F8FAFC", label: action || "Event" };
 };
 
 export default function AuditLogs() {
+  const router = useRouter();
   const { t } = useTranslation();
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
   const [logs, setLogs] = useState<any[]>([]);
@@ -151,12 +153,17 @@ export default function AuditLogs() {
       <View style={s.header}>
         <View style={s.headerLeft}>
           <TouchableOpacity 
-              accessibilityRole="button"
-              accessibilityLabel={t('common.openMenu')}
-              onPress={() => openSidebar(true)} style={s.menuBtn}>
-            <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
+            accessibilityRole="button"
+            accessibilityLabel="Back or Menu"
+            onPress={() => {
+              if (router.canGoBack()) router.back();
+              else openSidebar(true);
+            }} 
+            style={s.menuBtn}
+          >
+            <MaterialCommunityIcons name={router.canGoBack() ? "arrow-left" : "menu"} size={26} color={T.text1} />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>Audit Logs</Text>
+          <Text style={s.headerTitle}>System Audit Trail</Text>
         </View>
         <Text style={s.eventCountText}>{filtered.length} events</Text>
       </View>
@@ -236,72 +243,74 @@ const CARD_SHADOW = Platform.select({
 });
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface,
-    borderBottomWidth: 1, borderBottomColor: T.border,
+    paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1, borderBottomColor: "#E2E8F0",
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
-  eventCountText: { fontSize: 13, color: T.text3, fontWeight: "600" },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A" },
+  eventCountText: { fontSize: 13, color: "#64748B", fontWeight: "600" },
 
   searchContainer: { 
-    flexDirection: "row", alignItems: "center", backgroundColor: T.surface, 
+    flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF", 
     marginHorizontal: 16, marginTop: 16, marginBottom: 12, paddingHorizontal: 16, 
-    height: 48, borderRadius: 24, borderWidth: 1, borderColor: T.border,
+    height: 46, borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0",
   },
-  searchInput: { flex: 1, marginLeft: 8, fontSize: 15, color: T.text1 },
+  searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: "#0F172A" },
   clearBtn: { padding: 4 },
 
   tabsContainer: { paddingBottom: 8 },
   tabsContent: { paddingHorizontal: 16, gap: 8 },
   tabPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  tabPillActive: { backgroundColor: T.accent, borderColor: T.accent },
-  tabPillInactive: { backgroundColor: T.surface, borderColor: T.border },
+  tabPillActive: { backgroundColor: "#0F172A", borderColor: "#0F172A" },
+  tabPillInactive: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0" },
   tabPillText: { fontSize: 13, fontWeight: "700" },
-  tabPillTextActive: { color: "#fff" },
-  tabPillTextInactive: { color: T.text2 },
+  tabPillTextActive: { color: "#FFFFFF" },
+  tabPillTextInactive: { color: "#64748B" },
 
-  listContent: { padding: 16, paddingBottom: 60, gap: 12 },
+  listContent: { padding: 16, paddingBottom: 120, gap: 12 },
   loadingBox: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  card: { backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border , ...CARD_SHADOW },
+  card: { backgroundColor: "#FFFFFF", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: "#E2E8F0" },
   cardTopRow: { flexDirection: "row", alignItems: "flex-start" },
-  iconBox: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", marginRight: 12 },
+  iconBox: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, borderColor: "#E2E8F0", alignItems: "center", justifyContent: "center", marginRight: 12 },
   cardInfo: { flex: 1 },
   cardHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
-  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
-  badgeText: { fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
-  timeText: { fontSize: 11, color: T.text3 },
-  userName: { fontSize: 15, fontWeight: "700", color: T.text1 },
-  userEmail: { fontSize: 13, color: T.text3, marginTop: 1 },
+  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: "#E2E8F0" },
+  badgeText: { fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, color: "#0F172A" },
+  timeText: { fontSize: 11, color: "#64748B" },
+  userName: { fontSize: 15, fontWeight: "700", color: "#0F172A" },
+  userEmail: { fontSize: 13, color: "#64748B", marginTop: 1 },
   rolePill: {
     paddingHorizontal: 6,
     paddingVertical: 1,
-    borderRadius: 6,
-    backgroundColor: T.accentLight,
+    borderRadius: 4,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   rolePillText: {
     fontSize: 9,
-    fontWeight: "800",
-    color: T.accent,
+    fontWeight: "700",
+    color: "#0F172A",
     textTransform: "uppercase",
   },
   descText: {
     fontSize: 12,
-    color: T.text2,
+    color: "#475569",
     marginTop: 4,
     lineHeight: 16,
   },
 
-  cardFooterRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: T.border },
-  footerText: { fontSize: 12, color: T.text2 },
-  footerTextBold: { fontWeight: "700", color: T.text1 },
+  cardFooterRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#E2E8F0" },
+  footerText: { fontSize: 12, color: "#475569" },
+  footerTextBold: { fontWeight: "700", color: "#0F172A" },
 
   emptyBox: { alignItems: "center", paddingVertical: 80, paddingHorizontal: 32 },
-  emptyText: { fontSize: 16, fontWeight: "700", color: T.text1 },
-  emptySubText: { fontSize: 14, color: T.text3, marginTop: 4, textAlign: "center" },
+  emptyText: { fontSize: 16, fontWeight: "700", color: "#0F172A" },
+  emptySubText: { fontSize: 14, color: "#64748B", marginTop: 4, textAlign: "center" },
 });
 

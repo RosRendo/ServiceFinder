@@ -73,17 +73,23 @@ export default function InteractiveMap({
                 shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
             });
 
+            const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+            const tileUrl = isDark
+                ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+
             const defaultCenter = center ?? (markers[0] ? { lat: markers[0].lat, lng: markers[0].lng } : { lat: 11.5564, lng: 104.9282 });
             const map = L.map(mapRef.current!, {
                 center: [defaultCenter.lat, defaultCenter.lng],
                 zoom,
                 zoomControl: true,
-                scrollWheelZoom: false,
+                scrollWheelZoom: true,
             });
 
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19,
+            L.tileLayer(tileUrl, {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20,
             }).addTo(map);
 
             activeMap = map;
@@ -97,6 +103,15 @@ export default function InteractiveMap({
             }
         };
     }, [isMounted]);
+
+    // 1b. Animate flyTo when center or zoom changes
+    useEffect(() => {
+        if (!mapInstance || !center) return;
+        mapInstance.flyTo([center.lat, center.lng], zoom || mapInstance.getZoom(), {
+            duration: 0.8,
+            easeLinearity: 0.25,
+        });
+    }, [mapInstance, center?.lat, center?.lng, zoom]);
 
     // 2. Draw and update markers reactively
     useEffect(() => {

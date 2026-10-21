@@ -1,24 +1,17 @@
 import React, { useState, useEffect } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  KeyboardAvoidingView, Platform, Alert, ActivityIndicator, StyleSheet
+  KeyboardAvoidingView, Platform, Alert, ActivityIndicator, StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import api from "@/utils/api";
-import { Theme } from "@/constants/theme";
-import ErrorState from "@/components/common/ErrorState";
-
-const T = Theme.colors;
-
-
 
 export default function NewServiceType() {
   const router = useRouter();
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoadingCats, setIsLoadingCats] = useState(true);
-  const [hasError, setHasError] = useState(false);
   
   const [formData, setFormData] = useState({
     name: "", categoryId: "", description: "", icon: "hammer-wrench", basePrice: "0",
@@ -29,14 +22,13 @@ export default function NewServiceType() {
     const fetchCategories = async () => {
       try {
         const response = await api.get('/api/categories');
-        const cats = response.data.data || response.data || [];
+        const cats = response.data?.data || response.data || [];
         setCategories(cats);
         if (cats.length > 0) {
           setFormData(prev => ({ ...prev, categoryId: cats[0].id.toString() }));
         }
       } catch (error) {
         console.error("Failed to fetch categories:", error);
-        setHasError(true);
       } finally {
         setIsLoadingCats(false);
       }
@@ -45,22 +37,22 @@ export default function NewServiceType() {
   }, []);
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.categoryId) {
-      Alert.alert("Error", "Name and Category are required");
+    if (!formData.name.trim() || !formData.categoryId) {
+      Alert.alert("Validation Error", "Offering name and category selection are required.");
       return;
     }
     setIsSubmitting(true);
     try {
       await api.post('/api/service-types', {
-        name: formData.name,
+        name: formData.name.trim(),
         categoryId: parseInt(formData.categoryId),
-        description: formData.description,
-        icon: formData.icon,
+        description: formData.description.trim(),
+        icon: formData.icon.trim() || "hammer-wrench",
         basePrice: parseFloat(formData.basePrice) || 0,
       });
       router.back();
     } catch (error: any) {
-      Alert.alert("Error", error.response?.data?.message || "Failed to create service type");
+      Alert.alert("Submission Failed", error.response?.data?.message || "Failed to create service type");
     } finally {
       setIsSubmitting(false);
     }
@@ -70,122 +62,114 @@ export default function NewServiceType() {
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={T.text1} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Add New Service Type</Text>
+        <View style={s.headerLeft}>
+          <TouchableOpacity
+            style={s.backBtn}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <MaterialCommunityIcons name="arrow-left" size={20} color="#0F172A" />
+          </TouchableOpacity>
+          <View>
+            <Text style={s.headerTitle}>New Service Offering</Text>
+            <Text style={s.headerSubtitle}>Define offering type, category, and baseline rate</Text>
+          </View>
+        </View>
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-          {/* Form */}
-          <View style={s.formGroup}>
-            <Text style={s.label}>Service Type Name</Text>
-            <View style={s.inputBox}>
-              <MaterialCommunityIcons name="format-title" size={20} color={T.text3} />
-              <TextInput
-                style={s.input}
-                placeholder="e.g. Deep Cleaning"
-                placeholderTextColor={T.text3}
-                value={formData.name}
-                onChangeText={(text) => setFormData({ ...formData, name: text })}
-              />
-            </View>
-          </View>
-
-          <View style={s.formGroup}>
-            <Text style={s.label}>Parent Category</Text>
-            {isLoadingCats ? (
-              <ActivityIndicator size="small" color={T.accent} style={{ alignSelf: 'flex-start', paddingVertical: 16 }} />
-            ) : categories.length === 0 ? (
-              <Text style={s.errorText}>No categories found. Create a category first.</Text>
-            ) : (
-              hasError ? (
-                <ErrorState onRetry={() => {
-                  setIsLoadingCats(true);
-                  const fetchCategories = async () => {
-                    try {
-                      const response = await api.get('/api/categories');
-                      const cats = response.data.data || response.data || [];
-                      setCategories(cats);
-                      if (cats.length > 0) {
-                        setFormData(prev => ({ ...prev, categoryId: cats[0].id.toString() }));
-                      }
-                    } catch (error) {
-                      console.error("Failed to fetch categories:", error);
-                      setHasError(true);
-                    } finally {
-                      setIsLoadingCats(false);
-                    }
-                  };
-                  fetchCategories();
-                }} />
-              ) : (
-              <View style={s.radioGroup}>
-                {categories.map((cat, index) => {
-                  const isSelected = formData.categoryId === cat.id.toString();
-                  return (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={[s.radioItem, index !== categories.length - 1 && s.radioItemBorder]}
-                      onPress={() => setFormData({ ...formData, categoryId: cat.id.toString() })}
-                    >
-                      <MaterialCommunityIcons 
-                        name={isSelected ? "radiobox-marked" : "radiobox-blank"} 
-                        size={20} 
-                        color={isSelected ? T.blue : T.text3} 
-                      />
-                      <Text style={[s.radioText, isSelected && s.radioTextSelected]}>{cat.name}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
+          {/* Form Card */}
+          <View style={s.card}>
+            <View style={s.formGroup}>
+              <Text style={s.label}>Offering Name</Text>
+              <View style={s.inputBox}>
+                <TextInput
+                  style={s.input}
+                  placeholder="e.g. Standard AC Deep Chemical Wash"
+                  placeholderTextColor="#94A3B8"
+                  value={formData.name}
+                  onChangeText={(text) => setFormData({ ...formData, name: text })}
+                />
               </View>
-            ))}
-
-          </View>
-
-          <View style={s.formGroup}>
-            <Text style={s.label}>Description</Text>
-            <View style={[s.inputBox, s.textAreaBox]}>
-              <TextInput
-                style={s.textArea}
-                placeholder="Brief description of this service type..."
-                placeholderTextColor={T.text3}
-                value={formData.description}
-                onChangeText={(text) => setFormData({ ...formData, description: text })}
-                multiline
-                numberOfLines={4}
-              />
             </View>
-          </View>
 
-          <View style={s.formGroup}>
-            <Text style={s.label}>Base Price (Optional)</Text>
-            <View style={s.inputBox}>
-              <MaterialCommunityIcons name="currency-usd" size={20} color={T.text3} />
-              <TextInput
-                style={s.input}
-                placeholder="e.g. 50.00"
-                placeholderTextColor={T.text3}
-                value={formData.basePrice}
-                onChangeText={(text) => setFormData({ ...formData, basePrice: text.replace(/[^0-9.]/g, '') })}
-                keyboardType="numeric"
-              />
+            <View style={s.formGroup}>
+              <Text style={s.label}>Assigned Parent Category</Text>
+              {isLoadingCats ? (
+                <View style={s.loadingInline}>
+                  <ActivityIndicator size="small" color="#0F172A" />
+                  <Text style={s.loadingText}>Fetching available categories…</Text>
+                </View>
+              ) : categories.length === 0 ? (
+                <Text style={s.emptyCategoryText}>No categories found. Create a category record first.</Text>
+              ) : (
+                <View style={s.radioGroup}>
+                  {categories.map((cat, index) => {
+                    const isSelected = formData.categoryId === cat.id.toString();
+                    return (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[s.radioItem, index !== categories.length - 1 && s.radioItemBorder]}
+                        onPress={() => setFormData({ ...formData, categoryId: cat.id.toString() })}
+                      >
+                        <MaterialCommunityIcons
+                          name={isSelected ? "radiobox-marked" : "radiobox-blank"}
+                          size={18}
+                          color={isSelected ? "#0F172A" : "#94A3B8"}
+                        />
+                        <Text style={[s.radioText, isSelected && s.radioTextSelected]}>{cat.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
             </View>
-          </View>
 
-          <View style={s.formGroup}>
-            <Text style={s.label}>Material Design Icon</Text>
-            <View style={s.inputBox}>
-              <MaterialCommunityIcons name={formData.icon as any} size={20} color={T.text3} />
-              <TextInput
-                style={s.input}
-                placeholder="e.g. hammer-wrench"
-                placeholderTextColor={T.text3}
-                value={formData.icon}
-                onChangeText={(text) => setFormData({ ...formData, icon: text })}
-                autoCapitalize="none"
-              />
+            <View style={s.formGroup}>
+              <Text style={s.label}>Administrative Description</Text>
+              <View style={[s.inputBox, s.textAreaBox]}>
+                <TextInput
+                  style={s.textArea}
+                  placeholder="Service scope, deliverables, and requirements..."
+                  placeholderTextColor="#94A3B8"
+                  value={formData.description}
+                  onChangeText={(text) => setFormData({ ...formData, description: text })}
+                  multiline
+                  numberOfLines={4}
+                />
+              </View>
+            </View>
+
+            <View style={s.formGroup}>
+              <Text style={s.label}>Baseline Price (USD)</Text>
+              <View style={s.inputBox}>
+                <MaterialCommunityIcons name="currency-usd" size={18} color="#64748B" />
+                <TextInput
+                  style={s.input}
+                  placeholder="e.g. 45.00"
+                  placeholderTextColor="#94A3B8"
+                  value={formData.basePrice}
+                  onChangeText={(text) => setFormData({ ...formData, basePrice: text.replace(/[^0-9.]/g, '') })}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            <View style={[s.formGroup, { marginBottom: 0 }]}>
+              <Text style={s.label}>Icon Identifier</Text>
+              <View style={s.inputBox}>
+                <MaterialCommunityIcons name={(formData.icon || "hammer-wrench") as any} size={18} color="#64748B" />
+                <TextInput
+                  style={s.input}
+                  placeholder="e.g. hammer-wrench"
+                  placeholderTextColor="#94A3B8"
+                  value={formData.icon}
+                  onChangeText={(text) => setFormData({ ...formData, icon: text })}
+                  autoCapitalize="none"
+                />
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -199,9 +183,9 @@ export default function NewServiceType() {
           disabled={isSubmitting || !formData.categoryId}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <Text style={s.submitBtnText}>Create Service Type</Text>
+            <Text style={s.submitBtnText}>Create Offering Record</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -210,39 +194,59 @@ export default function NewServiceType() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
-    flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 16, paddingVertical: 16, backgroundColor: T.surface,
-    borderBottomWidth: 1, borderBottomColor: T.border,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1, borderBottomColor: "#E2E8F0",
   },
-  backBtn: { padding: 8, marginLeft: -8, marginRight: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
-  
-  content: { padding: 24, paddingBottom: 40 },
-  
-  formGroup: { marginBottom: 24 },
-  label: { fontSize: 12, fontWeight: "700", color: T.text2, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, marginLeft: 4 },
-  inputBox: { 
-    flexDirection: "row", alignItems: "center", backgroundColor: T.surface, 
-    borderRadius: 16, paddingHorizontal: 16, height: 56, borderWidth: 1, borderColor: T.border, 
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 10, backgroundColor: "#F8FAFC",
+    borderWidth: 1, borderColor: "#E2E8F0", alignItems: "center", justifyContent: "center",
   },
-  input: { flex: 1, fontSize: 16, color: T.text1, fontWeight: "500", marginLeft: 12 },
-  
-  textAreaBox: { height: 120, alignItems: "flex-start", paddingVertical: 16 },
-  textArea: { flex: 1, fontSize: 16, color: T.text1, textAlignVertical: "top" },
-  
-  radioGroup: { backgroundColor: T.surface, borderRadius: 16,  },
-  radioItem: { flexDirection: "row", alignItems: "center", padding: 16 },
-  radioItemBorder: { borderBottomWidth: 1, borderBottomColor: T.border },
-  radioText: { marginLeft: 12, fontSize: 16, color: T.text1, fontWeight: "500" },
-  radioTextSelected: { color: T.blue, fontWeight: "600" },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A" },
+  headerSubtitle: { fontSize: 12, color: "#64748B", fontWeight: "500", marginTop: 1 },
 
-  errorText: { color: T.error, fontSize: 14, marginTop: 8 },
-  
-  footer: { padding: 24, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border },
-  submitBtn: { backgroundColor: T.accent, borderRadius: 16, height: 56, alignItems: "center", justifyContent: "center" },
-  submitBtnDisabled: { opacity: 0.7 },
-  submitBtnText: { fontSize: 16, fontWeight: "700", color: "#fff", letterSpacing: 0.5 },
+  content: { padding: 16, paddingBottom: 120 },
+
+  card: {
+    backgroundColor: "#FFFFFF", borderRadius: 16, padding: 20,
+    borderWidth: 1, borderColor: "#E2E8F0",
+  },
+
+  formGroup: { marginBottom: 18 },
+  label: { fontSize: 11, fontWeight: "700", color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 },
+  inputBox: {
+    flexDirection: "row", alignItems: "center", backgroundColor: "#F8FAFC",
+    borderRadius: 12, paddingHorizontal: 14, height: 48, borderWidth: 1, borderColor: "#E2E8F0", gap: 8,
+  },
+  input: { flex: 1, fontSize: 14, color: "#0F172A", fontWeight: "500" },
+
+  loadingInline: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 12 },
+  loadingText: { fontSize: 13, color: "#64748B" },
+  emptyCategoryText: { fontSize: 13, color: "#DC2626", paddingVertical: 8 },
+
+  radioGroup: {
+    backgroundColor: "#F8FAFC", borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0",
+    overflow: "hidden",
+  },
+  radioItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
+  radioItemBorder: { borderBottomWidth: 1, borderBottomColor: "#E2E8F0" },
+  radioText: { fontSize: 13, color: "#475569", fontWeight: "500" },
+  radioTextSelected: { color: "#0F172A", fontWeight: "700" },
+
+  textAreaBox: { height: 100, alignItems: "flex-start", paddingVertical: 12 },
+  textArea: { flex: 1, fontSize: 14, color: "#0F172A", textAlignVertical: "top" },
+
+  footer: {
+    padding: 16, backgroundColor: "#FFFFFF",
+    borderTopWidth: 1, borderTopColor: "#E2E8F0",
+  },
+  submitBtn: {
+    backgroundColor: "#0F172A", borderRadius: 12, height: 48,
+    alignItems: "center", justifyContent: "center",
+  },
+  submitBtnDisabled: { opacity: 0.6 },
+  submitBtnText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
 });
-

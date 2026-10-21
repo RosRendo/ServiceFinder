@@ -57,6 +57,13 @@ export class InstantRequestsGateway {
     }
   }
 
+  broadcastNewRequest(request: any) {
+    this.server.emit('new_instant_request', request);
+    if (process.env.NODE_ENV === 'development') {
+      this.logger.log(`📣 Broadcast new_instant_request: ${JSON.stringify(request.id)}`);
+    }
+  }
+
   broadcastMatch(requestId: string, matchDetails: any) {
     const room = `instant_request_${requestId}`;
     this.server.to(room).emit('match_confirmed', matchDetails);

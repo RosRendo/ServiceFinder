@@ -5,6 +5,8 @@ import { Layers, Type, Link, FileText, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export interface CategoryFormData {
   name: string;
@@ -26,173 +28,175 @@ interface CategoryDrawerProps {
   loading: boolean;
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="border-b border-border px-8 py-5">
-      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4">{title}</p>
-      {children}
-    </div>
-  );
-}
-
 function slugify(text: string) {
   return text.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
 }
 
+function ToggleRow({
+  label,
+  hint,
+  checked,
+  onToggle,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 p-3.5 bg-card border border-border rounded-2xl">
+      <div>
+        <p className="text-xs font-bold text-foreground">{label}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">{hint}</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={onToggle}
+        className={cn(
+          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+          checked ? "bg-primary" : "bg-muted"
+        )}
+      >
+        <span
+          className={cn(
+            "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow transition",
+            checked ? "translate-x-4" : "translate-x-0"
+          )}
+        />
+      </button>
+    </div>
+  );
+}
+
 export function CategoryDrawer({ open, onClose, category, formData, setFormData, onSave, loading }: CategoryDrawerProps) {
   const isEditing = !!category;
+  const inputCls = "h-9 bg-background border-border text-xs rounded-xl text-foreground";
+  const labelCls = "text-[10px] font-bold text-muted-foreground uppercase tracking-wider";
 
   return (
     <BaseDrawer
       open={open}
       onClose={onClose}
       title={isEditing ? "Edit Category" : "Add Category"}
-      subtitle={isEditing ? "Update existing category details" : "Create a new top-level service category"}
+      subtitle={isEditing ? "Update top-level category details." : "Create a new top-level service category."}
       headerIcon={Layers}
+      width="md"
       footer={
-        <div className="flex gap-3 w-full">
-          <button 
-            onClick={onClose}
-            disabled={loading}
-            className="flex-1 bg-background hover:bg-muted border border-border text-foreground h-11 rounded-xl font-bold flex items-center justify-center transition-colors disabled:opacity-50 shadow-sm"
-          >
+        <div className="flex items-center gap-2.5 w-full">
+          <Button variant="outline" type="button" onClick={onClose} disabled={loading} className="h-9 px-4 text-xs font-semibold">
             Cancel
-          </button>
-          <button 
+          </Button>
+          <Button
+            type="button"
             onClick={onSave}
-            disabled={loading}
-            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground h-11 rounded-xl font-bold flex items-center justify-center transition-colors disabled:opacity-50 shadow-sm gap-2"
+            disabled={loading || !formData.name.trim()}
+            className="flex-1 h-9 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold gap-2 rounded-xl"
           >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {isEditing ? "Save Changes" : "Create Category"}
-          </button>
+          </Button>
         </div>
       }
     >
-      <div className="flex flex-col">
-        <Section title="Basic Details">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-xs font-bold text-foreground">Category Name <span className="text-rose-500">*</span></Label>
-              <div className="relative">
-                <Type className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  id="name" 
-                  value={formData.name} 
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setFormData((p) => ({ ...p, name: v, slug: isEditing ? p.slug : slugify(v) }));
-                  }}
-                  placeholder="e.g. Cleaning Services" 
-                  className="pl-10 h-11 bg-muted/20 border-border focus:border-primary focus:ring-primary/20 font-medium rounded-xl"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="slug" className="text-xs font-bold text-foreground">URL Slug <span className="text-rose-500">*</span></Label>
-                <div className="relative">
-                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input 
-                    id="slug" 
-                    value={formData.slug} 
-                    onChange={(e) => setFormData((p) => ({ ...p, slug: slugify(e.target.value) }))} 
-                    placeholder="cleaning-services" 
-                    className="pl-10 h-11 font-mono text-xs bg-muted/20 border-border focus:border-primary focus:ring-primary/20 rounded-xl" 
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="icon" className="text-xs font-bold text-foreground">Icon (Emoji)</Label>
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-muted-foreground text-sm">
-                    {formData.icon || "✨"}
-                  </div>
-                  <Input 
-                    id="icon" 
-                    value={formData.icon} 
-                    onChange={(e) => setFormData((p) => ({ ...p, icon: e.target.value }))} 
-                    placeholder="🧹" 
-                    className="pl-10 h-11 bg-muted/20 border-border focus:border-primary focus:ring-primary/20 font-medium rounded-xl" 
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="imageUrl" className="text-xs font-bold text-foreground">Category Image URL</Label>
-              <div className="relative">
-                <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  id="imageUrl" 
-                  value={formData.imageUrl || ""} 
-                  onChange={(e) => setFormData((p) => ({ ...p, imageUrl: e.target.value }))} 
-                  placeholder="https://images.unsplash.com/photo-..." 
-                  className="pl-10 h-11 bg-muted/20 border-border focus:border-primary focus:ring-primary/20 font-medium rounded-xl"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-muted/20 border border-border rounded-xl mt-4">
-              <div>
-                <Label htmlFor="status" className="text-xs font-bold text-foreground block">Active Status</Label>
-                <span className="text-[10px] text-muted-foreground font-medium">Toggle whether this category is visible to customers.</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFormData((p) => ({ ...p, status: p.status === "active" ? "inactive" : "active" }))}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  formData.status === "active" ? "bg-primary" : "bg-muted"
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    formData.status === "active" ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-muted/20 border border-border rounded-xl mt-4">
-              <div>
-                <Label htmlFor="useImageAsBadge" className="text-xs font-bold text-foreground block">Render Category as Image</Label>
-                <span className="text-[10px] text-muted-foreground font-medium">Show the category cover image instead of the vector icon/emoji throughout the app.</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFormData((p) => ({ ...p, useImageAsBadge: !p.useImageAsBadge }))}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  formData.useImageAsBadge ? "bg-primary" : "bg-muted"
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    formData.useImageAsBadge ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div>
+      <div className="p-6 space-y-4 text-xs font-sans">
+        <div className="space-y-1">
+          <Label htmlFor="name" className={labelCls}>
+            Category Name <span className="text-rose-500">*</span>
+          </Label>
+          <div className="relative">
+            <Type className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => {
+                const v = e.target.value;
+                setFormData((p) => ({ ...p, name: v, slug: isEditing ? p.slug : slugify(v) }));
+              }}
+              placeholder="e.g. Cleaning Services"
+              className={cn(inputCls, "pl-9 font-medium")}
+            />
           </div>
-        </Section>
+        </div>
 
-        <Section title="Additional Information">
-          <div className="space-y-2">
-            <Label htmlFor="description" className="text-xs font-bold text-foreground">Description</Label>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="slug" className={labelCls}>
+              URL Slug <span className="text-rose-500">*</span>
+            </Label>
             <div className="relative">
-              <FileText className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-              <Textarea 
-                id="description" 
-                value={formData.description} 
-                onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} 
-                placeholder="Describe this category..." 
-                rows={4} 
-                className="pl-10 pt-2.5 bg-muted/20 border-border focus:border-primary focus:ring-primary/20 font-medium rounded-xl resize-none"
+              <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="slug"
+                value={formData.slug}
+                onChange={(e) => setFormData((p) => ({ ...p, slug: slugify(e.target.value) }))}
+                placeholder="cleaning-services"
+                className={cn(inputCls, "pl-9 font-mono")}
               />
             </div>
           </div>
-        </Section>
+          <div className="space-y-1">
+            <Label htmlFor="icon" className={labelCls}>Icon (Emoji)</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm">{formData.icon || "✨"}</span>
+              <Input
+                id="icon"
+                value={formData.icon}
+                onChange={(e) => setFormData((p) => ({ ...p, icon: e.target.value }))}
+                placeholder="🧹"
+                className={cn(inputCls, "pl-9")}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="imageUrl" className={labelCls}>Cover Image URL</Label>
+          <div className="relative">
+            <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              id="imageUrl"
+              value={formData.imageUrl || ""}
+              onChange={(e) => setFormData((p) => ({ ...p, imageUrl: e.target.value }))}
+              placeholder="https://images.unsplash.com/photo-..."
+              className={cn(inputCls, "pl-9")}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="description" className={labelCls}>Description</Label>
+          <div className="relative">
+            <FileText className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
+              placeholder="Describe this category..."
+              rows={3}
+              className="pl-9 pt-2.5 bg-background border-border text-xs rounded-xl resize-none text-foreground"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2.5 pt-1">
+          <ToggleRow
+            label="Visible to Customers"
+            hint="Inactive categories are hidden from search and booking."
+            checked={formData.status === "active"}
+            onToggle={() => setFormData((p) => ({ ...p, status: p.status === "active" ? "inactive" : "active" }))}
+          />
+          <ToggleRow
+            label="Show Cover Image as Badge"
+            hint="Use the cover image instead of the emoji icon across the app."
+            checked={formData.useImageAsBadge}
+            onToggle={() => setFormData((p) => ({ ...p, useImageAsBadge: !p.useImageAsBadge }))}
+          />
+        </div>
       </div>
     </BaseDrawer>
   );
 }
+
+export default CategoryDrawer;

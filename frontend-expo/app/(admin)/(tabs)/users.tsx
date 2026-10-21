@@ -65,19 +65,19 @@ export default function Users() {
     return () => clearTimeout(timer);
   }, [activeFilter, searchQuery, fetchUsers]);
 
-  const getRoleColor = (role: string) => {
+  const getRoleConfig = (role: string) => {
     switch (role) {
-      case "admin": return { bg: "rgba(239, 68, 68, 0.1)", text: T.error, icon: "shield-account-outline" };
-      case "company_admin": return { bg: "rgba(37, 99, 235, 0.1)", text: T.blue, icon: "domain" };
-      case "staff": return { bg: "rgba(100, 116, 139, 0.1)", text: T.gray, icon: "briefcase-account-outline" };
-      default: return { bg: "rgba(16, 185, 129, 0.1)", text: T.success, icon: "account-outline" };
+      case "admin": return { dotColor: "#DC2626", label: "System Admin", icon: "shield-account-outline" };
+      case "company_admin": return { dotColor: "#2563EB", label: "Company Admin", icon: "domain" };
+      case "staff": return { dotColor: "#64748B", label: "Service Staff", icon: "briefcase-account-outline" };
+      default: return { dotColor: "#059669", label: "Customer", icon: "account-outline" };
     }
   };
 
   const getStatusStyle = (status: string) => {
     return status === 'active' 
-      ? { bg: T.success, color: "#fff", icon: "check" }
-      : { bg: T.warning, color: "#fff", icon: "pause" };
+      ? { bg: "#059669", color: "#fff", icon: "check" }
+      : { bg: "#D97706", color: "#fff", icon: "pause" };
   };
 
   return (
@@ -91,7 +91,7 @@ export default function Users() {
             accessibilityRole="button"
             accessibilityLabel={t('common.openMenu')}
           >
-            <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
+            <MaterialCommunityIcons name="menu" size={26} color="#0F172A" />
           </TouchableOpacity>
           <Text style={s.headerTitle}>{t('adminDirectory.title')}</Text>
         </View>
@@ -100,17 +100,17 @@ export default function Users() {
           accessibilityRole="button"
           accessibilityLabel={t('common.addUser')}
         >
-          <MaterialCommunityIcons name="plus" size={24} color="#fff" />
+          <MaterialCommunityIcons name="plus" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
       {/* Search & Filters (Sticky) */}
       <View style={s.filtersContainer}>
         <View style={s.searchBox}>
-          <MaterialCommunityIcons name="magnify" size={22} color={T.text3} />
+          <MaterialCommunityIcons name="magnify" size={20} color="#64748B" />
           <TextInput
             placeholder={t('adminDirectory.searchPlaceholder')}
-            placeholderTextColor={T.text3}
+            placeholderTextColor="#94A3B8"
             value={searchQuery}
             onChangeText={setSearchQuery}
             style={s.searchInput}
@@ -119,7 +119,7 @@ export default function Users() {
           />
           {searchQuery ? (
             <TouchableOpacity onPress={() => setSearchQuery("")} accessibilityRole="button" accessibilityLabel={t('common.clearSearch')}>
-              <MaterialCommunityIcons name="close-circle" size={20} color={T.text3} />
+              <MaterialCommunityIcons name="close-circle" size={18} color="#94A3B8" />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -149,7 +149,7 @@ export default function Users() {
       {/* List - Using FlashList for Performance */}
       <View style={{ flex: 1 }}>
         {isLoading && !refreshing ? (
-          <View style={s.loadingBox}><ActivityIndicator size="large" color={T.primary} /></View>
+          <View style={s.loadingBox}><ActivityIndicator size="large" color="#0F172A" /></View>
         ) : hasError && users.length === 0 ? (
           <ErrorState onRetry={() => { setIsLoading(true); fetchUsers(); }} />
         ) : (
@@ -157,21 +157,21 @@ export default function Users() {
             data={users}
             keyExtractor={(item: any) => item.id.toString()}
             estimatedItemSize={180}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchUsers(true)} tintColor={T.primary} />}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchUsers(true)} tintColor="#0F172A" />}
             contentContainerStyle={s.listContent}
-            ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+            ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={s.emptyBox}>
                 <View style={s.emptyIconCircle}>
-                  <MaterialCommunityIcons name="account-search-outline" size={48} color={T.primary} />
+                  <MaterialCommunityIcons name="account-search-outline" size={38} color="#0F172A" />
                 </View>
                 <Text style={s.emptyText}>{t('adminDirectory.noResults')}</Text>
                 {searchQuery ? <Text style={s.emptySubText}>{t('adminDirectory.tryAdjusting')}</Text> : null}
               </View>
             }
             renderItem={({ item: user }: any) => {
-              const roleStyle = getRoleColor(user.role);
+              const roleConfig = getRoleConfig(user.role);
               const statusStyle = getStatusStyle(user.status);
               const displayName = user.fullName ?? user.name ?? t('adminDirectory.fallbackName');
 
@@ -186,9 +186,9 @@ export default function Users() {
                   {/* Top Header: Identity */}
                   <View style={s.bentoHeader}>
                     <View style={s.avatarWrap}>
-                      <InitialsAvatar name={displayName} size={56} radius={20} />
+                      <InitialsAvatar name={displayName} size={48} radius={14} />
                       <View style={[s.statusBadge, { backgroundColor: statusStyle.bg }]}>
-                        <MaterialCommunityIcons name={statusStyle.icon as any} size={10} color={statusStyle.color} />
+                        <MaterialCommunityIcons name={statusStyle.icon as any} size={9} color={statusStyle.color} />
                       </View>
                     </View>
                     <View style={s.identityInfo}>
@@ -200,25 +200,27 @@ export default function Users() {
                   {/* Bento Grid Layout for Secondary Data */}
                   <View style={s.bentoGrid}>
                     {/* Primary Bento Box: Role */}
-                    <View style={[s.bentoBox, { flex: 1.5, backgroundColor: roleStyle.bg }]}>
-                      <MaterialCommunityIcons name={roleStyle.icon as any} size={18} color={roleStyle.text} style={{ marginBottom: 4 }} />
-                      <Text style={[s.bentoBoxValue, { color: roleStyle.text }]} numberOfLines={1}>
-                        {user.role.replace('_', ' ')}
-                      </Text>
-                      <Text style={[s.bentoBoxLabel, { color: roleStyle.text, opacity: 0.8 }]}>{t('adminDirectory.role')}</Text>
+                    <View style={[s.bentoBox, { flex: 1.5 }]}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 4 }}>
+                        <View style={[s.statusDotSmall, { backgroundColor: roleConfig.dotColor }]} />
+                        <Text style={s.bentoBoxValue} numberOfLines={1}>
+                          {roleConfig.label}
+                        </Text>
+                      </View>
+                      <Text style={s.bentoBoxLabel}>{t('adminDirectory.role')}</Text>
                     </View>
 
                     {/* Secondary Bento Box: ID */}
                     <View style={[s.bentoBox, { flex: 1 }]}>
-                      <MaterialCommunityIcons name="identifier" size={18} color={T.text3} style={{ marginBottom: 4 }} />
                       <Text style={s.bentoBoxValue} numberOfLines={1}>#{user.id}</Text>
                       <Text style={s.bentoBoxLabel}>{t('adminDirectory.userId')}</Text>
                     </View>
 
                     {/* Secondary Bento Box: Joined */}
                     <View style={[s.bentoBox, { flex: 1 }]}>
-                      <MaterialCommunityIcons name="calendar-outline" size={18} color={T.text3} style={{ marginBottom: 4 }} />
-                      <Text style={s.bentoBoxValue} numberOfLines={1}>{new Date(user.createdAt).toLocaleDateString(undefined, { month: 'short', year: '2-digit' })}</Text>
+                      <Text style={s.bentoBoxValue} numberOfLines={1}>
+                        {new Date(user.createdAt).toLocaleDateString(undefined, { month: 'short', year: '2-digit' })}
+                      </Text>
                       <Text style={s.bentoBoxLabel}>{t('adminDirectory.joined')}</Text>
                     </View>
                   </View>
@@ -233,50 +235,116 @@ export default function Users() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, backgroundColor: T.bg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 14,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 28, fontWeight: "700", color: T.text1, letterSpacing: -0.5 },
-  addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: T.primary, alignItems: "center", justifyContent: "center", ...CARD_SHADOW },
-
-  filtersContainer: { backgroundColor: T.bg, paddingBottom: 16, zIndex: 10 },
-  searchBox: {
-    flexDirection: "row", alignItems: "center", backgroundColor: T.surface,
-    marginHorizontal: 20, marginBottom: 16, paddingHorizontal: 16, borderRadius: 16, height: 52,
-    borderWidth: 1, borderColor: T.border, ...CARD_SHADOW
+  menuBtn: { marginLeft: -6, padding: 6 },
+  headerTitle: { fontSize: 20, fontWeight: "800", color: "#0F172A", letterSpacing: -0.3 },
+  addBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#0F172A",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  searchInput: { flex: 1, marginLeft: 12, fontSize: 16, color: T.text1, fontWeight: "500" },
-  
-  filterChips: { paddingHorizontal: 20, gap: 8, paddingBottom: 4 },
-  filterChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
-  filterChipActive: { backgroundColor: T.primary, borderColor: T.primary, ...CARD_SHADOW },
-  filterChipText: { fontSize: 13, fontWeight: "700", color: T.text2 },
-  filterChipTextActive: { color: "#fff" },
 
-  listContent: { padding: 20, paddingBottom: 100 },
+  filtersContainer: { backgroundColor: "#F8FAFC", paddingBottom: 12, zIndex: 10 },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    height: 44,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...CARD_SHADOW,
+  },
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: "#0F172A", fontWeight: "500" },
+
+  filterChips: { paddingHorizontal: 16, gap: 6, paddingBottom: 2 },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  filterChipActive: { backgroundColor: "#0F172A", borderColor: "#0F172A" },
+  filterChipText: { fontSize: 12, fontWeight: "700", color: "#64748B" },
+  filterChipTextActive: { color: "#FFFFFF" },
+
+  listContent: { paddingHorizontal: 16, paddingBottom: 120 },
   loadingBox: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyBox: { alignItems: "center", paddingVertical: 100 },
-  emptyIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(10, 25, 47, 0.05)", alignItems: "center", justifyContent: "center", marginBottom: 20 },
-  emptyText: { fontSize: 20, fontWeight: "700", color: T.text1, marginBottom: 8 },
-  emptySubText: { fontSize: 15, color: T.text2, textAlign: "center", paddingHorizontal: 32 },
+  emptyBox: { alignItems: "center", paddingVertical: 80 },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  emptyText: { fontSize: 17, fontWeight: "800", color: "#0F172A", marginBottom: 6 },
+  emptySubText: { fontSize: 13, color: "#64748B", textAlign: "center", paddingHorizontal: 32 },
 
   /* BENTO CARD UI */
-  bentoCard: { backgroundColor: T.surface, borderRadius: 24, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  bentoHeader: { flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 16 },
-  
+  bentoCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...CARD_SHADOW,
+  },
+  bentoHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
+
   avatarWrap: { position: "relative" },
-  statusBadge: { position: "absolute", bottom: -4, right: -4, width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: T.surface },
-  
+  statusBadge: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
+  statusDotSmall: { width: 6, height: 6, borderRadius: 3 },
+
   identityInfo: { flex: 1, justifyContent: "center" },
-  userName: { fontSize: 18, fontWeight: "700", color: T.text1, marginBottom: 4, letterSpacing: -0.3 },
-  userEmail: { fontSize: 14, fontWeight: "500", color: T.text3 },
+  userName: { fontSize: 15, fontWeight: "700", color: "#0F172A", marginBottom: 2, letterSpacing: -0.2 },
+  userEmail: { fontSize: 12, fontWeight: "500", color: "#64748B" },
 
   bentoGrid: { flexDirection: "row", gap: 8 },
-  bentoBox: { backgroundColor: T.bg, borderRadius: 16, padding: 12, justifyContent: "center" },
-  bentoBoxValue: { fontSize: 14, fontWeight: "700", color: T.text1, marginBottom: 2, textTransform: "capitalize", letterSpacing: -0.2 },
-  bentoBoxLabel: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase" },
+  bentoBox: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    justifyContent: "center",
+  },
+  bentoBoxValue: { fontSize: 12, fontWeight: "800", color: "#0F172A", marginBottom: 2, letterSpacing: -0.1 },
+  bentoBoxLabel: { fontSize: 9, fontWeight: "800", color: "#94A3B8", textTransform: "uppercase" },
 });

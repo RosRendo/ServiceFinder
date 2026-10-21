@@ -501,6 +501,25 @@ export class UsersService {
     return { message: `Staff status updated to ${status}` };
   }
 
+  async updateWorkingStatus(
+    userId: bigint,
+    workingStatus: 'online' | 'offline' | 'on_job',
+  ) {
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { workingStatus },
+      select: {
+        id: true,
+        workingStatus: true,
+      },
+    });
+
+    return {
+      message: `Working status updated to ${workingStatus}`,
+      workingStatus: updated.workingStatus,
+    };
+  }
+
   async getAdminMetrics() {
     const [
       totalUsers,

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { seedAllWithImages } from './seed_all_images';
 
 const prisma = new PrismaClient();
 
@@ -502,13 +503,14 @@ async function main() {
   if (process.env.NODE_ENV === 'production') {
     await runProductionSeed();
   } else {
-    // Optionally we can look for an env var to force safe seed in dev, but usually default to massive
     if (process.env.SAFE_SEED === 'true') {
       await runProductionSeed();
     } else {
       await runMassiveSeed();
     }
   }
+  // Ensure every category, company, and service is enriched with complete high-res images
+  await seedAllWithImages();
 }
 
 main()

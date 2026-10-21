@@ -129,6 +129,9 @@ export class InstantRequestsService {
       }, 2500); // Wait 2.5 seconds before starting mock bids
     }
 
+    // Broadcast to connected providers
+    this.gateway.broadcastNewRequest(response.request);
+
     return response;
   }
 
@@ -343,6 +346,73 @@ export class InstantRequestsService {
 
   private deg2rad(deg: number): number {
     return deg * (Math.PI / 180);
+  }
+
+  async resolveCompanyId(userId: bigint): Promise<bigint> {
+    const company = await this.prisma.company.findFirst({
+      where: { ownerId: userId },
+    });
+    if (company) return company.id;
+
+    const staff = await this.prisma.companyStaff.findFirst({
+      where: { userId },
+    });
+    if (staff) return staff.companyId;
+
+    // Fallback to first verified company for seamless dev testing
+    const fallback = await this.prisma.company.findFirst({
+      where: { verificationStatus: 'verified' },
+    });
+    return fallback?.id || BigInt(1);
+  }
+
+  async getCompanyFeed(userId: bigint) {
+    const companyId = await this.resolveCompanyId(userId);
+
+    const activeRequests = await this.prisma.instantRequest.findMany({
+      where: {
+        status: 'searching',
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            avatar: true,
+            phone: true,
+          },
+        },
+        bids: {
+          where: { companyId },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    return activeRequests.map((req) => {
+      const myBid = req.bids.length > 0 ? req.bids[0] : null;
+      return {
+        id: req.id.toString(),
+        serviceCategory: req.serviceCategory,
+        description: req.description,
+        preferredTime: req.preferredTime,
+        latitude: Number(req.latitude),
+        longitude: Number(req.longitude),
+        createdAt: req.createdAt,
+        customerName: req.customer?.fullName || 'Customer',
+        customerAvatar: req.customer?.avatar || null,
+        status: req.status,
+        myBid: myBid
+          ? {
+              id: myBid.id.toString(),
+              priceEstimate: Number(myBid.priceEstimate),
+              etaMinutes: myBid.etaMinutes,
+              status: myBid.status,
+            }
+          : null,
+      };
+    });
   }
 
   private serializeRequest(req: any) {

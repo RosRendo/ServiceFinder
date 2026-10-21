@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldCheck, QrCode, MapPin, Mail, Phone, Sparkles } from "lucide-react";
+import { ShieldCheck, QrCode, MapPin, Mail, Phone } from "lucide-react";
 import { landingDictionary } from "@/lib/landing-dictionary";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 interface LandingFooterProps {
   lang: "kh" | "en";
@@ -17,14 +18,7 @@ export function LandingFooter({ lang }: { lang: "kh" | "en" }) {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Brand Info & Local Trust */}
           <div className="md:col-span-2 space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white shadow-xs">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-heading text-xl font-bold tracking-tight text-white">
-                ServiceFinder
-              </span>
-            </div>
+            <BrandLogo variant="full" size="md" href="/" />
             <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
               {dict.brandTagline}
             </p>

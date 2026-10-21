@@ -58,24 +58,44 @@ export default function CompanyDisputeDetailPage() {
     );
   };
 
-  const parsedPhotos = dispute.photos ? JSON.parse(dispute.photos) : [];
+  let parsedPhotos: string[] = [];
+  try {
+    if (dispute.photos) {
+      parsedPhotos = typeof dispute.photos === "string" ? JSON.parse(dispute.photos) : (Array.isArray(dispute.photos) ? dispute.photos : []);
+    }
+  } catch {
+    parsedPhotos = [];
+  }
 
   return (
     <div className="h-full flex flex-col p-6 font-sans overflow-y-auto custom-scrollbar">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6 shrink-0">
-        <Button variant="outline" size="icon" onClick={() => router.push("/company/disputes")} className="rounded-lg h-9 w-9 border-border shrink-0">
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
-        <div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
-            Dispute #{dispute.id ? dispute.id.toString().padStart(6, "0") : "----"}
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] uppercase font-black border ${status.color}`}>
-              <StatusIcon className="w-3 h-3" /> {status.label}
-            </span>
-          </h1>
-          <p className="text-sm font-medium text-muted-foreground">Filed on {dispute.createdAt ? new Date(dispute.createdAt).toLocaleString() : "N/A"}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="icon" onClick={() => router.push("/company/disputes")} className="rounded-xl h-9 w-9 border-border shrink-0">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
+              Dispute #{dispute.id ? dispute.id.toString().padStart(6, "0") : "----"}
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold border ${status.color}`}>
+                <StatusIcon className="w-3 h-3" /> {status.label}
+              </span>
+            </h1>
+            <p className="text-xs font-medium text-muted-foreground mt-0.5">Filed on {dispute.createdAt ? new Date(dispute.createdAt).toLocaleString() : "N/A"}</p>
+          </div>
         </div>
+
+        {dispute.bookingId && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/company/bookings/${dispute.bookingId}`)}
+            className="rounded-xl h-9 text-xs font-semibold border-border gap-2"
+          >
+            <Calendar className="w-3.5 h-3.5 text-muted-foreground" /> View Order Desk #{dispute.bookingId} ↗
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-12">

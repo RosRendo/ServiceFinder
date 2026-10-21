@@ -1,33 +1,40 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { DataGrid, Column } from "@/components/grid/DataGrid";
-import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { useState, useEffect, useMemo } from "react";
+import { ManagementDataGrid, ColumnDef } from "@/components/admin/ManagementDataGrid";
 import { ReviewDrawer, ReviewRow } from "@/components/drawers/ReviewDrawer";
-import { Search, Star, CheckCircle2, EyeOff, Flag, Loader2, Edit2, Eye, Trash2 } from "lucide-react";
+import { Star, Flag, Eye, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/lib/hooks/use-toast";
 import api from "@/lib/api/client";
 
+const FILTER_TABS = [
+  { id: "all", label: "All Reviews" },
+  { id: "visible", label: "Visible" },
+  { id: "flagged", label: "Flagged" },
+  { id: "hidden", label: "Hidden" },
+];
 
-
-const STATUS_COLORS: Record<string, string> = {
-  visible: "text-emerald-500 bg-emerald-500/10 border border-emerald-500/20",
-  hidden: "text-muted-foreground bg-muted/20 border border-border/40",
-  flagged: "text-rose-500 bg-rose-500/10 border border-rose-500/20",
+const STATUS_BADGES: Record<string, { label: string; class: string }> = {
+  visible: { label: "Visible", class: "text-emerald-600 bg-emerald-500/10 border-emerald-500/20" },
+  hidden: { label: "Hidden", class: "text-muted-foreground bg-muted border-border" },
+  flagged: { label: "Flagged", class: "text-rose-600 bg-rose-500/10 border-rose-500/25" },
 };
 
 export default function CompanyReviewsPage() {
   const router = useRouter();
+  const { toast } = useToast();
+
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [active, setActive] = useState<ReviewRow | null>(null);
-  const { toast } = useToast();
+  const [activeReview, setActiveReview] = useState<ReviewRow | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -37,8 +44,9 @@ export default function CompanyReviewsPage() {
       const res = await api.get(`/companies/my-company/reviews?${params.toString()}`);
       const payload = res.data.data || res.data;
       setReviews(payload.reviews || []);
+      setError(null);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to load reviews", variant: "destructive" });
+      setError("Failed to load reviews. Please check your network connection.");
     } finally {
       setLoading(false);
     }
@@ -51,111 +59,168 @@ export default function CompanyReviewsPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const filtered = reviews.filter((r) => {
-    const matchFilter = filter === "all" || r.status === filter;
-    return matchFilter;
-  });
+  // Filter & Search Logic
+  const filteredReviews = useMemo(() => {
+    return reviews.filter((r) => {
+      if (filter !== "all" && r.status !== filter) return false;
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return (
+        r.customer?.toLowerCase().includes(q) ||
+        r.text?.toLowerCase().includes(q) ||
+        r.service?.toLowerCase().includes(q) ||
+        r.staff?.toLowerCase().includes(q)
+      );
+    });
+  }, [reviews, filter, search]);
 
-  const columns: Column<ReviewRow>[] = [
+  // Paginated Slice
+  const paginatedReviews = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredReviews.slice(start, start + pageSize);
+  }, [filteredReviews, page, pageSize]);
+
+  // Unified Column Definitions
+  const columns: ColumnDef<ReviewRow>[] = [
     {
-      key: "rating", header: "Rating", sortable: true,
-      render: (r) => (
-        <div className="flex items-center gap-0.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star key={i} className={cn("w-3 h-3", i < r.rating ? "text-amber-500 fill-current" : "text-muted-foreground/30")} />
-          ))}
+      id: "rating",
+      header: "Rating",
+      isSortable: true,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-0.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star
+                key={i}
+                className={cn(
+                  "w-3.5 h-3.5",
+                  i < (row.rating || 0)
+                    ? "text-amber-500 fill-amber-500"
+                    : "text-muted-foreground/30"
+                )}
+              />
+            ))}
+          </div>
+          <span className="font-mono text-xs font-bold text-foreground">
+            {Number(row.rating || 0).toFixed(1)}
+          </span>
         </div>
       ),
     },
-    { key: "customer", header: "Customer", sortable: true },
-    { key: "text", header: "Review", render: (r) => <span className="text-muted-foreground text-xs truncate max-w-[250px] block">{r.text}</span> },
-    { key: "service", header: "Service" },
-    { key: "staff", header: "Staff" },
     {
-      key: "status", header: "Status",
-      render: (r) => <span className={cn("text-[10px] font-bold px-2 py-1 rounded-full", STATUS_COLORS[r.status])}>{r.status}</span>,
+      id: "customer",
+      header: "Customer",
+      isSortable: true,
+      cell: ({ row }) => (
+        <span className="font-semibold text-xs text-foreground">{row.customer || "Guest Client"}</span>
+      ),
     },
-    { key: "date", header: "Date", render: (r) => <span className="text-muted-foreground text-xs">{new Date(r.date).toLocaleDateString()}</span> },
+    {
+      id: "text",
+      header: "Testimonial",
+      cell: ({ row }) => (
+        <span className="text-muted-foreground text-xs line-clamp-1 max-w-[280px]">
+          "{row.text || "No written review"}"
+        </span>
+      ),
+    },
+    {
+      id: "service",
+      header: "Service",
+      cell: ({ row }) => (
+        <span className="text-xs text-foreground font-medium">{row.service || "Home Service"}</span>
+      ),
+    },
+    {
+      id: "staff",
+      header: "Technician",
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">{row.staff || "Unassigned"}</span>
+      ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const badge = STATUS_BADGES[row.status] || STATUS_BADGES.visible;
+        return (
+          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider", badge.class)}>
+            {badge.label}
+          </span>
+        );
+      },
+    },
+    {
+      id: "date",
+      header: "Date",
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">
+          {row.date ? new Date(row.date).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "N/A"}
+        </span>
+      ),
+    },
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search reviews..."
-            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary" />
-        </div>
-        <div className="flex items-center gap-1">
-          {["all", "visible", "flagged", "hidden"].map((s) => (
-            <button key={s} onClick={() => setFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${filter === s ? "bg-foreground text-background dark:bg-background dark:text-foreground" : "text-muted-foreground hover:bg-muted/50 border border-transparent"}`}>
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </button>
-          ))}
-        </div>
-        <div className="flex-1" />
-        <span className="text-xs text-rose-500 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5">
-          <Flag className="w-3 h-3" />
-          {reviews.filter((r) => r.status === "flagged").length} flagged
-        </span>
-      </div>
-      
-      <div className="flex-1 overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
+    <div className="h-full flex flex-col p-4 sm:p-6 overflow-hidden bg-background">
+      <ManagementDataGrid
+        title="Customer Reviews & Ratings"
+        description="Monitor service quality ratings, client feedback, and dispute flags."
+        data={paginatedReviews}
+        columns={columns}
+        getRowId={(r) => r.id}
+        isLoading={loading}
+        error={error}
+        onRetry={fetchReviews}
+        onRowClick={(r) => {
+          setActiveReview(r);
+          setDrawerOpen(true);
+        }}
+        searchValue={search}
+        onSearchChange={(val) => {
+          setSearch(val);
+          setPage(1);
+        }}
+        searchPlaceholder="Search reviews by customer, technician, or keyword..."
+        filterSlots={
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            {FILTER_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setFilter(tab.id);
+                  setPage(1);
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap",
+                  filter === tab.id
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        ) : (
-          <DataGrid
-            selectedIds={selectedIds}
-            onToggleRow={(id) => setSelectedIds(p => {
-              const n = new Set(p);
-              if (n.has(id)) {
-                n.delete(id);
-              } else {
-                n.add(id);
-              }
-              return n;
-            })}
-            onToggleAll={() => setSelectedIds(p => p.size === filtered.length ? new Set() : new Set(filtered.map((x: any) => x.id)))}
-            columns={columns} data={filtered}
-            onRowClick={(r) => { setActive(r); setDrawerOpen(true); }}
-            emptyMessage="No reviews found." />
-        )}
-      </div>
+        }
+        totalCount={filteredReviews.length}
+        pageSize={pageSize}
+        currentPage={page}
+        onPageChange={setPage}
+        emptyState={{
+          title: "No reviews found",
+          description: search
+            ? "No reviews match your search query."
+            : "Your company has not received any reviews in this category yet.",
+        }}
+      />
 
-      <ReviewDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} review={active} />
-
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        onClear={() => setSelectedIds(new Set())}
-        actions={[
-          {
-            icon: Eye,
-            label: "View Detail",
-            onClick: () => {
-              const id = Array.from(selectedIds)[0];
-              const r = filtered.find((x: any) => x.id === id);
-              if (r) {
-                setActive(r);
-                setDrawerOpen(true);
-              }
-            }
-          },
-          {
-            icon: Edit2,
-            label: "Respond to Review",
-            onClick: () => {
-              const id = Array.from(selectedIds)[0];
-              const r = filtered.find((x: any) => x.id === id);
-              if (r) {
-                setActive(r);
-                setDrawerOpen(true);
-              }
-            }
-          }
-        ]}
+      <ReviewDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        review={activeReview}
+        isAdmin={false}
       />
     </div>
   );

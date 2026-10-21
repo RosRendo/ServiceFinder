@@ -10,7 +10,6 @@ import { PartnershipCarousel } from "@/components/landing/PartnershipCarousel";
 import { CategoryExplorer } from "@/components/landing/CategoryExplorer";
 import { PartnerRoiCalculator } from "@/components/landing/PartnerRoiCalculator";
 import { EcosystemTour } from "@/components/landing/EcosystemTour";
-import { PaymentCredibility } from "@/components/landing/PaymentCredibility";
 import { ComparisonTable } from "@/components/landing/ComparisonTable";
 import { TrustSecurityGuarantee } from "@/components/landing/TrustSecurityGuarantee";
 import { SocialProofStats } from "@/components/landing/SocialProofStats";
@@ -86,10 +85,7 @@ export default function LandingPage() {
         {/* 5. 3-Way Ecosystem Interactive Tour (Customer, Company, Staff) */}
         <EcosystemTour lang={lang} />
 
-        {/* 6. Authentic Cambodian Fintech Credibility (Bakong KHQR, ABA, Wing) */}
-        <PaymentCredibility lang={lang} />
-
-        {/* 7. Operational Superiority Comparison Table */}
+        {/* 6. Operational Superiority Comparison Table */}
         <ComparisonTable lang={lang} />
 
         {/* 8. Trust, Security & Ministry Verification Guarantees */}

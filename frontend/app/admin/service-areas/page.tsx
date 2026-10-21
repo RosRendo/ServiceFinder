@@ -1,10 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { Map, MapPin, Plus, Check, X, Edit2, Layers } from "lucide-react";
+import { useState, useMemo } from "react";
+import { MapPin, Plus, Edit2, Layers, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { ManagementDataGrid, ColumnDef } from "@/components/admin/ManagementDataGrid";
 import { ServiceAreaDrawer, ServiceAreaRecord } from "@/components/drawers/ServiceAreaDrawer";
+import { cn } from "@/lib/utils";
+
+const FILTER_TABS = [
+  { id: "all", label: "All Territories" },
+  { id: "active", label: "Active Coverage" },
+  { id: "pending", label: "Pending Setup" },
+  { id: "inactive", label: "Inactive" },
+];
 
 export default function AdminServiceAreasPage() {
   const [areas, setAreas] = useState<ServiceAreaRecord[]>([
@@ -15,9 +24,13 @@ export default function AdminServiceAreasPage() {
     { id: "5", name: "Battambang Town", city: "Battambang", coverageRadiusKm: 18, status: "pending", baseDeliveryFee: 4.5, surgeMultiplier: 1.0, notes: "New regional expansion" },
   ]);
 
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [activeArea, setActiveArea] = useState<ServiceAreaRecord | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
 
   const handleOpenCreate = () => {
     setActiveArea(null);
@@ -67,88 +80,182 @@ export default function AdminServiceAreasPage() {
     }));
   };
 
-  return (
-    <div className="h-full overflow-y-auto p-6 space-y-6 font-sans bg-background text-foreground">
-      
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Service Coverage & Territory Management</h1>
-          <p className="text-xs font-medium text-muted-foreground mt-0.5">Define geographical service boundaries, delivery surcharge tiers, and operational dispatch zones.</p>
-        </div>
-        <Button 
-          onClick={handleOpenCreate}
-          className="rounded-lg h-8.5 px-3.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold uppercase tracking-wider shadow-2xs"
-        >
-          <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Operational Zone
-        </Button>
-      </div>
+  const handleDeleteArea = (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to remove territory "${name}"?`)) return;
+    setAreas(prev => prev.filter(a => String(a.id) !== id));
+    toast.success(`Territory "${name}" deleted.`);
+  };
 
-      {/* Territory Grid */}
-      <div className="bg-background border border-border rounded-xl shadow-2xs overflow-hidden">
-        <div className="p-4.5 border-b border-border/60 bg-background/50 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-foreground">Active Service Territories ({areas.length})</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Click any row to inspect operating radius, surge rules, and boundaries.</p>
+  const filtered = useMemo(() => {
+    return areas.filter(a => {
+      const matchesSearch = 
+        a.name.toLowerCase().includes(search.toLowerCase()) || 
+        (a.city || "").toLowerCase().includes(search.toLowerCase()) ||
+        (a.notes || "").toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === "all" || a.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [areas, search, statusFilter]);
+
+  const paginatedAreas = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
+
+  const columns: ColumnDef<ServiceAreaRecord>[] = [
+    {
+      id: "name",
+      header: "Territory Name",
+      isSortable: true,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <span className="font-bold text-xs text-foreground">{row.name}</span>
+        </div>
+      ),
+    },
+    {
+      id: "city",
+      header: "Municipality",
+      isSortable: true,
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground font-medium">{row.city}</span>
+      ),
+    },
+    {
+      id: "coverageRadiusKm",
+      header: "Coverage Radius",
+      isSortable: true,
+      align: "right",
+      cell: ({ row }) => (
+        <span className="text-xs font-semibold text-foreground/90 font-mono">
+          {row.coverageRadiusKm} km
+        </span>
+      ),
+    },
+    {
+      id: "baseDeliveryFee",
+      header: "Base Surcharge",
+      isSortable: true,
+      align: "right",
+      cell: ({ row }) => (
+        <span className="text-xs font-bold text-foreground font-mono">
+          ${Number(row.baseDeliveryFee ?? 3.5).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      id: "surgeMultiplier",
+      header: "Surge Rate",
+      isSortable: true,
+      align: "right",
+      cell: ({ row }) => (
+        <span className="text-xs font-mono font-medium text-foreground/90">
+          {Number(row.surgeMultiplier ?? 1.0).toFixed(1)}x
+        </span>
+      ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      align: "center",
+      cell: ({ row }) => (
+        <button
+          onClick={(e) => toggleStatus(row.id, e)}
+          className={cn(
+            "inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border transition-colors",
+            row.status === 'active' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20' :
+            row.status === 'pending' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20' :
+            'bg-muted text-muted-foreground border-border hover:bg-muted/80'
+          )}
+        >
+          {row.status}
+        </button>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      align: "right",
+      cell: ({ row }) => (
+        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleOpenEdit(row)}
+            className="h-7 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+          >
+            <Edit2 className="w-3.5 h-3.5 mr-1 text-muted-foreground" /> Configure
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleDeleteArea(String(row.id), row.name)}
+            className="h-7 px-2 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+            title="Delete Territory"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="h-full flex flex-col p-4 sm:p-6 overflow-hidden bg-background">
+      <ManagementDataGrid
+        title="Service Coverage & Territory Management"
+        description="Define geographical service boundaries, delivery surcharge tiers, and operational dispatch zones."
+        data={paginatedAreas}
+        columns={columns}
+        getRowId={(r) => String(r.id)}
+        onRowClick={(row) => handleOpenEdit(row)}
+        primaryAction={{
+          label: "Add Operational Zone",
+          icon: <Plus className="w-3.5 h-3.5" />,
+          onClick: handleOpenCreate,
+        }}
+        searchValue={search}
+        onSearchChange={(val) => {
+          setSearch(val);
+          setPage(1);
+        }}
+        searchPlaceholder="Search zones, cities, or territory notes..."
+        filterSlots={
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            {FILTER_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(tab.id);
+                  setPage(1);
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap",
+                  statusFilter === tab.id
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-background border-b border-border text-muted-foreground">
-              <tr>
-                <th className="px-4.5 py-3 font-bold uppercase tracking-wider">Territory Name</th>
-                <th className="px-4.5 py-3 font-bold uppercase tracking-wider">Municipality</th>
-                <th className="px-4.5 py-3 font-bold uppercase tracking-wider text-right">Coverage Radius</th>
-                <th className="px-4.5 py-3 font-bold uppercase tracking-wider text-right">Base Surcharge</th>
-                <th className="px-4.5 py-3 font-bold uppercase tracking-wider text-right">Surge Multiplier</th>
-                <th className="px-4.5 py-3 font-bold uppercase tracking-wider">Status</th>
-                <th className="px-4.5 py-3 font-bold uppercase tracking-wider text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {areas.map((a) => (
-                <tr 
-                  key={a.id} 
-                  onClick={() => handleOpenEdit(a)}
-                  className="hover:bg-background transition-colors cursor-pointer"
-                >
-                  <td className="px-4.5 py-3 font-bold text-foreground flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-muted-foreground/70" />
-                    {a.name}
-                  </td>
-                  <td className="px-4.5 py-3 text-muted-foreground font-medium">{a.city}</td>
-                  <td className="px-4.5 py-3 text-right text-foreground/90 font-semibold">{a.coverageRadiusKm} km</td>
-                  <td className="px-4.5 py-3 text-right text-foreground font-semibold">${Number(a.baseDeliveryFee ?? 3.5).toFixed(2)}</td>
-                  <td className="px-4.5 py-3 text-right text-foreground/90 font-mono font-medium">{Number(a.surgeMultiplier ?? 1.0).toFixed(1)}x</td>
-                  <td className="px-4.5 py-3">
-                    <button
-                      onClick={(e) => toggleStatus(a.id, e)}
-                      className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border transition-colors ${
-                        a.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' :
-                        a.status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' :
-                        'bg-muted text-muted-foreground border-border hover:bg-muted/80'
-                      }`}
-                    >
-                      {a.status}
-                    </button>
-                  </td>
-                  <td className="px-4.5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleOpenEdit(a)}
-                      className="h-7 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                    >
-                      <Edit2 className="w-3.5 h-3.5 mr-1 text-muted-foreground/70" /> Configure
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        }
+        totalCount={filtered.length}
+        pageSize={pageSize}
+        currentPage={page}
+        onPageChange={setPage}
+        emptyState={{
+          title: "No territories found",
+          description: search
+            ? "No operational zones match your search query."
+            : "No service areas defined in this filter category.",
+          actionLabel: "Add Operational Zone",
+          onActionClick: handleOpenCreate,
+        }}
+      />
 
       {/* Territory Drawer */}
       <ServiceAreaDrawer

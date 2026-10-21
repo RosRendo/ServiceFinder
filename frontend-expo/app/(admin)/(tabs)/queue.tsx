@@ -1,24 +1,35 @@
 /**
- * Admin Approvals Queue — Premium Light Redesign
+ * Admin Approvals Queue — Quiet Luxury Executive Standard
  */
 import React, { useState, useCallback } from "react";
-import { Image } from "expo-image";
-import { View, Text, TouchableOpacity, ActivityIndicator, RefreshControl, StyleSheet, Platform } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  StyleSheet,
+  Platform,
+  Modal,
+  Image as RNImage,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
+import { Image } from "expo-image";
 import api from "@/utils/api";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
 import { useTranslation } from "react-i18next";
 import ErrorState from "@/components/common/ErrorState";
 import { Theme } from "@/constants/theme";
-const FlashList = ShopifyFlashList as any;
+import CredentialInspectionCard from "@/components/admin/CredentialInspectionCard";
 
+const FlashList = ShopifyFlashList as any;
 const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12 },
+  ios: { shadowColor: "#0F172A", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.06, shadowRadius: 10 },
   android: { elevation: 3 },
 });
 
@@ -26,17 +37,19 @@ export default function Queue() {
   const router = useRouter();
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
   const { t } = useTranslation();
+
   const [activeTab, setActiveTab] = useState("pending");
   const [companies, setCompanies] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [expandedCompanyId, setExpandedCompanyId] = useState<string | null>(null);
 
   const fetchQueue = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
       const response = await api.get(`/api/admin/companies?status=${activeTab}`);
-      // Backend returns { success: true, data: [...], pagination: {} }
       const data = response.data?.data ?? [];
       setCompanies(Array.isArray(data) ? data : []);
       setHasError(false);
@@ -49,47 +62,61 @@ export default function Queue() {
     }
   }, [activeTab]);
 
-
-  useFocusEffect(useCallback(() => {
-    setIsLoading(true);
-    fetchQueue();
-  }, [fetchQueue]));
-
-  const handleApprove = useCallback(async (companyId: string) => {
-    try {
-      await api.post(`/api/admin/companies/${companyId}/verify`);
+  useFocusEffect(
+    useCallback(() => {
+      setIsLoading(true);
       fetchQueue();
-    } catch (error) {
-      console.error("Approve failed:", error);
-    }
-  }, [fetchQueue]);
+    }, [fetchQueue])
+  );
 
-  const handleReject = useCallback(async (companyId: string) => {
-    try {
-      await api.post(`/api/admin/companies/${companyId}/reject`, { reason: "Admin rejected" });
-      fetchQueue();
-    } catch (error) {
-      console.error("Reject failed:", error);
-    }
-  }, [fetchQueue]);
+  const handleApprove = useCallback(
+    async (companyId: string) => {
+      try {
+        await api.post(`/api/admin/companies/${companyId}/verify`);
+        fetchQueue();
+      } catch (error) {
+        console.error("Approve failed:", error);
+      }
+    },
+    [fetchQueue]
+  );
 
-  const getStatusStyle = (status: string) => {
+  const handleReject = useCallback(
+    async (companyId: string) => {
+      try {
+        await api.post(`/api/admin/companies/${companyId}/reject`, { reason: "Admin rejected" });
+        fetchQueue();
+      } catch (error) {
+        console.error("Reject failed:", error);
+      }
+    },
+    [fetchQueue]
+  );
+
+  const getStatusConfig = (status: string) => {
     switch (status) {
-      case "verified": return { bg: "rgba(16, 185, 129, 0.1)", color: "#10B981", icon: "check-circle-outline" };
-      case "pending": return { bg: "rgba(245, 158, 11, 0.1)", color: "#F59E0B", icon: "clock-alert-outline" };
-      case "rejected": return { bg: "rgba(239, 68, 68, 0.1)", color: "#EF4444", icon: "close-circle-outline" };
-      default: return { bg: T.border, color: T.text3, icon: "help-circle-outline" };
+      case "verified":
+        return { dotColor: "#059669", label: "VERIFIED" };
+      case "reviewing":
+        return { dotColor: "#2563EB", label: "REVIEWING" };
+      case "pending":
+        return { dotColor: "#D97706", label: "PENDING" };
+      case "rejected":
+        return { dotColor: "#DC2626", label: "REJECTED" };
+      default:
+        return { dotColor: "#64748B", label: status?.toUpperCase() || "UNKNOWN" };
     }
   };
 
   const tabs = [
-    { id: "pending", labelKey: "pending" },
-    { id: "verified", labelKey: "approved" },
-    { id: "rejected", labelKey: "rejected" },
+    { id: "pending", label: "Pending" },
+    { id: "reviewing", label: "Reviewing" },
+    { id: "verified", label: "Approved" },
+    { id: "rejected", label: "Rejected" },
   ];
 
   return (
-    <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={s.root} edges={["top", "left", "right"]}>
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
@@ -97,23 +124,22 @@ export default function Queue() {
             onPress={() => openSidebar(true)}
             style={s.menuBtn}
             accessibilityRole="button"
-            accessibilityLabel={t('common.openMenu')}
+            accessibilityLabel={t("common.openMenu")}
           >
-            <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
+            <MaterialCommunityIcons name="menu" size={26} color="#0F172A" />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>{t('adminQueue.title')}</Text>
+          <Text style={s.headerTitle}>KYC & Approvals</Text>
         </View>
         <View style={s.badge}>
-          <Text style={s.badgeText}>{activeTab === 'pending' && !isLoading ? companies.length : '-'}</Text>
+          <Text style={s.badgeText}>{!isLoading ? companies.length : "—"}</Text>
         </View>
       </View>
 
-      {/* Tabs - Premium Segmented Control */}
+      {/* Segmented Status Tabs (Ergonomic Single-Axis Scrolling) */}
       <View style={s.tabWrapper}>
         <View style={s.tabContainer}>
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
-            const label = t(`adminQueue.${tab.labelKey}`);
             return (
               <TouchableOpacity
                 key={tab.id}
@@ -122,166 +148,441 @@ export default function Queue() {
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isActive }}
-                accessibilityLabel={label}
               >
-                <Text style={[s.tabText, isActive && s.tabTextActive]}>{label}</Text>
+                <Text style={[s.tabText, isActive && s.tabTextActive]}>{tab.label}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
       </View>
 
-      {/* Queue Items */}
+      {/* Queue Items List */}
       {isLoading && !refreshing ? (
-        <View style={s.loadingBox}><ActivityIndicator size="large" color={T.primary} /></View>
+        <View style={s.loadingBox}>
+          <ActivityIndicator size="large" color="#0F172A" />
+        </View>
       ) : hasError && companies.length === 0 ? (
         <ErrorState onRetry={() => fetchQueue()} />
       ) : (
         <FlashList
           data={companies}
           keyExtractor={(item: any) => item.id}
-          estimatedItemSize={250}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchQueue(true)} tintColor={T.primary} />}
+          estimatedItemSize={260}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => fetchQueue(true)} tintColor="#0F172A" />
+          }
           contentContainerStyle={s.listContent}
-          ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={s.emptyBox}>
               <View style={s.emptyIconCircle}>
-                <MaterialCommunityIcons name="check-decagram" size={48} color={T.primary} />
+                <MaterialCommunityIcons name="shield-check" size={36} color="#0F172A" />
               </View>
-              <Text style={s.emptyText}>{t('adminQueue.allCaughtUp')}</Text>
-              <Text style={s.emptySubText}>{t('adminQueue.noApplications', { status: activeTab })}</Text>
+              <Text style={s.emptyText}>All Clear in {tabs.find((t) => t.id === activeTab)?.label}</Text>
+              <Text style={s.emptySubText}>Zero applications currently waiting in this status category.</Text>
             </View>
           }
-          renderItem={({ item: company, index }: any) => {
-            const sStyle = getStatusStyle(company.verificationStatus);
+          renderItem={({ item: company }: any) => {
+            const sStyle = getStatusConfig(company.verificationStatus);
+            const createdTime = new Date(company.createdAt).getTime();
+            const elapsedHours = Math.max(0, (Date.now() - createdTime) / 3600000);
+            const remainingHours = Math.max(0, 24 - elapsedHours);
+            const isCritical = remainingHours <= 4;
+            const isWarning = remainingHours > 4 && remainingHours <= 12;
+            const slaColor = isCritical ? "#DC2626" : isWarning ? "#D97706" : "#059669";
+            const slaLabel = remainingHours === 0 ? "SLA Breached" : `${Math.round(remainingHours)}h SLA`;
+            const slaPercent = Math.min(100, Math.round((remainingHours / 24) * 100));
+
+            const isExpanded = expandedCompanyId === company.id;
+            const documentUrl = company.verificationDocumentUrl || company.businessLicenseUrl || company.logoUrl || "";
+
             return (
-              <TouchableOpacity
-                style={s.companyCard}
-                onPress={() => router.push(`/(admin)/company/${company.id}` as any)}
-                activeOpacity={0.9}
-              >
-                  <View style={s.cardHeader}>
-                    <View style={s.logoWrap}>
-                      {company.logoUrl ? (
-                        <Image source={{ uri: company.logoUrl }} style={s.logo} />
-                      ) : (
-                        <MaterialCommunityIcons name="domain" size={24} color={T.text3} />
-                      )}
+              <View style={[s.companyCard, CARD_SHADOW]}>
+                {/* SLA Urgency Bar for Pending */}
+                {activeTab === "pending" && (
+                  <View style={s.slaBarWrap}>
+                    <View style={s.slaHeader}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                        <View style={[s.statusDotSmall, { backgroundColor: slaColor }]} />
+                        <Text style={[s.slaText, { color: "#0F172A" }]}>{slaLabel}</Text>
+                      </View>
+                      <Text style={s.slaWindowText}>{slaPercent}% remaining</Text>
                     </View>
-                    <View style={s.cardHeaderInfo}>
-                      <Text style={s.companyName} numberOfLines={1}>{company.name}</Text>
-                      <Text style={s.regNumber} numberOfLines={1}>
-                        Reg: {company.registrationNumber || 'N/A'}
+                    <View style={s.slaTrack}>
+                      <View style={[s.slaFill, { width: `${slaPercent}%`, backgroundColor: slaColor }]} />
+                    </View>
+                  </View>
+                )}
+
+                {/* Company Main Header */}
+                <TouchableOpacity
+                  style={s.cardHeader}
+                  onPress={() => router.push(`/(admin)/company/${company.id}` as any)}
+                  activeOpacity={0.8}
+                >
+                  <View style={s.logoWrap}>
+                    {company.logoUrl ? (
+                      <Image source={{ uri: company.logoUrl }} style={s.logo} contentFit="cover" />
+                    ) : (
+                      <MaterialCommunityIcons name="domain" size={22} color="#64748B" />
+                    )}
+                  </View>
+                  <View style={s.cardHeaderInfo}>
+                    <Text style={s.companyName} numberOfLines={1}>
+                      {company.name}
+                    </Text>
+                    <Text style={s.regNumber} numberOfLines={1}>
+                      {company.registrationNumber ? `REG: ${company.registrationNumber}` : "Pending Registration"}
+                    </Text>
+                  </View>
+                  <View style={s.statusBadge}>
+                    <View style={[s.statusDot, { backgroundColor: sStyle.dotColor }]} />
+                    <Text style={s.statusText}>{sStyle.label}</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Structured Two-Column Business Ledger */}
+                <View style={s.ledgerCard}>
+                  <View style={s.ledgerRow}>
+                    <View style={s.ledgerCol}>
+                      <Text style={s.ledgerLabel}>OWNER / PRINCIPAL</Text>
+                      <Text style={s.ledgerValue} numberOfLines={1}>
+                        {company.owner?.fullName || "Not Specified"}
                       </Text>
                     </View>
-                    <View style={[s.statusBadge, { backgroundColor: sStyle.bg }]}>
-                      <MaterialCommunityIcons name={sStyle.icon as any} size={14} color={sStyle.color} style={{ marginRight: 4 }} />
-                      <Text style={[s.statusText, { color: sStyle.color }]}>{company.verificationStatus}</Text>
+                    <View style={s.ledgerDividerVert} />
+                    <View style={s.ledgerCol}>
+                      <Text style={s.ledgerLabel}>CONTACT</Text>
+                      <Text style={s.ledgerValue} numberOfLines={1}>
+                        {company.phone || company.email || "No contact"}
+                      </Text>
                     </View>
                   </View>
 
-                  <View style={s.cardBody}>
-                    <View style={s.infoRow}>
-                      <MaterialCommunityIcons name="account-outline" size={16} color={T.text3} />
-                      <Text style={s.infoText} numberOfLines={1}>{company.owner?.fullName || 'Unknown Owner'}</Text>
+                  <View style={s.ledgerDividerHoriz} />
+
+                  <View style={s.ledgerRow}>
+                    <View style={s.ledgerCol}>
+                      <Text style={s.ledgerLabel}>LOCATION / CITY</Text>
+                      <Text style={s.ledgerValue} numberOfLines={1}>
+                        {company.city || company.address || "Unspecified"}
+                      </Text>
                     </View>
-                    <View style={s.infoRow}>
-                      <MaterialCommunityIcons name="phone-outline" size={16} color={T.text3} />
-                      <Text style={s.infoText} numberOfLines={1}>{company.phone || company.email || "No Contact"}</Text>
-                    </View>
-                    <View style={s.infoRow}>
-                      <MaterialCommunityIcons name="calendar-outline" size={16} color={T.text3} />
-                      <Text style={s.infoText}>{new Date(company.createdAt).toLocaleDateString()}</Text>
+                    <View style={s.ledgerDividerVert} />
+                    <View style={s.ledgerCol}>
+                      <Text style={s.ledgerLabel}>SUBMISSION DATE</Text>
+                      <Text style={s.ledgerValue} numberOfLines={1}>
+                        {new Date(company.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                      </Text>
                     </View>
                   </View>
+                </View>
 
-                  {company.verificationDocumentUrl && (
-                    <View style={s.docBadgeRow}>
-                      <MaterialCommunityIcons name="file-document-outline" size={16} color={T.blue} />
-                      <Text style={s.docBadgeText}>Identity Document Provided</Text>
-                    </View>
-                  )}
+                {/* Document Inspection Drawer Trigger */}
+                {documentUrl ? (
+                  <View style={{ marginBottom: 10 }}>
+                    <TouchableOpacity
+                      style={s.inspectTriggerBtn}
+                      onPress={() => setExpandedCompanyId(isExpanded ? null : company.id)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <MaterialCommunityIcons name="file-certificate-outline" size={15} color="#0F172A" />
+                        <Text style={s.inspectTriggerText}>
+                          {isExpanded ? "Collapse Inspection Ledger" : "Inspect Business Credentials"}
+                        </Text>
+                      </View>
+                      <MaterialCommunityIcons
+                        name={isExpanded ? "chevron-up" : "chevron-down"}
+                        size={16}
+                        color="#0F172A"
+                      />
+                    </TouchableOpacity>
 
-                  {activeTab === 'pending' && (
-                    <View style={s.actionRow}>
-                      <TouchableOpacity
-                        style={[s.actionBtn, s.rejectBtn]}
-                        onPress={(e) => { e.stopPropagation(); handleReject(company.id); }}
-                        activeOpacity={0.8}
-                        accessibilityRole="button"
-                        accessibilityLabel={`${t('adminQueue.reject')}: ${company.name}`}
-                      >
-                        <Text style={s.rejectText}>{t('adminQueue.reject')}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[s.actionBtn, s.approveBtn]}
-                        onPress={(e) => { e.stopPropagation(); handleApprove(company.id); }}
-                        activeOpacity={0.8}
-                        accessibilityRole="button"
-                        accessibilityLabel={`${t('adminQueue.verifyBusiness')}: ${company.name}`}
-                      >
-                        <Text style={s.approveText}>{t('adminQueue.verifyBusiness')}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </TouchableOpacity>
+                    {/* Inline Credential Inspection Card Component */}
+                    {isExpanded && (
+                      <View style={{ marginTop: 8 }}>
+                        <CredentialInspectionCard
+                          item={{
+                            companyId: company.id,
+                            companyName: company.name,
+                            category: company.businessType || "BUSINESS_LICENSE",
+                            documentUrl: documentUrl,
+                            submittedDate: new Date(company.createdAt).toLocaleDateString(),
+                            status:
+                              company.verificationStatus === "verified"
+                                ? "VERIFIED"
+                                : company.verificationStatus === "rejected"
+                                ? "REJECTED"
+                                : "PENDING",
+                          }}
+                          onVerify={(id) => handleApprove(id)}
+                          onReject={(id) => handleReject(id)}
+                          onPreview={(url) => setPreviewDocUrl(url)}
+                        />
+                      </View>
+                    )}
+                  </View>
+                ) : null}
+
+                {/* Action Buttons for Pending / Reviewing */}
+                {(activeTab === "pending" || activeTab === "reviewing") && !isExpanded && (
+                  <View style={s.actionRow}>
+                    <TouchableOpacity
+                      style={[s.actionBtn, s.rejectBtn]}
+                      onPress={() => handleReject(company.id)}
+                      activeOpacity={0.8}
+                    >
+                      <MaterialCommunityIcons name="close" size={15} color="#DC2626" />
+                      <Text style={s.rejectText}>Reject</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[s.actionBtn, s.approveBtn]}
+                      onPress={() => handleApprove(company.id)}
+                      activeOpacity={0.8}
+                    >
+                      <MaterialCommunityIcons name="check" size={15} color="#FFFFFF" />
+                      <Text style={s.approveText}>Verify Business</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
             );
           }}
         />
       )}
+
+      {/* Full Screen Image Preview Modal */}
+      <Modal visible={!!previewDocUrl} transparent={true} animationType="fade" onRequestClose={() => setPreviewDocUrl(null)}>
+        <View style={s.modalBackdrop}>
+          <SafeAreaView style={s.modalSafe}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Credential Document Preview</Text>
+              <TouchableOpacity onPress={() => setPreviewDocUrl(null)} style={s.modalCloseBtn}>
+                <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={s.modalBody}>
+              {previewDocUrl && (
+                <RNImage source={{ uri: previewDocUrl }} style={s.modalImage} resizeMode="contain" />
+              )}
+            </View>
+          </SafeAreaView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, backgroundColor: T.bg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 14,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 24, fontWeight: "700", color: T.text1, letterSpacing: -0.5 },
-  badge: { backgroundColor: T.error, minWidth: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
-  badgeText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  menuBtn: { marginLeft: -6, padding: 6 },
+  headerTitle: { fontSize: 20, fontWeight: "800", color: "#0F172A", letterSpacing: -0.3 },
+  badge: {
+    backgroundColor: "#0F172A",
+    minWidth: 28,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+  badgeText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
 
-  tabWrapper: { paddingHorizontal: 20, paddingBottom: 16, backgroundColor: T.bg },
-  tabContainer: { flexDirection: "row", backgroundColor: T.surface, borderRadius: 12, padding: 4, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  tabButton: { flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: 8 },
-  tabButtonActive: { backgroundColor: T.primary, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
-  tabText: { fontSize: 13, fontWeight: "600", color: T.text2 },
-  tabTextActive: { color: "#FFFFFF", fontWeight: "700" },
+  tabWrapper: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#F8FAFC" },
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: "#E2E8F0",
+    borderRadius: 12,
+    padding: 3,
+  },
+  tabButton: { flex: 1, paddingVertical: 8, alignItems: "center", borderRadius: 9 },
+  tabButtonActive: {
+    backgroundColor: "#0F172A",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabText: { fontSize: 12, fontWeight: "700", color: "#64748B" },
+  tabTextActive: { color: "#FFFFFF" },
 
-  listContent: { padding: 20, paddingBottom: 100 },
+  // paddingBottom: 120 guarantees content does not hide behind the floating tab bar
+  listContent: { padding: 16, paddingBottom: 120 },
   loadingBox: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyBox: { alignItems: "center", paddingVertical: 100 },
-  emptyIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(10, 25, 47, 0.05)", alignItems: "center", justifyContent: "center", marginBottom: 20 },
-  emptyText: { fontSize: 20, fontWeight: "700", color: T.text1, marginBottom: 8 },
-  emptySubText: { fontSize: 15, color: T.text2 },
+  emptyBox: { alignItems: "center", paddingVertical: 80 },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  emptyText: { fontSize: 16, fontWeight: "800", color: "#0F172A", marginBottom: 6 },
+  emptySubText: { fontSize: 13, color: "#64748B", textAlign: "center", paddingHorizontal: 32 },
 
-  companyCard: { backgroundColor: T.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  cardHeader: { flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 16 },
-  logoWrap: { width: 56, height: 56, borderRadius: 16, backgroundColor: T.bg, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 1, borderColor: T.border },
+  companyCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  slaBarWrap: {
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  slaHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  statusDotSmall: { width: 6, height: 6, borderRadius: 3 },
+  slaText: { fontSize: 11, fontWeight: "800" },
+  slaWindowText: { fontSize: 10, color: "#94A3B8" },
+  slaTrack: { height: 4, backgroundColor: "#F1F5F9", borderRadius: 2, overflow: "hidden" },
+  slaFill: { height: "100%", borderRadius: 2 },
+
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
+  logoWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
   logo: { width: "100%", height: "100%" },
   cardHeaderInfo: { flex: 1 },
-  companyName: { fontSize: 18, fontWeight: "700", color: T.text1, marginBottom: 4, letterSpacing: -0.3 },
-  regNumber: { fontSize: 13, fontWeight: "500", color: T.text3 },
-  statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, alignSelf: "flex-start" },
-  statusText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
-  
-  cardBody: { backgroundColor: T.bg, borderRadius: 16, padding: 16, gap: 12, marginBottom: 16, borderWidth: 1, borderColor: T.border },
-  infoRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  infoText: { fontSize: 14, fontWeight: "600", color: T.text2, flex: 1 },
+  companyName: { fontSize: 15, fontWeight: "700", color: "#0F172A", marginBottom: 2 },
+  regNumber: { fontSize: 11, fontWeight: "600", color: "#64748B" },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignSelf: "flex-start",
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: 10, fontWeight: "800", color: "#334155", letterSpacing: 0.4 },
 
-  docBadgeRow: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(37, 99, 235, 0.05)", paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: "rgba(37, 99, 235, 0.1)" },
-  docBadgeText: { fontSize: 13, fontWeight: "700", color: T.blue },
+  ledgerCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  ledgerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  ledgerCol: {
+    flex: 1,
+  },
+  ledgerLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#94A3B8",
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
+  ledgerValue: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  ledgerDividerVert: {
+    width: 1,
+    height: 28,
+    backgroundColor: "#E2E8F0",
+    marginHorizontal: 12,
+  },
+  ledgerDividerHoriz: {
+    height: 1,
+    backgroundColor: "#E2E8F0",
+    marginVertical: 8,
+  },
 
-  actionRow: { flexDirection: "row", gap: 12 },
-  actionBtn: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 14, borderRadius: 14, borderWidth: 1 },
-  rejectBtn: { borderColor: "rgba(239, 68, 68, 0.2)", backgroundColor: "rgba(239, 68, 68, 0.05)" },
-  approveBtn: { borderColor: T.primary, backgroundColor: T.primary },
-  rejectText: { fontSize: 14, fontWeight: "700", color: T.error },
-  approveText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
+  inspectTriggerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  inspectTriggerText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+
+  actionRow: { flexDirection: "row", gap: 10 },
+  actionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  rejectBtn: {
+    borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+  },
+  approveBtn: {
+    backgroundColor: "#0F172A",
+  },
+  rejectText: { fontSize: 12, fontWeight: "700", color: "#DC2626" },
+  approveText: { fontSize: 12, fontWeight: "700", color: "#FFFFFF" },
+
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.92)" },
+  modalSafe: { flex: 1 },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  modalTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  modalCloseBtn: { padding: 4 },
+  modalBody: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
+  modalImage: { width: "100%", height: "100%" },
 });

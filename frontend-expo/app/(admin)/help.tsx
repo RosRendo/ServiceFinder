@@ -16,27 +16,26 @@ import { useTranslation } from "react-i18next";
 
 const T = Theme.colors;
 
-const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
-  android: { elevation: 2 },
-});
-
 export default function Help() {
   const { t } = useTranslation();
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
 
   const faqs = [
     {
-      q: "How do I verify a company?",
-      a: "Navigate to the 'Queue' section on the bottom bar, select a pending company, review their documents, and click 'Approve'.",
+      q: "How do I review and verify a new business application?",
+      a: "Navigate to the 'Approvals' queue tab. Tap any pending enterprise dossier to inspect their legal registration, tax IDs, and uploaded documents before approving or rejecting.",
     },
     {
-      q: "How are platform fees calculated?",
-      a: "Platform fees are automatically deducted from completed bookings based on the percentage set in Settings > Payments.",
+      q: "How does the platform handle dispute arbitration?",
+      a: "Open the Issues triage console or Disputes registry. You can inspect claimant claims, provider evidence, and escrow holds, then issue a two-step arbitrated payout or refund.",
     },
     {
-      q: "Can I suspend a user account?",
-      a: "Yes. Go to the Users tab, search for the user, and change their status to 'Suspended'. They will no longer be able to log in.",
+      q: "How are platform commission fees deducted?",
+      a: "Platform commission fees are automatically collected during custodial escrow hold at the time of customer booking and finalized upon disbursement approval.",
+    },
+    {
+      q: "How can I suspend or discipline an abusive user account?",
+      a: "Access the Users directory, locate the user dossier, and utilize the Compliance Enforcement console to instantly restrict, suspend, or ban the target identity.",
     },
   ];
 
@@ -49,44 +48,45 @@ export default function Help() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity 
-              accessibilityRole="button"
-              accessibilityLabel={t('common.openMenu')}
-              onPress={() => openSidebar(true)} style={s.menuBtn}>
-          <MaterialCommunityIcons name="menu" size={28} color={T.primary} />
+          accessibilityRole="button"
+          accessibilityLabel={t('common.openMenu')}
+          onPress={() => openSidebar(true)}
+          style={s.menuBtn}
+        >
+          <MaterialCommunityIcons name="menu" size={24} color="#0F172A" />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Help & Support</Text>
+        <Text style={s.headerTitle}>Operations Handbook</Text>
       </View>
 
       <ScrollView style={s.scrollView} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* Support Contact */}
+        {/* Urgent Engineering Contact */}
         <TouchableOpacity 
           onPress={handleSupportEmail}
           style={s.contactCard}
-          activeOpacity={0.9}
+          activeOpacity={0.85}
         >
           <View style={s.contactLeft}>
-            <Text style={s.contactTitle}>
-              Need immediate assistance?
-            </Text>
+            <Text style={s.contactTitle}>Engineering Support Escalation</Text>
             <Text style={s.contactDesc}>
-              Contact the developer team directly at support@servicefinder.com
+              For infrastructure disruptions, database irregularities, or critical security vulnerabilities, dispatch an incident report directly to engineering.
             </Text>
-          </View>
-          <View style={s.contactIconWrap}>
-            <MaterialCommunityIcons name="email-fast" size={24} color="#FFFFFF" />
+            <View style={s.emailTag}>
+              <MaterialCommunityIcons name="email-fast-outline" size={14} color="#FFFFFF" />
+              <Text style={s.emailTagText}>support@servicefinder.com</Text>
+            </View>
           </View>
         </TouchableOpacity>
 
         <Text style={s.sectionTitle}>
-          Frequently Asked Questions
+          Standard Operating Procedures
         </Text>
 
         <View style={s.faqList}>
           {faqs.map((faq, index) => (
             <View key={index} style={s.faqCard}>
               <View style={s.faqQuestionRow}>
-                <MaterialCommunityIcons name="help-circle" size={20} color={T.accentMid} style={s.faqIcon} />
+                <MaterialCommunityIcons name="file-document-outline" size={18} color="#0F172A" style={s.faqIcon} />
                 <Text style={s.faqQuestion}>
                   {faq.q}
                 </Text>
@@ -100,7 +100,7 @@ export default function Help() {
 
         <View style={s.footer}>
           <Text style={s.footerText}>
-            ServiceFinder Admin Portal v1.0.0
+            ServiceFinder Cockpit · Enterprise Operations Edition
           </Text>
         </View>
       </ScrollView>
@@ -109,117 +109,88 @@ export default function Help() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: T.border,
-    backgroundColor: T.surface,
-    gap: 12,
+    borderBottomColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+    gap: 10,
   },
-  menuBtn: {
-    padding: 6,
-    marginLeft: -6,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: T.text1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 60,
-  },
+  menuBtn: { marginLeft: -6, padding: 6 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A", letterSpacing: -0.3 },
+
+  scrollView: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 120 },
+
   contactCard: {
-    backgroundColor: T.primary,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 28,
+    backgroundColor: "#0F172A",
+    borderRadius: 12,
+    padding: 18,
+    marginBottom: 24,
+  },
+  contactLeft: { flex: 1 },
+  contactTitle: { fontSize: 15, fontWeight: "700", color: "#FFFFFF", marginBottom: 6 },
+  contactDesc: { fontSize: 13, color: "#94A3B8", lineHeight: 18, marginBottom: 12 },
+  emailTag: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    ...CARD_SHADOW,
+    gap: 6,
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
-  contactLeft: {
-    flex: 1,
-    paddingRight: 16,
-  },
-  contactTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 4,
-  },
-  contactDesc: {
-    fontSize: 13,
-    color: "#FFFFFF",
-    opacity: 0.85,
-    lineHeight: 18,
-  },
-  contactIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  emailTagText: { color: "#FFFFFF", fontSize: 12, fontWeight: "600" },
+
   sectionTitle: {
     fontSize: 12,
     fontWeight: "700",
-    color: T.text3,
+    color: "#64748B",
     textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 16,
+    letterSpacing: 0.5,
+    marginBottom: 12,
     paddingHorizontal: 4,
   },
-  faqList: {
-    gap: 12,
-    marginBottom: 20,
-  },
+  faqList: { gap: 10, marginBottom: 20 },
   faqCard: {
-    backgroundColor: T.surface,
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: T.border,
-    ...CARD_SHADOW,
+    borderColor: "#E2E8F0",
   },
   faqQuestionRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 10,
+    gap: 8,
     marginBottom: 8,
   },
-  faqIcon: {
-    marginTop: 1,
-  },
+  faqIcon: { marginTop: 1 },
   faqQuestion: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
-    color: T.text1,
+    color: "#0F172A",
     flex: 1,
-    lineHeight: 20,
+    lineHeight: 19,
   },
   faqAnswer: {
-    fontSize: 14,
-    color: T.text2,
-    paddingLeft: 30,
-    lineHeight: 20,
+    fontSize: 13,
+    color: "#475569",
+    paddingLeft: 26,
+    lineHeight: 19,
   },
   footer: {
     alignItems: "center",
-    paddingVertical: 24,
+    paddingVertical: 20,
   },
   footerText: {
     fontSize: 11,
-    color: T.text3,
-    fontWeight: "700",
+    color: "#94A3B8",
+    fontWeight: "600",
   },
 });

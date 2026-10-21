@@ -1,0 +1,241 @@
+openapi: 3.0.3
+info:
+  title: Admin Mobile Cockpit API Contracts
+  version: 1.0.0
+  description: Endpoints powering the executive admin mobile experience in ServiceFinder.
+
+paths:
+  /api/admin/analytics:
+    get:
+      summary: Fetch real-time platform metrics snapshot
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Aggregated marketplace statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/PlatformMetricsSnapshot'
+
+  /api/admin/companies:
+    get:
+      summary: Query companies by verification status
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, reviewing, verified, rejected]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of companies matching query
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CompanyVerificationRecord'
+
+  /api/admin/companies/{id}/verify:
+    post:
+      summary: Approve and verify company application
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Company successfully verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /api/admin/companies/{id}/reject:
+    post:
+      summary: Reject company application with mandatory feedback note
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 5
+      responses:
+        '200':
+          description: Company rejected with notification sent
+
+  /api/disputes:
+    get:
+      summary: Fetch dispute mediation cases
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, responded, resolved, escalated]
+      responses:
+        '200':
+          description: List of dispute cases
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DisputeCaseSummary'
+
+  /api/disputes/{id}/resolve:
+    post:
+      summary: Resolve dispute and distribute escrow funds
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [resolution, note]
+              properties:
+                resolution:
+                  type: string
+                  enum: [FULL_REFUND_CUSTOMER, SPLIT_SETTLEMENT, RELEASE_TO_PROVIDER]
+                note:
+                  type: string
+                  minLength: 10
+      responses:
+        '200':
+          description: Dispute resolved and funds released
+
+components:
+  schemas:
+    PlatformMetricsSnapshot:
+      type: object
+      required: [totalRevenue, totalUsers, totalCompanies, totalBookings]
+      properties:
+        totalRevenue:
+          type: number
+        revenueGrowth:
+          type: number
+          nullable: true
+        totalUsers:
+          type: integer
+        usersGrowth:
+          type: number
+          nullable: true
+        totalCompanies:
+          type: integer
+        companiesGrowth:
+          type: number
+          nullable: true
+        totalBookings:
+          type: integer
+        completedBookings:
+          type: integer
+        pendingCompanies:
+          type: integer
+        activeDisputes:
+          type: integer
+        payoutRequests:
+          type: integer
+        openTickets:
+          type: integer
+
+    CompanyVerificationRecord:
+      type: object
+      required: [id, name, status, registrationNumber]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        logo:
+          type: string
+          nullable: true
+        category:
+          type: string
+        registrationNumber:
+          type: string
+        taxId:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, reviewing, verified, rejected]
+        contactPhone:
+          type: string
+        contactEmail:
+          type: string
+        createdAt:
+          type: string
+
+    DisputeCaseSummary:
+      type: object
+      required: [id, bookingId, disputedAmount, status, reason]
+      properties:
+        id:
+          type: string
+        bookingId:
+          type: string
+        serviceTitle:
+          type: string
+        customerName:
+          type: string
+        companyName:
+          type: string
+        disputedAmount:
+          type: number
+        status:
+          type: string
+          enum: [open, responded, resolved, escalated]
+        reason:
+          type: string
+        customerClaim:
+          type: string
+        providerRebuttal:
+          type: string
+          nullable: true
+        slaDeadline:
+          type: string

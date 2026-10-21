@@ -184,13 +184,17 @@ export function ManagementDataGrid<T>({
 
   const renderCellContent = (col: ColumnDef<T>, row: T, index: number) => {
     if (col.cell) {
-      try {
-        const result = (col.cell as any)({ row, index });
-        if (result !== undefined) return result;
-      } catch {
-        // Fallback for (row) signature
+      if (typeof row === 'object' && row !== null) {
+        const context = new Proxy(row as any, {
+          get(target, prop, receiver) {
+            if (prop === 'row') return row;
+            if (prop === 'index') return index;
+            return Reflect.get(target, prop, receiver);
+          },
+        });
+        return (col.cell as any)(context, { row, index });
       }
-      return (col.cell as any)(row);
+      return (col.cell as any)({ row, index });
     }
     if (col.accessorFn) return col.accessorFn(row);
     if (col.accessorKey) return String(row[col.accessorKey] ?? '');

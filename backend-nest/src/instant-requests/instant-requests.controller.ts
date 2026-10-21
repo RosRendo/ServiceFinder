@@ -29,17 +29,24 @@ export class InstantRequestsController {
     return this.instantRequestsService.create(BigInt(user.id), dto);
   }
 
+  @Get('company-feed')
+  @ApiOperation({ summary: 'Company fetches open instant requests in their service area' })
+  getCompanyFeed(@CurrentUser() user: any) {
+    return this.instantRequestsService.getCompanyFeed(BigInt(user.id));
+  }
+
   @Post(':id/bid')
   @ApiOperation({ summary: 'Company places a price/ETA bid on a request' })
-  submitBid(
+  async submitBid(
     @Param('id') id: string,
     @Body() dto: CreateInstantRequestBidDto,
     @CurrentUser() user: any,
   ) {
-    // For simplicity, we check the company associated with the logged-in staff member.
-    // In production, we extract the staff member's companyId from their session record.
+    const companyId = await this.instantRequestsService.resolveCompanyId(
+      BigInt(user.id),
+    );
     return this.instantRequestsService.submitBid(
-      BigInt(1), // Seeded provider LLC company ID
+      companyId,
       BigInt(id),
       dto,
     );

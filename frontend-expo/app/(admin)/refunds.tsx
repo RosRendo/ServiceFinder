@@ -126,15 +126,21 @@ export default function RefundsScreen() {
       
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.headerBtn}>
-          <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
+        <TouchableOpacity 
+          onPress={() => {
+            if (router.canGoBack()) router.back();
+            else router.push("/(admin)/(tabs)/settings" as any);
+          }} 
+          style={s.headerBtn}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color={T.text1} />
         </TouchableOpacity>
         <View style={s.headerTitleBox}>
           <Text style={s.headerTitle}>Financial Control Center</Text>
           <Text style={s.headerSubtitle}>Escrow & Refund Execution</Text>
         </View>
         <View style={s.shieldBadge}>
-          <MaterialCommunityIcons name="shield-lock-outline" size={16} color={T.accent} />
+          <MaterialCommunityIcons name="shield-lock-outline" size={14} color={T.accent} />
           <Text style={s.shieldText}>Level 3 Auth</Text>
         </View>
       </View>
@@ -341,73 +347,82 @@ export default function RefundsScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
   
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#FFFFFF", borderBottomWidth: 1, borderBottomColor: "#E2E8F0" },
   headerBtn: { padding: 4, marginLeft: -8, marginRight: 8 },
   headerTitleBox: { flex: 1 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
-  headerSubtitle: { fontSize: 12, color: T.text3, marginTop: 2, fontWeight: "500" },
-  shieldBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: T.accent + "15", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  shieldText: { fontSize: 12, fontWeight: "700", color: T.accent, textTransform: "uppercase" },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A" },
+  headerSubtitle: { fontSize: 12, color: "#64748B", marginTop: 2, fontWeight: "500" },
+  shieldBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  shieldText: { fontSize: 12, fontWeight: "700", color: "#0F172A", textTransform: "uppercase" },
 
-  splitLayout: { flex: 1, flexDirection: "row" },
+  splitLayout: { flex: 1, flexDirection: Platform.OS === 'web' ? "row" : "column" },
   
   /* Left Pane */
-  leftPane: { width: "35%", minWidth: 280, backgroundColor: T.bg, borderRightWidth: 1, borderRightColor: T.border },
-  paneHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: T.border },
-  paneTitle: { fontSize: 14, fontWeight: "700", color: T.text2, textTransform: "uppercase" },
-  countBadge: { backgroundColor: T.blue, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
+  leftPane: {
+    width: Platform.OS === 'web' ? "35%" : "100%",
+    minWidth: Platform.OS === 'web' ? 280 : undefined,
+    maxHeight: Platform.OS === 'web' ? undefined : 220,
+    backgroundColor: "#F8FAFC",
+    borderRightWidth: Platform.OS === 'web' ? 1 : 0,
+    borderBottomWidth: Platform.OS === 'web' ? 0 : 1,
+    borderRightColor: "#E2E8F0",
+    borderBottomColor: "#E2E8F0",
+  },
+  paneHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: "#E2E8F0" },
+  paneTitle: { fontSize: 14, fontWeight: "700", color: "#475569", textTransform: "uppercase" },
+  countBadge: { backgroundColor: "#0F172A", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
   countText: { fontSize: 12, fontWeight: "700", color: "#fff" },
   
   queueList: { padding: 16, gap: 12 },
-  queueItem: { backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  queueItemActive: { backgroundColor: T.accent, borderColor: T.accent },
+  queueItem: { backgroundColor: "#FFFFFF", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: "#E2E8F0" },
+  queueItemActive: { backgroundColor: "#F1F5F9", borderColor: "#0F172A" },
   queueTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  queueId: { fontSize: 14, fontWeight: "700", color: T.text1 },
-  queueAmount: { fontSize: 16, fontWeight: "700", color: T.error },
-  queueCompany: { fontSize: 13, fontWeight: "600", color: T.text2, marginBottom: 2 },
-  queueCustomer: { fontSize: 12, color: T.text3 },
+  queueId: { fontSize: 14, fontWeight: "700", color: "#0F172A" },
+  queueAmount: { fontSize: 16, fontWeight: "700", color: "#DC2626" },
+  queueCompany: { fontSize: 13, fontWeight: "600", color: "#334155", marginBottom: 2 },
+  queueCustomer: { fontSize: 12, color: "#64748B" },
 
   /* Right Pane */
-  rightPane: { flex: 1, backgroundColor: T.bg },
-  actionContent: { padding: 24, gap: 24, paddingBottom: 60 },
+  rightPane: { flex: 1, backgroundColor: "#F8FAFC" },
+  actionContent: { padding: 20, gap: 20, paddingBottom: 120 },
   
-  contextCard: { backgroundColor: T.surface, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: T.border },
+  contextCard: { backgroundColor: "#FFFFFF", padding: 20, borderRadius: 16, borderWidth: 1, borderColor: "#E2E8F0" },
   contextHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 8 },
-  contextTitle: { fontSize: 16, fontWeight: "700", color: T.text1 },
-  contextDesc: { fontSize: 14, color: T.text2, lineHeight: 22 },
+  contextTitle: { fontSize: 16, fontWeight: "700", color: "#0F172A" },
+  contextDesc: { fontSize: 14, color: "#475569", lineHeight: 22 },
 
-  card: { backgroundColor: T.surface, padding: 24, borderRadius: 24, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  cardTitle: { fontSize: 16, fontWeight: "700", color: T.text1, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 16 },
+  card: { backgroundColor: "#FFFFFF", padding: 22, borderRadius: 16, borderWidth: 1, borderColor: "#E2E8F0" },
+  cardTitle: { fontSize: 15, fontWeight: "700", color: "#0F172A", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 16 },
   
-  inputLabel: { fontSize: 12, fontWeight: "700", color: T.text3, textTransform: "uppercase", marginBottom: 8 },
-  inputWrap: { flexDirection: "row", alignItems: "center", backgroundColor: T.bg, borderWidth: 1, borderColor: T.border, borderRadius: 16, paddingHorizontal: 16, height: 64, marginBottom: 20 },
-  currencySymbol: { fontSize: 24, fontWeight: "700", color: T.text2, marginRight: 8 },
-  amountInput: { flex: 1, fontSize: 32, fontWeight: "700", color: T.text1, height: "100%" },
-  fullRefundBadge: { backgroundColor: T.success + "20", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  fullRefundText: { fontSize: 12, fontWeight: "700", color: T.success },
+  inputLabel: { fontSize: 12, fontWeight: "700", color: "#64748B", textTransform: "uppercase", marginBottom: 8 },
+  inputWrap: { flexDirection: "row", alignItems: "center", backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 14, paddingHorizontal: 16, height: 60, marginBottom: 20 },
+  currencySymbol: { fontSize: 24, fontWeight: "700", color: "#475569", marginRight: 8 },
+  amountInput: { flex: 1, fontSize: 30, fontWeight: "700", color: "#0F172A", height: "100%" },
+  fullRefundBadge: { backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  fullRefundText: { fontSize: 12, fontWeight: "700", color: "#059669" },
 
-  toggleRow: { flexDirection: "row", alignItems: "flex-start", gap: 12, backgroundColor: T.bg, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: T.border },
-  checkbox: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: T.border, alignItems: "center", justifyContent: "center", marginTop: 2 },
-  checkboxActive: { backgroundColor: T.accent, borderColor: T.accent },
-  toggleTitle: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 4 },
-  toggleDesc: { fontSize: 13, color: T.text3, lineHeight: 18 },
+  toggleRow: { flexDirection: "row", alignItems: "flex-start", gap: 12, backgroundColor: "#F8FAFC", padding: 16, borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0" },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: "#CBD5E1", alignItems: "center", justifyContent: "center", marginTop: 2 },
+  checkboxActive: { backgroundColor: "#0F172A", borderColor: "#0F172A" },
+  toggleTitle: { fontSize: 14, fontWeight: "700", color: "#0F172A", marginBottom: 4 },
+  toggleDesc: { fontSize: 12, color: "#64748B", lineHeight: 18 },
 
-  mathCard: { backgroundColor: T.surface, padding: 24, borderRadius: 24, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  mathCard: { backgroundColor: "#FFFFFF", padding: 22, borderRadius: 16, borderWidth: 1, borderColor: "#E2E8F0" },
   mathRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  mathLabel: { fontSize: 14, fontWeight: "600", color: T.text2 },
-  mathValue: { fontSize: 15, fontWeight: "700", color: T.text1 },
-  divider: { height: 1, backgroundColor: T.border, marginVertical: 12 },
+  mathLabel: { fontSize: 14, fontWeight: "600", color: "#475569" },
+  mathValue: { fontSize: 15, fontWeight: "700", color: "#0F172A" },
+  divider: { height: 1, backgroundColor: "#E2E8F0", marginVertical: 12 },
 
-  executeBtn: { backgroundColor: T.error, borderRadius: 20, height: 64, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12, ...CARD_SHADOW },
-  executeBtnText: { fontSize: 18, fontWeight: "700", color: "#fff", letterSpacing: 0.5 },
+  executeBtn: { backgroundColor: "#0F172A", borderRadius: 14, height: 56, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12 },
+  executeBtnText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF", letterSpacing: 0.3 },
 
   /* Modal */
-  modalOverlay: { flex: 1, backgroundColor: "rgba(10, 25, 47, 0.7)", justifyContent: "center", alignItems: "center", padding: 24 },
-  modalContainer: { width: "100%", maxWidth: 400, backgroundColor: T.surface, borderRadius: 32, padding: 32, alignItems: "center", ...CARD_SHADOW },
-  modalIconBox: { width: 64, height: 64, borderRadius: 32, backgroundColor: T.warning + "15", alignItems: "center", justifyContent: "center", marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: "700", color: T.text1, marginBottom: 12, textAlign: "center" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(15, 23, 42, 0.7)", justifyContent: "center", alignItems: "center", padding: 24 },
+  modalContainer: { width: "100%", maxWidth: 400, backgroundColor: "#FFFFFF", borderRadius: 24, padding: 28, alignItems: "center", borderWidth: 1, borderColor: "#E2E8F0" },
+  modalIconBox: { width: 56, height: 56, borderRadius: 28, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0", alignItems: "center", justifyContent: "center", marginBottom: 18 },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A", marginBottom: 10, textAlign: "center" },
   modalDesc: { fontSize: 14, color: T.text2, lineHeight: 22, textAlign: "center", marginBottom: 24 },
   pinInput: { width: 160, height: 64, backgroundColor: T.bg, borderRadius: 16, borderWidth: 2, borderColor: T.warning, fontSize: 32, fontWeight: "700", color: T.text1, textAlign: "center", letterSpacing: 8, marginBottom: 32 },
   

@@ -429,10 +429,7 @@ export default function ServiceDetailScreen() {
 
       {/* FLOATING ACTION BAR */}
       <View style={s.fabContainer}>
-        <ScaleButton onPress={() => {
-          if (useAuthStore.getState().isGuest) return requireLogin();
-          setSheetVisible(true);
-        }}>
+        <ScaleButton onPress={() => setSheetVisible(true)}>
           <View style={s.fabBtn}>
             <Text style={s.fabBtnText}>BOOK NOW</Text>
           </View>

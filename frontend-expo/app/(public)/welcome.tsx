@@ -1,5 +1,7 @@
 /**
- * Welcome Screen — Visual-First Onboarding with Interactive UI Mockups
+ * ServiceFinder Mobile Welcome & Onboarding
+ * Visual-First Hero: Home + People + Services + Resolution
+ * Warm, trustworthy, premium, and calm motion storytelling.
  */
 import React, { useRef, useState, useEffect } from "react";
 import {
@@ -7,10 +9,7 @@ import {
   Text,
   StyleSheet,
   Animated,
-  ScrollView,
   Dimensions,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
   Platform,
   Easing,
   TouchableOpacity,
@@ -24,243 +23,139 @@ import { useAuthStore } from "@/store/authStore";
 import i18n from "@/utils/i18n";
 
 const { width } = Dimensions.get("window");
-
 const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: "#0F172A", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 20 },
-  android: { elevation: 6 },
-});
-
-const POP_SHADOW = Platform.select({
-  ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 10 },
+  ios: {
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+  },
   android: { elevation: 4 },
 });
 
-// ─── VISUAL CARD 1: Verified Pro Discovery ─────────────────────────────
-function VisualProCard() {
-  const floatAnim = useRef(new Animated.Value(0)).current;
-  const chipAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, { toValue: -8, duration: 2200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(floatAnim, { toValue: 0, duration: 2200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(chipAnim, { toValue: 5, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(chipAnim, { toValue: -3, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    ).start();
-  }, [floatAnim, chipAnim]);
-
-  return (
-    <View style={v.visualWrapper}>
-      <View style={[v.glowOrb, { backgroundColor: T.accent + "18" }]} />
-
-      <Animated.View style={[v.cardMain, CARD_SHADOW, { transform: [{ translateY: floatAnim }] }]}>
-        <View style={v.cardHeaderRow}>
-          <View style={v.avatarContainer}>
-            <View style={v.proAvatar}>
-              <MaterialCommunityIcons name="account-hard-hat" size={32} color="#FFFFFF" />
-            </View>
-            <View style={v.onlineDot} />
-          </View>
-
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Text style={v.proName}>Sovan Pro Services</Text>
-              <MaterialCommunityIcons name="check-decagram" size={16} color={T.accent} />
-            </View>
-            <Text style={v.proCategory}>Master AC & Electrician</Text>
-            <View style={v.ratingRow}>
-              <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
-              <Text style={v.ratingText}>4.9</Text>
-              <Text style={v.reviewCount}>(142 reviews)</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={v.proDivider} />
-
-        <View style={v.proStatsRow}>
-          <View style={v.proStat}>
-            <Text style={v.proStatValue}>99%</Text>
-            <Text style={v.proStatLabel}>On Time</Text>
-          </View>
-          <View style={v.statSep} />
-          <View style={v.proStat}>
-            <Text style={v.proStatValue}>500+</Text>
-            <Text style={v.proStatLabel}>Jobs Done</Text>
-          </View>
-          <View style={v.statSep} />
-          <View style={v.proStat}>
-            <Text style={v.proStatPrice}>$20/hr</Text>
-            <Text style={v.proStatLabel}>Starting</Text>
-          </View>
-        </View>
-      </Animated.View>
-
-      <Animated.View style={[v.orbitChipTopLeft, POP_SHADOW, { transform: [{ translateY: chipAnim }] }]}>
-        <Text style={v.chipEmoji}>❄️</Text>
-        <Text style={v.chipText}>AC Repair</Text>
-      </Animated.View>
-
-      <Animated.View style={[v.orbitChipBottomRight, POP_SHADOW, { transform: [{ translateY: floatAnim }] }]}>
-        <MaterialCommunityIcons name="shield-check" size={16} color={T.success} />
-        <Text style={[v.chipText, { color: T.success, fontWeight: "700" }]}>Verified Pro</Text>
-      </Animated.View>
-    </View>
-  );
-}
-
-// ─── VISUAL CARD 2: Live Radar Dispatch ────────────────────────────────
-function VisualDispatchRadar() {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const bikeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.15, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(bikeAnim, { toValue: -6, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(bikeAnim, { toValue: 6, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    ).start();
-  }, [pulseAnim, bikeAnim]);
-
-  return (
-    <View style={v.visualWrapper}>
-      <View style={[v.glowOrb, { backgroundColor: (T.blue || "#2563EB") + "18" }]} />
-
-      <View style={v.radarContainer}>
-        <Animated.View style={[v.radarRingOuter, { transform: [{ scale: pulseAnim }] }]} />
-        <View style={v.radarRingMiddle} />
-        <View style={v.radarRingInner} />
-
-        <View style={v.userPin}>
-          <MaterialCommunityIcons name="home-map-marker" size={24} color="#FFFFFF" />
-          <View style={v.pinPulse} />
-        </View>
-
-        <Animated.View style={[v.techPin, { transform: [{ translateX: bikeAnim }] }]}>
-          <View style={v.techBadge}>
-            <MaterialCommunityIcons name="moped" size={20} color="#FFFFFF" />
-          </View>
-          <View style={v.etaTag}>
-            <Text style={v.etaTagText}>18 min</Text>
-          </View>
-        </Animated.View>
-      </View>
-
-      <View style={[v.dispatchBottomCard, CARD_SHADOW]}>
-        <View style={v.dispatchHeader}>
-          <View style={v.dispatchLiveBadge}>
-            <View style={v.blinkingGreenDot} />
-            <Text style={v.dispatchLiveText}>LIVE DISPATCH</Text>
-          </View>
-          <Text style={v.distanceText}>1.4 km away</Text>
-        </View>
-
-        <View style={v.driverRow}>
-          <View style={v.driverAvatar}>
-            <MaterialCommunityIcons name="account-wrench" size={22} color="#FFFFFF" />
-          </View>
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={v.driverName}>Chanthy Plumber</Text>
-            <Text style={v.driverVehicle}>En route • Moto #2A-9812</Text>
-          </View>
-          <View style={v.quickActionBtns}>
-            <View style={v.actionIconCircle}>
-              <MaterialCommunityIcons name="phone" size={16} color={T.accent} />
-            </View>
-            <View style={v.actionIconCircle}>
-              <MaterialCommunityIcons name="chat" size={16} color={T.accent} />
-            </View>
-          </View>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-// ─── VISUAL CARD 3: Bakong KHQR Escrow Vault ───────────────────────────
-function VisualEscrowVault() {
-  const lockAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(lockAnim, { toValue: -8, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(lockAnim, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    ).start();
-  }, [lockAnim]);
-
-  return (
-    <View style={v.visualWrapper}>
-      <View style={[v.glowOrb, { backgroundColor: (T.success || "#10B981") + "18" }]} />
-
-      <Animated.View style={[v.vaultCard, CARD_SHADOW, { transform: [{ translateY: lockAnim }] }]}>
-        <View style={v.khqrTopBar}>
-          <Text style={v.khqrLogoText}>KHQR</Text>
-          <Text style={v.khqrSubText}>BAKONG ESCROW</Text>
-        </View>
-
-        <View style={v.qrContainer}>
-          <MaterialCommunityIcons name="qrcode" size={110} color="#0F172A" />
-          <View style={v.qrCenterShield}>
-            <MaterialCommunityIcons name="shield-lock" size={22} color="#FFFFFF" />
-          </View>
-        </View>
-
-        <View style={v.paymentStatusPill}>
-          <MaterialCommunityIcons name="lock-check" size={14} color={T.success} />
-          <Text style={v.paymentStatusText}>Funds Held in Safe Escrow</Text>
-        </View>
-      </Animated.View>
-
-      <View style={[v.orbitChipTopLeft, POP_SHADOW]}>
-        <Text style={v.chipEmoji}>🛡️</Text>
-        <Text style={v.chipText}>$1,000 Guarantee</Text>
-      </View>
-
-      <View style={[v.orbitChipBottomRight, POP_SHADOW]}>
-        <Text style={v.chipEmoji}>💳</Text>
-        <Text style={[v.chipText, { color: T.accent, fontWeight: "700" }]}>Pay After Service</Text>
-      </View>
-    </View>
-  );
-}
-
-// ─── MAIN ONBOARDING SCREEN ───────────────────────────────────────────
 export default function WelcomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [storyStage, setStoryStage] = useState<0 | 1 | 2>(0);
   const isKhmer = i18n.language?.startsWith("km");
+
+  // ─── MOTION STORYTELLING CONTROLLERS ─────────────────────────────────
+  // 1. Home gentle breathing float
+  const homeFloatAnim = useRef(new Animated.Value(0)).current;
+  // 2. Floating location pin
+  const pinFloatAnim = useRef(new Animated.Value(0)).current;
+  // 3. Service cards orbiting motion
+  const card1Anim = useRef(new Animated.Value(0)).current;
+  const card2Anim = useRef(new Animated.Value(0)).current;
+  const card3Anim = useRef(new Animated.Value(0)).current;
+  // 4. Pro arrival glide (starts offset, glides smoothly toward the home)
+  const proGlideAnim = useRef(new Animated.Value(0)).current;
+  // 5. Resolved checkmark emergence
+  const resolvedScale = useRef(new Animated.Value(0.85)).current;
+  const resolvedOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // 1. Home continuous calm float
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(homeFloatAnim, {
+          toValue: -6,
+          duration: 2600,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(homeFloatAnim, {
+          toValue: 0,
+          duration: 2600,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // 2. Location pin gentle float
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pinFloatAnim, {
+          toValue: -4,
+          duration: 2000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pinFloatAnim, {
+          toValue: 0,
+          duration: 2000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // 3. Orbiting service cards staggered breathing
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(card1Anim, { toValue: -6, duration: 2400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(card1Anim, { toValue: 0, duration: 2400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(card2Anim, { toValue: 5, duration: 2800, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(card2Anim, { toValue: -2, duration: 2800, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(card3Anim, { toValue: -5, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(card3Anim, { toValue: 0, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    ).start();
+
+    // 4. Storyline Cycle: Home ➔ Pro Arrives ➔ Resolved
+    const storyInterval = setInterval(() => {
+      setStoryStage((prev) => {
+        const next = ((prev + 1) % 3) as 0 | 1 | 2;
+        animateStoryStage(next);
+        return next;
+      });
+    }, 3800);
+
+    // Initial animation trigger
+    animateStoryStage(0);
+
+    return () => clearInterval(storyInterval);
+  }, [homeFloatAnim, pinFloatAnim, card1Anim, card2Anim, card3Anim]);
+
+  const animateStoryStage = (stage: 0 | 1 | 2) => {
+    if (stage === 0) {
+      // Stage 0: Calm Home & Needs
+      Animated.parallel([
+        Animated.timing(proGlideAnim, { toValue: 0, duration: 800, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.timing(resolvedOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(resolvedScale, { toValue: 0.85, duration: 400, useNativeDriver: true }),
+      ]).start();
+    } else if (stage === 1) {
+      // Stage 1: Pro Glides to Home
+      Animated.parallel([
+        Animated.timing(proGlideAnim, { toValue: 1, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(resolvedOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+      ]).start();
+    } else if (stage === 2) {
+      // Stage 2: Resolved & Complete
+      Animated.parallel([
+        Animated.timing(resolvedOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.spring(resolvedScale, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }),
+      ]).start();
+    }
+  };
 
   const toggleLanguage = () => {
     const nextLang = isKhmer ? "en" : "km";
     i18n.changeLanguage(nextLang);
-  };
-
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const scrollPosition = e.nativeEvent.contentOffset.x;
-    const currentIndex = Math.round(scrollPosition / width);
-    if (currentIndex !== activeIndex && currentIndex >= 0 && currentIndex < 3) {
-      setActiveIndex(currentIndex);
-    }
   };
 
   const handleGetStarted = async () => {
@@ -275,87 +170,209 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView style={s.root} edges={["top", "left", "right", "bottom"]}>
-      {/* Top Header: Brand + 1-Tap Language + Skip */}
+      {/* ─── 1. TOP HEADER: BRAND + LANGUAGE SWITCHER ─────────────────── */}
       <View style={s.topBar}>
         <View style={s.brandWrap}>
           <View style={s.brandLogo}>
-            <MaterialCommunityIcons name="wrench" size={16} color="#FFFFFF" />
+            <MaterialCommunityIcons name="home-heart" size={18} color="#FFFFFF" />
           </View>
           <Text style={s.brandText}>ServiceFinder</Text>
         </View>
 
-        <View style={s.topActions}>
-          <TouchableOpacity onPress={toggleLanguage} style={s.langPill} activeOpacity={0.8}>
-            <Text style={s.langFlag}>{isKhmer ? "🇰🇭" : "🇺🇸"}</Text>
-            <Text style={s.langText}>{isKhmer ? "ភាសាខ្មែរ" : "English"}</Text>
-          </TouchableOpacity>
+        <TouchableOpacity onPress={toggleLanguage} style={s.langPill} activeOpacity={0.8}>
+          <Text style={s.langFlag}>{isKhmer ? "🇰🇭" : "🇺🇸"}</Text>
+          <Text style={s.langText}>{isKhmer ? "ភាសាខ្មែរ" : "English"}</Text>
+        </TouchableOpacity>
+      </View>
 
-          <TouchableOpacity onPress={handleGetStarted} style={s.skipBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={s.skipText}>{t("welcome.skip", "Skip")}</Text>
-          </TouchableOpacity>
+      {/* ─── 2. CENTERPIECE: WARM LIVING HOME ECOSYSTEM ─────────────── */}
+      <View style={s.sceneContainer}>
+        {/* Soft Warm Ambient Aura (Non-distracting) */}
+        <View style={s.ambientGlow} />
+
+        {/* Orbiting Card 1: Cleaning (Top Left) */}
+        <Animated.View
+          style={[
+            s.serviceChip,
+            CARD_SHADOW,
+            {
+              top: 14,
+              left: 10,
+              transform: [{ translateY: card1Anim }],
+            },
+          ]}
+        >
+          <View style={[s.chipIconWrap, { backgroundColor: "#F0FDF4" }]}>
+            <MaterialCommunityIcons name="broom" size={15} color="#16A34A" />
+          </View>
+          <Text style={s.chipTitle}>{isKhmer ? "សម្អាត" : "Cleaning"}</Text>
+        </Animated.View>
+
+        {/* Orbiting Card 2: AC Overhaul (Top Right) */}
+        <Animated.View
+          style={[
+            s.serviceChip,
+            CARD_SHADOW,
+            {
+              top: 28,
+              right: 12,
+              transform: [{ translateY: card2Anim }],
+            },
+          ]}
+        >
+          <View style={[s.chipIconWrap, { backgroundColor: "#EFF6FF" }]}>
+            <MaterialCommunityIcons name="air-conditioner" size={15} color="#2563EB" />
+          </View>
+          <Text style={s.chipTitle}>{isKhmer ? "ម៉ាស៊ីនត្រជាក់" : "AC Repair"}</Text>
+        </Animated.View>
+
+        {/* The House at the Heart of the Scene */}
+        <Animated.View
+          style={[
+            s.homeHouseBadge,
+            CARD_SHADOW,
+            { transform: [{ translateY: homeFloatAnim }] },
+          ]}
+        >
+          {/* Gentle Floating Location Pin on Roof */}
+          <Animated.View
+            style={[
+              s.pinPill,
+              { transform: [{ translateY: pinFloatAnim }] },
+            ]}
+          >
+            <MaterialCommunityIcons name="map-marker" size={12} color="#EF4444" />
+            <Text style={s.pinText}>Phnom Penh</Text>
+          </Animated.View>
+
+          {/* Warm Home Illustration Structure */}
+          <View style={s.houseIconCircle}>
+            <MaterialCommunityIcons name="home-variant" size={48} color="#0F172A" />
+          </View>
+
+          {/* Subtle Warm House Foundation Bar */}
+          <View style={s.houseFloorBar} />
+        </Animated.View>
+
+        {/* Orbiting Card 3: Electrician / Repair (Bottom Left) */}
+        <Animated.View
+          style={[
+            s.serviceChip,
+            CARD_SHADOW,
+            {
+              bottom: 40,
+              left: 16,
+              transform: [{ translateY: card3Anim }],
+            },
+          ]}
+        >
+          <View style={[s.chipIconWrap, { backgroundColor: "#FFFBEB" }]}>
+            <MaterialCommunityIcons name="lightning-bolt" size={15} color="#D97706" />
+          </View>
+          <Text style={s.chipTitle}>{isKhmer ? "ប្រព័ន្ធភ្លើង" : "Electrical"}</Text>
+        </Animated.View>
+
+        {/* Service Pro Arriving Badge (Glides into scene) */}
+        <Animated.View
+          style={[
+            s.proArrivalCard,
+            CARD_SHADOW,
+            {
+              opacity: proGlideAnim.interpolate({
+                inputRange: [0, 0.4, 1],
+                outputRange: [0.3, 0.8, 1],
+              }),
+              transform: [
+                {
+                  translateX: proGlideAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [40, 0],
+                  }),
+                },
+                {
+                  scale: proGlideAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.92, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <View style={s.proAvatarMini}>
+            <MaterialCommunityIcons name="account-hard-hat" size={16} color="#FFFFFF" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.proArrivalName}>Dara C. (Pro Tech)</Text>
+            <Text style={s.proArrivalSub}>{isKhmer ? "កំពុងធ្វើដំណើរមកដល់" : "Arriving in 12m"}</Text>
+          </View>
+          <MaterialCommunityIcons name="shield-check" size={15} color="#16A34A" />
+        </Animated.View>
+
+        {/* Emergent Reassurance Badge: Resolved Checkmark */}
+        <Animated.View
+          style={[
+            s.resolvedBadge,
+            CARD_SHADOW,
+            {
+              opacity: resolvedOpacity,
+              transform: [{ scale: resolvedScale }],
+            },
+          ]}
+        >
+          <View style={s.resolvedCheckCircle}>
+            <MaterialCommunityIcons name="check" size={14} color="#FFFFFF" />
+          </View>
+          <Text style={s.resolvedText}>
+            {isKhmer ? "ការងារបានសម្រេច ✓" : "Resolved 5.0 ★"}
+          </Text>
+        </Animated.View>
+      </View>
+
+      {/* ─── 3. MINIMALIST HUMAN STORY COPY ─────────────────────────── */}
+      <View style={s.copySection}>
+        <Text style={s.heroTitle}>
+          {t("welcome.heroTitle", "Help is closer than you think.")}
+        </Text>
+        <Text style={s.heroSubtitle}>
+          {t("welcome.heroSubtitle", "Trusted people for the things you need.")}
+        </Text>
+
+        {/* Subtle Story Step Indicator */}
+        <View style={s.storyIndicatorRow}>
+          {[0, 1, 2].map((idx) => (
+            <View
+              key={idx}
+              style={[
+                s.storyDot,
+                storyStage === idx && s.storyDotActive,
+              ]}
+            />
+          ))}
         </View>
       </View>
 
-      {/* Visual Carousel Slides */}
-      <View style={s.carouselWrapper}>
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-        >
-          {/* SLIDE 1 */}
-          <View style={s.slide}>
-            <VisualProCard />
-            <Text style={s.title}>{t("welcome.findServices", "Trusted Pros Nearby")}</Text>
-            <Text style={s.subtitle}>{t("welcome.findServicesDesc", "Verified local experts ready for any home need.")}</Text>
-          </View>
-
-          {/* SLIDE 2 */}
-          <View style={s.slide}>
-            <VisualDispatchRadar />
-            <Text style={s.title}>{t("welcome.bookInstantly", "Fast Live Dispatch")}</Text>
-            <Text style={s.subtitle}>{t("welcome.bookInstantlyDesc", "Track your technician in real time on the map.")}</Text>
-          </View>
-
-          {/* SLIDE 3 */}
-          <View style={s.slide}>
-            <VisualEscrowVault />
-            <Text style={s.title}>{t("welcome.absoluteConfidence", "Safe Escrow & KHQR")}</Text>
-            <Text style={s.subtitle}>{t("welcome.absoluteConfidenceDesc", "Pay securely only after the job is completed.")}</Text>
-          </View>
-        </ScrollView>
-      </View>
-
-      {/* Pagination Indicator */}
-      <View style={s.pagination}>
-        {[0, 1, 2].map((idx) => (
-          <View
-            key={idx}
-            style={[
-              s.dot,
-              activeIndex === idx && s.dotActive,
-            ]}
-          />
-        ))}
-      </View>
-
-      {/* Clean Bottom CTAs */}
+      {/* ─── 4. ONE STRONG CTA & SUBTLE LOGIN ─────────────────────────── */}
       <View style={s.bottomArea}>
         <TouchableOpacity
           onPress={handleGetStarted}
           style={s.primaryBtn}
           activeOpacity={0.88}
         >
-          <Text style={s.primaryBtnText}>{t("welcome.getStarted", "Get Started")}</Text>
-          <MaterialCommunityIcons name="arrow-right" size={20} color="#FFFFFF" style={{ marginLeft: 8 }} />
+          <Text style={s.primaryBtnText}>
+            {t("welcome.getStarted", "Get Started")}
+          </Text>
+          <MaterialCommunityIcons name="arrow-right" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
         </TouchableOpacity>
 
         <View style={s.loginRow}>
-          <Text style={s.loginPrompt}>{t("welcome.alreadyAccount", "Already have an account?")} </Text>
-          <TouchableOpacity onPress={handleSignIn} hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}>
-            <Text style={s.loginLink}>{t("welcome.logIn", "Log In")}</Text>
+          <Text style={s.loginPrompt}>
+            {t("welcome.alreadyAccount", "Already have an account?")}{" "}
+          </Text>
+          <TouchableOpacity onPress={handleSignIn} hitSlop={{ top: 10, bottom: 10, left: 6, right: 10 }}>
+            <Text style={s.loginLink}>
+              {t("welcome.logIn", "Log In")}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -363,407 +380,41 @@ export default function WelcomeScreen() {
   );
 }
 
-// ─── VISUAL ELEMENTS STYLES ───────────────────────────────────────────
-const v = StyleSheet.create({
-  visualWrapper: {
-    width: width - 48,
-    height: 250,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 28,
-  },
-  glowOrb: {
-    position: "absolute",
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-  },
-  cardMain: {
-    width: width - 80,
-    backgroundColor: T.surface,
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: T.border,
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  avatarContainer: {
-    position: "relative",
-  },
-  proAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: T.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  onlineDot: {
-    position: "absolute",
-    bottom: -2,
-    right: -2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: "#10B981",
-    borderWidth: 2,
-    borderColor: T.surface,
-  },
-  proName: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: T.text1,
-  },
-  proCategory: {
-    fontSize: 12,
-    color: T.text2,
-    marginTop: 1,
-  },
-  ratingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginTop: 3,
-  },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: T.text1,
-  },
-  reviewCount: {
-    fontSize: 11,
-    color: T.text3,
-  },
-  proDivider: {
-    height: 1,
-    backgroundColor: T.border,
-    marginVertical: 12,
-  },
-  proStatsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 8,
-  },
-  proStat: {
-    alignItems: "center",
-  },
-  proStatValue: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: T.text1,
-  },
-  proStatPrice: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: T.accent,
-  },
-  proStatLabel: {
-    fontSize: 10,
-    color: T.text3,
-    marginTop: 2,
-  },
-  statSep: {
-    width: 1,
-    height: 20,
-    backgroundColor: T.border,
-  },
-  orbitChipTopLeft: {
-    position: "absolute",
-    top: 6,
-    left: 4,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    backgroundColor: T.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: T.border,
-  },
-  orbitChipBottomRight: {
-    position: "absolute",
-    bottom: 8,
-    right: 4,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    backgroundColor: T.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: T.border,
-  },
-  chipEmoji: {
-    fontSize: 14,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: T.text1,
-  },
-
-  // RADAR STYLES
-  radarContainer: {
-    width: 180,
-    height: 180,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  radarRingOuter: {
-    position: "absolute",
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    borderWidth: 1,
-    borderColor: (T.blue || "#2563EB") + "30",
-    backgroundColor: (T.blue || "#2563EB") + "08",
-  },
-  radarRingMiddle: {
-    position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 1,
-    borderColor: (T.blue || "#2563EB") + "40",
-  },
-  radarRingInner: {
-    position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: (T.blue || "#2563EB") + "15",
-  },
-  userPin: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: T.accent,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 2,
-    ...POP_SHADOW,
-  },
-  pinPulse: {
-    position: "absolute",
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: T.accent + "40",
-    zIndex: -1,
-  },
-  techPin: {
-    position: "absolute",
-    top: 15,
-    right: 15,
-    alignItems: "center",
-    zIndex: 3,
-  },
-  techBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: T.blue || "#2563EB",
-    alignItems: "center",
-    justifyContent: "center",
-    ...POP_SHADOW,
-  },
-  etaTag: {
-    backgroundColor: "#0F172A",
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginTop: 3,
-  },
-  etaTagText: {
-    color: "#FFFFFF",
-    fontSize: 9,
-    fontWeight: "700",
-  },
-  dispatchBottomCard: {
-    width: width - 80,
-    backgroundColor: T.surface,
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: T.border,
-  },
-  dispatchHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  dispatchLiveBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    backgroundColor: "#10B98118",
-    borderRadius: 10,
-  },
-  blinkingGreenDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#10B981",
-  },
-  dispatchLiveText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#10B981",
-  },
-  distanceText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: T.text3,
-  },
-  driverRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  driverAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: T.blue || "#2563EB",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  driverName: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: T.text1,
-  },
-  driverVehicle: {
-    fontSize: 11,
-    color: T.text2,
-  },
-  quickActionBtns: {
-    flexDirection: "row",
-    gap: 6,
-  },
-  actionIconCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: T.accent + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  // ESCROW VAULT STYLES
-  vaultCard: {
-    width: width - 110,
-    backgroundColor: T.surface,
-    borderRadius: 20,
-    padding: 16,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: T.border,
-  },
-  khqrTopBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: T.border,
-    marginBottom: 8,
-  },
-  khqrLogoText: {
-    fontSize: 14,
-    fontWeight: "900",
-    color: "#D9222A",
-    letterSpacing: 1,
-  },
-  khqrSubText: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: T.text3,
-    letterSpacing: 0.5,
-  },
-  qrContainer: {
-    position: "relative",
-    padding: 4,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  qrCenterShield: {
-    position: "absolute",
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: T.success || "#10B981",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
-  paymentStatusPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "#10B98115",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
-    marginTop: 10,
-  },
-  paymentStatusText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: T.success || "#10B981",
-  },
-});
-
-// ─── SCREEN LAYOUT STYLES ─────────────────────────────────────────────
+// ─── STYLES: WARM, CALM, AND INTENTIONAL ─────────────────────────────
 const s = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: T.bg,
+    backgroundColor: "#F8FAFC", // Clean, warm slate-50
+    justifyContent: "space-between",
   },
+
+  // 1. Top Bar
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === "android" ? 12 : 6,
-    paddingBottom: 4,
+    paddingHorizontal: 22,
+    paddingTop: Platform.OS === "android" ? 14 : 8,
+    paddingBottom: 6,
   },
   brandWrap: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
   },
   brandLogo: {
-    width: 26,
-    height: 26,
+    width: 28,
+    height: 28,
     borderRadius: 8,
-    backgroundColor: T.accent,
+    backgroundColor: "#0F172A",
     alignItems: "center",
     justifyContent: "center",
   },
   brandText: {
     fontSize: 16,
     fontWeight: "800",
-    color: T.text1,
-    letterSpacing: -0.3,
-  },
-  topActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    color: "#0F172A",
+    letterSpacing: -0.4,
   },
   langPill: {
     flexDirection: "row",
@@ -771,116 +422,263 @@ const s = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 16,
-    backgroundColor: T.surface,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: "#E2E8F0",
   },
   langFlag: {
-    fontSize: 13,
+    fontSize: 12,
   },
   langText: {
     fontSize: 11,
     fontWeight: "700",
-    color: T.text2,
-  },
-  skipBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-  },
-  skipText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: T.text3,
+    color: "#334155",
   },
 
-  carouselWrapper: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  slide: {
-    width,
-    flex: 1,
-    justifyContent: "center",
+  // 2. Centerpiece Scene
+  sceneContainer: {
+    width: width - 40,
+    height: 260,
+    alignSelf: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
+    justifyContent: "center",
+    position: "relative",
+    marginVertical: 10,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: T.text1,
-    letterSpacing: -0.5,
-    textAlign: "center",
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: "400",
-    color: T.text2,
-    textAlign: "center",
-    lineHeight: 20,
-    paddingHorizontal: 24,
-    maxWidth: 320,
+  ambientGlow: {
+    position: "absolute",
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "#FEF3C7", // Gentle warm amber tint
+    opacity: 0.35,
   },
 
-  pagination: {
+  // Home Badge
+  homeHouseBadge: {
+    width: 124,
+    height: 124,
+    borderRadius: 36,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  houseIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  houseFloorBar: {
+    position: "absolute",
+    bottom: 12,
+    width: 44,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#CBD5E1",
+  },
+
+  // Floating Location Pin
+  pinPill: {
+    position: "absolute",
+    top: -12,
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    marginVertical: 14,
-    gap: 8,
+    gap: 3,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: T.border,
-  },
-  dotActive: {
-    width: 26,
-    backgroundColor: T.accent,
+  pinText: {
+    fontSize: 9.5,
+    fontWeight: "700",
+    color: "#0F172A",
   },
 
+  // Orbiting Service Chips
+  serviceChip: {
+    position: "absolute",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  chipIconWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chipTitle: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+
+  // Pro Arrival Card
+  proArrivalCard: {
+    position: "absolute",
+    bottom: 2,
+    right: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    width: 168,
+  },
+  proAvatarMini: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#0F172A",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  proArrivalName: {
+    fontSize: 10.5,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  proArrivalSub: {
+    fontSize: 9,
+    color: "#64748B",
+  },
+
+  // Emergent Resolved Badge
+  resolvedBadge: {
+    position: "absolute",
+    bottom: 60,
+    right: 28,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  resolvedCheckCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#10B981",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  resolvedText: {
+    fontSize: 10.5,
+    fontWeight: "800",
+    color: "#065F46",
+  },
+
+  // 3. Human Story Copy
+  copySection: {
+    paddingHorizontal: 26,
+    alignItems: "center",
+    textAlign: "center",
+    marginTop: 4,
+  },
+  heroTitle: {
+    fontSize: 27,
+    fontWeight: "800",
+    color: "#0F172A",
+    textAlign: "center",
+    letterSpacing: -0.6,
+    lineHeight: 34,
+  },
+  heroSubtitle: {
+    fontSize: 14.5,
+    fontWeight: "500",
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 22,
+    marginTop: 8,
+    maxWidth: 290,
+  },
+
+  // Story Dots Indicator
+  storyIndicatorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 18,
+  },
+  storyDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#CBD5E1",
+  },
+  storyDotActive: {
+    width: 18,
+    backgroundColor: "#0F172A",
+  },
+
+  // 4. Bottom CTAs
   bottomArea: {
     paddingHorizontal: 24,
-    paddingBottom: 24,
-    gap: 12,
+    paddingBottom: Platform.OS === "android" ? 22 : 12,
+    paddingTop: 10,
   },
   primaryBtn: {
+    backgroundColor: "#0F172A",
+    borderRadius: 18,
+    paddingVertical: 15,
     flexDirection: "row",
-    width: "100%",
-    backgroundColor: T.accent,
-    borderRadius: 16,
-    paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: T.accent,
+    shadowColor: "#0F172A",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28,
-    shadowRadius: 10,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
     elevation: 4,
   },
   primaryBtnText: {
-    fontSize: 16,
-    fontWeight: "700",
     color: "#FFFFFF",
-    letterSpacing: 0.2,
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: -0.2,
   },
-
   loginRow: {
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 2,
+    justifyContent: "center",
+    marginTop: 14,
   },
   loginPrompt: {
     fontSize: 13,
-    color: T.text3,
-    fontWeight: "500",
+    color: "#64748B",
   },
   loginLink: {
     fontSize: 13,
-    color: T.accent,
     fontWeight: "700",
+    color: "#0F172A",
   },
 });

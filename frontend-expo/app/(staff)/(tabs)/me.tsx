@@ -8,21 +8,32 @@ import { useAuthStore } from '../../../store/authStore';
 export default function MeScreen() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
-  const T = { bg: '#F7F8FC', surface: '#FFFFFF', text1: '#0A192F', text2: '#475569', text3: '#94A3B8', accent: '#0A192F', success: '#00A699', border: '#E8EEF4', danger: '#EF4444' };
+  const T = {
+    bg: '#F8FAFC',
+    surface: '#FFFFFF',
+    text1: '#0F172A',
+    text2: '#475569',
+    text3: '#94A3B8',
+    accent: '#0F172A',
+    success: '#059669',
+    border: '#E2E8F0',
+    danger: '#DC2626',
+    chevron: '#94A3B8',
+  };
 
   return (
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         
-        {/* Header */}
+        {/* Header Dossier Card */}
         <View style={s.profileHeader}>
           <Image 
-            source={{ uri: user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || 'Staff')}&background=0A192F&color=fff&size=150` }} 
+            source={{ uri: user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || 'Staff')}&background=0F172A&color=fff&size=150` }} 
             style={s.avatar}
           />
           <View style={s.profileInfo}>
             <Text style={s.name}>{user?.fullName || "Staff Member"}</Text>
-            <Text style={s.role}>{user?.staffProfile?.role ? (user.staffProfile.role.charAt(0).toUpperCase() + user.staffProfile.role.slice(1)) : 'Worker'}</Text>
+            <Text style={s.role}>{user?.staffProfile?.role ? (user.staffProfile.role.charAt(0).toUpperCase() + user.staffProfile.role.slice(1)) : 'Field Technician'}</Text>
           </View>
         </View>
 
@@ -30,15 +41,15 @@ export default function MeScreen() {
         <Text style={s.sectionTitle}>Schedule</Text>
         <View style={s.card}>
           <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/availability')}>
-            <MaterialCommunityIcons name="calendar-clock" size={24} color={T.text2} />
+            <MaterialCommunityIcons name="calendar-clock" size={22} color={T.text2} />
             <Text style={s.rowText}>My Availability</Text>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+            <MaterialCommunityIcons name="chevron-right" size={22} color={T.chevron} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
           <View style={s.divider} />
           <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/timeoff')}>
-            <MaterialCommunityIcons name="calendar-remove" size={24} color={T.text2} />
+            <MaterialCommunityIcons name="calendar-remove" size={22} color={T.text2} />
             <Text style={s.rowText}>Request Time Off</Text>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+            <MaterialCommunityIcons name="chevron-right" size={22} color={T.chevron} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
         </View>
 
@@ -46,21 +57,21 @@ export default function MeScreen() {
         <Text style={s.sectionTitle}>Activity & Performance</Text>
         <View style={s.card}>
           <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/history')}>
-            <MaterialCommunityIcons name="history" size={24} color={T.text2} />
+            <MaterialCommunityIcons name="history" size={22} color={T.text2} />
             <Text style={s.rowText}>Job History</Text>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+            <MaterialCommunityIcons name="chevron-right" size={22} color={T.chevron} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
           <View style={s.divider} />
           <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/(tabs)/money' as any)}>
-            <MaterialCommunityIcons name="cash-multiple" size={24} color={T.text2} />
+            <MaterialCommunityIcons name="cash-multiple" size={22} color={T.text2} />
             <Text style={s.rowText}>Earnings & Revenue</Text>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+            <MaterialCommunityIcons name="chevron-right" size={22} color={T.chevron} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
           <View style={s.divider} />
           <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/performance')}>
-            <MaterialCommunityIcons name="chart-line" size={24} color={T.text2} />
+            <MaterialCommunityIcons name="chart-line" size={22} color={T.text2} />
             <Text style={s.rowText}>My Performance</Text>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+            <MaterialCommunityIcons name="chevron-right" size={22} color={T.chevron} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
         </View>
 
@@ -81,9 +92,9 @@ export default function MeScreen() {
               );
             }}
           >
-            <MaterialCommunityIcons name="headphones" size={24} color={T.text2} />
+            <MaterialCommunityIcons name="headphones" size={22} color={T.text2} />
             <Text style={s.rowText}>Contact Dispatch</Text>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+            <MaterialCommunityIcons name="chevron-right" size={22} color={T.chevron} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
           <View style={s.divider} />
           <TouchableOpacity 
@@ -105,7 +116,7 @@ export default function MeScreen() {
               );
             }}
           >
-            <MaterialCommunityIcons name="shield-alert-outline" size={24} color={T.danger} />
+            <MaterialCommunityIcons name="shield-alert-outline" size={22} color={T.danger} />
             <Text style={[s.rowText, { color: T.danger }]}>Report Emergency</Text>
           </TouchableOpacity>
         </View>
@@ -114,25 +125,25 @@ export default function MeScreen() {
         <Text style={s.sectionTitle}>Account & Settings</Text>
         <View style={s.card}>
           <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/edit-profile')}>
-            <MaterialCommunityIcons name="account-edit-outline" size={24} color={T.text2} />
+            <MaterialCommunityIcons name="account-edit-outline" size={22} color={T.text2} />
             <Text style={s.rowText}>Edit Profile</Text>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+            <MaterialCommunityIcons name="chevron-right" size={22} color={T.chevron} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
           <View style={s.divider} />
           <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/change-password')}>
-            <MaterialCommunityIcons name="lock-reset" size={24} color={T.text2} />
+            <MaterialCommunityIcons name="lock-reset" size={22} color={T.text2} />
             <Text style={s.rowText}>Change Password</Text>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+            <MaterialCommunityIcons name="chevron-right" size={22} color={T.chevron} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
           <View style={s.divider} />
           <TouchableOpacity style={s.rowItem} onPress={() => router.push('/(staff)/settings')}>
-            <MaterialCommunityIcons name="cog-outline" size={24} color={T.text2} />
+            <MaterialCommunityIcons name="cog-outline" size={22} color={T.text2} />
             <Text style={s.rowText}>Settings</Text>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={T.border} style={{ marginLeft: 'auto' }} />
+            <MaterialCommunityIcons name="chevron-right" size={22} color={T.chevron} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
           <View style={s.divider} />
-          <TouchableOpacity style={s.rowItem} onPress={async () => { await logout(); router.replace('/login'); }}>
-            <MaterialCommunityIcons name="logout" size={24} color={T.danger} />
+          <TouchableOpacity style={s.rowItem} onPress={async () => { await logout(); router.replace('/(public)/login' as any); }}>
+            <MaterialCommunityIcons name="logout" size={22} color={T.danger} />
             <Text style={[s.rowText, { color: T.danger }]}>Log Out</Text>
           </TouchableOpacity>
         </View>
@@ -143,19 +154,44 @@ export default function MeScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F7F8FC' },
-  content: { padding: 24, paddingBottom: 100 },
+  root: { flex: 1, backgroundColor: '#F8FAFC' },
+  content: { padding: 20, paddingBottom: 120 },
   
-  profileHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 32 },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#E8EEF4' },
-  profileInfo: { marginLeft: 16 },
-  name: { fontSize: 24, fontWeight: '800', color: '#0A192F' },
-  role: { fontSize: 16, color: '#475569', marginTop: 4 },
+  profileHeader: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#FFFFFF', 
+    padding: 18, 
+    borderRadius: 20, 
+    borderWidth: 1, 
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+    marginBottom: 8,
+  },
+  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#F1F5F9' },
+  profileInfo: { marginLeft: 16, flex: 1 },
+  name: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
+  role: { fontSize: 13, fontWeight: '600', color: '#64748B', marginTop: 2 },
   
-  sectionTitle: { fontSize: 14, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, marginTop: 24 },
+  sectionTitle: { fontSize: 11, fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, marginTop: 20 },
   
-  card: { backgroundColor: '#fff', borderRadius: 24, padding: 8, shadowColor: '#000', shadowOffset: {width:0, height:8}, shadowOpacity: 0.05, shadowRadius: 24 },
-  rowItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
-  rowText: { fontSize: 16, fontWeight: '600', color: '#0A192F' },
-  divider: { height: 1, backgroundColor: '#E8EEF4', marginLeft: 52, marginRight: 16 }
+  card: { 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 18, 
+    padding: 4, 
+    borderWidth: 1, 
+    borderColor: '#E2E8F0',
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.03, 
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  rowItem: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  rowText: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  divider: { height: 1, backgroundColor: '#F1F5F9', marginLeft: 48, marginRight: 14 }
 });

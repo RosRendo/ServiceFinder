@@ -193,7 +193,7 @@ export default function TimeOffScreen() {
             ].map(b => (
               <View key={b.label} style={s.balanceCard}>
                 <View style={s.balanceHeader}>
-                  <MaterialCommunityIcons name={b.icon as any} size={20} color="rgba(255,255,255,0.7)" />
+                  <MaterialCommunityIcons name={b.icon as any} size={20} color="#0F172A" />
                   <Text style={s.balanceLabel}>{b.label}</Text>
                 </View>
                 <Text style={s.balanceValue}>{b.days} <Text style={s.balanceValueSub}>days left</Text></Text>
@@ -332,15 +332,19 @@ const s = StyleSheet.create({
   toggleBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
   toggleBtnTextActive: { color: T.text },
 
-  scrollContent: { padding: 16, paddingBottom: 60 },
+  scrollContent: { padding: 16, paddingBottom: 120 },
 
   // Balances
-  balancesRow: { flexDirection: "row", gap: 12, marginBottom: 24 },
-  balanceCard: { flex: 1, backgroundColor: T.primary, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border },
-  balanceHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  balanceLabel: { fontSize: 11, fontWeight: "800", color: "#fff", textTransform: "uppercase", letterSpacing: 0.5 },
-  balanceValue: { fontSize: 24, fontWeight: "900", color: "#fff" },
-  balanceValueSub: { fontSize: 13, fontWeight: "500", color: "rgba(255,255,255,0.7)" },
+  balancesRow: { flexDirection: "row", gap: 12, marginBottom: 20 },
+  balanceCard: { 
+    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 18, padding: 16, 
+    borderWidth: 1, borderColor: '#E2E8F0',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 6, elevation: 1
+  },
+  balanceHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  balanceLabel: { fontSize: 11, fontWeight: "800", color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5 },
+  balanceValue: { fontSize: 24, fontWeight: "900", color: "#0F172A" },
+  balanceValueSub: { fontSize: 12, fontWeight: "600", color: "#94A3B8" },
 
   // Form
   formCard: { backgroundColor: T.surface, borderRadius: 16, padding: 20,  },

@@ -1,0 +1,78 @@
+# Component Contracts: Admin Mobile Cockpit
+
+components:
+  ExecutiveMetricRibbon:
+    description: High-contrast Obsidian card displaying Gross Revenue, Commission, and Net Escrow
+    props:
+      totalRevenue:
+        type: number
+        required: true
+      revenueGrowth:
+        type: number
+        required: false
+      completedBookings:
+        type: number
+        required: true
+      onInspectPress:
+        type: "() => void"
+        required: false
+
+  SlaAlertMatrix:
+    description: Priority actionable triage matrix for outstanding items needing admin intervention
+    props:
+      pendingVerificationsCount:
+        type: number
+        required: true
+      activeDisputesCount:
+        type: number
+        required: true
+      pendingPayoutsCount:
+        type: number
+        required: true
+      onNavigateQueue:
+        type: "() => void"
+        required: true
+      onNavigateDisputes:
+        type: "() => void"
+        required: true
+      onNavigatePayouts:
+        type: "() => void"
+        required: true
+
+  CompanyInspectionRow:
+    description: Scannable business card within the approval queue and directory
+    props:
+      company:
+        type: CompanyVerificationRecord
+        required: true
+      onInspectDocuments:
+        type: "(company: CompanyVerificationRecord) => void"
+        required: true
+      onVerifyPress:
+        type: "(companyId: string) => Promise<void>"
+        required: true
+      onRejectPress:
+        type: "(companyId: string) => void"
+        required: true
+      isActionLoading:
+        type: boolean
+        required: false
+
+  DisputeResolutionSheet:
+    description: Two-step confirmation modal for binding escrow refund/settlement decisions
+    props:
+      visible:
+        type: boolean
+        required: true
+      dispute:
+        type: DisputeCaseSummary
+        required: true
+      onClose:
+        type: "() => void"
+        required: true
+      onSubmitResolution:
+        type: "(resolution: 'REFUND' | 'SPLIT' | 'RELEASE', note: string) => Promise<void>"
+        required: true
+      isLoading:
+        type: boolean
+        required: false

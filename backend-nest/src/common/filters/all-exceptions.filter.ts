@@ -40,28 +40,33 @@ export class AllExceptionsFilter implements ExceptionFilter {
           : exception.message;
     }
 
-    // Log the error
-    console.error(
-      '\n\n=== UNHANDLED EXCEPTION ===\n',
-      exception,
-      '\n===========================\n\n',
-    );
-    this.logger.error(
-      `${request.method} ${request.url} - Status: ${status} - Message: ${JSON.stringify(message)}`,
-      exception instanceof Error ? exception.stack : '',
-    );
+    // Log unexpected 500 server errors with full stack trace; log expected 4xx as warning
+    if (status >= 500) {
+      console.error(
+        '\n\n=== UNHANDLED EXCEPTION ===\n',
+        exception,
+        '\n===========================\n\n',
+      );
+      this.logger.error(
+        `${request.method} ${request.url} - Status: ${status} - Message: ${JSON.stringify(message)}`,
+        exception instanceof Error ? exception.stack : '',
+      );
 
-    // Send the error to Sentry if it's an unexpected internal server error
-    // OR if we want to capture everything. Here we capture all unhandled Error instances.
-    if (exception instanceof Error) {
-      Sentry.captureException(exception, {
-        extra: {
-          path: request.url,
-          method: request.method,
-          status,
-          body: request.body,
-        },
-      });
+      // Send the error to Sentry if it's an unexpected internal server error
+      if (exception instanceof Error) {
+        Sentry.captureException(exception, {
+          extra: {
+            path: request.url,
+            method: request.method,
+            status,
+            body: request.body,
+          },
+        });
+      }
+    } else {
+      this.logger.warn(
+        `${request.method} ${request.url} - Status: ${status} - Message: ${JSON.stringify(message)}`,
+      );
     }
 
     // Standardized error response

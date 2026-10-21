@@ -71,7 +71,9 @@ export class AuditLogsService {
       const actorName = log.user?.fullName || log.user?.email || 'System';
       const actorRole = log.user?.role || 'system';
       const targetType = log.entityType || 'system';
-      const target = log.entityId ? `${targetType} #${log.entityId}` : targetType;
+      const target = log.entityId
+        ? `${targetType} #${log.entityId}`
+        : targetType;
 
       let description = '';
       if (log.action === 'user_login') {
@@ -124,6 +126,10 @@ export class AuditLogsService {
     const { count } = await this.prisma.auditLog.deleteMany({
       where: { id: { in: bigIntIds } },
     });
-    return { success: true, message: `${count} audit log(s) deleted successfully.`, count };
+    return {
+      success: true,
+      message: `${count} audit log(s) deleted successfully.`,
+      count,
+    };
   }
 }

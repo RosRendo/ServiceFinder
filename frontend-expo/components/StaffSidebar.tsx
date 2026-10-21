@@ -20,27 +20,27 @@ const T = Theme.colors;
 
 const NAV_GROUPS = [
   {
-    group: "Daily Work",
+    group: "Daily Operations",
     items: [
-      { name: "Dashboard", icon: "view-dashboard-outline", route: "/(staff)/(tabs)/dashboard" },
-      { name: "Schedule", icon: "calendar-outline", route: "/(staff)/(tabs)/schedule" },
-      { name: "Messages", icon: "message-outline", route: "/(staff)/(tabs)/messages" },
+      { name: "Live Dispatch", icon: "lightning-bolt-outline", route: "/(staff)/(tabs)/today" },
+      { name: "My Availability", icon: "calendar-clock-outline", route: "/(staff)/availability" },
+      { name: "Contact Dispatch", icon: "headphones", route: "/(staff)/messages/new" },
     ],
   },
   {
-    group: "Personal",
+    group: "Performance & Career",
     items: [
-      { name: "Profile",      icon: "account-outline",       route: "/(staff)/(tabs)/profile" },
-      { name: "Wallet",       icon: "wallet",                route: "/(staff)/(tabs)/wallet" },
-      { name: "Performance",  icon: "chart-line",            route: "/(staff)/performance" },
-      { name: "Time Off",     icon: "beach",                 route: "/(staff)/timeoff" },
-      { name: "Availability", icon: "calendar-check-outline",route: "/(staff)/availability" },
+      { name: "Shift Earnings", icon: "currency-usd", route: "/(staff)/(tabs)/money" },
+      { name: "Staff Profile", icon: "account-outline", route: "/(staff)/(tabs)/me" },
+      { name: "Job History", icon: "history", route: "/(staff)/history" },
+      { name: "Performance Score", icon: "chart-line", route: "/(staff)/performance" },
+      { name: "Request Leave", icon: "calendar-remove-outline", route: "/(staff)/timeoff" },
     ],
   },
   {
-    group: "AI Tools",
+    group: "Field AI Diagnostics",
     items: [
-      { name: "AI Assistant", icon: "robot-outline", route: "/(staff)/ai/ai" },
+      { name: "AI Job Diagnostics", icon: "robot-outline", route: "/(staff)/ai/ai" },
     ],
   },
 ];
@@ -87,10 +87,16 @@ export default function StaffSidebar({ isOpen, onClose }: StaffSidebarProps) {
     setTimeout(() => router.push(route as any), 50);
   };
 
+  const normalizeRoute = (r: string) => {
+    if (!r) return "";
+    return r.replace(/\/\([^)]+\)/g, "").replace(/\/$/, "");
+  };
+
   const isActive = (route: string) => {
-    const normalized = route.replace("(tabs)/", "");
-    const currentNorm = pathname.replace("(tabs)/", "");
-    return currentNorm === normalized || currentNorm.startsWith(normalized + "/");
+    const normTarget = normalizeRoute(route);
+    const normCurrent = normalizeRoute(pathname);
+    if (!normTarget || !normCurrent) return false;
+    return normCurrent === normTarget || normCurrent.startsWith(normTarget + "/");
   };
 
   const userInitial =

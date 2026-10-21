@@ -7,6 +7,7 @@ import MapViewDirections from 'react-native-maps-directions';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import SwipeToComplete from '../../../components/SwipeToComplete';
+import VisualMilestoneStepper from '../../../components/jobs/VisualMilestoneStepper';
 import api from '../../../utils/api';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -512,6 +513,21 @@ export default function TodayScreen() {
     }
   };
 
+  const handleToggleShift = async () => {
+    const nextStatus = !isOnline;
+    setIsOnline(nextStatus);
+    try {
+      await api.patch('/api/users/me/working-status', {
+        workingStatus: nextStatus ? 'online' : 'offline',
+      });
+      await api.patch('/api/users/me/staff-status', {
+        status: nextStatus ? 'active' : 'inactive',
+      });
+    } catch (e) {
+      console.warn('Failed to update working status:', e);
+    }
+  };
+
   const handlePhoneCall = () => {
     const phone = activeBooking?.customer?.phone;
     if (phone) {
@@ -524,18 +540,23 @@ export default function TodayScreen() {
   const handleNavigate = () => {
     const lat = activeBooking?.latitude;
     const lng = activeBooking?.longitude;
-    const label = activeBooking?.serviceAddress || 'Destination';
+    const label = encodeURIComponent(activeBooking?.serviceAddress || 'Destination');
     if (!lat || !lng) return;
     
-    const url = Platform.select({
+    const nativeUrl = Platform.select({
       ios: `maps:0,0?q=${label}@${lat},${lng}`,
       android: `geo:0,0?q=${lat},${lng}(${label})`
     });
+    const webFallbackUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     
-    if (url) {
-      Linking.openURL(url).catch(() => {
-         Alert.alert('Error', 'Could not open maps application.');
+    if (nativeUrl) {
+      Linking.openURL(nativeUrl).catch(() => {
+        Linking.openURL(webFallbackUrl).catch(() => {
+          Alert.alert('Error', 'Could not open maps application.');
+        });
       });
+    } else {
+      Linking.openURL(webFallbackUrl);
     }
   };
 
@@ -867,12 +888,16 @@ export default function TodayScreen() {
       <View style={[s.floatingHeader, { top: insets.top + 10 }]}>
         <View style={s.floatingHeaderCard}>
           <View style={s.statusPillGroup}>
-            <View style={[s.statusCapsule, isOnline ? s.statusCapsuleOnline : s.statusCapsuleOffline]}>
+            <TouchableOpacity 
+              style={[s.statusCapsule, isOnline ? s.statusCapsuleOnline : s.statusCapsuleOffline]}
+              onPress={handleToggleShift}
+              activeOpacity={0.8}
+            >
               <View style={[s.statusDot, { backgroundColor: isOnline ? T.success : T.text3 }]} />
               <Text style={[s.statusCapsuleText, { color: isOnline ? T.successDark : T.text3 }]}>
-                {isOnline ? 'Online' : 'Offline'}
+                {isOnline ? 'On Shift (Online)' : 'Off Shift (Offline)'}
               </Text>
-            </View>
+            </TouchableOpacity>
 
             {isOffline && (
               <View style={[s.statusCapsule, { backgroundColor: T.dangerLight }]}>
@@ -1188,13 +1213,9 @@ export default function TodayScreen() {
 
                 return (
                   <View style={s.jobOfferContainer}>
-                    {/* Status Pill */}
-                    <View style={s.enRouteHeader}>
-                      <View style={s.enRoutePulseBadge}>
-                        <View style={s.pulsingGreenDot} />
-                        <Text style={s.enRouteBadgeText}>EN ROUTE TO CUSTOMER</Text>
-                      </View>
-                      <Text style={s.enRouteEta}>Live GPS Broadcasting</Text>
+                    {/* Visual Milestone Stepper */}
+                    <View style={{ marginBottom: 12 }}>
+                      <VisualMilestoneStepper currentStage="EN_ROUTE" />
                     </View>
 
                     {/* Client Card with Quick Actions */}
@@ -1204,7 +1225,7 @@ export default function TodayScreen() {
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={s.customerName}>{customerName}</Text>
-                        <Text style={s.customerRole}>Waiting for your arrival</Text>
+                        <Text style={s.customerRole}>Client</Text>
                       </View>
                       <View style={s.quickContactRow}>
                         <TouchableOpacity style={s.quickActionBtn} onPress={handlePhoneCall} activeOpacity={0.8}>
@@ -1222,7 +1243,7 @@ export default function TodayScreen() {
                         <MaterialCommunityIcons name="map-marker-radius" size={18} color={T.primary} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={s.locationLabel}>Destination Address</Text>
+                        <Text style={s.locationLabel}>Destination</Text>
                         <Text style={s.locationAddress} numberOfLines={2}>
                           {activeBooking?.serviceAddress || "Address Loading..."}
                         </Text>
@@ -1241,8 +1262,8 @@ export default function TodayScreen() {
                         icon="map-marker-check"
                       />
                       <TouchableOpacity style={s.mapsOutlineBtn} onPress={handleNavigate} activeOpacity={0.8}>
-                        <MaterialCommunityIcons name="map-search-outline" size={16} color={T.primary} style={{ marginRight: 6 }} />
-                        <Text style={s.mapsOutlineBtnText}>Open External GPS (Google / Apple Maps)</Text>
+                        <MaterialCommunityIcons name="navigation" size={16} color={T.primary} style={{ marginRight: 6 }} />
+                        <Text style={s.mapsOutlineBtnText}>GPS Navigation</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1253,16 +1274,16 @@ export default function TodayScreen() {
             {/* 6. ARRIVED STATE */}
             {isOnline && state === 'ARRIVED' && (
               <View style={s.centerStateContainer}>
+                <View style={{ width: '100%', marginBottom: 12 }}>
+                  <VisualMilestoneStepper currentStage="ARRIVED" />
+                </View>
                 <View style={[s.iconHalo, { backgroundColor: T.successLight }]}>
                   <MaterialCommunityIcons name="map-marker-check" size={44} color={T.success} />
                 </View>
-                <Text style={s.stateTitle}>You've Arrived!</Text>
-                <Text style={s.stateSubtitle}>
-                  Meet with {activeBooking?.customer?.fullName || 'the client'} and begin the service workflow.
-                </Text>
+                <Text style={s.stateTitle}>Arrived at Destination</Text>
                 <View style={s.btnWrapper}>
                   <BigButton 
-                    label="START SERVICE CHECKLIST ▶" 
+                    label="START SERVICE" 
                     onPress={() => {
                       updateBackendStatus('in_progress');
                       setState('WORKING');
@@ -1293,6 +1314,11 @@ export default function TodayScreen() {
                 
                 return (
                   <View style={s.jobOfferContainer}>
+                    {/* Visual Milestone Stepper */}
+                    <View style={{ marginBottom: 12 }}>
+                      <VisualMilestoneStepper currentStage="WORKING" />
+                    </View>
+
                     <View style={s.progressHeaderRow}>
                       <View style={{ flex: 1 }}>
                         <Text style={s.progressTaskTitle}>{activeBooking?.service?.name || "Service in Progress"}</Text>
@@ -1370,11 +1396,15 @@ export default function TodayScreen() {
             {/* 8. FINISHING STATE (Photo Upload Proof) */}
             {isOnline && state === 'FINISHING' && (
               <View style={s.jobOfferContainer}>
+                {/* Visual Milestone Stepper */}
+                <View style={{ marginBottom: 12 }}>
+                  <VisualMilestoneStepper currentStage="WORKING" />
+                </View>
+
                 <View style={s.finishHeader}>
                   <MaterialCommunityIcons name="camera-enhance-outline" size={20} color={T.primary} />
                   <Text style={s.finishTitle}>Proof of Work</Text>
                 </View>
-                <Text style={s.finishSubtitle}>Take clear photos to complete verification for this booking.</Text>
                 
                 {/* 3 Photo Tiles */}
                 <View style={s.photoTilesRow}>
@@ -1421,11 +1451,15 @@ export default function TodayScreen() {
             {/* 9. COMPLETED STATE */}
             {isOnline && state === 'COMPLETED' && (
               <View style={s.centerStateContainer}>
+                {/* Visual Milestone Stepper */}
+                <View style={{ width: '100%', marginBottom: 14 }}>
+                  <VisualMilestoneStepper currentStage="COMPLETED" />
+                </View>
+
                 <View style={[s.iconHalo, { backgroundColor: T.successLight }]}>
                   <MaterialCommunityIcons name="check-decagram" size={56} color={T.success} />
                 </View>
                 <Text style={s.stateTitle}>Job Completed!</Text>
-                <Text style={s.stateSubtitle}>Excellent work! Earnings have been credited to your company balance.</Text>
                 
                 <View style={s.earningsSummaryCard}>
                   <Text style={s.earningsLabel}>TOTAL EARNED</Text>

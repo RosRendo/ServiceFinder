@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { landingDictionary } from "@/lib/landing-dictionary";
+import { ServiceFinderOsCard } from "@/components/landing/ServiceFinderOsCard";
 
 interface HeroSectionProps {
   lang: "kh" | "en";
@@ -21,48 +22,6 @@ interface HeroSectionProps {
 
 export function HeroSection({ lang, onOpenAppDownload }: HeroSectionProps) {
   const dict = landingDictionary[lang].hero;
-
-  const partners = [
-    "PP Cleaners",
-    "Angkor HVAC",
-    "Sabaicode",
-    "PP Logistics",
-    "SmartFix",
-    "Sokha Plumbing",
-    "Vattanac Group",
-    "Chip Mong",
-    "Canadia Bank",
-    "ABA Bank",
-    "Zando",
-    "Brown Coffee",
-  ];
-
-  const workOrders = [
-    {
-      id: "WO-8421",
-      name: "Sokha Vireak (HVAC Senior)",
-      location: "Toul Kork, St. 289 • AC Chemical Clean",
-      amount: "$45.00",
-      status: "Dispatched (8m)",
-      badgeColor: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-    },
-    {
-      id: "WO-8422",
-      name: "Dara Chem (Licensed Electrician)",
-      location: "BKK 1, St. 310 • Main Breaker Box",
-      amount: "$65.00",
-      status: "Settled (KHQR)",
-      badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-    },
-    {
-      id: "WO-8423",
-      name: "Piseth Mao (Master Plumber)",
-      location: "Sen Sok Borey • Water Pressure Valve",
-      amount: "$38.00",
-      status: "In Progress",
-      badgeColor: "bg-slate-700 text-slate-300 border-slate-600",
-    },
-  ];
 
   return (
     <section className="relative overflow-hidden bg-white pt-12 pb-20 lg:pt-16 lg:pb-24 border-b border-slate-200">
@@ -192,126 +151,14 @@ export function HeroSection({ lang, onOpenAppDownload }: HeroSectionProps) {
             </motion.div>
           </div>
 
-          {/* Right Column: Premium Enterprise Cockpit with Smooth Entrance & Lift */}
+          {/* Right Column: Premium Interactive ServiceFinder OS Live Cockpit */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.25, ease: [0.21, 0.47, 0.32, 0.98] }}
             className="lg:col-span-6"
           >
-            <div
-              className="relative rounded-2xl bg-slate-950 text-white p-6 sm:p-8 shadow-2xl flex flex-col justify-between overflow-hidden border border-slate-800 transition-all hover:border-slate-700"
-              style={{
-                backgroundImage:
-                  "linear-gradient(rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.98)), url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80')",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            >
-              {/* Window Header */}
-              <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center shadow-xs">
-                    <Sparkles className="w-3.5 h-3.5 text-white" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold tracking-wider uppercase text-white block">
-                      ServiceFinder OS
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      app.servicefinder.kh/dispatch
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
-                  </span>
-                  <span>{lang === "kh" ? "ប្រព័ន្ធដំណើរការផ្ទាល់" : "Live Dispatch"}</span>
-                </div>
-              </div>
-
-              {/* Work Orders Queue with Micro-Hover Motion */}
-              <div className="space-y-2.5 text-xs">
-                {workOrders.map((order, idx) => (
-                  <motion.div
-                    key={order.id}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: 0.35 + idx * 0.1 }}
-                    whileHover={{ x: 4 }}
-                    className="rounded-xl border border-white/10 bg-slate-900/80 p-3.5 backdrop-blur-sm flex items-center justify-between transition-all hover:bg-slate-900 hover:border-white/20 cursor-default"
-                  >
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] font-bold text-slate-400">
-                          {order.id}
-                        </span>
-                        <span className="font-bold text-white">{order.name}</span>
-                      </div>
-                      <div className="text-[11px] text-slate-400 flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-slate-500" />
-                        <span>{order.location}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-mono font-bold text-white text-xs block">
-                        {order.amount}
-                      </span>
-                      <span
-                        className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-full border ${order.badgeColor}`}
-                      >
-                        {order.status}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Instant Bakong KHQR Settlement Guarantee Banner */}
-              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3 flex items-center justify-between text-xs backdrop-blur-sm">
-                <div className="flex items-center gap-2">
-                  <div className="h-6 w-6 rounded bg-red-600 flex items-center justify-center text-[9px] font-black text-white shadow-xs">
-                    KHQR
-                  </div>
-                  <span className="text-[11px] text-slate-300 font-medium">
-                    National Bank of Cambodia Rails • Instant Settlement
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
-                  <Check className="h-3.5 w-3.5" />
-                  <span>Verified</span>
-                </div>
-              </div>
-
-              {/* Infinite Smooth Partner Marquee Ticker with Edge Gradient Mask */}
-              <div className="mt-5 w-full overflow-hidden border-y border-white/10 py-2.5 bg-black/20 marquee-mask">
-                <div className="flex gap-8 w-[200%] animate-marquee-hero">
-                  <div className="flex gap-8 shrink-0">
-                    {partners.map((partner, idx) => (
-                      <span
-                        key={`h1-${idx}`}
-                        className="text-[11px] font-bold text-slate-400 tracking-wider whitespace-nowrap uppercase"
-                      >
-                        ● {partner}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex gap-8 shrink-0">
-                    {partners.map((partner, idx) => (
-                      <span
-                        key={`h2-${idx}`}
-                        className="text-[11px] font-bold text-slate-400 tracking-wider whitespace-nowrap uppercase"
-                      >
-                        ● {partner}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ServiceFinderOsCard lang={lang} />
           </motion.div>
         </div>
       </div>

@@ -1,0 +1,157 @@
+openapi: 3.0.3
+info:
+  title: Admin Clean Business Cockpit API
+  version: 1.0.0
+  description: REST API contracts for executive metrics, business verification, dispute arbitration, and operations.
+
+paths:
+  /api/admin/analytics:
+    get:
+      summary: Retrieve executive platform telemetry
+      description: Returns GMV, commission, completed bookings, and live queue counts.
+      responses:
+        "200":
+          description: Live aggregated platform telemetry
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalRevenue:
+                    type: number
+                    example: 124850.00
+                  revenueGrowth:
+                    type: number
+                    nullable: true
+                    example: 14.2
+                  completedBookings:
+                    type: integer
+                    example: 1842
+                  pendingCompanies:
+                    type: integer
+                    example: 5
+                  activeDisputes:
+                    type: integer
+                    example: 2
+                  payoutRequests:
+                    type: integer
+                    example: 3
+
+  /api/admin/companies:
+    get:
+      summary: Retrieve company verification records by status
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, pending, reviewing, verified, rejected]
+          required: false
+      responses:
+        "200":
+          description: Filtered company applications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CompanyDossier'
+
+  /api/admin/companies/{id}/verify:
+    post:
+      summary: Approve business credentials
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Company verified successfully
+
+  /api/admin/companies/{id}/reject:
+    post:
+      summary: Reject business application with reason
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  example: "Unverified business license document"
+      responses:
+        "200":
+          description: Company application rejected
+
+  /api/admin/disputes/{id}/resolve:
+    put:
+      summary: Arbitrate dispute case and disburse escrow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision, notes]
+              properties:
+                decision:
+                  type: string
+                  enum: [accept_claim, accept_company, mediation]
+                refundAmount:
+                  type: number
+                  example: 75.00
+                notes:
+                  type: string
+                  minLength: 5
+                  example: "Customer provided photo proof of incomplete bathroom tiling."
+      responses:
+        "200":
+          description: Dispute resolved and funds disbursed
+
+components:
+  schemas:
+    CompanyDossier:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        registrationNumber:
+          type: string
+        businessType:
+          type: string
+        city:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        verificationStatus:
+          type: string
+          enum: [pending, reviewing, verified, rejected]
+        verificationDocumentUrl:
+          type: string
+        createdAt:
+          type: string
+          format: date-time

@@ -1,0 +1,20 @@
+{
+  "name": "ServiceFinder",
+  "tagline": "Verified Fleet Network & Escrow Protection",
+  "avoid": [
+    "TaskRabbit",
+    "Thumbtack",
+    "Angi Home Services",
+    "Handy Technologies"
+  ],
+  "domains": [
+    "taskrabbit.com",
+    "thumbtack.com",
+    "angi.com",
+    "handy.com"
+  ],
+  "colors": [
+    "#008060",
+    "#009fd9"
+  ]
+}

@@ -543,15 +543,21 @@
     "paymentSuccessful": "Payment Successful!"
   },
   "welcome": {
-    "findServices": "Find Services",
-    "findServicesDesc": "Discover the best local professionals for any job with ease.",
-    "bookInstantly": "Book Instantly",
-    "bookInstantlyDesc": "Schedule appointments that fit your time and get instant confirmations.",
-    "absoluteConfidence": "Absolute Confidence",
-    "absoluteConfidenceDesc": "Track your bookings, chat with professionals, and manage everything in one place.",
-    "continuePhone": "Continue with Phone",
-    "continueEmail": "Continue with Email",
-    "staffLogin": "Company / Staff Login"
+    "skip": "Skip",
+    "findServices": "Trusted Pros Nearby",
+    "findServicesDesc": "Verified local experts ready for any home need.",
+    "bookInstantly": "Fast Live Dispatch",
+    "bookInstantlyDesc": "Track your technician in real time on the map.",
+    "absoluteConfidence": "Safe Escrow & KHQR",
+    "absoluteConfidenceDesc": "Pay securely only after the job is completed.",
+    "badge1": "Verified Pro",
+    "badge2": "Live 18m ETA",
+    "heroTitle": "Help is closer than you think.",
+    "heroSubtitle": "Trusted people for the things you need.",
+    "getStarted": "Get Started",
+    "signIn": "Sign In",
+    "alreadyAccount": "Already have an account?",
+    "logIn": "Log In"
   },
   "adminDirectory": {
     "title": "Directory",
@@ -619,20 +625,18 @@
     "arrivalEstimate": "Arrives in 15-30 mins",
     "payAfterDone": "Pay after work is completed"
   },
-  "welcome": {
-    "skip": "Skip",
-    "findServices": "Trusted Pros Nearby",
-    "findServicesDesc": "Verified local experts ready for any home need.",
-    "bookInstantly": "Fast Live Dispatch",
-    "bookInstantlyDesc": "Track your technician in real time on the map.",
-    "absoluteConfidence": "Safe Escrow & KHQR",
-    "absoluteConfidenceDesc": "Pay securely only after the job is completed.",
-    "badge1": "Verified Pro",
-    "badge2": "Live 18m ETA",
-    "badge3": "Escrow Shield",
-    "getStarted": "Get Started",
-    "signIn": "Sign In",
-    "alreadyAccount": "Already have an account?",
-    "logIn": "Log In"
+  "roleDispatch": {
+    "onShift": "On Shift (Online)",
+    "offShift": "Off Shift (Offline)",
+    "enRoute": "On the Way",
+    "arrived": "Arrived on Site",
+    "startService": "Start Service",
+    "completeJob": "Complete Job & Cash",
+    "assignStaff": "Assign Staff",
+    "cashCollected": "Physical Cash Collected",
+    "settleCash": "Settle Cash",
+    "settled": "Settled",
+    "vettingPending": "Pending Review",
+    "vettingApproved": "Verified Active"
   }
 }

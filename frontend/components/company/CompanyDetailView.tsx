@@ -666,7 +666,7 @@ export function CompanyDetailView({ companyId, showBreadcrumbs = true, breadcrum
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center font-medium text-stone-600 dark:text-stone-300">
-                            {review.customer?.avatar ? <img src={review.customer.avatar} className="w-full h-full rounded-full" /> : (review.author?.charAt(0) || "?")}
+                            {review.customer?.avatar ? <img src={review.customer.avatar} alt={review.customer?.fullName || "Avatar"} className="w-full h-full rounded-full" /> : (review.author?.charAt(0) || "?")}
                           </div>
                           <div>
                             <div className="font-medium text-sm text-stone-900 dark:text-stone-100">{review.customer?.fullName || review.author}</div>
@@ -930,7 +930,7 @@ export function CompanyDetailView({ companyId, showBreadcrumbs = true, breadcrum
              <div className="h-24 bg-black/90 flex items-center justify-center gap-2 px-4 overflow-x-auto">
                 {gallery.map((img, idx) => (
                   <button key={idx} onClick={() => setCurrentGalleryIndex(idx)} className={`w-16 h-16 shrink-0 rounded-lg overflow-hidden transition-all ${idx === currentGalleryIndex ? "border-2 border-white opacity-100" : "opacity-50 hover:opacity-80"}`}>
-                     <img src={img} className="w-full h-full object-cover" />
+                     <img src={img} alt={`Gallery thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
              </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UserPlus, Star, Edit2, Phone, Mail } from "lucide-react";
+import { UserPlus, Star, Edit2, Phone, Mail, Trash2 } from "lucide-react";
 import api from "@/lib/api/client";
 import { useToast } from "@/lib/hooks/use-toast";
 import { useSocket } from "@/lib/hooks/useSocket";
@@ -41,6 +41,24 @@ export default function CompanyStaffPage() {
       toast({ title: "Error", description: err.message || "Failed to load staff", variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRemoveStaff = async (staffMember: any, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const name = staffMember.user?.fullName || staffMember.name || "this staff member";
+    if (!confirm(`Are you sure you want to remove ${name} from your company roster?`)) return;
+    try {
+      await api.delete(`/companies/staff/${staffMember.id}`);
+      toast({ title: "Removed", description: `${name} has been removed from staff roster.` });
+      fetchStaff();
+      setDrawerOpen(false);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Failed to remove staff member",
+        variant: "destructive",
+      });
     }
   };
 
@@ -181,8 +199,16 @@ export default function CompanyStaffPage() {
               setInviteDrawerOpen(true);
             }}
             className="p-1 rounded text-muted-foreground/70 hover:text-foreground/90 dark:hover:text-foreground hover:bg-muted dark:hover:bg-muted transition"
+            title="Edit Staff Member"
           >
             <Edit2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={(e) => handleRemoveStaff(row, e)}
+            className="p-1 rounded text-rose-500/70 hover:text-rose-600 hover:bg-rose-500/10 transition"
+            title="Remove from Roster"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       ),

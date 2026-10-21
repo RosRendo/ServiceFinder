@@ -57,12 +57,23 @@ export default function CheckoutScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   
-  const [selectedMethod, setSelectedMethod] = useState<'aba' | 'khqr' | 'wing'>('aba');
+  const [selectedMethod, setSelectedMethod] = useState<'cash' | 'khqr' | 'aba' | 'wing'>('cash');
   const [pollingActive, setPollingActive] = useState<boolean>(false);
   const [khqrString, setKhqrString] = useState<string | null>(null);
   const [khqrAmount, setKhqrAmount] = useState<string>("0.00");
   const [abaHtml, setAbaHtml] = useState<string | null>(null);
   const [abaDeeplink, setAbaDeeplink] = useState<string | null>(null);
+
+  // Inline Guest Auth Drawer State
+  const [showAuthDrawer, setShowAuthDrawer] = useState(false);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authPhone, setAuthPhone] = useState("");
+  const [authOtp, setAuthOtp] = useState("");
+  const [authMode, setAuthMode] = useState<'login' | 'otp'>('login');
+  const [authStep, setAuthStep] = useState<'phone' | 'otp'>('phone');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const mapViewRef = useRef<MapView>(null);
   const pickerMapRef = useRef<MapView>(null);
@@ -141,7 +152,96 @@ export default function CheckoutScreen() {
     return () => clearInterval(interval);
   }, [khqrString, pollingActive, booking?.id]);
 
+  const handleQuickDemoLogin = async () => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      await useAuthStore.getState().login("customer@servicefinder.com", "password123");
+      setShowAuthDrawer(false);
+      setTimeout(() => {
+        handleCreateAndPay();
+      }, 350);
+    } catch (e: any) {
+      setAuthError(e?.response?.data?.message || "Demo login failed");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handlePasswordLogin = async () => {
+    if (!authEmail.trim() || !authPassword.trim()) {
+      setAuthError("Please enter email and password");
+      return;
+    }
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      await useAuthStore.getState().login(authEmail.trim(), authPassword.trim());
+      setShowAuthDrawer(false);
+      setTimeout(() => {
+        handleCreateAndPay();
+      }, 350);
+    } catch (e: any) {
+      setAuthError(e?.response?.data?.message || "Login failed. Check your credentials.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleRequestOtp = async () => {
+    if (!authPhone.trim()) {
+      setAuthError("Please enter phone number");
+      return;
+    }
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      let cleanPhone = authPhone.trim();
+      if (cleanPhone.startsWith("0")) cleanPhone = cleanPhone.substring(1);
+      const fullPhone = `+855${cleanPhone}`;
+      await api.post("/api/auth/request-otp", { phone: fullPhone });
+      setAuthStep("otp");
+    } catch (e: any) {
+      setAuthError(e?.response?.data?.message || "Failed to send OTP code");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!authOtp.trim()) {
+      setAuthError("Please enter the 6-digit OTP code");
+      return;
+    }
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      let cleanPhone = authPhone.trim();
+      if (cleanPhone.startsWith("0")) cleanPhone = cleanPhone.substring(1);
+      const fullPhone = `+855${cleanPhone}`;
+      await useAuthStore.getState().verifyOtp(fullPhone, authOtp.trim());
+      setShowAuthDrawer(false);
+      setTimeout(() => {
+        handleCreateAndPay();
+      }, 350);
+    } catch (e: any) {
+      setAuthError(e?.response?.data?.message || "Invalid OTP code");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const handleCreateAndPay = async () => {
+    if (isProcessing) return;
+
+    // Guest Auth Gating: inline bottom sheet instead of page navigation
+    const currentUser = useAuthStore.getState().user;
+    const isGuest = useAuthStore.getState().isGuest;
+    if (!currentUser || isGuest) {
+      setShowAuthDrawer(true);
+      return;
+    }
+
     setPayError(null);
     setIsProcessing(true);
 
@@ -158,22 +258,58 @@ export default function CheckoutScreen() {
       try {
         const bd = new Date();
         const localDateString = `${bd.getFullYear()}-${String(bd.getMonth() + 1).padStart(2, '0')}-${String(bd.getDate()).padStart(2, '0')}`;
+        
+        let resolvedDate = localDateString;
+        if (date && !date.toLowerCase().includes("today") && !date.toLowerCase().includes("tomorrow")) {
+          const parsed = new Date(date);
+          if (!isNaN(parsed.getTime())) {
+            resolvedDate = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+          }
+        } else if (date && date.toLowerCase().includes("tomorrow")) {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          resolvedDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+        }
+
+        const resolvedCompanyId = service?.companyId || service?.company?.id || companyId || "";
         const res = await api.post("/api/bookings", {
           serviceId, 
-          companyId: service?.companyId || companyId || "", 
-          bookingDate: localDateString,
+          companyId: resolvedCompanyId, 
+          bookingDate: resolvedDate,
           startTime: time || "10:00", 
-          serviceAddress: (user as any)?.city || "Local Address",
+          serviceAddress: displayAddress || "Customer Location, Phnom Penh",
+          latitude: displayLat,
+          longitude: displayLng,
         });
-        activeBookingId = res.data.data.id;
-      } catch (err) {
-        setPayError("Failed to create temporary booking.");
+        activeBookingId = res.data?.data?.id || res.data?.data?.booking?.id;
+        setBooking({ id: activeBookingId, ...res.data?.data });
+      } catch (err: any) {
+        setPayError(err?.response?.data?.message || "Failed to create booking.");
         setIsProcessing(false);
         return;
       }
     }
 
     // 2. Process Payment
+    if (selectedMethod === 'cash') {
+      try {
+        const res = await api.post('/api/payments/complete', {
+          bookingId: activeBookingId,
+          method: 'cash',
+        });
+        if (res.data?.success) {
+          setShowSuccess(true);
+        } else {
+          setPayError(res.data?.message || "Failed to confirm cash booking.");
+        }
+      } catch (err: any) {
+        setPayError(err?.response?.data?.message || "Failed to confirm cash booking.");
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
     if (selectedMethod === 'khqr') {
       try {
         const res = await api.post('/api/payments/khqr/generate', { bookingId: activeBookingId });
@@ -505,14 +641,22 @@ export default function CheckoutScreen() {
           <Text style={s.methodTitle}>Payment Method</Text>
           
           <TouchableOpacity 
-            style={[s.methodCard, selectedMethod === 'aba' && s.methodCardActive]} 
-            onPress={() => setSelectedMethod('aba')}
+            style={[s.methodCard, selectedMethod === 'cash' && s.methodCardActive]} 
+            onPress={() => setSelectedMethod('cash')}
           >
-            <View style={{ marginRight: 12 }}>
-              <AbaPayWaySvg width={48} height={32} />
+            <View style={[s.methodIconBox, { backgroundColor: '#ECFDF5' }]}>
+              <MaterialIcons name="payments" size={24} color="#059669" />
             </View>
-            <Text style={[s.methodLabel, selectedMethod === 'aba' && s.methodLabelActive]}>ABA PayWay</Text>
-            {selectedMethod === 'aba' && <MaterialIcons name="check-circle" size={24} color={T.accent} />}
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[s.methodLabel, selectedMethod === 'cash' && s.methodLabelActive]}>Cash on Completion</Text>
+                <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: '#065F46' }}>POPULAR</Text>
+                </View>
+              </View>
+              <Text style={{ fontSize: 12, color: T.text2, marginTop: 2 }}>Pay pro directly after service</Text>
+            </View>
+            {selectedMethod === 'cash' && <MaterialIcons name="check-circle" size={24} color={T.accent} />}
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -522,8 +666,25 @@ export default function CheckoutScreen() {
             <View style={{ marginRight: 12 }}>
               <KhqrBakongSvg width={48} height={32} />
             </View>
-            <Text style={[s.methodLabel, selectedMethod === 'khqr' && s.methodLabelActive]}>KHQR (Scan to Pay)</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.methodLabel, selectedMethod === 'khqr' && s.methodLabelActive]}>KHQR (Scan to Pay)</Text>
+              <Text style={{ fontSize: 12, color: T.text2, marginTop: 2 }}>ABA, ACLEDA, Canadia, Wing & Bakong</Text>
+            </View>
             {selectedMethod === 'khqr' && <MaterialIcons name="check-circle" size={24} color={T.accent} />}
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[s.methodCard, selectedMethod === 'aba' && s.methodCardActive, { marginTop: 12 }]} 
+            onPress={() => setSelectedMethod('aba')}
+          >
+            <View style={{ marginRight: 12 }}>
+              <AbaPayWaySvg width={48} height={32} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.methodLabel, selectedMethod === 'aba' && s.methodLabelActive]}>ABA PayWay</Text>
+              <Text style={{ fontSize: 12, color: T.text2, marginTop: 2 }}>Instant ABA mobile app payment</Text>
+            </View>
+            {selectedMethod === 'aba' && <MaterialIcons name="check-circle" size={24} color={T.accent} />}
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -533,7 +694,10 @@ export default function CheckoutScreen() {
             <View style={{ marginRight: 12 }}>
               <WingBankSvg width={48} height={32} />
             </View>
-            <Text style={[s.methodLabel, selectedMethod === 'wing' && s.methodLabelActive]}>Wing Bank</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.methodLabel, selectedMethod === 'wing' && s.methodLabelActive]}>Wing Bank</Text>
+              <Text style={{ fontSize: 12, color: T.text2, marginTop: 2 }}>Wing mobile wallet</Text>
+            </View>
             {selectedMethod === 'wing' && <MaterialIcons name="check-circle" size={24} color={T.accent} />}
           </TouchableOpacity>
         </FadeIn>
@@ -627,16 +791,145 @@ export default function CheckoutScreen() {
         visible={showSuccess} 
         onFinish={() => {
           setShowSuccess(false);
+          const finalBookingId = booking?.id || bookingId;
           if (isInstant === "true") {
             router.replace({
               pathname: "/(customer)/map-view" as any,
-              params: { bookingId, mode: "tracking" }
+              params: { bookingId: finalBookingId, mode: "tracking" }
             });
+          } else if (finalBookingId) {
+            router.replace(`/(customer)/booking/${finalBookingId}` as any);
           } else {
             router.replace("/(customer)/(tabs)/home" as any);
           }
         }} 
       />
+
+      {/* INLINE GUEST AUTHENTICATION BOTTOM SHEET */}
+      <Modal visible={showAuthDrawer} transparent animationType="slide" onRequestClose={() => setShowAuthDrawer(false)}>
+        <View style={s.authModalOverlay}>
+          <View style={s.authDrawerCard}>
+            <View style={s.authDrawerHandle} />
+            <View style={s.authDrawerHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.authDrawerTitle}>Sign In to Confirm Booking</Text>
+                <Text style={s.authDrawerSubtitle}>Your service selection and address are saved.</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowAuthDrawer(false)} style={s.authCloseBtn}>
+                <MaterialIcons name="close" size={22} color={T.text2} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick Demo Login CTA */}
+            <TouchableOpacity style={s.demoLoginBtn} onPress={handleQuickDemoLogin} disabled={authLoading}>
+              <MaterialIcons name="flash-on" size={20} color="#fff" />
+              <Text style={s.demoLoginBtnText}>Instant Demo Sign In (1-Tap)</Text>
+            </TouchableOpacity>
+
+            <View style={s.authDividerRow}>
+              <View style={s.authDivider} />
+              <Text style={s.authDividerText}>or sign in with</Text>
+              <View style={s.authDivider} />
+            </View>
+
+            {/* Mode Switcher: Email / Phone */}
+            <View style={s.authTabs}>
+              <TouchableOpacity
+                style={[s.authTab, authMode === 'login' && s.authTabActive]}
+                onPress={() => { setAuthMode('login'); setAuthError(null); }}
+              >
+                <Text style={[s.authTabText, authMode === 'login' && s.authTabTextActive]}>Email & Password</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.authTab, authMode === 'otp' && s.authTabActive]}
+                onPress={() => { setAuthMode('otp'); setAuthError(null); }}
+              >
+                <Text style={[s.authTabText, authMode === 'otp' && s.authTabTextActive]}>Phone OTP</Text>
+              </TouchableOpacity>
+            </View>
+
+            {authMode === 'login' ? (
+              <View style={{ gap: 12, marginTop: 16 }}>
+                <TextInput
+                  style={s.authInput}
+                  placeholder="Email Address"
+                  placeholderTextColor={T.text3}
+                  value={authEmail}
+                  onChangeText={setAuthEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+                <TextInput
+                  style={s.authInput}
+                  placeholder="Password"
+                  placeholderTextColor={T.text3}
+                  value={authPassword}
+                  onChangeText={setAuthPassword}
+                  secureTextEntry
+                />
+                <TouchableOpacity style={s.authSubmitBtn} onPress={handlePasswordLogin} disabled={authLoading}>
+                  {authLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={s.authSubmitBtnText}>Sign In & Proceed</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ gap: 12, marginTop: 16 }}>
+                {authStep === 'phone' ? (
+                  <>
+                    <View style={s.phoneInputRow}>
+                      <View style={s.countryCodeBox}>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: T.text1 }}>🇰🇭 +855</Text>
+                      </View>
+                      <TextInput
+                        style={[s.authInput, { flex: 1 }]}
+                        placeholder="12 345 678"
+                        placeholderTextColor={T.text3}
+                        value={authPhone}
+                        onChangeText={setAuthPhone}
+                        keyboardType="phone-pad"
+                      />
+                    </View>
+                    <TouchableOpacity style={s.authSubmitBtn} onPress={handleRequestOtp} disabled={authLoading}>
+                      {authLoading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={s.authSubmitBtnText}>Send Verification Code</Text>
+                      )}
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <TextInput
+                      style={[s.authInput, { textAlign: 'center', letterSpacing: 8, fontSize: 20, fontWeight: '800' }]}
+                      placeholder="• • • • • •"
+                      placeholderTextColor={T.text3}
+                      value={authOtp}
+                      onChangeText={setAuthOtp}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                    />
+                    <TouchableOpacity style={s.authSubmitBtn} onPress={handleVerifyOtp} disabled={authLoading}>
+                      {authLoading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={s.authSubmitBtnText}>Verify & Confirm Booking</Text>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setAuthStep('phone')} style={{ alignSelf: 'center', marginTop: 4 }}>
+                      <Text style={{ fontSize: 13, color: T.accent, fontWeight: '600' }}>Change Phone Number</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            )}
+
+            {authError && <Text style={[s.errorText, { marginTop: 12 }]}>{authError}</Text>}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -706,5 +999,29 @@ const s = StyleSheet.create({
   khqrClose: { marginTop: 16, padding: 16, backgroundColor: '#F3F4F6', borderRadius: 12, width: '100%', alignItems: 'center' },
   khqrCloseText: { fontSize: 14, fontWeight: '700', color: '#374151' },
   abaButton: { marginTop: 20, paddingVertical: 14, paddingHorizontal: 24, backgroundColor: '#005370', borderRadius: 12, width: '100%', alignItems: 'center' },
-  abaButtonText: { color: '#FFF', fontWeight: '800', fontSize: 15 }
+  abaButtonText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+
+  // Inline Auth Drawer Styles
+  authModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  authDrawerCard: { backgroundColor: T.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: Platform.OS === 'ios' ? 44 : 28 },
+  authDrawerHandle: { width: 44, height: 4, borderRadius: 2, backgroundColor: T.border, alignSelf: 'center', marginBottom: 16 },
+  authDrawerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  authDrawerTitle: { fontSize: 18, fontWeight: '800', color: T.text1 },
+  authDrawerSubtitle: { fontSize: 13, color: T.text2, marginTop: 2 },
+  authCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: T.bg, alignItems: 'center', justifyContent: 'center' },
+  demoLoginBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#059669', borderRadius: 14, paddingVertical: 14, marginBottom: 16 },
+  demoLoginBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  authDividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  authDivider: { flex: 1, height: 1, backgroundColor: T.border },
+  authDividerText: { fontSize: 12, color: T.text3, fontWeight: '600' },
+  authTabs: { flexDirection: 'row', backgroundColor: T.bg, borderRadius: 12, padding: 4 },
+  authTab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
+  authTabActive: { backgroundColor: T.surface, ...CARD_SHADOW },
+  authTabText: { fontSize: 13, fontWeight: '600', color: T.text2 },
+  authTabTextActive: { color: T.text1, fontWeight: '800' },
+  authInput: { backgroundColor: T.bg, borderRadius: 12, borderWidth: 1, borderColor: T.border, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, color: T.text1 },
+  phoneInputRow: { flexDirection: 'row', gap: 10 },
+  countryCodeBox: { backgroundColor: T.bg, borderRadius: 12, borderWidth: 1, borderColor: T.border, paddingHorizontal: 14, justifyContent: 'center' },
+  authSubmitBtn: { backgroundColor: T.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
+  authSubmitBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 });

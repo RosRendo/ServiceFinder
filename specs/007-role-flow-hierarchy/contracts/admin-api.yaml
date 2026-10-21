@@ -1,0 +1,172 @@
+openapi: 3.0.3
+info:
+  title: Superadmin Platform Governance API
+  version: 1.0.0
+  description: Endpoints powering Platform Superadmins (Company Vetting, Global Queue Monitoring, Dispute Arbitration).
+
+paths:
+  /admin/analytics:
+    get:
+      summary: Overall platform transaction volume and operational health
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gmv:
+                    type: number
+                  totalBookings:
+                    type: integer
+                  openDisputes:
+                    type: integer
+                  pendingVerifications:
+                    type: integer
+
+  /admin/companies:
+    get:
+      summary: List registered companies with verification filter
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, verified, rejected]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminCompanyItem'
+
+  /admin/companies/{id}/verify:
+    post:
+      summary: Approve company verification documents
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Company verified and granted marketplace dispatch privileges
+
+  /admin/companies/{id}/reject:
+    post:
+      summary: Reject company verification with structured reason
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Company rejected; notification sent to owner
+
+  /admin/disputes:
+    get:
+      summary: List all customer-company disputes
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, under_review, resolved]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DisputeCase'
+
+  /admin/disputes/{id}:
+    patch:
+      summary: Adjudicate dispute and disburse escrow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+                - adminDecision
+              properties:
+                status:
+                  type: string
+                  enum: [resolved, dismissed]
+                adminDecision:
+                  type: string
+                  enum: [refund_customer, release_provider, split]
+                refundAmount:
+                  type: number
+      responses:
+        '200':
+          description: Dispute resolved and funds disbursed according to arbitration
+
+components:
+  schemas:
+    AdminCompanyItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        registrationNumber:
+          type: string
+        verificationStatus:
+          type: string
+          enum: [pending, verified, rejected]
+        verificationDocumentUrl:
+          type: string
+        ownerName:
+          type: string
+        ownerPhone:
+          type: string
+
+    DisputeCase:
+      type: object
+      properties:
+        id:
+          type: integer
+        bookingId:
+          type: string
+        customerName:
+          type: string
+        companyName:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        frozenAmount:
+          type: number
+        status:
+          type: string
+        adminDecision:
+          type: string

@@ -226,7 +226,10 @@ export class BookingsController {
   @Post(':id/reschedule')
   @Patch(':id/reschedule')
   @ApiOperation({ summary: 'Reschedule a booking' })
-  @ApiResponse({ status: 200, description: 'Booking successfully rescheduled.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Booking successfully rescheduled.',
+  })
   rescheduleBooking(
     @Param('id') id: string,
     @Body() dto: RescheduleBookingDto,

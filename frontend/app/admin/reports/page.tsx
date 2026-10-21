@@ -20,7 +20,7 @@ const exportReports = [
   { id: 'Platform Tax Report', format: 'PDF', icon: Landmark, desc: 'Aggregated tax collected and owed across the marketplace.' },
 ];
 
-export default function AdminReportsPage() {
+export default function AdminReportsPage({ hideHeader = false }: { hideHeader?: boolean } = {}) {
   const [activeTab, setActiveTab] = useState<"pnl" | "cashflow" | "payouts" | "transactions" | "refunds" | "taxes" | "export">("pnl");
   const [dateRange, setDateRange] = useState("aug2026");
   const [isExporting, setIsExporting] = useState<string | null>(null);
@@ -67,7 +67,7 @@ export default function AdminReportsPage() {
   }));
 
   const filteredTransactions = useMemo(() => {
-    return rawTransactions.filter(tx => {
+    return rawTransactions.filter((tx: any) => {
       const matchesSearch = 
         tx.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         tx.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -169,16 +169,50 @@ export default function AdminReportsPage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-6 space-y-6 font-sans bg-background text-foreground">
+    <div className={cn("h-full overflow-y-auto space-y-6 font-sans bg-background text-foreground", !hideHeader && "p-6")}>
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Platform Financial Statements & Reports</h1>
-          <p className="text-xs font-medium text-muted-foreground mt-0.5">Audited accounting records, monthly P&L summaries, and provider payout disbursements.</p>
+      {!hideHeader && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Platform Financial Statements & Reports</h1>
+            <p className="text-xs font-medium text-muted-foreground mt-0.5">Audited accounting records, monthly P&L summaries, and provider payout disbursements.</p>
+          </div>
+          
+          <div className="flex items-center gap-2.5">
+            <select 
+              value={dateRange} 
+              onChange={(e) => {
+                setDateRange(e.target.value);
+                toast.info(`Statement period updated to ${e.target.value}`);
+              }}
+              className="h-8.5 px-3 rounded-lg border border-border bg-background text-xs font-semibold text-foreground/90 outline-none hover:bg-background"
+            >
+              <option value="aug2026">August 2026</option>
+              <option value="jul2026">July 2026</option>
+              <option value="jun2026">June 2026</option>
+              <option value="ytd2026">Year-to-Date 2026</option>
+            </select>
+            <Button 
+              variant="outline" 
+              className="h-8.5 px-3.5 text-xs font-bold border-border bg-background text-foreground/90 hover:bg-background" 
+              onClick={() => handleExport("Income Statement (PDF)")}
+            >
+              <FileText className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" /> Export PDF
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-8.5 px-3.5 text-xs font-bold border-border bg-background text-foreground/90 hover:bg-background" 
+              onClick={() => handleExport("Full Ledger (CSV)")}
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" /> Export CSV
+            </Button>
+          </div>
         </div>
-        
-        <div className="flex items-center gap-2.5">
+      )}
+
+      {hideHeader && (
+        <div className="flex items-center justify-end gap-2.5 pt-1">
           <select 
             value={dateRange} 
             onChange={(e) => {
@@ -207,7 +241,7 @@ export default function AdminReportsPage() {
             <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" /> Export CSV
           </Button>
         </div>
-      </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">

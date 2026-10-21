@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Briefcase, Plus, Edit2, Tag } from "lucide-react";
+import { Briefcase, Plus, Edit2, Tag, Trash2 } from "lucide-react";
 import { useAPI } from "@/lib/hooks/useAPI";
 import api from "@/lib/api/client";
 import { ManagementDataGrid, ColumnDef } from "@/components/admin/ManagementDataGrid";
@@ -28,6 +28,23 @@ export default function CompanyServicesPage() {
       setServices(data.data);
     }
   }, [data]);
+
+  const handleDeleteService = async (service: ServiceRow, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!confirm(`Are you sure you want to delete "${service.name}"? This service will be removed from your catalog.`)) return;
+    try {
+      await api.delete(`/services/${service.id}`);
+      toast({ title: "Deleted", description: `Service "${service.name}" removed.` });
+      refetch();
+      setDrawerOpen(false);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Failed to delete service",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleToggleActive = async (s: any, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -125,8 +142,16 @@ export default function CompanyServicesPage() {
               setEditModalOpen(true);
             }}
             className="p-1 rounded text-muted-foreground/70 hover:text-foreground/90 dark:hover:text-foreground hover:bg-muted dark:hover:bg-muted transition"
+            title="Edit Service"
           >
             <Edit2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={(e) => handleDeleteService(row, e)}
+            className="p-1 rounded text-rose-500/70 hover:text-rose-600 hover:bg-rose-500/10 transition"
+            title="Delete Service"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       ),
@@ -177,6 +202,7 @@ export default function CompanyServicesPage() {
         onClose={() => setDrawerOpen(false)}
         service={activeService}
         onSuccess={() => refetch()}
+        onDelete={(s) => handleDeleteService(s)}
       />
 
       {/* Edit / Create Modal */}

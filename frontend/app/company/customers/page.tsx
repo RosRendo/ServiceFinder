@@ -1,28 +1,37 @@
 "use client";
+
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { Users, Search, Mail, Phone, MoreHorizontal, ShieldAlert, ArrowUpRight, Loader2, Edit2, Eye, MessageSquare } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Users, Mail, Phone, ShieldAlert, Eye, MessageSquare, ArrowUpRight } from "lucide-react";
 import { useToast } from "@/lib/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import api from "@/lib/api/client";
-import { ErrorState } from "@/components/common/ErrorState";
-import { DataGrid, Column } from "@/components/grid/DataGrid";
-import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { ManagementDataGrid, ColumnDef } from "@/components/admin/ManagementDataGrid";
+import { StatusPill } from "@/components/admin/StatusPill";
 import { useSocket } from "@/lib/hooks/useSocket";
 import { CustomerDrawer } from "@/components/drawers/CustomerDrawer";
+import { cn } from "@/lib/utils";
+
+const FILTER_TABS = [
+  { id: "all", label: "All Customers" },
+  { id: "active", label: "Active" },
+  { id: "with_bookings", label: "With Bookings" },
+  { id: "with_disputes", label: "With Disputes" },
+];
 
 export default function CustomersCRM() {
   const router = useRouter();
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [search, setSearch] = useState("");
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeCustomer, setActiveCustomer] = useState<any | null>(null);
   const { toast } = useToast();
   const { socket } = useSocket();
+
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<string>("all");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeCustomer, setActiveCustomer] = useState<any | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -32,9 +41,9 @@ export default function CustomersCRM() {
       const res = await api.get(`/companies/my-company/customers?${params.toString()}`);
       const payload = res.data.data || res.data;
       setCustomers(payload.customers || []);
-      setFetchError(null);
-    } catch (err) {
-      setFetchError("Check your connection and try again.");
+      setError(null);
+    } catch {
+      setError("Failed to load customer directory. Please check your connection.");
     } finally {
       setLoading(false);
     }
@@ -50,109 +59,156 @@ export default function CustomersCRM() {
   useEffect(() => {
     if (!socket) return;
     
-    const handleStatusChange = (data: { userId: string, status: string, lastSeen: string }) => {
-      setCustomers(prev => prev.map(c => {
-        if (c.id?.toString() === data.userId) {
-          return {
-            ...c,
-            workingStatus: data.status,
-            lastSeen: data.lastSeen,
-          };
-        }
-        return c;
-      }));
+    const handleStatusChange = (data: { userId: string; status: string; lastSeen: string }) => {
+      setCustomers((prev) =>
+        prev.map((c) => {
+          if (c.id?.toString() === data.userId) {
+            return {
+              ...c,
+              workingStatus: data.status,
+              lastSeen: data.lastSeen,
+            };
+          }
+          return c;
+        })
+      );
     };
 
-    socket.on('user_status_changed', handleStatusChange);
+    socket.on("user_status_changed", handleStatusChange);
     return () => {
-      socket.off('user_status_changed', handleStatusChange);
+      socket.off("user_status_changed", handleStatusChange);
     };
   }, [socket]);
 
-  const columns: Column<any>[] = [
+  // Filter & Search Logic
+  const filteredCustomers = useMemo(() => {
+    return customers.filter((c) => {
+      if (activeTab === "active" && c.status !== "active") return false;
+      if (activeTab === "with_bookings" && (c.stats?.totalBookings || 0) === 0) return false;
+      if (activeTab === "with_disputes" && (c.stats?.activeDisputes || 0) === 0) return false;
+
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return (
+        c.fullName?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q) ||
+        c.phone?.toLowerCase().includes(q) ||
+        c.id?.toString().includes(q)
+      );
+    });
+  }, [customers, activeTab, search]);
+
+  // Pagination Slice
+  const paginatedCustomers = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredCustomers.slice(start, start + pageSize);
+  }, [filteredCustomers, page, pageSize]);
+
+  // Unified ManagementDataGrid Column Definitions
+  const columns: ColumnDef<any>[] = [
     {
-      key: "name",
+      id: "name",
       header: "Customer",
-      render: (c: any) => (
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0 border border-primary/20">
-            {c.profilePictureUrl ? (
-              <img src={c.profilePictureUrl} alt={c.fullName} className="h-10 w-10 rounded-full object-cover" />
-            ) : (
-              c.fullName?.[0] || "?"
-            )}
-          </div>
-          <div>
-            <p className="font-medium text-foreground">{c.fullName}</p>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-              {(c.workingStatus || c.status) === "online" ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-              ) : (
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block"></span>
-              )}
-              <span className="capitalize">{c.workingStatus === "online" ? "Online" : c.status || "active"}</span>
-            </p>
-          </div>
-        </div>
-      ),
-      sortable: true,
-    },
-    {
-      key: "contact",
-      header: "Contact Info",
-      render: (c: any) => (
-        <div className="space-y-1">
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Mail className="w-3.5 h-3.5 mr-1.5 opacity-70" />
-            {c.email}
-          </div>
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Phone className="w-3.5 h-3.5 mr-1.5 opacity-70" />
-            {c.phone || "No phone"}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "ltv",
-      header: "Lifetime Value (LTV)",
-      render: (c: any) => (
-        <span className="font-semibold text-emerald-500">
-          ${Number(c.stats?.ltv || 0).toFixed(2)}
-        </span>
-      ),
-      sortable: true,
-    },
-    {
-      key: "bookings",
-      header: "Total Bookings",
-      render: (c: any) => (
-        <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-foreground">
-          {c.stats?.totalBookings || 0} jobs
-        </span>
-      ),
-    },
-    {
-      key: "disputes",
-      header: "Active Disputes",
-      render: (c: any) => {
-        const disputes = c.stats?.activeDisputes || 0;
-        if (disputes === 0) return <span className="text-muted-foreground text-sm">None</span>;
+      isSortable: true,
+      cell: ({ row }) => {
+        const initials = row.fullName
+          ?.split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase() || "CU";
+
+        const isOnline = (row.workingStatus || row.status) === "online";
+
         return (
-          <span className="inline-flex items-center gap-1 text-rose-500 text-sm font-medium">
-            <ShieldAlert className="w-4 h-4" />
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-xs text-primary shrink-0">
+                {row.profilePictureUrl ? (
+                  <img src={row.profilePictureUrl} alt={row.fullName} className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                  initials
+                )}
+              </div>
+              <span
+                className={cn(
+                  "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background",
+                  isOnline ? "bg-emerald-500" : "bg-muted-foreground/40"
+                )}
+              />
+            </div>
+            <div>
+              <div className="font-semibold text-foreground text-xs">{row.fullName || "Customer"}</div>
+              <div className="text-[11px] text-muted-foreground capitalize">
+                {isOnline ? "Online Now" : row.status || "active"}
+              </div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "contact",
+      header: "Contact Info",
+      cell: ({ row }) => (
+        <div className="space-y-0.5 text-xs text-muted-foreground">
+          {row.email && (
+            <div className="flex items-center gap-1.5 truncate max-w-[190px]">
+              <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="truncate">{row.email}</span>
+            </div>
+          )}
+          {row.phone && (
+            <div className="flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span>{row.phone}</span>
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "ltv",
+      header: "Lifetime Value (LTV)",
+      isSortable: true,
+      cell: ({ row }) => (
+        <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+          ${Number(row.stats?.ltv || 0).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      id: "bookings",
+      header: "Completed Jobs",
+      cell: ({ row }) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-foreground border border-border">
+          {row.stats?.totalBookings || 0} jobs
+        </span>
+      ),
+    },
+    {
+      id: "disputes",
+      header: "Dispute Health",
+      cell: ({ row }) => {
+        const disputes = row.stats?.activeDisputes || 0;
+        if (disputes === 0) {
+          return <span className="text-xs text-muted-foreground">None (Clean)</span>;
+        }
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-600 border border-rose-500/25">
+            <ShieldAlert className="w-3 h-3" />
             {disputes} Active
           </span>
         );
       },
     },
     {
-      key: "lastActivity",
+      id: "lastActivity",
       header: "Last Activity",
-      render: (c: any) => (
-        <span className="text-sm text-muted-foreground">
-          {c.stats?.lastActivity 
-            ? new Date(c.stats.lastActivity).toLocaleDateString()
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">
+          {row.stats?.lastActivity
+            ? new Date(row.stats.lastActivity).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })
             : "Never"}
         </span>
       ),
@@ -160,121 +216,70 @@ export default function CustomersCRM() {
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-            placeholder="Search customers..."
-            className="w-full pl-9 pr-3 h-9 bg-muted/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary" 
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          {["all"].map((s) => (
-            <button key={s}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors bg-foreground text-background dark:bg-background dark:text-foreground">
-              {s.charAt(0).toUpperCase() + s.slice(1)} Customers
-            </button>
-          ))}
-        </div>
-        <div className="flex-1" />
-        <span className="text-xs text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5">
-          <Users className="w-3 h-3" />
-          {customers.length} total
-        </span>
-      </div>
-      
-      <div className="flex-1 overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
+    <div className="h-full flex flex-col p-4 sm:p-6 overflow-hidden bg-background">
+      <ManagementDataGrid
+        title="Customer Directory"
+        description="Comprehensive client roster, lifetime value telemetry, and dispute records."
+        data={paginatedCustomers}
+        columns={columns}
+        getRowId={(r) => r.id}
+        isLoading={loading}
+        error={error}
+        onRetry={fetchCustomers}
+        onRowClick={(row) => {
+          setActiveCustomer({
+            ...row,
+            totalBookings: row.stats?.totalBookings || 0,
+            activeDisputes: row.stats?.activeDisputes || 0,
+            ltv: row.stats?.ltv || 0,
+            recentBookings: row.stats?.recentBookings || [],
+          });
+          setDrawerOpen(true);
+        }}
+        searchValue={search}
+        onSearchChange={(val) => {
+          setSearch(val);
+          setPage(1);
+        }}
+        searchPlaceholder="Search customers by name, email, or phone..."
+        filterSlots={
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            {FILTER_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setPage(1);
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap",
+                  activeTab === tab.id
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        ) : fetchError && customers.length === 0 ? (
-          <div className="p-6">
-            <ErrorState title="Couldn't load customers" message={fetchError} onRetry={fetchCustomers} />
-          </div>
-        ) : (
-          <DataGrid
-            selectedIds={selectedIds}
-            onToggleRow={(id) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; })}
-            onToggleAll={() => setSelectedIds(prev => prev.size === customers.length ? new Set() : new Set(customers.map(c => c.id)))}
-            columns={columns}
-            data={customers}
-            onRowClick={(row) => {
-              setActiveCustomer({
-                ...row,
-                totalBookings: row.stats?.totalBookings || 0,
-                activeDisputes: row.stats?.activeDisputes || 0,
-                ltv: row.stats?.ltv || 0,
-                recentBookings: row.stats?.recentBookings || []
-              });
-              setDrawerOpen(true);
-            }}
-            emptyMessage="No customers found."
-          />
-        )}
-      </div>
-
-      <CustomerDrawer 
-        open={drawerOpen} 
-        onClose={() => setDrawerOpen(false)} 
-        customer={activeCustomer} 
+        }
+        totalCount={filteredCustomers.length}
+        pageSize={pageSize}
+        currentPage={page}
+        onPageChange={setPage}
+        emptyState={{
+          title: "No customers found",
+          description: search
+            ? "No customers match your search query."
+            : "No clients have completed bookings with your company yet.",
+        }}
       />
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        onClear={() => setSelectedIds(new Set())}
-        actions={[
-          {
-            icon: Eye,
-            label: "View Detail",
-            onClick: () => {
-              const id = Array.from(selectedIds)[0];
-              const c = customers.find((x: any) => x.id === id);
-              if (c) {
-                setActiveCustomer({
-                  ...c,
-                  totalBookings: c.stats?.totalBookings || 0,
-                  activeDisputes: c.stats?.activeDisputes || 0,
-                  ltv: c.stats?.ltv || 0,
-                  recentBookings: c.stats?.recentBookings || []
-                });
-                setDrawerOpen(true);
-              }
-            }
-          },
-          {
-            icon: Edit2,
-            label: "Edit",
-            onClick: () => {
-              const id = Array.from(selectedIds)[0];
 
-              const c = customers.find((x: any) => x.id === id);
-              if (c) {
-                setActiveCustomer({
-                  ...c,
-                  totalBookings: c.stats?.totalBookings || 0,
-                  activeDisputes: c.stats?.activeDisputes || 0,
-                  ltv: c.stats?.ltv || 0,
-                  recentBookings: c.stats?.recentBookings || []
-                });
-                setDrawerOpen(true);
-              }
-  
-            }
-          },
-          {
-            icon: MessageSquare,
-            label: "Send Message",
-            onClick: () => {
-              const id = Array.from(selectedIds)[0];
-              if (id) {
-                router.push(`/company/messages?new=${id}`);
-              }
-            }
-          }
-        ]}
+      <CustomerDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        customer={activeCustomer}
       />
     </div>
   );

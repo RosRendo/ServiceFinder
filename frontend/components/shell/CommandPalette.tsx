@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ArrowRight, Command, Hash, User, Building2, CalendarClock, Settings, TrendingUp, Zap } from "lucide-react";
+import { Search, ArrowRight, Command, Hash, User, Building2, CalendarClock, Settings, TrendingUp, Zap, Map, Scale, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CommandItem {
@@ -32,7 +32,11 @@ function buildCommands(router: ReturnType<typeof useRouter>, role: string, onClo
     { id: "staff", label: "Staff Management", icon: User, group: "Navigate", action: () => navigate(`${base}/staff`), keywords: ["employees", "workers"] },
     { id: "customers", label: "Customers", icon: User, group: "Navigate", action: () => navigate(`${base}/customers`), keywords: ["clients", "users"] },
     { id: "companies", label: "Companies", icon: Building2, group: "Navigate", action: () => navigate(`${base}/companies`) },
-    { id: "revenue", label: "Revenue", icon: TrendingUp, group: "Navigate", action: () => navigate(`${base}/revenue`), keywords: ["money", "finance", "earnings"] },
+    { id: "revenue", label: "Revenue & Financials", icon: TrendingUp, group: "Navigate", action: () => navigate(`${base}/revenue`), keywords: ["money", "finance", "earnings", "payouts"] },
+    { id: "disputes", label: "Disputes & Mediation", description: "Arbitration & customer conflict claims", icon: Scale, group: "Navigate", action: () => navigate(`${base}/disputes`), keywords: ["disputes", "claims", "refunds", "arbitration"] },
+    ...(role === "admin"
+      ? [{ id: "reviews", label: "Reviews Audit", description: "Audit customer ratings & reviews", icon: Star, group: "Navigate", action: () => navigate("/admin/reviews"), keywords: ["reviews", "ratings", "feedback"] }]
+      : [{ id: "dispatch", label: "Dispatch Center", description: "Live GPS fleet dispatch console", icon: Map, group: "Navigate", action: () => navigate("/company/dispatch"), keywords: ["dispatch", "map", "radar"] }]),
     { id: "settings", label: "Settings", icon: Settings, group: "Navigate", action: () => navigate(`${base}/settings`) },
     // Quick Actions
     { id: "new-booking", label: "Create New Booking", icon: CalendarClock, group: "Quick Actions", action: () => navigate(`${base}/bookings?new=true`), keywords: ["add", "create"] },

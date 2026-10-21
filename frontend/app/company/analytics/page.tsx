@@ -15,18 +15,25 @@ import { cn } from "@/lib/utils";
 import api from "@/lib/api/client";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, BarChart, Bar, Legend
+  PieChart, Pie, Cell, BarChart, Bar
 } from "recharts";
 
-// Harmonic Color Palette matching unified design system
-const PALETTE = ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#06b6d4", "#ec4899"];
+// Refined Palette aligned with unified design tokens (works in light & dark modes)
+const PALETTE = [
+  "hsl(var(--foreground))",
+  "hsl(var(--muted-foreground))",
+  "#10b981",
+  "#3b82f6",
+  "#8b5cf6",
+  "#f59e0b",
+];
 
 const STATUS_COLORS: Record<string, string> = {
   Completed: "#10b981",
-  "In Progress": "#f59e0b",
-  Confirmed: "#3b82f6",
-  Pending: "#64748b",
-  Cancelled: "#ef4444",
+  "In Progress": "#3b82f6",
+  Confirmed: "#6366f1",
+  Pending: "#8b5cf6",
+  Cancelled: "hsl(var(--muted-foreground))",
 };
 
 interface MetricState {
@@ -67,12 +74,12 @@ interface RevenueState {
   }>;
 }
 
-// Custom Glassmorphic Tooltip for Recharts
+// Unified Glassmorphic Tooltip for Recharts
 function GlassmorphicTooltip({ active, payload, label, prefix = "$" }: any) {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-card/95 backdrop-blur-md border border-border/80 shadow-xl rounded-xl p-3 text-xs space-y-1.5 min-w-[140px]">
-        <p className="font-bold text-foreground border-b border-border/60 pb-1">{label}</p>
+      <div className="bg-card/95 backdrop-blur-md border border-border shadow-lg rounded-xl p-3 text-xs space-y-1.5 min-w-[140px]">
+        <p className="font-bold text-foreground border-b border-border/60 pb-1 font-mono">{label}</p>
         {payload.map((item: any, i: number) => (
           <div key={i} className="flex items-center justify-between gap-3">
             <span className="flex items-center gap-1.5 text-muted-foreground font-medium">
@@ -90,7 +97,7 @@ function GlassmorphicTooltip({ active, payload, label, prefix = "$" }: any) {
   return null;
 }
 
-export default function CompanyAnalyticsPage() {
+export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeader?: boolean } = {}) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -207,7 +214,7 @@ export default function CompanyAnalyticsPage() {
       return revenue.serviceData;
     }
     if (metrics?.serviceBreakdown && metrics.serviceBreakdown.length > 0) {
-      return metrics.serviceBreakdown.map((s, idx) => ({
+      return metrics.serviceBreakdown.map((s) => ({
         name: s.name,
         revenue: s.value * 85,
         percentage: Math.round((s.value / (completedCount || 1)) * 100),
@@ -230,43 +237,49 @@ export default function CompanyAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] bg-background gap-3">
-        <RefreshCw className="w-8 h-8 animate-spin text-primary opacity-60" />
-        <p className="text-sm font-bold text-muted-foreground animate-pulse">Aggregating Business Intelligence...</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] bg-background gap-3">
+        <RefreshCw className="w-7 h-7 animate-spin text-muted-foreground opacity-60" />
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Aggregating Business Intelligence...</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-8 bg-background font-sans max-w-7xl mx-auto">
+    <div className={cn("h-full overflow-y-auto space-y-6 bg-background font-sans max-w-7xl mx-auto", !hideHeader ? "p-4 sm:p-6 lg:p-8" : "p-0 pt-1")}>
       
       {/* ─── 1. TOP HEADER & CONTROLS ────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-foreground tracking-tight font-heading">
-              Executive Analytics
-            </h1>
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-2.5 py-0.5 rounded-full border border-primary/20">
-              Live BI
-            </span>
+      <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4", !hideHeader && "border-b border-border")}>
+        {!hideHeader ? (
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold tracking-tight text-foreground font-sans">
+                Executive Analytics
+              </h1>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border">
+                Live BI
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Real-time financial performance, fulfillment velocity, and workforce metrics.
+            </p>
           </div>
-          <p className="text-xs font-semibold text-muted-foreground mt-1">
-            Real-time financial performance, fulfillment velocity, and workforce metrics.
+        ) : (
+          <p className="text-xs font-semibold text-muted-foreground">
+            Aggregate revenue pacing, pipeline stages, and staff performance.
           </p>
-        </div>
+        )}
 
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Timeframe Selector Pills */}
-          <div className="flex items-center bg-card border border-border/80 rounded-xl p-1 shadow-xs">
+        <div className="flex items-center gap-2.5 flex-wrap self-end sm:self-auto">
+          {/* Unified Segmented Timeframe Selector */}
+          <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 shadow-xs">
             {(["7", "30", "90", "365"] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTimeframe(t)}
                 className={cn(
-                  "px-3 py-1.5 text-xs font-bold rounded-lg transition-all",
+                  "px-3 py-1 text-xs font-bold rounded-lg transition-all",
                   timeframe === t 
-                    ? "bg-primary text-primary-foreground shadow-xs" 
+                    ? "bg-card text-foreground shadow-xs border border-border" 
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -293,96 +306,98 @@ export default function CompanyAnalyticsPage() {
             className="h-9 w-9 rounded-xl border-border hover:bg-muted shadow-xs"
             title="Refresh Live Data"
           >
-            <RefreshCw className={cn("w-3.5 h-3.5 text-muted-foreground transition-transform", isRefreshing && "animate-spin text-primary")} />
+            <RefreshCw className={cn("w-3.5 h-3.5 text-muted-foreground transition-transform", isRefreshing && "animate-spin text-foreground")} />
           </Button>
         </div>
       </div>
 
       {/* ─── 2. EXECUTIVE KPI RIBBON ────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         
         {/* Card 1: Gross Revenue */}
-        <div className="bg-card rounded-2xl border border-border/80 p-5 shadow-sm relative overflow-hidden space-y-2">
+        <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-xs relative overflow-hidden space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4 text-emerald-500" /> Gross Volume
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-muted-foreground" /> Gross Volume
             </span>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-              Active
+            <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border uppercase tracking-wider">
+              {timeframe}D
             </span>
           </div>
-          <p className="text-3xl font-black text-foreground font-heading tracking-tight">
+          <p className="text-2xl sm:text-3xl font-bold font-mono text-foreground tracking-tight">
             ${totalGross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
-          <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-1.5 border-t border-border/60">
             <span>Net Take-Home:</span>
-            <span className="font-bold text-emerald-600">${totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span className="font-bold font-mono text-foreground">
+              ${totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
           </div>
         </div>
 
         {/* Card 2: Completed Orders */}
-        <div className="bg-card rounded-2xl border border-border/80 p-5 shadow-sm relative overflow-hidden space-y-2">
+        <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-xs relative overflow-hidden space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-primary" /> Completed Orders
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" /> Completed Orders
             </span>
-            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
-              {completionRate}% Success
+            <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border uppercase tracking-wider">
+              {completionRate}% Rate
             </span>
           </div>
-          <p className="text-3xl font-black text-foreground font-heading tracking-tight">
+          <p className="text-2xl sm:text-3xl font-bold font-mono text-foreground tracking-tight">
             {completedCount.toLocaleString()}
           </p>
-          <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
-            <span>Fulfillment Rate:</span>
-            <span className="font-bold text-foreground">{completionRate}% on-time</span>
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-1.5 border-t border-border/60">
+            <span>Fulfillment Quality:</span>
+            <span className="font-bold text-foreground">{completionRate}% On-Time</span>
           </div>
         </div>
 
         {/* Card 3: Active Pipeline */}
-        <div className="bg-card rounded-2xl border border-border/80 p-5 shadow-sm relative overflow-hidden space-y-2">
+        <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-xs relative overflow-hidden space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <CalendarClock className="w-4 h-4 text-amber-500" /> Active Queue
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <CalendarClock className="w-3.5 h-3.5 text-muted-foreground" /> Active Queue
             </span>
-            <span className="text-[10px] font-bold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+            <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border uppercase tracking-wider">
               In-Flight
             </span>
           </div>
-          <p className="text-3xl font-black text-foreground font-heading tracking-tight">
+          <p className="text-2xl sm:text-3xl font-bold font-mono text-foreground tracking-tight">
             {activeBookings}
           </p>
-          <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-1.5 border-t border-border/60">
             <span>Dispatch Readiness:</span>
             <span className="font-bold text-foreground">Operational</span>
           </div>
         </div>
 
         {/* Card 4: Customer Rating */}
-        <div className="bg-card rounded-2xl border border-border/80 p-5 shadow-sm relative overflow-hidden space-y-2">
+        <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-xs relative overflow-hidden space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Star className="w-4 h-4 text-amber-400 fill-amber-400" /> Customer CSAT
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Star className="w-3.5 h-3.5 text-muted-foreground" /> Customer CSAT
             </span>
-            <span className="text-[10px] font-bold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-              Top Tier
+            <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border uppercase tracking-wider">
+              Verified
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <p className="text-3xl font-black text-foreground font-heading tracking-tight">
+            <p className="text-2xl sm:text-3xl font-bold font-mono text-foreground tracking-tight">
               {averageRating.toFixed(1)}
             </p>
             <span className="text-xs text-muted-foreground font-semibold">/ 5.0</span>
           </div>
-          <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
-            <span>Verified Reviews:</span>
-            <span className="font-bold text-foreground">{totalReviews} ratings</span>
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-1.5 border-t border-border/60">
+            <span>Verified Ratings:</span>
+            <span className="font-bold font-mono text-foreground">{totalReviews}</span>
           </div>
         </div>
 
       </div>
 
-      {/* ─── 3. TAB NAVIGATION STRIP ────────────────────────────────────────── */}
+      {/* ─── 3. TAB NAVIGATION STRIP (Segmented / Quiet Luxury) ─────────────── */}
       <div className="flex items-center gap-1 border-b border-border overflow-x-auto custom-scrollbar pb-2">
         {[
           { id: "overview", label: "Overview & Revenue", icon: Activity },
@@ -398,14 +413,14 @@ export default function CompanyAnalyticsPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap",
+                "relative flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap",
                 isActive 
-                  ? "bg-primary text-primary-foreground shadow-xs" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  ? "bg-card text-foreground shadow-xs border border-border" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
               )}
             >
-              <Icon className="w-3.5 h-3.5" />
-              {tab.label}
+              <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+              <span>{tab.label}</span>
             </button>
           );
         })}
@@ -415,9 +430,9 @@ export default function CompanyAnalyticsPage() {
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
+          exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.15 }}
           className="space-y-6"
         >
@@ -429,12 +444,12 @@ export default function CompanyAnalyticsPage() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
-                {/* Left 8 Cols: Dual-Tone Area Chart */}
-                <div className="lg:col-span-8 bg-card rounded-2xl border border-border/80 p-6 shadow-sm space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                {/* Left 8 Cols: Refined Area Chart */}
+                <div className="lg:col-span-8 bg-card rounded-2xl border border-border p-5 sm:p-6 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
                     <div>
-                      <h3 className="text-sm font-extrabold text-foreground uppercase tracking-wider flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-primary" /> Revenue Velocity & Pacing
+                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-muted-foreground" /> Revenue Realization Velocity
                       </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Gross customer volume vs. net retained company earnings.
@@ -442,39 +457,39 @@ export default function CompanyAnalyticsPage() {
                     </div>
                     <div className="flex items-center gap-4 text-xs font-bold">
                       <span className="flex items-center gap-1.5 text-foreground">
-                        <span className="w-2.5 h-2.5 rounded-full bg-primary" /> Gross Revenue
+                        <span className="w-2.5 h-2.5 rounded-full bg-foreground" /> Gross Volume
                       </span>
-                      <span className="flex items-center gap-1.5 text-emerald-600">
+                      <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Net Profit
                       </span>
                     </div>
                   </div>
 
-                  <div className="h-[320px] w-full pt-2">
+                  <div className="h-[280px] w-full pt-2">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                      <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <defs>
                           <linearGradient id="grossGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="var(--color-primary, #3b82f6)" stopOpacity={0.35} />
-                            <stop offset="95%" stopColor="var(--color-primary, #3b82f6)" stopOpacity={0.0} />
+                            <stop offset="5%" stopColor="hsl(var(--foreground))" stopOpacity={0.15} />
+                            <stop offset="95%" stopColor="hsl(var(--foreground))" stopOpacity={0.0} />
                           </linearGradient>
                           <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.35} />
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
                             <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="hsl(var(--border))" opacity={0.6} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
                         <XAxis 
                           dataKey="day" 
                           axisLine={false} 
                           tickLine={false} 
-                          tick={{ fontSize: 11, fontWeight: 700, fill: "hsl(var(--muted-foreground))" }} 
+                          tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }} 
                           dy={10} 
                         />
                         <YAxis 
                           axisLine={false} 
                           tickLine={false} 
-                          tick={{ fontSize: 11, fontWeight: 700, fill: "hsl(var(--muted-foreground))" }} 
+                          tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }} 
                           tickFormatter={(v) => `$${v}`} 
                         />
                         <RechartsTooltip content={<GlassmorphicTooltip />} />
@@ -482,8 +497,8 @@ export default function CompanyAnalyticsPage() {
                           type="monotone" 
                           dataKey="gross" 
                           name="Gross Volume" 
-                          stroke="var(--color-primary, #3b82f6)" 
-                          strokeWidth={3} 
+                          stroke="hsl(var(--foreground))" 
+                          strokeWidth={2} 
                           fill="url(#grossGradient)" 
                         />
                         <Area 
@@ -491,7 +506,7 @@ export default function CompanyAnalyticsPage() {
                           dataKey="net" 
                           name="Net Earnings" 
                           stroke="#10b981" 
-                          strokeWidth={2.5} 
+                          strokeWidth={2} 
                           fill="url(#netGradient)" 
                         />
                       </AreaChart>
@@ -500,13 +515,13 @@ export default function CompanyAnalyticsPage() {
                 </div>
 
                 {/* Right 4 Cols: Financial Profitability Breakdown */}
-                <div className="lg:col-span-4 bg-card rounded-2xl border border-border/80 p-6 shadow-sm flex flex-col justify-between space-y-5">
+                <div className="lg:col-span-4 bg-card rounded-2xl border border-border p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-5">
                   <div>
-                    <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider border-b border-border/60 pb-3 mb-4 flex items-center gap-1.5">
-                      <Wallet className="w-3.5 h-3.5 text-primary" /> Capital Allocation
+                    <h3 className="text-xs font-bold text-foreground uppercase tracking-wider border-b border-border pb-3 mb-4 flex items-center gap-1.5">
+                      <Wallet className="w-3.5 h-3.5 text-muted-foreground" /> Capital Allocation
                     </h3>
                     
-                    <div className="space-y-3.5 text-xs">
+                    <div className="space-y-3 text-xs">
                       <div className="flex justify-between items-center py-1">
                         <span className="text-muted-foreground font-semibold">Gross Client Billing</span>
                         <span className="font-bold text-foreground font-mono">${totalGross.toFixed(2)}</span>
@@ -520,21 +535,21 @@ export default function CompanyAnalyticsPage() {
                         <span className="font-bold text-muted-foreground font-mono">-${(revenue?.breakdown?.staffPayout ?? (totalNet * 0.6)).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between items-center pt-2.5 border-t border-border font-bold">
-                        <span className="text-emerald-600 font-extrabold uppercase tracking-wider text-[11px]">Net Retained Margin</span>
-                        <span className="text-emerald-600 text-base font-heading font-black">${totalNet.toFixed(2)}</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider text-[10px]">Net Retained Margin</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 text-base font-mono font-bold">${totalNet.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Escrow & Available Balance Pill */}
-                  <div className="bg-muted/30 border border-border/60 rounded-xl p-4 space-y-2">
+                  <div className="bg-muted/30 border border-border rounded-xl p-3.5 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground font-bold">Escrow In-Transit:</span>
                       <span className="font-bold text-foreground font-mono">${Number(metrics?.escrowBalance ?? 0).toFixed(2)}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground font-bold">Available for Payout:</span>
-                      <span className="font-bold text-emerald-600 font-mono">${Number(metrics?.availableBalance ?? 0).toFixed(2)}</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">${Number(metrics?.availableBalance ?? 0).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -542,36 +557,36 @@ export default function CompanyAnalyticsPage() {
               </div>
 
               {/* Bottom Quick Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
                 {/* Top Performer Spotlight */}
-                <div className="bg-card rounded-2xl border border-border/80 p-5 shadow-sm flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 text-xl font-bold shrink-0">
-                    🥇
+                <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-xs flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center text-foreground shrink-0">
+                    <Trophy className="w-5 h-5 text-amber-500" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Top Field Technician</p>
-                    <p className="text-sm font-bold text-foreground truncate">
-                      {staffList[0]?.name || "Staff Assigned"}
+                    <p className="text-sm font-bold text-foreground truncate mt-0.5">
+                      {staffList[0]?.name || "Assigned Technicians"}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Completed {staffList[0]?.jobs || completedCount} orders with ${(staffList[0]?.revenue || totalGross).toFixed(2)} generated.
+                    <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                      {staffList[0]?.jobs || completedCount} orders completed · ${(staffList[0]?.revenue || totalGross).toFixed(2)} volume
                     </p>
                   </div>
                 </div>
 
                 {/* Primary Revenue Driver */}
-                <div className="bg-card rounded-2xl border border-border/80 p-5 shadow-sm flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
-                    <Sparkles className="w-6 h-6" />
+                <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-xs flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center text-foreground shrink-0">
+                    <Briefcase className="w-5 h-5 text-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Top Revenue Category</p>
-                    <p className="text-sm font-bold text-foreground truncate">
+                    <p className="text-sm font-bold text-foreground truncate mt-0.5">
                       {servicesList[0]?.name || "Core Services"}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Accounts for {servicesList[0]?.percentage || 45}% of total incoming revenue.
+                    <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                      {servicesList[0]?.percentage || 45}% of total volume
                     </p>
                   </div>
                 </div>
@@ -587,10 +602,10 @@ export default function CompanyAnalyticsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
               {/* Status Donut Distribution */}
-              <div className="lg:col-span-7 bg-card rounded-2xl border border-border/80 p-6 shadow-sm flex flex-col justify-between space-y-4">
+              <div className="lg:col-span-7 bg-card rounded-2xl border border-border p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4">
                 <div>
-                  <h3 className="text-sm font-extrabold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/60 pb-3">
-                    <PieChartIcon className="w-4 h-4 text-primary" /> Booking Status Pipeline
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border pb-3">
+                    <PieChartIcon className="w-4 h-4 text-muted-foreground" /> Booking Status Pipeline
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
                     Real-time distribution of jobs across lifecycle stages.
@@ -619,7 +634,7 @@ export default function CompanyAnalyticsPage() {
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-2xl font-black text-foreground font-heading">{totalStatusVolume}</span>
+                      <span className="text-2xl font-bold font-mono text-foreground">{totalStatusVolume}</span>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total Jobs</span>
                     </div>
                   </div>
@@ -649,10 +664,10 @@ export default function CompanyAnalyticsPage() {
               </div>
 
               {/* Day-of-Week Fulfillment Velocity */}
-              <div className="lg:col-span-5 bg-card rounded-2xl border border-border/80 p-6 shadow-sm flex flex-col justify-between space-y-4">
+              <div className="lg:col-span-5 bg-card rounded-2xl border border-border p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4">
                 <div>
-                  <h3 className="text-sm font-extrabold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/60 pb-3">
-                    <BarChart3 className="w-4 h-4 text-primary" /> Weekly Fulfillment Velocity
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border pb-3">
+                    <BarChart3 className="w-4 h-4 text-muted-foreground" /> Weekly Fulfillment Velocity
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
                     Revenue realized across day-of-week slots.
@@ -662,18 +677,18 @@ export default function CompanyAnalyticsPage() {
                 <div className="h-[220px] w-full pt-2">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={trendData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="hsl(var(--border))" opacity={0.6} />
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: "hsl(var(--muted-foreground))" }} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: "hsl(var(--muted-foreground))" }} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }} />
                       <RechartsTooltip content={<GlassmorphicTooltip />} cursor={{ fill: "hsl(var(--muted)/0.3)" }} />
-                      <Bar dataKey="gross" name="Volume" fill="var(--color-primary, #3b82f6)" radius={[6, 6, 0, 0]} maxBarSize={36} />
+                      <Bar dataKey="gross" name="Volume" fill="hsl(var(--foreground))" radius={[6, 6, 0, 0]} maxBarSize={32} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
 
-                <div className="p-3 bg-muted/20 border border-border/60 rounded-xl flex items-center justify-between text-xs">
+                <div className="p-3 bg-muted/30 border border-border rounded-xl flex items-center justify-between text-xs">
                   <span className="text-muted-foreground font-semibold">Peak Demand Period:</span>
-                  <span className="font-bold text-primary">Weekend Prime Time</span>
+                  <span className="font-bold text-foreground">Weekend Prime Time</span>
                 </div>
               </div>
 
@@ -684,17 +699,17 @@ export default function CompanyAnalyticsPage() {
               TAB 3: WORKFORCE LEADERBOARD
              ══════════════════════════════════════════════════════════════════ */}
           {activeTab === "staff" && (
-            <div className="bg-card rounded-2xl border border-border/80 shadow-sm overflow-hidden p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-border/60 pb-4">
+            <div className="bg-card rounded-2xl border border-border shadow-xs overflow-hidden p-5 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-4">
                 <div>
-                  <h3 className="text-base font-bold text-foreground font-heading flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-amber-500" /> Technician Performance & Production
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-muted-foreground" /> Technician Performance & Production
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Individual field productivity, verified client ratings, and generated volume.
                   </p>
                 </div>
-                <span className="text-xs font-bold text-muted-foreground bg-muted px-3 py-1 rounded-xl">
+                <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2.5 py-1 rounded-md border border-border uppercase tracking-wider">
                   {staffList.length} Active Staff
                 </span>
               </div>
@@ -706,34 +721,34 @@ export default function CompanyAnalyticsPage() {
                   <p className="text-xs text-muted-foreground">Staff metrics populate as assigned orders are completed.</p>
                 </div>
               ) : (
-                <div className="divide-y divide-border/50">
+                <div className="divide-y divide-border">
                   {staffList.map((staff, idx) => (
-                    <div key={staff.id || idx} className="py-4 flex items-center justify-between gap-4 hover:bg-muted/20 px-2 rounded-xl transition-colors">
+                    <div key={staff.id || idx} className="py-3 flex items-center justify-between gap-4 hover:bg-muted/20 px-2 rounded-xl transition-colors">
                       <div className="flex items-center gap-3.5 min-w-0">
-                        <span className="w-6 text-center font-bold text-xs text-muted-foreground">
-                          {staff.badge || `#${idx + 1}`}
+                        <span className="w-6 text-center font-bold text-xs text-muted-foreground font-mono">
+                          #{idx + 1}
                         </span>
-                        <Avatar className="h-10 w-10 rounded-xl border border-border shrink-0">
+                        <Avatar className="h-9 w-9 rounded-xl border border-border shrink-0">
                           {staff.avatar && <AvatarImage src={staff.avatar} />}
-                          <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
+                          <AvatarFallback className="text-xs font-bold bg-muted text-foreground">
                             {staff.name.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="text-sm font-bold text-foreground truncate">{staff.name}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs font-bold text-foreground truncate">{staff.name}</p>
+                          <p className="text-[11px] text-muted-foreground">
                             {staff.jobs} completed orders
                           </p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-6 shrink-0">
-                        <div className="flex items-center gap-1 text-amber-500 text-xs font-bold bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
-                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <div className="flex items-center gap-1 text-foreground text-xs font-bold bg-muted px-2 py-0.5 rounded-md border border-border font-mono">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                           {staff.rating.toFixed(1)}
                         </div>
                         <div className="text-right min-w-[90px]">
-                          <p className="text-sm font-black text-foreground font-mono">
+                          <p className="text-xs font-bold text-foreground font-mono">
                             ${Number(staff.revenue).toFixed(2)}
                           </p>
                           <p className="text-[10px] font-semibold text-muted-foreground uppercase">Revenue</p>
@@ -753,25 +768,25 @@ export default function CompanyAnalyticsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
               {/* Donut Distribution */}
-              <div className="lg:col-span-6 bg-card rounded-2xl border border-border/80 p-6 shadow-sm flex flex-col justify-between space-y-4">
+              <div className="lg:col-span-6 bg-card rounded-2xl border border-border p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4">
                 <div>
-                  <h3 className="text-sm font-extrabold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/60 pb-3">
-                    <PieChartIcon className="w-4 h-4 text-primary" /> Service Category Share
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border pb-3">
+                    <PieChartIcon className="w-4 h-4 text-muted-foreground" /> Service Category Share
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
                     Proportionate revenue breakdown across offerings.
                   </p>
                 </div>
 
-                <div className="h-[260px] w-full relative flex items-center justify-center">
+                <div className="h-[250px] w-full relative flex items-center justify-center">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie 
                         data={servicesList} 
                         cx="50%" 
                         cy="50%" 
-                        innerRadius={75} 
-                        outerRadius={105} 
+                        innerRadius={70} 
+                        outerRadius={100} 
                         paddingAngle={3} 
                         dataKey="revenue" 
                         stroke="none"
@@ -787,30 +802,30 @@ export default function CompanyAnalyticsPage() {
               </div>
 
               {/* Service Ranking List */}
-              <div className="lg:col-span-6 bg-card rounded-2xl border border-border/80 p-6 shadow-sm flex flex-col justify-between space-y-4">
+              <div className="lg:col-span-6 bg-card rounded-2xl border border-border p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4">
                 <div>
-                  <h3 className="text-sm font-extrabold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/60 pb-3">
-                    <Briefcase className="w-4 h-4 text-primary" /> Ranked Service Offerings
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border pb-3">
+                    <Briefcase className="w-4 h-4 text-muted-foreground" /> Ranked Service Offerings
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
                     Detailed volume and revenue per service.
                   </p>
                 </div>
 
-                <div className="divide-y divide-border/50">
+                <div className="divide-y divide-border">
                   {servicesList.map((svc, idx) => (
-                    <div key={svc.name} className="py-3 flex items-center justify-between gap-4">
+                    <div key={svc.name} className="py-2.5 flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3 min-w-0">
                         <div 
-                          className="w-3.5 h-3.5 rounded-md shrink-0" 
+                          className="w-3 h-3 rounded-md shrink-0" 
                           style={{ backgroundColor: PALETTE[idx % PALETTE.length] }} 
                         />
                         <div className="min-w-0">
-                          <p className="text-sm font-bold text-foreground truncate">{svc.name}</p>
+                          <p className="text-xs font-bold text-foreground truncate">{svc.name}</p>
                           <p className="text-[11px] text-muted-foreground">{svc.percentage}% of total volume</p>
                         </div>
                       </div>
-                      <span className="font-mono text-sm font-bold text-foreground shrink-0">
+                      <span className="font-mono text-xs font-bold text-foreground shrink-0">
                         ${Number(svc.revenue).toFixed(2)}
                       </span>
                     </div>
@@ -828,10 +843,10 @@ export default function CompanyAnalyticsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
               {/* CSAT Score Card */}
-              <div className="lg:col-span-5 bg-card rounded-2xl border border-border/80 p-6 shadow-sm flex flex-col justify-between space-y-6">
+              <div className="lg:col-span-5 bg-card rounded-2xl border border-border p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-6">
                 <div>
-                  <h3 className="text-sm font-extrabold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/60 pb-3">
-                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" /> Customer Satisfaction Index
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border pb-3">
+                    <Star className="w-4 h-4 text-muted-foreground" /> Customer Satisfaction Index
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
                     Aggregate feedback from completed service jobs.
@@ -839,31 +854,31 @@ export default function CompanyAnalyticsPage() {
                 </div>
 
                 <div className="text-center py-4 space-y-2">
-                  <p className="text-6xl font-black text-foreground font-heading tracking-tight">
+                  <p className="text-5xl font-bold font-mono text-foreground tracking-tight">
                     {averageRating.toFixed(1)}
                   </p>
                   <div className="flex justify-center items-center gap-1">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <Star 
                         key={s} 
-                        className={cn("w-5 h-5", s <= Math.round(averageRating) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30")} 
+                        className={cn("w-4 h-4", s <= Math.round(averageRating) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30")} 
                       />
                     ))}
                   </div>
-                  <p className="text-xs text-muted-foreground font-medium">
+                  <p className="text-xs text-muted-foreground font-mono">
                     Calculated from {totalReviews} verified reviews
                   </p>
                 </div>
 
-                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3.5 text-center text-xs text-emerald-600 font-bold">
+                <div className="bg-muted/40 border border-border rounded-xl p-3 text-center text-xs text-foreground font-semibold">
                   98.4% Positive Sentiment Ratio
                 </div>
               </div>
 
               {/* Quality Rating Distribution */}
-              <div className="lg:col-span-7 bg-card rounded-2xl border border-border/80 p-6 shadow-sm space-y-4">
-                <h3 className="text-sm font-extrabold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/60 pb-3">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" /> Service Quality Attributes
+              <div className="lg:col-span-7 bg-card rounded-2xl border border-border p-5 sm:p-6 shadow-xs space-y-4">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border pb-3">
+                  <ShieldCheck className="w-4 h-4 text-muted-foreground" /> Service Quality Attributes
                 </h3>
 
                 <div className="space-y-4 pt-2">
@@ -876,10 +891,10 @@ export default function CompanyAnalyticsPage() {
                     <div key={attr.label} className="space-y-1.5">
                       <div className="flex justify-between items-center text-xs">
                         <span className="font-bold text-foreground">{attr.label}</span>
-                        <span className="font-mono font-bold text-primary">{attr.rating} / 5.0</span>
+                        <span className="font-mono font-bold text-foreground">{attr.rating} / 5.0</span>
                       </div>
-                      <div className="w-full bg-muted/60 h-2 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${attr.score}%` }} />
+                      <div className="w-full bg-muted/60 h-1.5 rounded-full overflow-hidden">
+                        <div className="h-full bg-foreground rounded-full transition-all" style={{ width: `${attr.score}%` }} />
                       </div>
                     </div>
                   ))}

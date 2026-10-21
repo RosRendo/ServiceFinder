@@ -74,7 +74,9 @@ api.interceptors.response.use(
         // simulate the clear logic if refresh fails.
         const refreshToken = await SecureStore.getItemAsync('refreshToken');
         if (!refreshToken) {
-          throw new Error('No refresh token available');
+          // Unauthenticated or guest mode: do NOT attempt refresh, do NOT wipe user in a loop
+          processQueue(error, null);
+          return Promise.reject(error);
         }
 
         const response = await axios.post(`${API_URL}/api/auth/refresh`, { refreshToken });
@@ -95,8 +97,11 @@ api.interceptors.response.use(
         await SecureStore.deleteItemAsync('authToken');
         await SecureStore.deleteItemAsync('refreshToken');
         delete api.defaults.headers.common['Authorization'];
-        // Dispatch global event to force the user to login screen
-        useAuthStore.getState().setUser(null);
+        // Only reset user if an authenticated user session was active
+        if (useAuthStore.getState().user) {
+          useAuthStore.getState().setUser(null);
+        }
+        return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
@@ -386,8 +391,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       // ignore logout failure on backend if network error
     }
     await SecureStore.deleteItemAsync('authToken');
+    await SecureStore.deleteItemAsync('refreshToken');
     delete api.defaults.headers.common['Authorization'];
-    set({ user: null, isGuest: false });
+    set({ user: null, isGuest: true });
   },
 
   deleteAccount: async () => {

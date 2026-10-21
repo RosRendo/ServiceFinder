@@ -1,9 +1,20 @@
 /**
- * Admin Company Details — Premium Light Bento Redesign
+ * Admin Company Details — Obsidian Executive Bento Standard
  */
 import React, { useState, useEffect } from "react";
 import { Image } from "expo-image";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Platform } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Platform,
+  Modal,
+  Image as RNImage,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -11,11 +22,12 @@ import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
 import ErrorState from "@/components/common/ErrorState";
 import InitialsAvatar from "@/components/common/InitialsAvatar";
+import CredentialInspectionCard from "@/components/admin/CredentialInspectionCard";
 
 const T = Theme.colors;
 
 const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12 },
+  ios: { shadowColor: "#0F172A", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.06, shadowRadius: 10 },
   android: { elevation: 3 },
 });
 
@@ -26,6 +38,7 @@ export default function CompanyDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
 
   const fetchCompany = async () => {
     try {
@@ -46,10 +59,10 @@ export default function CompanyDetail() {
     fetchCompany();
   }, [id]);
 
-  const handleUpdateStatus = async (status: 'verified' | 'rejected') => {
+  const handleUpdateStatus = async (status: "verified" | "rejected") => {
     setIsUpdating(true);
     try {
-      if (status === 'verified') {
+      if (status === "verified") {
         await api.post(`/api/admin/companies/${id}/verify`);
       } else {
         await api.post(`/api/admin/companies/${id}/reject`, { reason: "Admin rejected" });
@@ -64,26 +77,31 @@ export default function CompanyDetail() {
     }
   };
 
-  const getStatusStyle = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case "verified": return { bg: T.success, color: T.success, icon: "check-circle" };
-      case "pending": return { bg: T.warning, color: T.warning, icon: "clock-alert" };
-      case "rejected": return { bg: T.error, color: T.error, icon: "close-circle" };
-      default: return { bg: T.text3, color: T.text3, icon: "help-circle" };
+      case "verified":
+        return { dotColor: "#059669", label: "VERIFIED ACTIVE" };
+      case "reviewing":
+        return { dotColor: "#2563EB", label: "UNDER REVIEW" };
+      case "rejected":
+        return { dotColor: "#DC2626", label: "REJECTED" };
+      case "pending":
+      default:
+        return { dotColor: "#D97706", label: "PENDING REVIEW" };
     }
   };
 
   if (isLoading) {
     return (
-      <SafeAreaView style={s.centerArea} edges={['top', 'left', 'right']}>
-        <ActivityIndicator size="large" color={T.primary} />
+      <SafeAreaView style={s.centerArea} edges={["top", "left", "right"]}>
+        <ActivityIndicator size="large" color="#0F172A" />
       </SafeAreaView>
     );
   }
 
   if (hasError) {
     return (
-      <SafeAreaView style={s.centerArea} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={s.centerArea} edges={["top", "left", "right"]}>
         <ErrorState onRetry={fetchCompany} />
       </SafeAreaView>
     );
@@ -91,13 +109,14 @@ export default function CompanyDetail() {
 
   if (!company) return null;
 
-  const isPending = company.verificationStatus === 'pending';
-  const sStyle = getStatusStyle(company.verificationStatus);
+  const isPending = company.verificationStatus === "pending";
+  const badge = getStatusBadge(company.verificationStatus);
+  const documentUrl =
+    company.verificationDocumentUrl || company.businessLicenseUrl || company.logoUrl || "";
 
   return (
     <View style={s.root}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.contentScroll}>
-        
         {/* Cover Image & Header Nav */}
         <View style={s.coverArea}>
           {company.coverImageUrl ? (
@@ -107,14 +126,14 @@ export default function CompanyDetail() {
           )}
           <View style={s.coverOverlay} />
 
-          <SafeAreaView edges={['top']}>
+          <SafeAreaView edges={["top"]}>
             <View style={s.headerNav}>
               <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
                 <MaterialCommunityIcons name="arrow-left" size={20} color="#FFFFFF" />
               </TouchableOpacity>
-              <View style={[s.statusBadge, { borderColor: sStyle.bg + "40", backgroundColor: "rgba(255, 255, 255, 0.9)" }]}>
-                <View style={[s.statusDot, { backgroundColor: sStyle.bg }]} />
-                <Text style={[s.statusText, { color: sStyle.color }]}>{company.verificationStatus}</Text>
+              <View style={s.statusBadge}>
+                <View style={[s.statusDot, { backgroundColor: badge.dotColor }]} />
+                <Text style={s.statusText}>{badge.label}</Text>
               </View>
             </View>
           </SafeAreaView>
@@ -124,34 +143,34 @@ export default function CompanyDetail() {
         <View style={s.profileHeader}>
           <View style={s.logoWrap}>
             {company.logoUrl ? (
-              <Image source={{ uri: company.logoUrl }} style={s.logoImg} />
+              <Image source={{ uri: company.logoUrl }} style={s.logoImg} contentFit="cover" />
             ) : (
-              <MaterialCommunityIcons name="domain" size={40} color={T.text3} />
+              <MaterialCommunityIcons name="domain" size={40} color="#64748B" />
             )}
           </View>
-          
+
           <Text style={s.companyName}>{company.name}</Text>
-          <Text style={s.companyReg}>Registration No: {company.registrationNumber || "N/A"}</Text>
+          <Text style={s.companyReg}>Registration No: {company.registrationNumber || "Unregistered"}</Text>
 
           {/* Quick Stats Grid Bento */}
           <View style={s.statsRow}>
             <View style={s.statBox}>
-              <View style={[s.statIconWrap, { backgroundColor: "rgba(100, 116, 139, 0.1)" }]}>
-                <MaterialCommunityIcons name="briefcase-outline" size={20} color={T.gray} />
+              <View style={s.statIconWrap}>
+                <MaterialCommunityIcons name="briefcase-outline" size={18} color="#0F172A" />
               </View>
               <Text style={s.statValue}>{company.staff?.length || 0}</Text>
               <Text style={s.statLabel}>Staff</Text>
             </View>
             <View style={s.statBox}>
-              <View style={[s.statIconWrap, { backgroundColor: "rgba(124, 58, 237, 0.1)" }]}>
-                <MaterialCommunityIcons name="cog-outline" size={20} color={T.purple} />
+              <View style={s.statIconWrap}>
+                <MaterialCommunityIcons name="cog-outline" size={18} color="#0F172A" />
               </View>
               <Text style={s.statValue}>{company.services?.length || 0}</Text>
               <Text style={s.statLabel}>Services</Text>
             </View>
             <View style={s.statBox}>
-              <View style={[s.statIconWrap, { backgroundColor: "rgba(37, 99, 235, 0.1)" }]}>
-                <MaterialCommunityIcons name="map-marker-distance" size={20} color={T.blue} />
+              <View style={s.statIconWrap}>
+                <MaterialCommunityIcons name="map-marker-distance" size={18} color="#0F172A" />
               </View>
               <Text style={s.statValue}>{company.serviceAreas?.length || 0}</Text>
               <Text style={s.statLabel}>Areas</Text>
@@ -171,10 +190,10 @@ export default function CompanyDetail() {
         <View style={s.card}>
           <Text style={s.cardTitle}>Business Ownership</Text>
           <View style={s.ownerRow}>
-            <InitialsAvatar name={company.owner?.fullName || 'Company Owner'} size={48} radius={16} />
+            <InitialsAvatar name={company.owner?.fullName || "Company Owner"} size={44} radius={14} />
             <View style={{ flex: 1 }}>
-              <Text style={s.ownerName}>{company.owner?.fullName || 'N/A'}</Text>
-              <Text style={s.ownerEmail}>{company.owner?.email || 'N/A'}</Text>
+              <Text style={s.ownerName}>{company.owner?.fullName || "Not Specified"}</Text>
+              <Text style={s.ownerEmail}>{company.owner?.email || "No email available"}</Text>
             </View>
           </View>
         </View>
@@ -184,46 +203,48 @@ export default function CompanyDetail() {
           <Text style={s.cardTitle}>Business Information</Text>
           <View style={s.infoGrid}>
             <View style={s.infoCell}>
-              <View style={s.iconCircle}><MaterialCommunityIcons name="phone-outline" size={18} color={T.text2} /></View>
+              <View style={s.iconCircle}>
+                <MaterialCommunityIcons name="phone-outline" size={18} color="#475569" />
+              </View>
               <View>
                 <Text style={s.infoLabelText}>Business Hotline</Text>
-                <Text style={s.infoText}>{company.phone || company.owner?.phone || 'N/A'}</Text>
+                <Text style={s.infoText}>{company.phone || company.owner?.phone || "N/A"}</Text>
               </View>
             </View>
             <View style={[s.infoCell, { marginTop: 8 }]}>
-              <View style={s.iconCircle}><MaterialCommunityIcons name="map-marker-outline" size={18} color={T.text2} /></View>
+              <View style={s.iconCircle}>
+                <MaterialCommunityIcons name="map-marker-outline" size={18} color="#475569" />
+              </View>
               <View>
                 <Text style={s.infoLabelText}>Primary City Location</Text>
-                <Text style={s.infoText}>{company.city || 'N/A'}</Text>
+                <Text style={s.infoText}>{company.city || "National"}</Text>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Verification Document attachment widget */}
+        {/* Verification Credentials Card */}
         <View style={s.card}>
-          <Text style={s.cardTitle}>Verification Credentials</Text>
-          {company.verificationDocumentUrl ? (
-            <TouchableOpacity
-              style={s.docBtn}
-              onPress={() => {
-                Alert.alert(
-                  "Verification Document",
-                  `URL: ${company.verificationDocumentUrl}\n\nOpen this link in a browser to review.`,
-                  [{ text: "OK" }]
-                );
+          <Text style={s.cardTitle}>Verification Documents</Text>
+          {documentUrl ? (
+            <CredentialInspectionCard
+              item={{
+                companyId: company.id,
+                companyName: company.name,
+                category: company.businessType || "BUSINESS_LICENSE",
+                documentUrl: documentUrl,
+                submittedDate: new Date(company.createdAt).toLocaleDateString(),
+                status:
+                  company.verificationStatus === "verified"
+                    ? "VERIFIED"
+                    : company.verificationStatus === "rejected"
+                    ? "REJECTED"
+                    : "PENDING",
               }}
-              activeOpacity={0.8}
-            >
-              <View style={s.docIconWrap}>
-                <MaterialCommunityIcons name="file-document-outline" size={24} color={T.blue} />
-              </View>
-              <View style={s.docTextWrap}>
-                <Text style={s.docBtnTitle}>Identity Document</Text>
-                <Text style={s.docBtnSub}>Tap to open credentials document</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={20} color={T.text3} />
-            </TouchableOpacity>
+              onVerify={() => handleUpdateStatus("verified")}
+              onReject={() => handleUpdateStatus("rejected")}
+              onPreview={(url) => setPreviewDocUrl(url)}
+            />
           ) : (
             <Text style={s.noneText}>No verification credentials uploaded.</Text>
           )}
@@ -235,29 +256,33 @@ export default function CompanyDetail() {
       {/* Sticky Bottom Action Bar for Pending */}
       {isPending && (
         <View style={s.bottomActionBar}>
-          <SafeAreaView edges={['bottom']}>
+          <SafeAreaView edges={["bottom"]}>
             <View style={s.actionRow}>
               <TouchableOpacity
                 style={[s.actionBtn, s.rejectBtn]}
-                onPress={() => handleUpdateStatus('rejected')}
+                onPress={() => handleUpdateStatus("rejected")}
                 disabled={isUpdating}
                 activeOpacity={0.8}
               >
-                {isUpdating ? <ActivityIndicator color={T.error} /> : (
+                {isUpdating ? (
+                  <ActivityIndicator color="#DC2626" />
+                ) : (
                   <>
-                    <MaterialCommunityIcons name="close-circle-outline" size={18} color={T.error} />
+                    <MaterialCommunityIcons name="close-circle-outline" size={18} color="#DC2626" />
                     <Text style={s.rejectText}>Reject</Text>
                   </>
                 )}
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[s.actionBtn, s.approveBtn]}
-                onPress={() => handleUpdateStatus('verified')}
+                onPress={() => handleUpdateStatus("verified")}
                 disabled={isUpdating}
                 activeOpacity={0.8}
               >
-                {isUpdating ? <ActivityIndicator color="#FFFFFF" /> : (
+                {isUpdating ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
                   <>
                     <MaterialCommunityIcons name="shield-check-outline" size={18} color="#FFFFFF" />
                     <Text style={s.approveText}>Verify Business</Text>
@@ -268,67 +293,194 @@ export default function CompanyDetail() {
           </SafeAreaView>
         </View>
       )}
+
+      {/* Full Screen Image Preview Modal */}
+      <Modal visible={!!previewDocUrl} transparent={true} animationType="fade" onRequestClose={() => setPreviewDocUrl(null)}>
+        <View style={s.modalBackdrop}>
+          <SafeAreaView style={s.modalSafe}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Credential Document Preview</Text>
+              <TouchableOpacity onPress={() => setPreviewDocUrl(null)} style={s.modalCloseBtn}>
+                <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={s.modalBody}>
+              {previewDocUrl && (
+                <RNImage source={{ uri: previewDocUrl }} style={s.modalImage} resizeMode="contain" />
+              )}
+            </View>
+          </SafeAreaView>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  centerArea: { flex: 1, backgroundColor: T.bg, alignItems: "center", justifyContent: "center" },
-  root: { flex: 1, backgroundColor: T.bg },
-  contentScroll: { paddingBottom: 20 },
+  centerArea: { flex: 1, backgroundColor: "#F8FAFC", alignItems: "center", justifyContent: "center" },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
+  contentScroll: { paddingBottom: 120 },
 
-  coverArea: { width: "100%", height: 200, position: "relative" },
+  coverArea: { width: "100%", height: 180, position: "relative" },
   coverImage: { width: "100%", height: "100%", position: "absolute" },
-  coverPlaceholder: { width: "100%", height: "100%", backgroundColor: T.primary, position: "absolute" },
-  coverOverlay: { position: "absolute", width: "100%", height: "100%", backgroundColor: "rgba(10, 25, 47, 0.4)" },
-  
-  headerNav: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: 12 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(10, 25, 47, 0.4)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.1)" },
-  
-  statusBadge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, ...CARD_SHADOW },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-  statusText: { fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
+  coverPlaceholder: { width: "100%", height: "100%", backgroundColor: "#0F172A", position: "absolute" },
+  coverOverlay: { position: "absolute", width: "100%", height: "100%", backgroundColor: "rgba(15, 23, 42, 0.45)" },
 
-  profileHeader: { marginTop: -50, paddingHorizontal: 20, alignItems: "center" },
-  logoWrap: { width: 90, height: 90, borderRadius: 24, backgroundColor: T.surface, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 4, borderColor: T.bg, marginBottom: 12, ...CARD_SHADOW },
+  headerNav: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+  },
+
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...CARD_SHADOW,
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: 11, fontWeight: "800", color: "#334155", letterSpacing: 0.3 },
+
+  profileHeader: { marginTop: -45, paddingHorizontal: 16, alignItems: "center" },
+  logoWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    borderWidth: 3,
+    borderColor: "#F8FAFC",
+    marginBottom: 10,
+    ...CARD_SHADOW,
+  },
   logoImg: { width: "100%", height: "100%" },
-  companyName: { fontSize: 24, fontWeight: "800", color: T.text1, marginBottom: 4, textAlign: "center", letterSpacing: -0.5 },
-  companyReg: { fontSize: 13, fontWeight: "600", color: T.text3, marginBottom: 20, textAlign: "center" },
+  companyName: { fontSize: 22, fontWeight: "800", color: "#0F172A", marginBottom: 3, textAlign: "center", letterSpacing: -0.4 },
+  companyReg: { fontSize: 12, fontWeight: "600", color: "#64748B", marginBottom: 16, textAlign: "center" },
 
-  // Stats Grid Bento
-  statsRow: { flexDirection: "row", backgroundColor: T.surface, borderRadius: 24, paddingVertical: 16, width: "100%", justifyContent: "space-around", borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  statsRow: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingVertical: 14,
+    width: "100%",
+    justifyContent: "space-around",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...CARD_SHADOW,
+  },
   statBox: { alignItems: "center", flex: 1 },
-  statValue: { fontSize: 22, fontWeight: "800", color: T.text1, letterSpacing: -0.5, marginTop: 6 },
-  statLabel: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase", marginTop: 2 },
-  statIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  statValue: { fontSize: 18, fontWeight: "800", color: "#0F172A", letterSpacing: -0.5, marginTop: 4 },
+  statLabel: { fontSize: 10, fontWeight: "700", color: "#64748B", textTransform: "uppercase", marginTop: 2 },
+  statIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-  card: { backgroundColor: T.surface, borderRadius: 24, padding: 20, marginHorizontal: 20, marginTop: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  cardTitle: { fontSize: 14, fontWeight: "700", color: T.text2, marginBottom: 16 },
-  descText: { fontSize: 14, color: T.text2, lineHeight: 22 },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...CARD_SHADOW,
+  },
+  cardTitle: { fontSize: 12, fontWeight: "800", color: "#64748B", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 },
+  descText: { fontSize: 13, color: "#334155", lineHeight: 20 },
 
-  // Owner styling
-  ownerRow: { flexDirection: "row", alignItems: "center", gap: 16, backgroundColor: T.bg, borderRadius: 16, padding: 12, borderWidth: 1, borderColor: T.border },
-  ownerName: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 2 },
-  ownerEmail: { fontSize: 13, color: T.text3 },
+  ownerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  ownerName: { fontSize: 14, fontWeight: "700", color: "#0F172A", marginBottom: 2 },
+  ownerEmail: { fontSize: 12, color: "#64748B" },
 
-  infoGrid: { gap: 12 },
-  infoCell: { flexDirection: "row", alignItems: "center", gap: 16 },
-  iconCircle: { width: 40, height: 40, borderRadius: 12, backgroundColor: T.inputBg, alignItems: "center", justifyContent: "center" },
-  infoLabelText: { fontSize: 11, fontWeight: "600", color: T.text3, marginBottom: 2, textTransform: "uppercase" },
-  infoText: { fontSize: 15, fontWeight: "700", color: T.text1 },
+  infoGrid: { gap: 10 },
+  infoCell: { flexDirection: "row", alignItems: "center", gap: 12 },
+  iconCircle: { width: 34, height: 34, borderRadius: 8, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0", alignItems: "center", justifyContent: "center" },
+  infoLabelText: { fontSize: 10, fontWeight: "700", color: "#94A3B8", marginBottom: 2, textTransform: "uppercase" },
+  infoText: { fontSize: 13, fontWeight: "700", color: "#0F172A" },
 
-  docBtn: { flexDirection: "row", alignItems: "center", backgroundColor: T.bg, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: T.border },
-  docIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(37, 99, 235, 0.05)", alignItems: "center", justifyContent: "center", marginRight: 16 },
-  docTextWrap: { flex: 1 },
-  docBtnTitle: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 2 },
-  docBtnSub: { fontSize: 12, color: T.text3 },
-  noneText: { fontSize: 14, color: T.text3, fontStyle: "italic" },
+  noneText: { fontSize: 13, color: "#94A3B8", fontStyle: "italic", textAlign: "center", paddingVertical: 12 },
 
-  bottomActionBar: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border, paddingHorizontal: 20, paddingTop: 16, paddingBottom: Platform.OS === 'ios' ? 34 : 20, ...CARD_SHADOW },
-  actionRow: { flexDirection: "row", gap: 12 },
-  actionBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16, borderRadius: 16, borderWidth: 1 },
-  rejectBtn: { borderColor: "rgba(239, 68, 68, 0.4)", backgroundColor: "rgba(239, 68, 68, 0.05)" },
-  approveBtn: { borderColor: T.primary, backgroundColor: T.primary },
-  rejectText: { fontSize: 16, fontWeight: "700", color: T.error },
-  approveText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
+  bottomActionBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 34 : 16,
+    ...CARD_SHADOW,
+  },
+  actionRow: { flexDirection: "row", gap: 10 },
+  actionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  rejectBtn: {
+    borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+  },
+  approveBtn: {
+    backgroundColor: "#0F172A",
+  },
+  rejectText: { fontSize: 13, fontWeight: "700", color: "#DC2626" },
+  approveText: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
+
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.92)" },
+  modalSafe: { flex: 1 },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  modalTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  modalCloseBtn: { padding: 4 },
+  modalBody: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
+  modalImage: { width: "100%", height: "100%" },
 });

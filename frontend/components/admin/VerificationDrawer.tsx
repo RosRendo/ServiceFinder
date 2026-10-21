@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useState } from 'react';
-import { SlideoverDrawer } from '@/components/admin/SlideoverDrawer';
+import { useRouter } from 'next/navigation';
+import { BaseDrawer } from '@/components/drawers/BaseDrawer';
 import { StatusPill } from '@/components/admin/StatusPill';
 import { Building2, FileText, CheckCircle2, XCircle, AlertTriangle, ExternalLink, Mail, Phone, MapPin, Calendar, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import api from '@/lib/api/client';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export interface VerificationDrawerProps {
   isOpen: boolean;
@@ -28,6 +31,7 @@ export function VerificationDrawer({
   company,
   onVerified,
 }: VerificationDrawerProps) {
+  const router = useRouter();
   const [rejectMode, setRejectMode] = useState(false);
   const [rejectReason, setRejectReason] = useState(REJECT_REASONS[0].code);
   const [rejectNotes, setRejectNotes] = useState('');
@@ -35,12 +39,15 @@ export function VerificationDrawer({
 
   if (!isOpen || !company) return null;
 
+  const currentStatus = (company.verificationStatus || company.status || 'pending').toLowerCase();
+  const isPending = currentStatus === 'pending' || currentStatus === 'pending_verification';
+
   const handleApprove = async () => {
     setIsSubmitting(true);
     try {
       await api.patch(`/admin/companies/${company.id}/verify`, {
         status: 'verified',
-        verificationNotes: 'Approved during superadmin document inspection.',
+        verificationNotes: 'Approved during document inspection.',
       });
       toast.success(`${company.name} verified successfully`);
       onVerified();
@@ -72,59 +79,96 @@ export function VerificationDrawer({
   };
 
   return (
-    <SlideoverDrawer
-      isOpen={isOpen}
+    <BaseDrawer
+      open={isOpen}
       onClose={onClose}
       title={company.name || 'Company Verification'}
       subtitle={`Application submitted ${company.createdAt ? new Date(company.createdAt).toLocaleDateString() : 'recently'}`}
       badge={<StatusPill status={company.verificationStatus || company.status || 'pending'} />}
-      width="xl"
-      footer={{
-        primaryAction: rejectMode
-          ? {
-              label: isSubmitting ? 'Rejecting...' : 'Confirm Rejection',
-              onClick: handleReject,
-              isLoading: isSubmitting,
-              variant: 'danger',
-            }
-          : {
-              label: isSubmitting ? 'Approving...' : 'Approve Provider',
-              onClick: handleApprove,
-              isLoading: isSubmitting,
-              variant: 'success',
-            },
-        secondaryAction: {
-          label: rejectMode ? 'Back to Overview' : 'Close',
-          onClick: rejectMode ? () => setRejectMode(false) : onClose,
-        },
-        additionalControls: !rejectMode && (
-          <button
-            type="button"
-            onClick={() => setRejectMode(true)}
-            className="px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 text-xs font-semibold text-rose-700 dark:text-rose-400 hover:bg-rose-100 transition"
-          >
-            Reject with Reason
-          </button>
-        ),
-      }}
-    >
-      <div className="space-y-6 text-sm">
-        {/* Rejection Form Mode */}
-        {rejectMode ? (
-          <div className="p-4 rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/20 space-y-4">
-            <div className="flex items-center gap-2 text-rose-800 dark:text-rose-300 font-bold text-sm">
-              <AlertTriangle className="w-4 h-4" />
-              <span>Provide Authority Reason for Rejection</span>
+      headerActions={
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 px-3 text-xs font-semibold gap-1.5"
+          onClick={() => {
+            router.push(`/admin/companies/${company.id}`);
+            onClose();
+          }}
+        >
+          <span>Full Profile</span>
+          <ExternalLink className="w-3 h-3 text-muted-foreground" />
+        </Button>
+      }
+      footer={
+        isPending ? (
+          <div className="flex items-center justify-between w-full">
+            <div>
+              {!rejectMode ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setRejectMode(true)}
+                  className="h-8.5 px-3 text-xs font-semibold border-rose-500/20 text-rose-600 hover:bg-rose-500/10"
+                >
+                  Reject Application
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setRejectMode(false)}
+                  className="h-8.5 px-3 text-xs font-semibold"
+                >
+                  Back to Review
+                </Button>
+              )}
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                Standard Reason Code
+            <div className="flex items-center gap-2">
+              {rejectMode ? (
+                <Button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={handleReject}
+                  className="h-8.5 px-4 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-2xs gap-1.5"
+                >
+                  {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  <span>Confirm Rejection</span>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={handleApprove}
+                  className="h-8.5 px-4 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-2xs gap-1.5"
+                >
+                  {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  <span>Approve Merchant</span>
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : undefined
+      }
+      width="xl"
+    >
+      <div className="p-6 space-y-5 font-sans text-xs">
+        {/* Rejection Form Mode */}
+        {rejectMode ? (
+          <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 space-y-3.5">
+            <div className="flex items-center gap-2 text-rose-600 font-bold text-xs">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>Specify Reason for Application Rejection</span>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Reason Code
               </label>
               <select
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-2 px-3 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-[#0A192F] focus:outline-none"
+                className="w-full text-xs rounded-xl border border-border bg-background py-2 px-3 text-foreground outline-none"
               >
                 {REJECT_REASONS.map((r) => (
                   <option key={r.code} value={r.code}>
@@ -134,126 +178,112 @@ export function VerificationDrawer({
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                Detailed Feedback to Provider
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Auditor Feedback to Applicant
               </label>
               <textarea
                 rows={3}
                 value={rejectNotes}
                 onChange={(e) => setRejectNotes(e.target.value)}
                 placeholder="Explain what specific corrections are required before resubmission..."
-                className="w-full text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-[#0A192F] focus:outline-none placeholder:text-slate-400"
+                className="w-full text-xs rounded-xl border border-border bg-background p-2.5 text-foreground outline-none focus:border-primary placeholder:text-muted-foreground"
               />
             </div>
           </div>
         ) : (
           <>
             {/* Split Panel: Business Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-3">
-                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div className="p-4 rounded-2xl border border-border bg-card space-y-2.5">
+                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border pb-2">
                   Organization Credentials
                 </h4>
-                <div className="space-y-1.5 text-xs">
+                <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Legal Entity</span>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">{company.name}</span>
+                    <span className="text-muted-foreground">Legal Entity</span>
+                    <span className="font-semibold text-foreground">{company.name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Registration #</span>
-                    <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
+                    <span className="text-muted-foreground">Registration #</span>
+                    <span className="font-mono font-semibold text-foreground">
                       {company.registrationNumber || company.businessNumber || 'REG-PENDING'}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">City / Province</span>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">{company.city || 'Phnom Penh'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Category</span>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">{company.category || 'Home Services'}</span>
+                    <span className="text-muted-foreground">Service Sector</span>
+                    <span className="font-medium text-foreground">{company.category?.name || 'General Services'}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-3">
-                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Contact Information
+              <div className="p-4 rounded-2xl border border-border bg-card space-y-2.5">
+                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border pb-2">
+                  Direct Contact & Channel
                 </h4>
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">{company.email || company.owner?.email || 'No email registered'}</span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-muted-foreground" /> Email
+                    </span>
+                    <span className="font-medium text-foreground">{company.email || company.ownerEmail || '—'}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>{company.phone || company.owner?.phone || 'No phone registered'}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-muted-foreground" /> Phone
+                    </span>
+                    <span className="font-mono font-semibold text-foreground">{company.phone || '—'}</span>
                   </div>
-                  <div className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                    <span className="line-clamp-2">{company.address || 'Address pending'}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-muted-foreground" /> City Region
+                    </span>
+                    <span className="font-medium text-foreground">{company.city || company.address || 'Phnom Penh'}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Document Inspection Panel */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                Submitted Verification Documents
+            {/* Document Inspection Strip */}
+            <div className="p-4 rounded-2xl border border-border bg-card space-y-3">
+              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border pb-2 flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-muted-foreground" /> Uploaded Proof & Credentials
               </h4>
-              {company.documents && company.documents.length > 0 ? (
-                <div className="space-y-2">
-                  {company.documents.map((doc: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <FileText className="w-4 h-4 text-[#0A192F] dark:text-sky-400" />
-                        <div>
-                          <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                            {doc.title || doc.name || `Document #${idx + 1}`}
-                          </p>
-                          <p className="text-[11px] text-slate-400">{doc.type || 'Government ID / License'}</p>
-                        </div>
-                      </div>
-                      {doc.url && (
-                        <a
-                          href={doc.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-                        >
-                          <span>Inspect</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
+              {company.verificationDocumentUrl || company.documentUrl ? (
+                <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-muted/20">
+                  <div className="flex items-center gap-2.5">
+                    <FileText className="w-4 h-4 text-primary" />
+                    <div>
+                      <p className="font-bold text-foreground">Commercial Business Certificate</p>
+                      <p className="text-[10px] text-muted-foreground">Official Government Registration PDF/Image</p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-6 text-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-500">
-                  Business license uploaded upon initial onboarding.
-                  {company.businessLicenseUrl && (
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs border-border gap-1"
+                    asChild
+                  >
                     <a
-                      href={company.businessLicenseUrl}
+                      href={company.verificationDocumentUrl || company.documentUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-2 inline-flex items-center gap-1.5 text-[#0A192F] dark:text-sky-400 font-semibold hover:underline"
                     >
-                      <span>View Primary License Attachment</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>View File</span>
+                      <ExternalLink className="w-3 h-3 text-muted-foreground" />
                     </a>
-                  )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  No digital document scan attached to this application.
                 </div>
               )}
             </div>
           </>
         )}
       </div>
-    </SlideoverDrawer>
+    </BaseDrawer>
   );
 }
 

@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CreateBookingContract",
+  "type": "object",
+  "required": [
+    "serviceId",
+    "companyId",
+    "bookingDate",
+    "startTime",
+    "serviceAddress",
+    "latitude",
+    "longitude"
+  ],
+  "properties": {
+    "serviceId": { "type": "string" },
+    "companyId": { "type": "string" },
+    "bookingDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "startTime": { "type": "string" },
+    "serviceAddress": { "type": "string", "minLength": 3 },
+    "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+    "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+    "notes": { "type": "string" },
+    "paymentMethod": {
+      "type": "string",
+      "enum": ["khqr", "aba", "wing", "cash"]
+    }
+  }
+}

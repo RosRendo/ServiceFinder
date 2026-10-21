@@ -107,7 +107,11 @@ export class UsersController {
     @Body() dto: { latitude: number; longitude: number },
     @CurrentUser() user: any,
   ) {
-    return this.usersService.updateLocation(BigInt(user.id), dto.latitude, dto.longitude);
+    return this.usersService.updateLocation(
+      BigInt(user.id),
+      dto.latitude,
+      dto.longitude,
+    );
   }
 
   @Get(':id')
@@ -227,5 +231,19 @@ export class UsersController {
     @CurrentUser() user: any,
   ) {
     return this.usersService.updateStaffStatus(BigInt(user.id), status);
+  }
+
+  @Patch('me/working-status')
+  @Roles('staff')
+  @ApiOperation({ summary: 'Update staff shift working status (online/offline)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Working status updated successfully.',
+  })
+  updateWorkingStatus(
+    @Body('workingStatus') workingStatus: 'online' | 'offline' | 'on_job',
+    @CurrentUser() user: any,
+  ) {
+    return this.usersService.updateWorkingStatus(BigInt(user.id), workingStatus);
   }
 }

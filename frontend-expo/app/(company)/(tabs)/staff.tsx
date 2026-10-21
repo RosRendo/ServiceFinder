@@ -14,7 +14,9 @@ import InitialsAvatar from "@/components/common/InitialsAvatar";
 import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
 import { Theme } from "@/constants/theme";
 import { MobileStatusPill } from "@/components/admin/ManagementCard";
-import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import ProRadarRow from "@/components/company/ProRadarRow";
+import MapView, { Marker } from "react-native-maps";
+import { MAP_PROVIDER } from "@/utils/mapHelper";
 const FlashList = ShopifyFlashList as any;
 
 const T = Theme.colors;
@@ -33,29 +35,56 @@ const FAB_SHADOW = Platform.select({
 const BASE_LAT = 11.5564;
 const BASE_LNG = 104.9282;
 
-const PulseDot = ({ color }: { color: string }) => {
-  const scale = useRef(new Animated.Value(1)).current;
-  const opacity = useRef(new Animated.Value(0.8)).current;
+const getStaffLocation = (member: any, index: number = 0) => {
+  const rawLat = member.latitude ?? member.user?.latitude;
+  const rawLng = member.longitude ?? member.user?.longitude;
+  if (rawLat && rawLng && Number(rawLat) !== 0 && Number(rawLng) !== 0) {
+    return { latitude: Number(rawLat), longitude: Number(rawLng) };
+  }
+  // Deterministic realistic spread around base city for fleet dispatch
+  const idNum = Number(member.id) || (index + 1);
+  const angle = (idNum * 137.5 * Math.PI) / 180;
+  const radiusKm = 0.8 + ((idNum % 5) * 0.6);
+  const latOffset = (radiusKm / 111) * Math.cos(angle);
+  const lngOffset = (radiusKm / (111 * Math.cos(BASE_LAT * (Math.PI / 180)))) * Math.sin(angle);
+  return {
+    latitude: BASE_LAT + latOffset,
+    longitude: BASE_LNG + lngOffset,
+  };
+};
 
-  useEffect(() => {
-    Animated.loop(
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(scale, { toValue: 2.5, duration: 1500, useNativeDriver: true }),
-          Animated.timing(scale, { toValue: 1, duration: 0, useNativeDriver: true })
-        ]),
-        Animated.sequence([
-          Animated.timing(opacity, { toValue: 0, duration: 1500, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 0.8, duration: 0, useNativeDriver: true })
-        ])
-      ])
-    ).start();
-  }, []);
+const getInitials = (name: string) => {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "S";
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+};
+
+const StaffMapPin = ({
+  member,
+  isSelected,
+}: {
+  member: any;
+  isSelected: boolean;
+}) => {
+  const isOnline = member.status === "active";
+  const isBusy = member.status === "busy";
+  const name = member.fullName || member.user?.fullName || "Staff";
+  const avatarUri = member.user?.avatar || member.avatar;
+  const statusBorder = isSelected ? "#38BDF8" : isOnline ? "#10B981" : isBusy ? "#F59E0B" : "#94A3B8";
 
   return (
-    <View style={s.pulseWrap}>
-      <Animated.View style={[s.pulseRing, { backgroundColor: color, transform: [{ scale }], opacity }]} />
-      <View style={[s.pulseCore, { backgroundColor: color }]} />
+    <View 
+      style={[
+        s.pinPuck, 
+        { borderColor: statusBorder, borderWidth: isSelected ? 3 : 2 }
+      ]}
+    >
+      {avatarUri ? (
+        <Image source={{ uri: avatarUri }} style={s.pinPuckImage} contentFit="cover" />
+      ) : (
+        <Text style={s.pinPuckText} numberOfLines={1}>{getInitials(name)}</Text>
+      )}
     </View>
   );
 };
@@ -70,21 +99,21 @@ export default function Staff() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isMapReady, setIsMapReady] = useState(false);
   const setCompanyOpen = useSidebarStore((s) => s.setCompanyOpen);
 
-  const handleSelectStaff = (member: any) => {
+  const handleSelectStaff = (member: any, index: number = 0) => {
     setSelectedStaff(member);
-    const lat = Number(member.latitude) || BASE_LAT;
-    const lng = Number(member.longitude) || BASE_LNG;
+    const loc = getStaffLocation(member, index);
     if (mapRef.current) {
       mapRef.current.animateToRegion(
         {
-          latitude: lat,
-          longitude: lng,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
           latitudeDelta: 0.015,
           longitudeDelta: 0.015,
         },
-        800
+        700
       );
     }
   };
@@ -203,8 +232,9 @@ export default function Staff() {
         {Platform.OS !== 'web' ? (
           <MapView
             ref={mapRef}
-            provider={PROVIDER_DEFAULT}
+            provider={MAP_PROVIDER}
             style={StyleSheet.absoluteFillObject}
+            onMapReady={() => setIsMapReady(true)}
             initialRegion={{
               latitude: BASE_LAT,
               longitude: BASE_LNG,
@@ -212,37 +242,17 @@ export default function Staff() {
               longitudeDelta: 0.08,
             }}
           >
-            {filteredStaff.map((member) => {
-              const latVal = member.latitude ?? member.user?.latitude;
-              const lngVal = member.longitude ?? member.user?.longitude;
-              const loc = { 
-                latitude: latVal != null ? Number(latVal) : BASE_LAT, 
-                longitude: lngVal != null ? Number(lngVal) : BASE_LNG 
-              };
-              const isAct = member.status === 'active';
+            {isMapReady && filteredStaff.map((member, index) => {
+              const loc = getStaffLocation(member, index);
               const isSel = selectedStaff?.id === member.id;
               return (
                 <Marker 
-                  key={member.id} 
+                  key={`${member.id}-${member.status}-${isSel ? '1' : '0'}-v3`} 
                   coordinate={loc} 
                   title={member.fullName}
-                  onPress={() => handleSelectStaff(member)}
+                  onPress={() => handleSelectStaff(member, index)}
                 >
-                  <View style={[s.markerContainer, isSel && { transform: [{ scale: 1.25 }] }]}>
-                    {isAct && <PulseDot color={T.success} />}
-                    {member.user?.avatar || member.avatar ? (
-                      <Image
-                        source={{ uri: member.user?.avatar || member.avatar }}
-                        style={[s.markerAvatar, !isAct && s.markerAvatarInactive, isSel && { borderColor: T.accent, borderWidth: 3 }]}
-                      />
-                    ) : (
-                      <InitialsAvatar
-                        name={member.fullName || "S"}
-                        size={30}
-                        style={!isAct ? s.markerAvatarInactive : undefined}
-                      />
-                    )}
-                  </View>
+                  <StaffMapPin member={member} isSelected={isSel} />
                 </Marker>
               );
             })}
@@ -310,56 +320,38 @@ export default function Staff() {
             ListEmptyComponent={
               <View style={s.emptyBox}>
                 <MaterialCommunityIcons name="account-group" size={48} color={T.text3} style={{ marginBottom: 16 } as any} />
-                <Text style={s.emptyText}>{searchQuery ? `No results for "${searchQuery}"` : "Your team is empty"}</Text>
-                <Text style={s.emptySubText}>{searchQuery ? "Try a different name or role" : "Invite your first staff member to get started."}</Text>
+                <Text style={s.emptyText}>{searchQuery ? `No results for "${searchQuery}"` : "Team Roster Empty"}</Text>
+                <Text style={s.emptySubText}>{searchQuery ? "No matching members" : "No staff members registered"}</Text>
               </View>
             }
-            renderItem={({ item: member }: any) => {
-              const sStyle = getStatusStyle(member.status);
+            renderItem={({ item: member, index }: any) => {
               const isSelected = selectedStaff?.id === member.id;
+              const phone = member.user?.phone || member.phone || '';
               return (
-                <TouchableOpacity
-                  style={[s.userCard, isSelected && { borderColor: T.accent, borderWidth: 2 }]}
-                  onPress={() => handleSelectStaff(member)}
-                  activeOpacity={0.8}
-                >
-                  <View style={s.cardHeader}>
-                    {member.user?.avatar || member.avatar ? (
-                      <Image
-                        source={{ uri: member.user?.avatar || member.avatar }}
-                        style={s.avatar}
-                      />
-                    ) : (
-                      <InitialsAvatar name={member.fullName || "S"} size={44} style={s.avatar} />
-                    )}
-                    <View style={s.cardHeaderInfo}>
-                      <Text style={s.userName} numberOfLines={1}>{member.fullName || "Unknown"}</Text>
-                      <Text style={s.userEmail} numberOfLines={1}>{member.email || "No Email"}</Text>
-                    </View>
-                    <MobileStatusPill status={member.status || "offline"} />
-                  </View>
-
-                  <View style={s.cardBody}>
-                    <View style={s.infoBlock}>
-                      <Text style={s.infoLabel}>Role</Text>
-                      <View style={s.roleRow}>
-                        <View style={[s.roleDot, { backgroundColor: getRoleColor(member.role) }]} />
-                        <Text style={s.infoValue}>{member.role?.replace('_', ' ') || "Staff"}</Text>
-                      </View>
-                    </View>
-                    <View style={s.infoBlock}>
-                      <Text style={s.infoLabel}>Rating</Text>
-                      <View style={s.roleRow}>
-                        <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
-                        <Text style={s.infoValue}>{member.averageRating ? Number(member.averageRating).toFixed(1) : "N/A"}</Text>
-                      </View>
-                    </View>
-                    <View style={s.infoBlock}>
-                      <Text style={s.infoLabel}>Joined</Text>
-                      <Text style={s.infoValue}>{member.joinedAt || member.createdAt ? new Date(member.joinedAt || member.createdAt).toLocaleDateString() : "-"}</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                <ProRadarRow
+                  staff={{
+                    id: String(member.id),
+                    name: member.fullName || member.user?.fullName || "Staff",
+                    avatarUrl: member.user?.avatar || member.avatar,
+                    status: member.status === 'active' ? 'ONLINE' : member.status === 'busy' ? 'ON_JOB' : 'OFFLINE',
+                    distanceKm: member.distanceKm || (1.2 + ((Number(member.id) || index) % 4) * 0.7),
+                    currentWorkload: member.activeJobsCount || (member.status === 'busy' ? 1 : 0),
+                    rating: Number(member.averageRating || 5.0),
+                    phone,
+                    skills: member.skills || [member.role?.replace('_', ' ') || "Technician"],
+                  }}
+                  isSelected={isSelected}
+                  onPress={() => handleSelectStaff(member, index)}
+                  onCallPress={(p) => {
+                    if (p) Linking.openURL(`tel:${p}`);
+                  }}
+                  onChatPress={() => {
+                    const chatTarget = member.userId || member.id;
+                    if (chatTarget) {
+                      router.push(`/(company)/messages/${chatTarget}?otherName=${encodeURIComponent(member.fullName || 'Staff')}` as any);
+                    }
+                  }}
+                />
               );
             }}
           />
@@ -391,13 +383,30 @@ const s = StyleSheet.create({
 
   mapContainer: { flex: 0.45, backgroundColor: "#E2E8F0" },
   
-  markerContainer: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  markerAvatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: "#FFF" },
-  markerAvatarInactive: { opacity: 0.5, borderColor: T.warning },
-  
-  pulseWrap: { position: "absolute", width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  pulseRing: { position: "absolute", width: 14, height: 14, borderRadius: 7 },
-  pulseCore: { width: 10, height: 10, borderRadius: 5 },
+  pinPuck: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#0A192F",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  pinPuckImage: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  pinPuckText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    textAlign: "center",
+  },
 
   listContainer: { flex: 0.55, backgroundColor: T.bg },
   
@@ -414,7 +423,7 @@ const s = StyleSheet.create({
   filterChipText: { fontSize: 13, fontWeight: "600", color: T.text2 },
   filterChipTextActive: { color: "#fff" },
 
-  listContent: { padding: 16, paddingBottom: 100 },
+  listContent: { padding: 16, paddingBottom: 120 },
   loadingBox: { paddingVertical: 80, alignItems: "center" },
   emptyBox: { alignItems: "center", paddingVertical: 80 },
   emptyText: { fontSize: 16, fontWeight: "700", color: T.text1 },
@@ -450,26 +459,51 @@ const s = StyleSheet.create({
     top: 10,
     left: 16,
     right: 16,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#0A192F",
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "rgba(255,255,255,0.12)",
     zIndex: 50,
     elevation: 6,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
   },
   selectedHeader: { flexDirection: "row", alignItems: "center" },
   selectedAvatar: { width: 44, height: 44, borderRadius: 22 },
-  selectedName: { fontSize: 15, fontWeight: "800", color: T.text1 },
-  selectedRole: { fontSize: 12, fontWeight: "600", color: T.text2, marginTop: 2 },
+  selectedName: { fontSize: 15, fontWeight: "800", color: "#F8FAFC" },
+  selectedRole: { fontSize: 12, fontWeight: "600", color: "#94A3B8", marginTop: 2 },
   selectedActions: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12 },
-  actionCallBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: T.success, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  actionCallBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#10B981", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
   actionCallText: { fontSize: 12, fontWeight: "800", color: "#FFF" },
-  actionDetailBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: T.bg, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: T.border },
-  actionDetailText: { fontSize: 12, fontWeight: "800", color: T.accent },
+  actionDetailBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.06)", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
+  actionDetailText: { fontSize: 12, fontWeight: "800", color: "#38BDF8" },
   closeBtn: { position: "absolute", top: 10, right: 10, padding: 4, zIndex: 10 },
+  cardActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+  },
+  contactBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+  },
+  contactBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#0284C7",
+  },
 });

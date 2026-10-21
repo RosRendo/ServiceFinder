@@ -1,0 +1,115 @@
+# UI Component Contracts: Company Mobile Command Cockpit
+# Feature: specs/009-company-cockpit-redesign
+# Target Subsystems: frontend-expo/app/(company), frontend-expo/components/company
+
+version: "1.0.0"
+metadata:
+  feature: "009-company-cockpit-redesign"
+  scope: "company-mobile-only"
+  accessibilityStandard: "WCAG-2.1-AA-Dual-Cue"
+  textDistillationStandard: "Zero-Paragraph-Rule"
+
+components:
+  - name: CompanyCockpitHeader
+    path: "frontend-expo/components/company/CompanyCockpitHeader.tsx"
+    description: "Executive top bar with company verification badge, dispatch mode toggle, and live operational stats."
+    props:
+      companyName:
+        type: "string"
+        required: true
+      isVerified:
+        type: "boolean"
+        required: true
+      logoUrl:
+        type: "string"
+        required: false
+      onlineCrewCount:
+        type: "number"
+        required: true
+      inProgressJobsCount:
+        type: "number"
+        required: true
+      todayCompletedCount:
+        type: "number"
+        required: true
+      onMenuPress:
+        type: "function"
+        signature: "() => void"
+        required: true
+      onNotificationPress:
+        type: "function"
+        signature: "() => void"
+        required: true
+
+  - name: UrgentDispatchCarousel
+    path: "frontend-expo/components/company/UrgentDispatchCarousel.tsx"
+    description: "Top-of-fold priority triage deck rendering incoming pending bookings with SLA countdown badges and 1-tap allocation buttons."
+    props:
+      bookings:
+        type: "array"
+        items: "UrgentDispatchCardItem"
+        required: true
+      onAccept:
+        type: "function"
+        signature: "(bookingId: string | number) => void"
+        required: true
+      onDecline:
+        type: "function"
+        signature: "(bookingId: string | number) => void"
+        required: true
+      onViewAll:
+        type: "function"
+        signature: "() => void"
+        required: true
+
+  - name: FinancialCommandBar
+    path: "frontend-expo/components/company/FinancialCommandBar.tsx"
+    description: "High-density liquidity summary consolidating wallet balance, escrow transit, crew cash hold, and daily revenue with 1-tap shortcuts."
+    props:
+      availableBalance:
+        type: "number"
+        required: true
+      escrowBalance:
+        type: "number"
+        required: true
+      unremittedCrewCash:
+        type: "number"
+        required: true
+      todayNetRevenue:
+        type: "number"
+        required: true
+      onWithdrawPress:
+        type: "function"
+        signature: "() => void"
+        required: true
+      onAuditCashPress:
+        type: "function"
+        signature: "() => void"
+        required: true
+
+  - name: FleetQuickRadar
+    path: "frontend-expo/components/company/FleetQuickRadar.tsx"
+    description: "Horizontal live crew status strip displaying on-shift technicians with pulsing status dots and 1-tap call/chat shortcuts."
+    props:
+      staffList:
+        type: "array"
+        items: "FleetRadarMember"
+        required: true
+      onCallPress:
+        type: "function"
+        signature: "(phone: string) => void"
+        required: true
+      onChatPress:
+        type: "function"
+        signature: "(staffId: string, name: string) => void"
+        required: true
+      onViewAllPress:
+        type: "function"
+        signature: "() => void"
+        required: true
+
+isolationGuards:
+  forbiddenImportPaths:
+    - "frontend-expo/app/(customer)/**"
+    - "frontend-expo/components/customer/**"
+  enforcementRule: "Customer mobile app remains 100% frozen."

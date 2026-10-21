@@ -180,6 +180,12 @@ export class AdminController {
     return this.adminService.getTransactions(query);
   }
 
+  @Get('transactions/:id')
+  @ApiOperation({ summary: 'Get a single transaction by ID' })
+  getTransactionById(@Param('id') id: string) {
+    return this.adminService.getTransactionById(BigInt(id));
+  }
+
   // ─── Payouts ─────────────────────────────────────────────────────────────────
 
   @Get('payouts')

@@ -1,10 +1,18 @@
 /**
- * Admin Support Tickets — Premium Deep Navy Redesign
+ * Admin Support Tickets — Enterprise Operations Cockpit
  */
 import React, { useState, useEffect } from "react";
 import {
-  View, Text, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Alert, TextInput, StyleSheet
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
+  TextInput,
+  StyleSheet,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -20,18 +28,18 @@ const T = Theme.colors;
 type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
 type TicketPriority = "low" | "medium" | "high" | "urgent";
 
-const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string; bg: string }> = {
-  open:        { label: "Open",        color: T.blue,    bg: T.blue + "15" },
-  in_progress: { label: "In Progress", color: T.warning, bg: T.warning + "15" },
-  resolved:    { label: "Resolved",    color: T.success, bg: T.success + "15" },
-  closed:      { label: "Closed",      color: T.gray,    bg: T.gray + "15" },
+const STATUS_CONFIG: Record<TicketStatus, { label: string; dotColor: string }> = {
+  open:        { label: "Open",        dotColor: "#D97706" }, // Amber
+  in_progress: { label: "In Progress", dotColor: "#334155" }, // Slate
+  resolved:    { label: "Resolved",    dotColor: "#059669" }, // Emerald
+  closed:      { label: "Closed",      dotColor: "#94A3B8" }, // Muted Slate
 };
 
-const PRIORITY_CONFIG: Record<TicketPriority, { color: string; icon: string }> = {
-  low:    { color: T.gray,    icon: "arrow-down-circle" },
-  medium: { color: T.warning, icon: "minus-circle" },
-  high:   { color: T.error,   icon: "arrow-up-circle" },
-  urgent: { color: T.purple,  icon: "alert-circle" },
+const PRIORITY_CONFIG: Record<TicketPriority, { label: string; dotColor: string }> = {
+  low:    { label: "Low",    dotColor: "#94A3B8" },
+  medium: { label: "Medium", dotColor: "#64748B" },
+  high:   { label: "High",   dotColor: "#D97706" },
+  urgent: { label: "Urgent", dotColor: "#DC2626" },
 };
 
 const TABS: { id: TicketStatus | "all"; label: string }[] = [
@@ -59,13 +67,12 @@ export default function AdminSupportTicketsScreen() {
     try {
       const params = activeTab !== "all" ? { status: activeTab } : {};
       const res = await api.get("/api/support/tickets", { params });
-      // Backend returns { success: true, data: [...], meta: {} }
-      // TransformInterceptor passes through because success: true is present
       const data = res.data?.data ?? [];
       setTickets(Array.isArray(data) ? data : []);
       setHasError(false);
     } catch (e) {
       console.error("Failed to fetch support tickets", e);
+      setHasError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -147,13 +154,15 @@ export default function AdminSupportTicketsScreen() {
                 {item.user?.fullName ?? item.submittedBy ?? "User"} · {new Date(item.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
               </Text>
             </View>
-            <View style={{ alignItems: "flex-end", gap: 6 }}>
-              <View style={[s.badge, { backgroundColor: sCfg.bg }]}>
-                <Text style={[s.badgeText, { color: sCfg.color }]}>{sCfg.label}</Text>
+
+            <View style={s.metaRight}>
+              <View style={s.statusBadge}>
+                <View style={[s.statusDot, { backgroundColor: sCfg.dotColor }]} />
+                <Text style={s.statusText}>{sCfg.label}</Text>
               </View>
-              <View style={s.priorityRow}>
-                <MaterialCommunityIcons name={pCfg.icon as any} size={12} color={pCfg.color} />
-                <Text style={[s.priorityText, { color: pCfg.color }]}>{item.priority ?? "medium"}</Text>
+              <View style={s.priorityBadge}>
+                <View style={[s.priorityDot, { backgroundColor: pCfg.dotColor }]} />
+                <Text style={s.priorityText}>{pCfg.label}</Text>
               </View>
             </View>
           </View>
@@ -165,8 +174,8 @@ export default function AdminSupportTicketsScreen() {
           )}
 
           <View style={s.toggleRow}>
-            <MaterialCommunityIcons name={isExpanded ? "chevron-up" : "chevron-down"} size={16} color={T.text3} />
-            <Text style={s.toggleText}>{isExpanded ? "Collapse" : "View & Reply"}</Text>
+            <MaterialCommunityIcons name={isExpanded ? "chevron-up" : "chevron-down"} size={16} color="#64748B" />
+            <Text style={s.toggleText}>{isExpanded ? "Collapse Details" : "View & Reply"}</Text>
           </View>
         </TouchableOpacity>
 
@@ -174,8 +183,8 @@ export default function AdminSupportTicketsScreen() {
           <View style={s.replyArea}>
             <TextInput
               style={s.replyInput}
-              placeholder="Type your reply to the user..."
-              placeholderTextColor={T.text3}
+              placeholder="Type corporate resolution message..."
+              placeholderTextColor="#94A3B8"
               multiline
               value={replyText}
               onChangeText={setReplyText}
@@ -184,20 +193,22 @@ export default function AdminSupportTicketsScreen() {
               <TouchableOpacity
                 onPress={() => handleReply(item.id)}
                 disabled={replying || !replyText.trim()}
-                style={[s.replyBtn, { backgroundColor: replyText.trim() ? T.accent : T.border }]}
+                style={[s.replyBtn, { backgroundColor: replyText.trim() ? "#0F172A" : "#E2E8F0" }]}
+                activeOpacity={0.8}
               >
                 {replying ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={[s.replyBtnText, { color: replyText.trim() ? "#fff" : T.text3 }]}>Send Reply</Text>
+                  <Text style={[s.replyBtnText, { color: replyText.trim() ? "#FFFFFF" : "#94A3B8" }]}>Send Response</Text>
                 )}
               </TouchableOpacity>
               {item.status !== "resolved" && (
                 <TouchableOpacity
                   onPress={() => handleClose(item.id)}
                   style={s.closeBtn}
+                  activeOpacity={0.8}
                 >
-                  <Text style={s.closeBtnText}>Close</Text>
+                  <Text style={s.closeBtnText}>Resolve</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -210,11 +221,12 @@ export default function AdminSupportTicketsScreen() {
               onPress={() => handleAssign(item.id)}
               disabled={isActioning}
               style={s.actionBtn}
+              activeOpacity={0.7}
             >
               {isActioning ? (
-                <ActivityIndicator size="small" color={T.accent} />
+                <ActivityIndicator size="small" color="#0F172A" />
               ) : (
-                <Text style={s.actionBtnText}>Assign to Me</Text>
+                <Text style={s.actionBtnText}>Assign Ticket to Me</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -231,117 +243,222 @@ export default function AdminSupportTicketsScreen() {
       <View style={s.header}>
         <View style={s.headerLeft}>
           <TouchableOpacity 
-              accessibilityRole="button"
-              accessibilityLabel={t('common.openMenu')}
-              onPress={() => openSidebar(true)} style={s.menuBtn}>
-            <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
+            accessibilityRole="button"
+            accessibilityLabel={t("common.openMenu")}
+            onPress={() => openSidebar(true)}
+            style={s.menuBtn}
+          >
+            <MaterialCommunityIcons name="menu" size={24} color="#0F172A" />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>Support Tickets</Text>
+          <Text style={s.headerTitle}>Support Inquiries</Text>
         </View>
         {openCount > 0 && (
           <View style={s.openCountBadge}>
-            <Text style={s.openCountText}>{openCount}</Text>
+            <Text style={s.openCountText}>{openCount} Open</Text>
           </View>
         )}
       </View>
 
       {/* Tabs */}
       <View style={s.tabsRow}>
-        {TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.id}
-            onPress={() => setActiveTab(tab.id)}
-            style={[s.tab, activeTab === tab.id && s.tabActive]}
-          >
-            <Text style={[s.tabText, activeTab === tab.id && s.tabTextActive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              onPress={() => setActiveTab(tab.id)}
+              style={[s.tab, isActive && s.tabActive]}
+              activeOpacity={0.7}
+            >
+              <Text style={[s.tabText, isActive && s.tabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {loading ? (
         <View style={s.loadingBox}>
-          <ActivityIndicator size="large" color={T.accent} />
+          <ActivityIndicator size="large" color="#0F172A" />
         </View>
+      ) : hasError ? (
+        <ErrorState onRetry={() => fetchTickets()} />
       ) : (
-        hasError ? (
-          <ErrorState onRetry={() => fetchTickets()} />
-        ) : (
         <FlatList
           data={tickets}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id?.toString()}
           renderItem={renderTicket}
           contentContainerStyle={s.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchTickets(); }} tintColor={T.accent} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => { setRefreshing(true); fetchTickets(); }}
+              tintColor="#0F172A"
+            />
+          }
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={s.emptyBox}>
-              <MaterialCommunityIcons name="ticket-confirmation-outline" size={48} color={T.text3} style={{ marginBottom: 16 }} />
-              <Text style={s.emptyText}>No tickets found</Text>
-              <Text style={s.emptySubText}>All support tickets are accounted for</Text>
+              <MaterialCommunityIcons name="ticket-outline" size={44} color="#94A3B8" style={{ marginBottom: 12 }} />
+              <Text style={s.emptyText}>No Support Tickets</Text>
+              <Text style={s.emptySubText}>There are no inquiries matching the selected filter.</Text>
             </View>
           }
         />
-      ))}
-
+      )}
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface,
-    borderBottomWidth: 1, borderBottomColor: T.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
-  openCountBadge: { backgroundColor: T.blue, borderRadius: 12, minWidth: 24, height: 24, paddingHorizontal: 6, alignItems: "center", justifyContent: "center" },
-  openCountText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  menuBtn: { marginLeft: -6, padding: 6 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A", letterSpacing: -0.3 },
+  openCountBadge: {
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  openCountText: { color: "#0F172A", fontSize: 12, fontWeight: "700" },
 
-  tabsRow: { flexDirection: "row", backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, paddingHorizontal: 8 },
-  tab: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 2, borderBottomColor: "transparent" },
-  tabActive: { borderBottomColor: T.accent },
-  tabText: { fontSize: 14, fontWeight: "600", color: T.text2 },
-  tabTextActive: { color: T.accent, fontWeight: "700" },
+  tabsRow: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    paddingHorizontal: 12,
+    gap: 6,
+    paddingVertical: 8,
+  },
+  tab: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  tabActive: {
+    backgroundColor: "#0F172A",
+    borderColor: "#0F172A",
+  },
+  tabText: { fontSize: 13, fontWeight: "600", color: "#64748B" },
+  tabTextActive: { color: "#FFFFFF", fontWeight: "700" },
 
-  listContent: { padding: 16, paddingBottom: 60, gap: 16 },
+  listContent: { padding: 16, paddingBottom: 120, gap: 12 },
   loadingBox: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  card: { backgroundColor: T.surface, borderRadius: 20 },
-  cardHeader: { padding: 16 },
-  cardHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
-  cardTitle: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 4 },
-  cardSubtitle: { fontSize: 12, color: T.text3, fontWeight: "500" },
-
-  badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  badgeText: { fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
-  priorityRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  priorityText: { fontSize: 10, fontWeight: "700", textTransform: "capitalize" },
-
-  messageText: { fontSize: 14, color: T.text2, lineHeight: 20 },
-  toggleRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 12 },
-  toggleText: { fontSize: 11, fontWeight: "600", color: T.text3 },
-
-  replyArea: { backgroundColor: T.bg, padding: 16, borderTopWidth: 1, borderTopColor: T.border },
-  replyInput: {
-    backgroundColor: T.surface, borderRadius: 12, borderWidth: 1, borderColor: T.border,
-    padding: 12, fontSize: 14, color: T.text1, minHeight: 80, textAlignVertical: "top", marginBottom: 12
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    overflow: "hidden",
   },
-  replyActions: { flexDirection: "row", gap: 12 },
-  replyBtn: { flex: 1, borderRadius: 12, height: 44, alignItems: "center", justifyContent: "center" },
-  replyBtnText: { fontSize: 13, fontWeight: "700" },
-  closeBtn: { paddingHorizontal: 16, height: 44, borderRadius: 12, borderWidth: 1, borderColor: T.border, alignItems: "center", justifyContent: "center", backgroundColor: T.surface },
-  closeBtnText: { fontSize: 13, fontWeight: "700", color: T.text2 },
+  cardHeader: { padding: 16 },
+  cardHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 10,
+  },
+  cardTitle: { fontSize: 15, fontWeight: "700", color: "#0F172A", marginBottom: 3, lineHeight: 20 },
+  cardSubtitle: { fontSize: 12, color: "#64748B", fontWeight: "500" },
 
-  cardActions: { borderTopWidth: 1, borderTopColor: T.border },
-  actionBtn: { paddingVertical: 14, alignItems: "center", justifyContent: "center" },
-  actionBtnText: { fontSize: 14, fontWeight: "700", color: T.accent },
+  metaRight: { alignItems: "flex-end", gap: 4 },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: 11, fontWeight: "600", color: "#334155" },
+
+  priorityBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: "#F8FAFC",
+  },
+  priorityDot: { width: 5, height: 5, borderRadius: 2.5 },
+  priorityText: { fontSize: 10, fontWeight: "600", color: "#64748B" },
+
+  messageText: { fontSize: 13, color: "#475569", lineHeight: 19, marginTop: 4 },
+  toggleRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 10 },
+  toggleText: { fontSize: 12, fontWeight: "600", color: "#64748B" },
+
+  replyArea: {
+    backgroundColor: "#F8FAFC",
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+  },
+  replyInput: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: 12,
+    fontSize: 13,
+    color: "#0F172A",
+    minHeight: 80,
+    textAlignVertical: "top",
+    marginBottom: 12,
+  },
+  replyActions: { flexDirection: "row", gap: 10 },
+  replyBtn: {
+    flex: 1,
+    borderRadius: 8,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  replyBtnText: { fontSize: 13, fontWeight: "700" },
+  closeBtn: {
+    paddingHorizontal: 16,
+    height: 42,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  closeBtnText: { fontSize: 13, fontWeight: "700", color: "#0F172A" },
+
+  cardActions: {
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
+  },
+  actionBtn: { paddingVertical: 12, alignItems: "center", justifyContent: "center" },
+  actionBtnText: { fontSize: 13, fontWeight: "700", color: "#0F172A" },
 
   emptyBox: { alignItems: "center", paddingVertical: 80, paddingHorizontal: 32 },
-  emptyText: { fontSize: 16, fontWeight: "700", color: T.text1 },
-  emptySubText: { fontSize: 14, color: T.text3, marginTop: 4, textAlign: "center" },
+  emptyText: { fontSize: 15, fontWeight: "700", color: "#0F172A" },
+  emptySubText: { fontSize: 13, color: "#64748B", marginTop: 4, textAlign: "center" },
 });

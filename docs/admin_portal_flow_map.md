@@ -15,7 +15,6 @@ The admin portal is divided into 7 functional navigation groups:
 | | Reports | `/admin/reports` | Summary metrics & PDF Exports | Form filters, custom report generation. | 🟢 Clean (Form/List) |
 | **Operations** | Bookings (List) | `/admin/bookings` | **Pattern 1:** DataGrid List | Click row ➡️ Opens `BookingDrawer`. Bulk actions: cancel/refund. | 🟢 Clean |
 | | Bookings (Detail) | `/admin/bookings/[id]` | **Pattern 2:** Detailed Entity View | Sticky actions panel on the right. Modify status, assign staff, cancel/refund. | 🟢 Clean |
-| | Dispatch Engine | `/admin/settings?tab=general` | **Pattern 3:** Tabs Config | Slider rule controls, save configurations. | 🟢 Clean |
 | | Service Areas | `/admin/service-areas` | Custom Leaflet Map Grid | Draw boundary polygons, assign regional tags. | 🟢 Clean (Custom Map) |
 | **Trust & Safety** | Verification Queue | `/admin/verification` | **Pattern 1:** DataGrid List | Click row ➡️ Opens `VerifyDrawer`. Bulk actions: approve/reject documents. | 🟢 Clean |
 | | Compliance | `/admin/compliance` | **Pattern 1:** DataGrid List | Click row ➡️ Opens `ComplianceDrawer` (with inline rejection). | 🟢 Clean |
@@ -37,7 +36,6 @@ The admin portal is divided into 7 functional navigation groups:
 | **Finance** | Transactions (List) | `/admin/transactions` | **Pattern 1:** DataGrid List | Click row ➡️ Opens transaction metadata details. | 🟢 Clean |
 | | Transactions (Detail) | `/admin/transactions/[id]` | **Pattern 2:** Detailed Ledger View | View metadata, inspect callback logs, initiate Stripe/ABA refund. | 🟢 Clean |
 | | Payouts | `/admin/payouts` | **Pattern 1:** DataGrid List | Click row ➡️ Opens bank details. Bulk cashout authorize. | 🟢 Clean |
-| | Refunds | `/admin/refunds` | Custom table layout | Search refund logs, view Stripe/ABA callback responses. | 🟡 Low Refit (Table alignments) |
 | **Platform Settings** | System Settings | `/admin/settings?tab=general` | **Pattern 3:** Tabs layout | Key-value settings form fields. | 🟢 Clean |
 | | Email Settings | `/admin/emails` | Custom WYSIWYG form layout | Compose transactional templates, edit SMTP keys. | 🟢 Clean (Custom Editor) |
 | | Integrations | `/admin/settings?tab=integrations`| **Pattern 3:** Tabs layout | Toggle API credentials for Stripe, PayWay, Twilio. | 🟢 Clean |

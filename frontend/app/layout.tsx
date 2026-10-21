@@ -59,6 +59,15 @@ export const metadata: Metadata = {
       "The modern OS for service businesses.",
     images: ["/og-image.png"],
   },
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/logo-mark.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/logo-mark.svg" },
+    ],
+  },
   robots: {
     index: true,
     follow: true,

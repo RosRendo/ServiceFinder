@@ -59,7 +59,7 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
   {
     title: "Customer (Are customers happy?)",
     items: [
-      { id: 301, title: "Complaints",           subtitle: "Dispute resolution tickets",     icon: "alert-octagon-outline", action: "route", route: "/(company)/support" },
+      { id: 301, title: "Escrow Disputes",      subtitle: "Mediation claims & defense",     icon: "scale-balance",         action: "route", route: "/(company)/disputes" },
       { id: 302, title: "Reviews",              subtitle: "Public feedback moderation",     icon: "star-half-full",        action: "route", route: "/(company)/reviews" },
       { id: 303, title: "Support",              subtitle: "Direct messaging with clients",  icon: "message-text-outline",  action: "route", route: "/(company)/support" },
       { id: 304, title: "Client CRM",           subtitle: "Search past customers & history",icon: "card-account-details-outline", action: "route", route: "/(company)/customers" },

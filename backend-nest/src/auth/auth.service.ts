@@ -59,11 +59,11 @@ export class AuthService {
     );
   }
 
-  /** Generate a long-lived refresh token (7 days) and persist it to the DB */
+  /** Generate a long-lived refresh token (30 days) and persist it to the DB */
   async generateRefreshToken(userId: bigint): Promise<string> {
     const token = uuidv4();
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setDate(expiresAt.getDate() + 30);
 
     await this.prisma.refreshToken.create({
       data: { token, userId, expiresAt },

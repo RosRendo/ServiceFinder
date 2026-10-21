@@ -1,5 +1,5 @@
 /**
- * Company Services — Premium Redesign
+ * Company Services Catalog — Premium Executive Standard
  */
 import React, { useState, useCallback } from "react";
 import {
@@ -14,13 +14,8 @@ import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
 
-const HERO_SHADOW = Platform.select({
-  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
-  android: { elevation: 8 },
-});
-
 const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.06, shadowRadius: 10 },
   android: { elevation: 2 },
 });
 
@@ -33,7 +28,6 @@ export default function Services() {
   const loadServices = useCallback(async (isRefresh = false) => {
     if (isRefresh) { setRefreshing(true); } else { setLoading(true); }
     try {
-      // 1. Fetch the user's company
       const companyRes = await api.get("/api/companies/my-company");
       const companyId = companyRes.data?.data?.id ?? companyRes.data?.id;
 
@@ -42,12 +36,10 @@ export default function Services() {
         return;
       }
 
-      // 2. Fetch the company's services
       const servicesRes = await api.get(`/api/services/company/${companyId}`);
-      // NestJS interceptor wraps in data, and pagination might wrap in data again
       let data = servicesRes.data;
       if (data && data.success) data = data.data;
-      if (data && data.data) data = data.data; // Handle paginated response { data: [...] }
+      if (data && data.data) data = data.data;
       
       setServices(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -62,67 +54,95 @@ export default function Services() {
 
   return (
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
-      {/* Header */}
+      {/* Executive Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
+        <TouchableOpacity onPress={() => router.back()} style={s.iconBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#0F172A" />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Services</Text>
+        <View style={s.headerCenter}>
+          <Text style={s.headerTitle}>Service Catalog</Text>
+          <Text style={s.headerSubtitle}>{services.length} Active Offerings</Text>
+        </View>
         <TouchableOpacity style={s.addBtn} onPress={() => router.push("/(company)/services/new" as any)}>
-          <MaterialCommunityIcons name="plus" size={24} color={T.text1} />
+          <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadServices(true)} tintColor={T.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadServices(true)} tintColor="#0284C7" />}
       >
-        <View style={s.sectionHeader}>
-          <Text style={s.sectionTitle}>Your Offerings</Text>
-          <Text style={s.sectionCount}>{services.length} active</Text>
+        {/* Info Banner */}
+        <View style={s.infoBanner}>
+          <MaterialCommunityIcons name="lightning-bolt" size={18} color="#0284C7" />
+          <Text style={s.infoBannerText}>
+            Services listed here are dispatched instantly to on-demand customer requests in your coverage zones.
+          </Text>
         </View>
 
         {loading ? (
           <View style={s.loadingBox}>
-            <ActivityIndicator size="large" color={T.accent} />
+            <ActivityIndicator size="large" color="#0284C7" />
+            <Text style={s.loadingText}>Loading catalog offerings...</Text>
           </View>
         ) : services.length > 0 ? (
           <View style={s.list}>
             {services.map((service) => (
-              <TouchableOpacity
+              <View
                 key={service.id}
-                style={s.card}
-                activeOpacity={0.8}
+                style={[s.card, CARD_SHADOW]}
               >
-                <View style={s.cardIcon}>
-                  <MaterialCommunityIcons name="briefcase-outline" size={22} color={T.accentMid} />
-                </View>
-                <View style={s.cardContent}>
-                  <Text style={s.cardTitle} numberOfLines={1}>{service.name}</Text>
-                  <Text style={s.cardDesc} numberOfLines={2}>
-                    {service.description || "No description provided."}
-                  </Text>
-                  <View style={s.cardFooter}>
-                    <View style={s.footerItem}>
-                      <MaterialCommunityIcons name="currency-usd" size={16} color={T.accent} />
-                      <Text style={s.priceText}>{service.price}</Text>
-                    </View>
-                    <View style={s.footerItem}>
-                      <MaterialCommunityIcons name="clock-outline" size={14} color={T.text3} />
-                      <Text style={s.durationText}>{service.duration} mins</Text>
+                <View style={s.cardTop}>
+                  <View style={s.cardIcon}>
+                    <MaterialCommunityIcons name="briefcase-check" size={22} color="#0284C7" />
+                  </View>
+                  <View style={s.cardHeadInfo}>
+                    <Text style={s.cardTitle} numberOfLines={1}>{service.name}</Text>
+                    <View style={s.statusPill}>
+                      <View style={s.statusDot} />
+                      <Text style={s.statusPillText}>Active Listing</Text>
                     </View>
                   </View>
+                  <Text style={s.priceTag}>
+                    ${Number(service.price || 0).toFixed(2)}
+                  </Text>
                 </View>
-                <MaterialCommunityIcons name="chevron-right" size={20} color={T.text3} />
-              </TouchableOpacity>
+
+                {service.description ? (
+                  <Text style={s.cardDesc} numberOfLines={2}>
+                    {service.description}
+                  </Text>
+                ) : null}
+
+                <View style={s.cardFooter}>
+                  <View style={s.footerChip}>
+                    <MaterialCommunityIcons name="clock-outline" size={14} color="#64748B" />
+                    <Text style={s.footerChipText}>{service.duration || 60} mins estimated</Text>
+                  </View>
+                  {service.category?.name ? (
+                    <View style={s.footerChip}>
+                      <MaterialCommunityIcons name="tag-outline" size={14} color="#64748B" />
+                      <Text style={s.footerChipText}>{service.category.name}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
             ))}
           </View>
         ) : (
           <View style={s.emptyBox}>
-            <MaterialCommunityIcons name="briefcase-variant-outline" size={56} color={T.text3} />
-            <Text style={s.emptyTitle}>No Services Yet</Text>
-            <Text style={s.emptySubtitle}>You haven't added any services to your profile. Tap the plus icon to add one.</Text>
+            <View style={s.emptyIconCircle}>
+              <MaterialCommunityIcons name="briefcase-plus-outline" size={40} color="#0284C7" />
+            </View>
+            <Text style={s.emptyTitle}>No Services Configured</Text>
+            <Text style={s.emptySubtitle}>
+              You have not added any services to your dispatch catalog yet. Tap the button below to publish your first offering.
+            </Text>
+            <TouchableOpacity style={s.emptyBtn} onPress={() => router.push("/(company)/services/new" as any)}>
+              <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
+              <Text style={s.emptyBtnText}>Add Service Offering</Text>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -131,41 +151,72 @@ export default function Services() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface,
-    borderBottomWidth: 1, borderBottomColor: T.border,
+    paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1, borderBottomColor: "#E2E8F0",
   },
-  backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginLeft: -8 },
-  addBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginRight: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
+  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  addBtn: {
+    width: 36, height: 36, borderRadius: 10, backgroundColor: "#0284C7",
+    alignItems: "center", justifyContent: "center",
+  },
+  headerCenter: { alignItems: "center" },
+  headerTitle: { fontSize: 17, fontWeight: "800", color: "#0F172A", letterSpacing: -0.3 },
+  headerSubtitle: { fontSize: 11, fontWeight: "600", color: "#64748B", marginTop: 1 },
 
-  scrollContent: { padding: 24, paddingBottom: 60 },
-  sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
-  sectionCount: { fontSize: 13, fontWeight: "600", color: T.text3 },
-  loadingBox: { paddingVertical: 60, alignItems: "center" },
+  scrollContent: { padding: 16, paddingBottom: 60, gap: 14 },
+  infoBanner: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#F0F9FF", borderWidth: 1, borderColor: "#BAE6FD",
+    padding: 12, borderRadius: 14,
+  },
+  infoBannerText: { flex: 1, fontSize: 12, fontWeight: "600", color: "#0369A1", lineHeight: 18 },
+
+  loadingBox: { paddingVertical: 60, alignItems: "center", gap: 10 },
+  loadingText: { fontSize: 13, fontWeight: "600", color: "#64748B" },
 
   list: { gap: 12 },
   card: {
-    backgroundColor: T.surface, borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: T.border,
-    flexDirection: "row", alignItems: "center", gap: 16,
-    ...CARD_SHADOW },
+    backgroundColor: "#FFFFFF", borderRadius: 18, padding: 16,
+    borderWidth: 1, borderColor: "#E2E8F0",
+  },
+  cardTop: { flexDirection: "row", alignItems: "center", gap: 12 },
   cardIcon: {
-    width: 44, height: 44, borderRadius: 12, backgroundColor: T.accentLight,
+    width: 44, height: 44, borderRadius: 12, backgroundColor: "#E0F2FE",
     alignItems: "center", justifyContent: "center",
   },
-  cardContent: { flex: 1 },
-  cardTitle: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 4 },
-  cardDesc: { fontSize: 12, fontWeight: "500", color: T.text3, marginBottom: 12, lineHeight: 18 },
-  cardFooter: { flexDirection: "row", alignItems: "center", gap: 16 },
-  footerItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  priceText: { fontSize: 14, fontWeight: "700", color: T.accent },
-  durationText: { fontSize: 12, fontWeight: "600", color: T.text2 },
+  cardHeadInfo: { flex: 1 },
+  cardTitle: { fontSize: 15, fontWeight: "800", color: "#0F172A" },
+  statusPill: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 },
+  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#10B981" },
+  statusPillText: { fontSize: 11, fontWeight: "700", color: "#16A34A" },
+  priceTag: { fontSize: 18, fontWeight: "900", color: "#0F172A" },
 
-  emptyBox: { paddingVertical: 80, alignItems: "center", gap: 8 },
-  emptyTitle: { fontSize: 18, fontWeight: "700", color: T.text1, marginTop: 8 },
-  emptySubtitle: { fontSize: 14, fontWeight: "500", color: T.text3, textAlign: "center", paddingHorizontal: 20 },
+  cardDesc: { fontSize: 12, fontWeight: "500", color: "#64748B", marginTop: 10, lineHeight: 18 },
+
+  cardFooter: {
+    flexDirection: "row", alignItems: "center", gap: 8, marginTop: 14,
+    paddingTop: 12, borderTopWidth: 1, borderTopColor: "#F1F5F9",
+  },
+  footerChip: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    backgroundColor: "#F1F5F9", paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8,
+  },
+  footerChipText: { fontSize: 11, fontWeight: "600", color: "#475569" },
+
+  emptyBox: { paddingVertical: 60, alignItems: "center", paddingHorizontal: 20 },
+  emptyIconCircle: {
+    width: 72, height: 72, borderRadius: 36, backgroundColor: "#E0F2FE",
+    alignItems: "center", justifyContent: "center", marginBottom: 16,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: "800", color: "#0F172A" },
+  emptySubtitle: { fontSize: 13, fontWeight: "500", color: "#64748B", textAlign: "center", marginTop: 8, lineHeight: 20 },
+  emptyBtn: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: "#0284C7", paddingHorizontal: 20, paddingVertical: 12,
+    borderRadius: 14, marginTop: 24,
+  },
+  emptyBtnText: { fontSize: 13, fontWeight: "800", color: "#FFFFFF" },
 });

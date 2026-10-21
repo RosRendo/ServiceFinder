@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 76" fill="none">
+  <defs>
+    <!-- Ribbon Gradient -->
+    <linearGradient id="sf-logo-ribbon" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#1D4ED8" />
+      <stop offset="45%" stop-color="#2563EB" />
+      <stop offset="80%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#0EA5E9" />
+    </linearGradient>
+
+    <!-- Solar Beacon -->
+    <radialGradient id="sf-logo-solar" cx="40%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#FDBA74" />
+      <stop offset="50%" stop-color="#FB923C" />
+      <stop offset="100%" stop-color="#EA580C" />
+    </radialGradient>
+
+    <!-- Spark Gradient -->
+    <linearGradient id="sf-logo-spark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+
+    <!-- Finder Text Gradient -->
+    <linearGradient id="sf-finder-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284C7" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+
+    <!-- Glow -->
+    <filter id="sf-logo-glow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-color="#0284C7" flood-opacity="0.22" />
+    </filter>
+  </defs>
+
+  <!-- ─── EMBLEM (X: 2 to 68) ─── -->
+  <g transform="translate(-4, -6) scale(0.95)">
+    <!-- Upward Sparks -->
+    <path d="M60 21 L66 7 L63 18 Z" fill="url(#sf-logo-spark)" />
+    <path d="M65 24 L77 16 L67 22 Z" fill="url(#sf-logo-spark)" />
+    <path d="M63 28 L74 26 L65 30 Z" fill="#06B6D4" />
+
+    <!-- Map Pin Ribbon -->
+    <g filter="url(#sf-logo-glow)">
+      <path
+        d="M42 76 
+           C38 70 18 48 18 32 
+           C18 18.5 29 7.5 42.5 7.5 
+           C52 7.5 60 13 63 21
+           C61 21 57 22 55 25
+           C52 20.5 47.5 17.5 42.5 17.5
+           C34 17.5 27 24.5 27 33
+           C27 44.5 38.5 60 42 66
+           C45.5 60 57 44.5 57 33
+           C57 31.5 56.7 30 56.3 28.5
+           C59 27 62 29 62.5 31
+           C64 34.5 64.5 38.5 63 42.5
+           C59.5 54 46.5 70 42 76 Z"
+        fill="url(#sf-logo-ribbon)"
+      />
+    </g>
+
+    <!-- Solar Core Beacon -->
+    <circle cx="42.5" cy="33" r="9" fill="url(#sf-logo-solar)" />
+  </g>
+
+  <!-- ─── STACKED TYPOGRAPHY (X: 74 onwards) ─── -->
+  <g transform="translate(74, 0)">
+    <!-- Top Word: SERVICE -->
+    <text
+      x="0"
+      y="32"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+      font-size="25"
+      font-weight="800"
+      letter-spacing="0.08em"
+      fill="#0F172A"
+    >
+      SERVICE
+    </text>
+
+    <!-- Bottom Word: FINDER (Vibrant Electric Cyan with Stylized Cuts) -->
+    <text
+      x="0"
+      y="63"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+      font-size="28"
+      font-weight="900"
+      letter-spacing="0.05em"
+      fill="url(#sf-finder-grad)"
+    >
+      FINDER
+    </text>
+
+    <!-- Subtle Tech Accent Underline -->
+    <rect x="0" y="69" width="36" height="2.5" rx="1.25" fill="url(#sf-logo-ribbon)" />
+  </g>
+</svg>

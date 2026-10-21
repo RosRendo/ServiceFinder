@@ -1,10 +1,11 @@
 /**
- * Company Booking Details — Premium Redesign
+ * Company Booking Details — Executive Command Redesign
+ * Feature: specs/009-company-cockpit-redesign
  */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   ScrollView, Text, View, TouchableOpacity,
-  ActivityIndicator, RefreshControl, StyleSheet, Platform, Modal, Alert, Animated
+  ActivityIndicator, RefreshControl, StyleSheet, Platform, Alert, Animated, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -12,32 +13,12 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import MapView, { Marker } from "react-native-maps";
 import { io, Socket } from "socket.io-client";
 import { api } from "@/store/authStore";
-import { Theme } from "@/constants/theme";
 import Toast from "react-native-toast-message";
-import * as Haptics from "expo-haptics";
 import { useCurrentLocation } from "@/hooks/useCurrentLocation";
 import { API_URL } from "@/lib/apiConfig";
-
-
-const T = Theme.colors;
-
-const HERO_SHADOW = Platform.select({
-  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
-  android: { elevation: 8 },
-});
-
-const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
-  android: { elevation: 2 },
-});
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  pending:     { label: "Pending",     color: "#92400E", bg: "#FEF3C7" },
-  confirmed:   { label: "Confirmed",   color: "#1E40AF", bg: "#DBEAFE" },
-  in_progress: { label: "In Progress", color: "#5B21B6", bg: "#EDE9FE" },
-  completed:   { label: "Completed",   color: "#065F46", bg: "#D1FAE5" },
-  cancelled:   { label: "Cancelled",   color: "#991B1B", bg: "#FEE2E2" },
-};
+import { VisualMilestoneStepper, JobMilestoneKey } from "@/components/jobs/VisualMilestoneStepper";
+import { MobileStatusPill } from "@/components/admin/ManagementCard";
+import AssignStaffModal from "@/app/(company)/operations/AssignStaffModal";
 
 export default function BookingDetails() {
   const { id } = useLocalSearchParams();
@@ -46,14 +27,12 @@ export default function BookingDetails() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { location: currentLoc } = useCurrentLocation(true);
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-  const [rejecting, setRejecting] = useState(false);
   const [liveStaffLocation, setLiveStaffLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const mapRef = React.useRef<MapView>(null);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const mapRef = useRef<MapView>(null);
 
-  const pulseAnim = React.useRef(new Animated.Value(0.5)).current;
-  React.useEffect(() => {
+  const pulseAnim = useRef(new Animated.Value(0.5)).current;
+  useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
@@ -62,25 +41,13 @@ export default function BookingDetails() {
     ).start();
   }, [pulseAnim]);
 
-
-
-  const [staffList, setStaffList] = useState<any[]>([]);
-  const [selectedStaffId, setSelectedStaffId] = useState<string>("");
-  const [assigning, setAssigning] = useState(false);
-
   const loadBooking = useCallback(async (isRefresh = false) => {
     if (!id) return;
-    if (isRefresh) { setRefreshing(true); } else { setLoading(true); }
+    if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
       const response = await api.get(`/api/bookings/${id}`);
       const data = response.data?.data ?? response.data;
-      const b = data?.booking || data || null;
-      setBooking(b);
-
-      // If booking is unassigned, load staff list
-      if (b && !b.assignedStaffId) {
-        fetchStaff();
-      }
+      setBooking(data?.booking || data || null);
     } catch (error) {
       console.error("Failed to load booking details", error);
     } finally {
@@ -89,48 +56,17 @@ export default function BookingDetails() {
     }
   }, [id]);
 
-  const fetchStaff = async () => {
-    try {
-      const res = await api.get("/api/companies/my-company/staff");
-      let data = res.data;
-      if (data && data.success) data = data.data;
-      if (data && data.data) data = data.data;
-      const list = Array.isArray(data) ? data : [];
-      setStaffList(list);
-      if (list.length > 0) {
-        setSelectedStaffId(list[0].id.toString());
-      }
-    } catch (err) {
-      console.error("Failed to load staff list:", err);
-    }
-  };
-
-  const handleAssignStaff = async () => {
-    if (!selectedStaffId || !booking) return;
-    setAssigning(true);
-    try {
-      await api.patch(`/api/bookings/${booking.id}/assign-staff`, { staffId: selectedStaffId });
-      Alert.alert("Success 🎉", "Staff member assigned!");
-      loadBooking();
-    } catch (err: any) {
-      Alert.alert("Error", err.response?.data?.message || "Failed to assign staff");
-    } finally {
-      setAssigning(false);
-    }
-  };
-
   useFocusEffect(useCallback(() => { loadBooking(); }, [loadBooking]));
 
-  // 1. Listen to live staff location when booking is in progress
-  React.useEffect(() => {
-    if (!booking || booking.status !== "in_progress") return;
+  // Live Socket Tracking
+  useEffect(() => {
+    if (!booking || (booking.status !== "in_progress" && booking.status !== "en_route")) return;
 
     let socket: Socket | null = null;
     let isActive = true;
 
     const initTracking = async () => {
       try {
-        // Fetch current snapshot first
         const locRes = await api.get(`/api/location/${booking.id}`);
         if (locRes.data?.data?.staffLocation && isActive) {
           setLiveStaffLocation({
@@ -138,11 +74,10 @@ export default function BookingDetails() {
             lng: locRes.data.data.staffLocation.lng,
           });
         }
-      } catch (err) {}
+      } catch {}
 
       if (!isActive) return;
 
-      // Connect socket for real-time updates
       socket = io(API_URL);
       socket.on("connect", () => {
         socket?.emit("join_booking", String(booking.id));
@@ -163,50 +98,7 @@ export default function BookingDetails() {
     };
   }, [booking?.status, booking?.id]);
 
-  // 2. Emit simulated GPS coordinates when job is en_route
-  React.useEffect(() => {
-    if (!booking || booking.status !== "en_route") return;
-
-    let socket: Socket | null = null;
-    let mockInterval: any = null;
-
-    try {
-      socket = io(API_URL, { transports: ["websocket"] });
-      socket.on("connect", () => {
-        socket?.emit("join_booking", String(booking.id));
-      });
-
-      let currentLat = Number(booking.company?.latitude) || currentLoc.latitude;
-      let currentLng = Number(booking.company?.longitude) || currentLoc.longitude;
-      const targetLat = Number(booking.latitude) || currentLoc.latitude;
-      const targetLng = Number(booking.longitude) || currentLoc.longitude;
-
-      mockInterval = setInterval(() => {
-        // Move 15% closer to customer on each tick
-        currentLat += (targetLat - currentLat) * 0.15;
-        currentLng += (targetLng - currentLng) * 0.15;
-
-        // Emit staff location update over WebSocket
-        socket?.emit("staff_location_update", {
-          bookingId: String(booking.id),
-          latitude: currentLat,
-          longitude: currentLng
-        });
-      }, 3000);
-    } catch (e) {
-      console.warn("Failed to connect staff socket updates:", e);
-    }
-
-    return () => {
-      if (mockInterval) clearInterval(mockInterval);
-      if (socket) {
-        socket.emit("leave_booking", String(booking.id));
-        socket.disconnect();
-      }
-    };
-  }, [booking?.status, booking?.id]);
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (mapRef.current && booking?.latitude && booking?.longitude) {
       const coords = [{ latitude: Number(booking.latitude), longitude: Number(booking.longitude) }];
       if (liveStaffLocation) {
@@ -221,21 +113,42 @@ export default function BookingDetails() {
     }
   }, [booking?.latitude, booking?.longitude, liveStaffLocation]);
 
+  const handleAccept = async () => {
+    try {
+      await api.patch(`/api/bookings/${booking.id}/status`, { status: "confirmed" });
+      Toast.show({ type: "success", text1: "Booking Accepted", text2: "Customer notified." });
+      setAssignModalOpen(true);
+      loadBooking(true);
+    } catch {
+      Toast.show({ type: "error", text1: "Error", text2: "Failed to accept booking." });
+    }
+  };
+
+  const handleDecline = () => {
+    Alert.alert("Decline Booking", "Release this booking back to the dispatch pool?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Decline",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await api.patch(`/api/bookings/${booking.id}/status`, { status: "cancelled" });
+            Toast.show({ type: "info", text1: "Booking Declined", text2: "Customer notified." });
+            loadBooking(true);
+          } catch {
+            Toast.show({ type: "error", text1: "Error", text2: "Failed to decline booking." });
+          }
+        },
+      },
+    ]);
+  };
+
   if (loading && !booking) {
     return (
-      <SafeAreaView style={s.root}>
-        <View style={s.header}>
-          <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
-          </TouchableOpacity>
-          <Animated.View style={[s.skeletonBadge, { width: 120, opacity: pulseAnim }]} />
-          <View style={{ width: 40 }} />
-        </View>
-        <View style={s.scrollContent}>
-          <Animated.View style={[s.skeletonCard, { height: 60, opacity: pulseAnim }]} />
-          <Animated.View style={[s.skeletonCard, { height: 160, opacity: pulseAnim }]} />
-          <Animated.View style={[s.skeletonCard, { height: 160, opacity: pulseAnim }]} />
-          <Animated.View style={[s.skeletonCard, { height: 120, opacity: pulseAnim }]} />
+      <SafeAreaView style={styles.root}>
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color="#0A192F" />
+          <Text style={styles.loadingText}>Loading Booking Command...</Text>
         </View>
       </SafeAreaView>
     );
@@ -243,341 +156,646 @@ export default function BookingDetails() {
 
   if (!booking) {
     return (
-      <SafeAreaView style={s.root}>
-        <View style={s.header}>
-          <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
+      <SafeAreaView style={styles.root}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <MaterialCommunityIcons name="chevron-left" size={28} color="#0A192F" />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>Error</Text>
+          <Text style={styles.headerTitle}>Error</Text>
           <View style={{ width: 40 }} />
         </View>
-        <View style={s.emptyBox}>
-          <Text style={s.emptyTitle}>Booking Not Found</Text>
+        <View style={styles.emptyWrap}>
+          <Text style={styles.emptyTitle}>Booking Not Found</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  const status = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG.pending;
+  // Derive Milestone Stage
+  let milestoneStage: JobMilestoneKey = "EN_ROUTE";
+  let completedStages: JobMilestoneKey[] = [];
+  if (booking.status === "en_route") {
+    milestoneStage = "EN_ROUTE";
+    completedStages = [];
+  } else if (booking.status === "in_progress") {
+    milestoneStage = "WORKING";
+    completedStages = ["EN_ROUTE", "ARRIVED"];
+  } else if (booking.status === "completed") {
+    milestoneStage = "COMPLETED";
+    completedStages = ["EN_ROUTE", "ARRIVED", "WORKING"];
+  }
+
+  const isPending = booking.status === "pending";
+  const customerPhone = booking.customer?.phone;
+  const staffPhone = booking.assignedStaff?.phone || booking.assignedStaff?.user?.phone;
+  const destinationLat = Number(booking.latitude) || 11.5564;
+  const destinationLng = Number(booking.longitude) || 104.9282;
 
   return (
-    <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
+    <SafeAreaView style={styles.root} edges={["top", "left", "right"]}>
+      {/* Executive Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <MaterialCommunityIcons name="chevron-left" size={26} color="#0A192F" />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Booking #{booking.id}</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Booking #{String(booking.id).slice(-6).toUpperCase()}</Text>
+          <Text style={styles.headerSub}>{booking.service?.name || "Service"}</Text>
+        </View>
+        <View style={styles.headerActions}>
+          {customerPhone ? (
+            <TouchableOpacity
+              onPress={() => Linking.openURL(`tel:${customerPhone}`).catch(() => {})}
+              style={styles.iconCircleBtn}
+              accessibilityLabel="Call Customer"
+            >
+              <MaterialCommunityIcons name="phone" size={16} color="#059669" />
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity
+            onPress={() => router.push(`/(company)/(tabs)/messages` as any)}
+            style={styles.iconCircleBtn}
+            accessibilityLabel="Open Chat"
+          >
+            <MaterialCommunityIcons name="message-text-outline" size={16} color="#0284C7" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={s.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadBooking(true)} tintColor={T.accent} />}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadBooking(true)} tintColor="#0A192F" />}
       >
-        {/* Status Box */}
-        <View style={s.statusBox}>
-          <View style={[s.statusBadge, { backgroundColor: status.bg }]}>
-            <Text style={[s.statusText, { color: status.color }]}>{status.label}</Text>
-          </View>
-          <Text style={s.priceText}>${Number(booking.totalPrice).toFixed(2)}</Text>
-        </View>
-
-        {/* Customer Details */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Customer Details</Text>
-          <View style={s.row}>
-            <MaterialCommunityIcons name="account-outline" size={20} color={T.text3} />
-            <Text style={s.rowText}>{booking.customer?.fullName ?? "N/A"}</Text>
-          </View>
-          <View style={s.row}>
-            <MaterialCommunityIcons name="phone-outline" size={20} color={T.text3} />
-            <Text style={s.rowText}>{booking.customer?.phone ?? "No phone"}</Text>
-          </View>
-          <View style={s.row}>
-            <MaterialCommunityIcons name="map-marker-outline" size={20} color={T.text3} />
-            <Text style={s.rowText}>{booking.serviceAddress ?? "No address"}</Text>
-          </View>
-        </View>
-
-        {/* Service Details */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Service Details</Text>
-          <View style={s.row}>
-            <MaterialCommunityIcons name="briefcase-outline" size={20} color={T.text3} />
-            <Text style={s.rowText}>{booking.service?.name}</Text>
-          </View>
-          <View style={s.row}>
-            <MaterialCommunityIcons name="calendar-outline" size={20} color={T.text3} />
-            <Text style={s.rowText}>
-              {new Date(booking.bookingDate).toLocaleDateString("en-US", {
-                weekday: "short", month: "short", day: "numeric", year: "numeric"
-              })}
-              {booking.startTime ? ` at ${booking.startTime}` : ""}
-            </Text>
-          </View>
-          <View style={s.row}>
-            <MaterialCommunityIcons name="clock-outline" size={20} color={T.text3} />
-            <Text style={s.rowText}>{booking.service?.durationMin} minutes</Text>
-          </View>
-        </View>
-
-        {/* Live Tracking Map (Only if In Progress) */}
-        {booking.status === "in_progress" && booking.latitude && booking.longitude && (
-          <View style={s.card}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <Text style={s.cardTitle}>Live Tracking</Text>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: T.success }} />
-                <Text style={{ fontSize: 12, fontWeight: "600", color: T.success }}>Live</Text>
-              </View>
+        {/* Hero Liquidity & Status Card */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroTop}>
+            <View>
+              <Text style={styles.heroLabel}>NET COMPANY PAYOUT</Text>
+              <Text style={styles.heroValue}>
+                ${Number(booking.companyEarnings ?? booking.totalPrice ?? 0).toFixed(2)}
+              </Text>
             </View>
-            <View style={s.mapContainer}>
-              <MapView
-                ref={mapRef}
-                style={s.mapView}
-                initialRegion={{
-                  latitude: Number(booking.latitude),
-                  longitude: Number(booking.longitude),
-                  latitudeDelta: 0.015,
-                  longitudeDelta: 0.015,
-                }}
-              >
-                <Marker
-                  coordinate={{ latitude: Number(booking.latitude), longitude: Number(booking.longitude) }}
-                  title="Job Destination"
-                  pinColor={T.error}
-                />
-                {liveStaffLocation && (
-                  <Marker
-                    coordinate={{ latitude: liveStaffLocation.lat, longitude: liveStaffLocation.lng }}
-                    title="Staff"
-                    description={booking.assignedStaff?.fullName || "Staff Member"}
-                  >
-                    <View style={s.staffMarker}>
-                      <MaterialCommunityIcons name="car" size={16} color="#fff" />
-                    </View>
-                  </Marker>
-                )}
-              </MapView>
+            <MobileStatusPill status={booking.status} />
+          </View>
+          <View style={styles.heroDivider} />
+          <View style={styles.heroBottom}>
+            <View style={styles.heroBottomItem}>
+              <MaterialCommunityIcons name="shield-check" size={14} color="#10B981" />
+              <Text style={styles.heroBottomText}>Escrow Protected</Text>
             </View>
+            <View style={styles.heroBottomItem}>
+              <MaterialCommunityIcons name="clock-outline" size={14} color="#94A3B8" />
+              <Text style={styles.heroBottomText}>{booking.service?.durationMin || 60} mins window</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Visual Milestone Stepper (if not cancelled/pending) */}
+        {!isPending && booking.status !== "cancelled" && (
+          <View style={styles.card}>
+            <Text style={styles.cardHeaderTitle}>Operational Milestone</Text>
+            <VisualMilestoneStepper
+              currentStage={milestoneStage}
+              completedStages={completedStages}
+            />
           </View>
         )}
 
-        {/* Staff / Assignment */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Assigned Staff</Text>
+        {/* Customer Information Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.cardHeaderTitle}>Customer & Destination</Text>
+            {customerPhone ? (
+              <TouchableOpacity
+                onPress={() => Linking.openURL(`tel:${customerPhone}`).catch(() => {})}
+                style={styles.actionChip}
+              >
+                <MaterialCommunityIcons name="phone" size={13} color="#059669" />
+                <Text style={styles.actionChipText}>Call</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          <View style={styles.infoRow}>
+            <View style={styles.avatarWrap}>
+              <MaterialCommunityIcons name="account" size={18} color="#0A192F" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.primaryText}>{booking.customer?.fullName || "Customer"}</Text>
+              <Text style={styles.secondaryText}>{customerPhone || "No direct phone"}</Text>
+            </View>
+          </View>
+
+          <View style={styles.innerDivider} />
+
+          <View style={styles.infoRow}>
+            <MaterialCommunityIcons name="map-marker" size={18} color="#EF4444" />
+            <Text style={[styles.secondaryText, { flex: 1 }]}>
+              {booking.serviceAddress || "Address provided upon confirmation"}
+            </Text>
+          </View>
+
+          {booking.customerNotes ? (
+            <View style={styles.notesBox}>
+              <MaterialCommunityIcons name="information-outline" size={15} color="#D97706" />
+              <Text style={styles.notesText}>{booking.customerNotes}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Assigned Technician Allocation Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.cardHeaderTitle}>Technician Assignment</Text>
+            <TouchableOpacity
+              onPress={() => setAssignModalOpen(true)}
+              style={styles.actionChip}
+            >
+              <MaterialCommunityIcons name="account-sync" size={13} color="#0284C7" />
+              <Text style={styles.actionChipText}>{booking.assignedStaff ? "Reassign" : "Assign"}</Text>
+            </TouchableOpacity>
+          </View>
+
           {booking.assignedStaff ? (
-            <View style={s.staffRow}>
-              <View style={s.staffAvatar}>
-                <Text style={s.staffInitial}>
-                  {booking.assignedStaff.fullName?.charAt(0)?.toUpperCase() ?? "S"}
-                </Text>
+            <View style={styles.infoRow}>
+              <View style={[styles.avatarWrap, { backgroundColor: "#ECFDF5" }]}>
+                <MaterialCommunityIcons name="account-hard-hat" size={18} color="#059669" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.staffName}>{booking.assignedStaff.fullName}</Text>
-                <Text style={s.staffPhone}>{booking.assignedStaff.phone || "No phone"}</Text>
+                <Text style={styles.primaryText}>
+                  {booking.assignedStaff.fullName || booking.assignedStaff.user?.fullName}
+                </Text>
+                <Text style={styles.secondaryText}>
+                  {staffPhone || "On-shift technician"}
+                </Text>
               </View>
-              {booking.status === "pending" && (
-                <View style={{ gap: 8 }}>
-                  <TouchableOpacity style={[s.assignBtn, { backgroundColor: "#FEE2E2" }]} onPress={() => setRejectModalOpen(true)}>
-                    <Text style={[s.assignBtnText, { color: "#991B1B" }]}>Decline</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+              {staffPhone ? (
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(`tel:${staffPhone}`).catch(() => {})}
+                  style={styles.iconCircleMini}
+                >
+                  <MaterialCommunityIcons name="phone" size={14} color="#059669" />
+                </TouchableOpacity>
+              ) : null}
             </View>
           ) : (
-            <View>
-              <View style={s.unassignedRow}>
-                <Text style={s.unassignedText}>No staff assigned yet</Text>
-                {booking.status === "pending" && (
-                  <TouchableOpacity style={[s.assignBtn, { backgroundColor: "#FEE2E2" }]} onPress={() => setRejectModalOpen(true)}>
-                    <Text style={[s.assignBtnText, { color: "#991B1B" }]}>Decline</Text>
-                  </TouchableOpacity>
-                )}
+            <View style={styles.unassignedBox}>
+              <MaterialCommunityIcons name="account-alert-outline" size={24} color="#D97706" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.unassignedTitle}>Crew Unallocated</Text>
+                <Text style={styles.unassignedSub}>Assign a technician to start SLA route</Text>
               </View>
-              
-              {/* Staff Assignment chip list */}
-              {staffList.length > 0 && (
-                <View style={{ gap: 8, marginTop: 12 }}>
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: T.text3, textTransform: "uppercase", letterSpacing: 0.5 }}>Select Staff to Assign:</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
-                    {staffList.map((sMember) => {
-                      const isSel = selectedStaffId === sMember.id.toString();
-                      return (
-                        <TouchableOpacity
-                          key={sMember.id}
-                          onPress={() => setSelectedStaffId(sMember.id.toString())}
-                          style={[
-                            s.staffChip,
-                            isSel && s.staffChipActive
-                          ]}
-                        >
-                          <Text style={[s.staffChipText, isSel && s.staffChipTextActive]}>
-                            {sMember.user?.fullName || "Staff"}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                  
-                  <TouchableOpacity
-                    style={[s.assignBtn, { marginTop: 8, alignItems: 'center', backgroundColor: T.accent }]}
-                    onPress={handleAssignStaff}
-                    disabled={assigning || !selectedStaffId}
-                  >
-                    {assigning ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={[s.assignBtnText, { color: '#fff' }]}>Assign Selected Staff</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              )}
+              <TouchableOpacity
+                onPress={() => setAssignModalOpen(true)}
+                style={styles.assignNowBtn}
+              >
+                <Text style={styles.assignNowText}>Assign</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
 
-        {/* Payment Summary */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Payment Summary</Text>
-          <View style={s.payRow}>
-            <Text style={s.payLabel}>Service Base Price</Text>
-            <Text style={s.payValue}>${Number(booking.service?.basePrice || 0).toFixed(2)}</Text>
+        {/* Live GPS Route Map */}
+        <View style={styles.card}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.cardHeaderTitle}>Destination Map</Text>
+            <View style={styles.livePill}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>GPS Active</Text>
+            </View>
           </View>
-          <View style={s.payRow}>
-            <Text style={s.payLabel}>Platform Fee</Text>
-            <Text style={s.payValue}>-${Number(booking.platformFee || 0).toFixed(2)}</Text>
-          </View>
-          <View style={s.divider} />
-          <View style={s.payRow}>
-            <Text style={s.payLabelBold}>Company Earnings</Text>
-            <Text style={s.payValueBold}>${Number(booking.companyEarnings || 0).toFixed(2)}</Text>
-          </View>
-          <View style={[s.divider, { marginTop: 16 }]} />
-          <View style={s.payRow}>
-            <Text style={s.payLabel}>Customer Total Paid</Text>
-            <Text style={s.payValue}>${Number(booking.totalPrice).toFixed(2)}</Text>
+          <View style={styles.mapContainer}>
+            <MapView
+              ref={mapRef}
+              style={styles.mapView}
+              initialRegion={{
+                latitude: destinationLat,
+                longitude: destinationLng,
+                latitudeDelta: 0.02,
+                longitudeDelta: 0.02,
+              }}
+            >
+              <Marker
+                coordinate={{ latitude: destinationLat, longitude: destinationLng }}
+                title="Service Destination"
+                pinColor="#EF4444"
+              />
+              {liveStaffLocation && (
+                <Marker
+                  coordinate={{ latitude: liveStaffLocation.lat, longitude: liveStaffLocation.lng }}
+                  title="Technician"
+                >
+                  <View style={styles.staffMarker}>
+                    <MaterialCommunityIcons name="car" size={16} color="#FFFFFF" />
+                  </View>
+                </Marker>
+              )}
+            </MapView>
           </View>
         </View>
 
+        {/* Financial Breakdown */}
+        <View style={styles.card}>
+          <Text style={styles.cardHeaderTitle}>Payment Ledger</Text>
+          <View style={styles.payRow}>
+            <Text style={styles.payLabel}>Customer Billed Total</Text>
+            <Text style={styles.payValue}>${Number(booking.totalPrice || 0).toFixed(2)}</Text>
+          </View>
+          <View style={styles.payRow}>
+            <Text style={styles.payLabel}>Platform Escrow Fee</Text>
+            <Text style={[styles.payValue, { color: "#64748B" }]}>
+              -${Number(booking.platformFee || 0).toFixed(2)}
+            </Text>
+          </View>
+          <View style={styles.innerDivider} />
+          <View style={styles.payRow}>
+            <Text style={[styles.payLabel, { fontWeight: "800", color: "#0A192F" }]}>Net Company Receivable</Text>
+            <Text style={[styles.payValue, { fontWeight: "800", color: "#059669", fontSize: 16 }]}>
+              ${Number(booking.companyEarnings ?? booking.totalPrice ?? 0).toFixed(2)}
+            </Text>
+          </View>
+        </View>
       </ScrollView>
 
-      {/* Reject Modal */}
-      <Modal visible={rejectModalOpen} animationType="slide" transparent>
-        <View style={s.modalOverlay}>
-          <View style={s.modalContent}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Decline Booking</Text>
-              <TouchableOpacity onPress={() => setRejectModalOpen(false)} style={s.modalClose}>
-                <MaterialCommunityIcons name="close" size={24} color={T.text1} />
-              </TouchableOpacity>
-            </View>
-            <View style={{ padding: 24 }}>
-              <Text style={{ fontSize: 15, color: T.text2, marginBottom: 16, lineHeight: 22 }}>
-                Please provide a reason for declining this booking. The customer will be refunded via KHQR.
-              </Text>
-              <View style={{ backgroundColor: T.bg, borderWidth: 1, borderColor: T.border, borderRadius: 12, padding: 12, minHeight: 100 }}>
-                <Text style={{ flex: 1, textAlignVertical: 'top' }}>
-                  User provided reason here (TextInput omitted for brevity)
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={{ backgroundColor: T.error, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 16 }}
-                onPress={() => {
-                  setRejectModalOpen(false);
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                  Toast.show({ type: 'success', text1: 'Booking Declined', text2: 'The customer has been notified and refunded.' });
-                }}
-              >
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Confirm Decline</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+      {/* Sticky Bottom Operational Action Bar */}
+      {isPending ? (
+        <View style={styles.bottomDock}>
+          <TouchableOpacity style={styles.dockDeclineBtn} onPress={handleDecline}>
+            <Text style={styles.dockDeclineText}>Decline</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.dockAcceptBtn} onPress={handleAccept}>
+            <MaterialCommunityIcons name="check" size={18} color="#FFFFFF" />
+            <Text style={styles.dockAcceptText}>Accept & Assign</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      ) : !booking.assignedStaff ? (
+        <View style={styles.bottomDock}>
+          <TouchableOpacity
+            style={[styles.dockAcceptBtn, { width: "100%" }]}
+            onPress={() => setAssignModalOpen(true)}
+          >
+            <MaterialCommunityIcons name="account-arrow-right" size={18} color="#FFFFFF" />
+            <Text style={styles.dockAcceptText}>Assign Crew Technician</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      {/* 1-Tap Staff Allocation Modal */}
+      <AssignStaffModal
+        visible={assignModalOpen}
+        bookingId={String(booking.id)}
+        onClose={() => setAssignModalOpen(false)}
+        onAssigned={() => {
+          setAssignModalOpen(false);
+          loadBooking(true);
+        }}
+      />
     </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
   header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface,
-    borderBottomWidth: 1, borderBottomColor: T.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
-  backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
-
-  scrollContent: { padding: 24, paddingBottom: 60, gap: 16 },
-
-  statusBox: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
-  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  statusText: { fontSize: 13, fontWeight: "700", letterSpacing: 0.5 },
-  priceText: { fontSize: 24, fontWeight: "700", color: T.accent },
-
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0A192F",
+    letterSpacing: -0.2,
+  },
+  headerSub: {
+    fontSize: 11,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  iconCircleBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scrollContent: {
+    padding: 16,
+    gap: 12,
+    paddingBottom: 110,
+  },
+  heroCard: {
+    backgroundColor: "#0A192F",
+    borderRadius: 18,
+    padding: 16,
+    shadowColor: "#0A192F",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  heroTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  heroLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#94A3B8",
+    letterSpacing: 0.5,
+  },
+  heroValue: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: -0.5,
+    marginTop: 2,
+  },
+  heroDivider: {
+    height: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    marginVertical: 12,
+  },
+  heroBottom: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  heroBottomItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  heroBottomText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.8)",
+  },
   card: {
-    backgroundColor: T.surface, borderRadius: 16, padding: 20,
-    borderWidth: 1, borderColor: T.border,
-    gap: 14,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    gap: 10,
   },
-  cardTitle: { fontSize: 16, fontWeight: "700", color: T.accent, marginBottom: 4 },
-  
-  row: { flexDirection: "row", alignItems: "center", gap: 12 },
-  rowText: { fontSize: 14, fontWeight: "500", color: T.text1, flex: 1 },
-
-  staffRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  staffAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: T.accentMid, alignItems: "center", justifyContent: "center" },
-  staffInitial: { fontSize: 16, fontWeight: "700", color: "#fff" },
-  staffName: { fontSize: 15, fontWeight: "700", color: T.text1 },
-  staffPhone: { fontSize: 13, fontWeight: "500", color: T.text3, marginTop: 2 },
-  unassignedText: { fontSize: 14, fontWeight: "600", color: T.text3, fontStyle: "italic" },
-
-  mapContainer: { width: "100%", height: 220, borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: T.border },
-  mapView: { width: "100%", height: "100%" },
-  staffMarker: { width: 32, height: 32, borderRadius: 16, backgroundColor: T.accentMid, alignItems: "center", justifyContent: "center", },
-
-  payRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  payLabel: { fontSize: 14, fontWeight: "500", color: T.text2 },
-  payValue: { fontSize: 14, fontWeight: "600", color: T.text1 },
-  payLabelBold: { fontSize: 15, fontWeight: "700", color: T.accent },
-  payValueBold: { fontSize: 15, fontWeight: "700", color: T.success },
-  divider: { height: 1, backgroundColor: T.border, marginVertical: 4 },
-
-  emptyBox: { flex: 1, alignItems: "center", justifyContent: "center" },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: T.text2 },
-  emptyIconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: T.border, alignItems: "center", justifyContent: "center", marginBottom: 16 },
-
-  assignBtn: { backgroundColor: T.accentLight, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
-  assignBtnText: { color: T.accentMid, fontWeight: "700", fontSize: 13 },
-  unassignedRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  modalContent: { backgroundColor: T.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "85%", minHeight: "55%" },
-  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 24, borderBottomWidth: 1, borderBottomColor: T.border, backgroundColor: T.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
-  modalTitle: { fontSize: 19, fontWeight: "700", color: T.text1 },
-  modalClose: { padding: 8, backgroundColor: T.bg, borderRadius: 20 },
-  modalList: { padding: 24, paddingTop: 16 },
-  modalEmpty: { padding: 40, alignItems: "center" },
-  modalEmptyText: { fontSize: 16, color: T.text1, fontWeight: "700" },
-  modalStaffItem: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: T.surface, padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  availDot: { width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: T.surface },
-  rolePill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  rolePillText: { fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
-  ratingPill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#FEF3C7", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  ratingText: { fontSize: 12, fontWeight: "700", color: "#92400E" },
-  jobsPill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: T.success + "15", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  jobsText: { fontSize: 12, fontWeight: "700", color: T.success },
-  
-  // Skeleton
-  skeletonBadge: { height: 24, backgroundColor: T.border, borderRadius: 12 },
-  skeletonCard: { backgroundColor: T.surface, borderRadius: 16, borderWidth: 1, borderColor: T.border },
-
-  // Custom Controls
-  staffChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
-  staffChipActive: { backgroundColor: T.accentMid, borderColor: T.accentMid },
-  staffChipText: { fontSize: 13, fontWeight: "600", color: T.text2 },
-  staffChipTextActive: { color: "#fff", fontWeight: "700" }
+  cardHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cardHeaderTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#0F172A",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  actionChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  actionChipText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#0A192F",
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  avatarWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  primaryText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  secondaryText: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 1,
+  },
+  innerDivider: {
+    height: 1,
+    backgroundColor: "#F1F5F9",
+    marginVertical: 2,
+  },
+  notesBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FEF3C7",
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+  notesText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#92400E",
+    flex: 1,
+  },
+  iconCircleMini: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#ECFDF5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  unassignedBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FFFBEB",
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+  unassignedTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#92400E",
+  },
+  unassignedSub: {
+    fontSize: 10,
+    color: "#B45309",
+  },
+  assignNowBtn: {
+    backgroundColor: "#D97706",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  assignNowText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  livePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  liveDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: "#10B981",
+  },
+  liveText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#059669",
+  },
+  mapContainer: {
+    height: 160,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  mapView: {
+    width: "100%",
+    height: "100%",
+  },
+  staffMarker: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#0A192F",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
+  payRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  payLabel: {
+    fontSize: 12,
+    color: "#475569",
+  },
+  payValue: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  bottomDock: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === "ios" ? 28 : 16,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  dockDeclineBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dockDeclineText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#64748B",
+  },
+  dockAcceptBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: "#0A192F",
+  },
+  dockAcceptText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  loadingText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  emptyWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
 });

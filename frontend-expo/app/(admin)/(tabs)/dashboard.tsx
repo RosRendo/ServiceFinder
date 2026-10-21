@@ -1,5 +1,5 @@
 /**
- * Admin Dashboard — Premium Deep Navy Redesign
+ * Admin Dashboard — Obsidian Executive Cockpit
  */
 import React, { useState, useCallback } from "react";
 import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, RefreshControl, StyleSheet, Platform } from "react-native";
@@ -14,13 +14,10 @@ import InitialsAvatar from "@/components/common/InitialsAvatar";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/authStore";
 import { Theme } from "@/constants/theme";
+import ExecutiveMetricRibbon from "@/components/admin/ExecutiveMetricRibbon";
+import SlaAlertMatrix from "@/components/admin/SlaAlertMatrix";
 
 const T = Theme.colors;
-
-const HERO_SHADOW = Platform.select({
-  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
-  android: { elevation: 8 },
-});
 
 const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
@@ -63,10 +60,6 @@ export default function AdminDashboard() {
 
   useFocusEffect(useCallback(() => { fetchMetrics(); }, [fetchMetrics]));
 
-  const formatCurrency = (amount: number) => {
-    return '$' + Math.round(amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  };
-
   const formatNumber = (num: number) => {
     if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
     return (num || 0).toString();
@@ -79,10 +72,10 @@ export default function AdminDashboard() {
       : "—";
 
   const healthMetrics = [
-    { id: 1, label: t('adminDashboard.totalUsers'), value: formatNumber(metrics?.totalUsers), trend: growthLabel(metrics?.usersGrowth), icon: "account-multiple-outline", color: T.blue, route: '/(admin)/(tabs)/users' },
-    { id: 2, label: t('adminDashboard.companies'), value: formatNumber(metrics?.totalCompanies), trend: growthLabel(metrics?.companiesGrowth), icon: "office-building-outline", color: T.success, route: '/(admin)/(tabs)/companies' },
-    { id: 3, label: t('adminDashboard.bookings'), value: formatNumber(metrics?.totalBookings), trend: growthLabel(metrics?.bookingsGrowth), icon: "calendar-check-outline", color: T.purple, route: '/(admin)/(tabs)/analytics' },
-    { id: 4, label: t('adminDashboard.pending'), value: formatNumber(metrics?.pendingCompanies), icon: "clock-alert-outline", color: T.warning, route: '/(admin)/(tabs)/queue' },
+    { id: 1, label: t('adminDashboard.totalUsers'), value: formatNumber(metrics?.totalUsers), trend: growthLabel(metrics?.usersGrowth), icon: "account-multiple-outline", route: '/(admin)/(tabs)/users' },
+    { id: 2, label: t('adminDashboard.companies'), value: formatNumber(metrics?.totalCompanies), trend: growthLabel(metrics?.companiesGrowth), icon: "office-building-outline", route: '/(admin)/(tabs)/companies' },
+    { id: 3, label: t('adminDashboard.bookings'), value: formatNumber(metrics?.totalBookings), trend: growthLabel(metrics?.bookingsGrowth), icon: "calendar-check-outline", route: '/(admin)/bookings' },
+    { id: 4, label: t('adminDashboard.pending'), value: formatNumber(metrics?.pendingCompanies), trend: metrics?.pendingCompanies > 0 ? "Action Req" : "Clear", isPendingAlert: metrics?.pendingCompanies > 0, icon: "clock-alert-outline", route: '/(admin)/(tabs)/queue' },
   ];
 
   return (
@@ -96,15 +89,15 @@ export default function AdminDashboard() {
             accessibilityRole="button"
             accessibilityLabel={t('common.openMenu')}
           >
-            <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
+            <MaterialCommunityIcons name="menu" size={26} color="#0F172A" />
           </TouchableOpacity>
           <View>
-            <Text style={s.headerGreeting}>{greeting},</Text>
-            <Text style={s.headerTitle}>{adminFirstName} 👋</Text>
+            <Text style={s.headerGreeting}>{greeting.toUpperCase()}</Text>
+            <Text style={s.headerTitle}>{adminFirstName}</Text>
           </View>
         </View>
         <View style={s.headerRight}>
-          <NotificationBell color={T.text1} />
+          <NotificationBell color="#0F172A" />
           <InitialsAvatar name={adminName} size={36} />
         </View>
       </View>
@@ -112,95 +105,33 @@ export default function AdminDashboard() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchMetrics(true)} tintColor={T.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchMetrics(true)} tintColor="#0F172A" />}
       >
         {isLoading && !metrics ? (
-          <View style={s.loadingBox}><ActivityIndicator size="large" color={T.accent} /></View>
+          <View style={s.loadingBox}><ActivityIndicator size="large" color="#0F172A" /></View>
         ) : hasError && !metrics ? (
           <ErrorState onRetry={() => { setIsLoading(true); fetchMetrics(); }} />
         ) : (
           <>
-            {/* Revenue Hero Card */}
-            <View
-              style={s.revenueCard}
-              accessibilityLabel={t('adminDashboard.totalRevenue') + ': ' + formatCurrency(metrics?.totalRevenue || 0)}
-            >
-              <View style={s.revenueHeader}>
-                <View>
-                  <Text style={s.revenueSubtitle}>{t('adminDashboard.totalRevenue')}</Text>
-                  <Text style={s.revenueGmv}>{t('adminDashboard.completedBookings', { count: metrics?.completedBookings || 0 })}</Text>
-                </View>
-                <View style={s.revenueTrendPill}>
-                  <MaterialCommunityIcons name="trending-up" size={14} color="#fff" />
-                  <Text style={s.revenueTrendText}>{growthLabel(metrics?.revenueGrowth)}</Text>
-                </View>
-              </View>
-              <Text style={s.revenueTitle}>{formatCurrency(metrics?.totalRevenue || 0)}</Text>
-              <View style={s.revenueDecor1} />
-              <View style={s.revenueDecor2} />
-            </View>
+            {/* Executive Revenue Ribbon Card */}
+            <ExecutiveMetricRibbon
+              totalRevenue={metrics?.totalRevenue || 0}
+              revenueGrowth={metrics?.revenueGrowth}
+              completedBookings={metrics?.completedBookings || 0}
+              onInspectPress={() => router.push('/(admin)/(tabs)/analytics' as any)}
+            />
 
-            {/* Urgent Attention SLA Banner */}
-            <View style={s.urgentAlertBanner}>
-              <Text style={s.urgentAlertTitle}>Marketplace Action Required</Text>
-              
-              <TouchableOpacity onPress={() => router.push('/(admin)/(tabs)/queue' as any)} style={s.urgentAlertItem} activeOpacity={0.85}>
-                <View style={[s.urgentAlertIconBox, { backgroundColor: '#FEF3C7' }]}>
-                  <MaterialCommunityIcons name="alert-outline" size={18} color="#B45309" />
-                </View>
-                <Text style={s.urgentAlertText}>
-                  <Text style={{ fontWeight: "900" }}>{metrics?.pendingCompanies || 0}</Text> Companies Waiting Verification
-                </Text>
-                <MaterialCommunityIcons name="chevron-right" size={18} color={T.text3} />
-              </TouchableOpacity>
+            {/* Actionable SLA Urgency Alert Matrix (Zero hardcoded fallbacks) */}
+            <SlaAlertMatrix
+              pendingVerificationsCount={metrics?.pendingCompanies || 0}
+              activeDisputesCount={metrics?.activeDisputes || 0}
+              pendingPayoutsCount={metrics?.payoutRequests || 0}
+              onNavigateQueue={() => router.push('/(admin)/(tabs)/queue' as any)}
+              onNavigateDisputes={() => router.push('/(admin)/(tabs)/issues' as any)}
+              onNavigatePayouts={() => router.push('/(admin)/payouts' as any)}
+            />
 
-              <TouchableOpacity onPress={() => router.push('/(admin)/disputes' as any)} style={s.urgentAlertItem} activeOpacity={0.85}>
-                <View style={[s.urgentAlertIconBox, { backgroundColor: '#FEE2E2' }]}>
-                  <MaterialCommunityIcons name="alert-octagon-outline" size={18} color={T.error} />
-                </View>
-                <Text style={s.urgentAlertText}>
-                  <Text style={{ fontWeight: "900" }}>{metrics?.activeDisputes || 0}</Text> Disputes Awaiting Resolution
-                </Text>
-                <MaterialCommunityIcons name="chevron-right" size={18} color={T.text3} />
-              </TouchableOpacity>
-
-              <TouchableOpacity onPress={() => router.push('/(admin)/payouts' as any)} style={s.urgentAlertItem} activeOpacity={0.85}>
-                <View style={[s.urgentAlertIconBox, { backgroundColor: '#D1FAE5' }]}>
-                  <MaterialCommunityIcons name="cash-multiple" size={18} color="#047857" />
-                </View>
-                <Text style={s.urgentAlertText}>
-                  <Text style={{ fontWeight: "900" }}>{metrics?.payoutRequests || 8}</Text> Payout Requests Pending Review
-                </Text>
-                <MaterialCommunityIcons name="chevron-right" size={18} color={T.text3} />
-              </TouchableOpacity>
-            </View>
-            <View style={s.queueGrid}>
-              <TouchableOpacity onPress={() => router.push('/(admin)/(tabs)/queue' as any)} style={[s.queueCard, { borderColor: T.blue + "30" }]} activeOpacity={0.8} accessibilityLabel={`${metrics?.pendingCompanies || 0} ${t('adminDashboard.pending')}`}>
-                <View style={[s.queueIconWrap, { backgroundColor: T.blue + "15" }]}>
-                  <MaterialCommunityIcons name="shield-check-outline" size={22} color={T.blue} />
-                </View>
-                <Text style={s.queueCount}>{metrics?.pendingCompanies || 0}</Text>
-                <Text style={s.queueLabel}>{t('adminDashboard.pending')}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity onPress={() => router.push('/(admin)/disputes' as any)} style={[s.queueCard, { borderColor: T.error + "30" }]} activeOpacity={0.8} accessibilityLabel={`${metrics?.activeDisputes || 0} ${t('adminDashboard.disputes')}`}>
-                <View style={[s.queueIconWrap, { backgroundColor: T.error + "15" }]}>
-                  <MaterialCommunityIcons name="scale-balance" size={22} color={T.error} />
-                </View>
-                <Text style={s.queueCount}>{metrics?.activeDisputes || 0}</Text>
-                <Text style={s.queueLabel}>{t('adminDashboard.disputes')}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity onPress={() => router.push('/(admin)/support' as any)} style={[s.queueCard, { borderColor: T.warning + "30" }]} activeOpacity={0.8} accessibilityLabel={`${metrics?.openTickets || 0} ${t('common.support')}`}>
-                <View style={[s.queueIconWrap, { backgroundColor: T.warning + "15" }]}>
-                  <MaterialCommunityIcons name="ticket-confirmation-outline" size={22} color={T.warning} />
-                </View>
-                <Text style={s.queueCount}>{metrics?.openTickets || 0}</Text>
-                <Text style={s.queueLabel}>{t('common.support')}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Platform Health */}
+            {/* Platform Quick Health Metric Grid */}
             <View style={s.section}>
               <View style={s.sectionHeader}>
                 <Text style={s.sectionTitle}>{t('adminDashboard.platformHealth')}</Text>
@@ -208,12 +139,28 @@ export default function AdminDashboard() {
               </View>
               <View style={s.healthGrid}>
                 {healthMetrics.map((m) => (
-                  <TouchableOpacity key={m.id} style={s.healthCard} activeOpacity={0.8} onPress={() => m.route && router.push(m.route as any)} accessibilityLabel={`${m.label}: ${m.value}${m.trend ? ', ' + m.trend : ''}`}>
+                  <TouchableOpacity
+                    key={m.id}
+                    style={s.healthCard}
+                    activeOpacity={0.8}
+                    onPress={() => m.route && router.push(m.route as any)}
+                    accessibilityLabel={`${m.label}: ${m.value}${m.trend ? ', ' + m.trend : ''}`}
+                  >
                     <View style={s.healthIconRow}>
-                      <View style={[s.healthIconWrap, { backgroundColor: m.color + "15" }]}>
-                        <MaterialCommunityIcons name={m.icon as any} size={20} color={m.color} />
+                      <View style={s.healthIconWrap}>
+                        <MaterialCommunityIcons name={m.icon as any} size={18} color="#0F172A" />
                       </View>
-                      <Text style={[s.healthTrend, { color: m.color }]}>{m.trend}</Text>
+                      {m.trend && (
+                        <View style={s.healthTrendPill}>
+                          <View
+                            style={[
+                              s.healthTrendDot,
+                              { backgroundColor: m.isPendingAlert ? "#D97706" : "#64748B" },
+                            ]}
+                          />
+                          <Text style={s.healthTrendText}>{m.trend}</Text>
+                        </View>
+                      )}
                     </View>
                     <Text style={s.healthValue}>{m.value}</Text>
                     <Text style={s.healthLabel}>{m.label}</Text>
@@ -238,12 +185,22 @@ export default function AdminDashboard() {
                     const maxVal = Math.max(...chartData.map((d: any) => d.revenue || 0), 1);
                     return chartData.map((item: any, idx: number) => {
                       const val = item.revenue || 0;
-                      const heightPct = Math.round((val / maxVal) * 80);
+                      const heightPct = Math.max(Math.round((val / maxVal) * 85), 10);
                       const isMax = val === maxVal;
                       return (
                         <View key={idx} style={s.chartCol}>
-                          <View style={[s.chartBar, { height: `${heightPct}%` as any, backgroundColor: isMax ? T.accent : T.accentLight }]} />
-                          <Text style={[s.chartDay, isMax && { color: T.accent, fontWeight: "700" }]}>{item.name}</Text>
+                          <View
+                            style={[
+                              s.chartBar,
+                              {
+                                height: `${heightPct}%` as any,
+                                backgroundColor: isMax ? "#0F172A" : "#CBD5E1",
+                              },
+                            ]}
+                          />
+                          <Text style={[s.chartDay, isMax && s.chartDayActive]}>
+                            {item.name}
+                          </Text>
                         </View>
                       );
                     });
@@ -252,14 +209,14 @@ export default function AdminDashboard() {
               </View>
             </View>
 
-            {/* Recent Companies */}
+            {/* Recent Companies Verification Triage */}
             <View style={s.section}>
               <View style={s.sectionHeaderRow}>
                 <View>
                   <Text style={s.sectionTitle}>{t('adminDashboard.recentCompanies')}</Text>
                   <Text style={s.sectionSubtitle}>{t('adminDashboard.recentCompaniesSubtitle')}</Text>
                 </View>
-                <TouchableOpacity onPress={() => router.push('/(admin)/company/index' as any)}>
+                <TouchableOpacity onPress={() => router.push('/(admin)/(tabs)/companies' as any)}>
                   <Text style={s.viewAllBtn}>{t('adminDashboard.viewAll')}</Text>
                 </TouchableOpacity>
               </View>
@@ -274,16 +231,26 @@ export default function AdminDashboard() {
                       onPress={() => company.id && router.push(`/(admin)/company/${company.id}` as any)}
                       accessibilityLabel={company.name + ': ' + company.verificationStatus}
                     >
-                      <View style={[s.statusIcon, { backgroundColor: isVerified ? T.success + "15" : T.warning + "15" }]}>
+                      <View style={s.statusIcon}>
                         <MaterialCommunityIcons
-                          name={isVerified ? "check-decagram" : "clock-alert-outline"}
-                          size={20}
-                          color={isVerified ? T.success : T.warning}
+                          name="office-building"
+                          size={18}
+                          color="#475569"
                         />
                       </View>
                       <View style={s.recentInfo}>
                         <Text style={s.recentName} numberOfLines={1}>{company.name}</Text>
-                        <Text style={s.recentStatus}>{company.verificationStatus}</Text>
+                        <View style={s.statusLedgerRow}>
+                          <View
+                            style={[
+                              s.statusDotSmall,
+                              { backgroundColor: isVerified ? "#059669" : "#D97706" },
+                            ]}
+                          />
+                          <Text style={s.recentStatus}>
+                            {isVerified ? "VERIFIED" : "PENDING REVIEW"}
+                          </Text>
+                        </View>
                       </View>
                       <Text style={s.recentDate}>
                         {new Date(company.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
@@ -304,104 +271,125 @@ export default function AdminDashboard() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
-  },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  menuBtn: { marginLeft: -8, padding: 8 },
-  headerGreeting: { fontSize: 11, fontWeight: "600", color: T.text3, letterSpacing: 0.3 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1, letterSpacing: -0.3 },
-  headerRight: { flexDirection: "row", alignItems: "center", gap: 12 },
-
-  scrollContent: { padding: 20, gap: 24, paddingBottom: 60 },
-  loadingBox: { paddingVertical: 80, alignItems: "center" },
-
-  urgentAlertBanner: {
-    backgroundColor: T.surface,
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: T.border,
-    gap: 12,
-    ...CARD_SHADOW,
-  },
-  urgentAlertTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: T.text1,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  urgentAlertItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 4,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
-  urgentAlertIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  menuBtn: { padding: 4 },
+  headerGreeting: { fontSize: 10, fontWeight: "800", color: "#64748B", letterSpacing: 0.6 },
+  headerTitle: { fontSize: 18, fontWeight: "800", color: "#0F172A", letterSpacing: -0.3 },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 12 },
+
+  // paddingBottom: 120 ensures zero collision with the floating tab bar
+  scrollContent: { padding: 16, gap: 20, paddingBottom: 120 },
+  loadingBox: { paddingVertical: 80, alignItems: "center" },
+
+  section: { gap: 10 },
+  sectionHeader: { gap: 2 },
+  sectionHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
+  sectionTitle: { fontSize: 16, fontWeight: "800", color: "#0F172A", letterSpacing: -0.2 },
+  sectionSubtitle: { fontSize: 12, color: "#64748B", fontWeight: "500" },
+  viewAllBtn: { fontSize: 12, fontWeight: "700", color: "#0F172A", marginBottom: 2 },
+
+  healthGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  healthCard: {
+    width: "48%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...CARD_SHADOW,
+  },
+  healthIconRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  healthIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     alignItems: "center",
     justifyContent: "center",
   },
-  urgentAlertText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: "600",
-    color: T.text1,
+  healthTrendPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
-
-  revenueCard: {
-    backgroundColor: T.accent, borderRadius: 24, padding: 24,
-    overflow: "hidden", ...HERO_SHADOW,
+  healthTrendDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
   },
-  revenueHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
-  revenueSubtitle: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "600", marginBottom: 2 },
-  revenueGmv: { color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: "500" },
-  revenueTrendPill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
-  revenueTrendText: { color: "#fff", fontSize: 12, fontWeight: "700" },
-  revenueTitle: { color: "#fff", fontSize: 40, fontWeight: "700", letterSpacing: -1 },
-  revenueDecor1: { position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.05)" },
-  revenueDecor2: { position: "absolute", bottom: -20, right: 40, width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(255,255,255,0.05)" },
+  healthTrendText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#475569",
+  },
+  healthValue: { fontSize: 22, fontWeight: "800", color: "#0F172A", marginBottom: 2 },
+  healthLabel: { fontSize: 11, fontWeight: "600", color: "#64748B" },
 
-  queueGrid: { flexDirection: "row", gap: 12 },
-  queueCard: { flex: 1, backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  queueIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  queueCount: { fontSize: 22, fontWeight: "700", color: T.text1, marginBottom: 2 },
-  queueLabel: { fontSize: 12, fontWeight: "600", color: T.text3 },
-
-  section: { gap: 12 },
-  sectionHeader: { gap: 2 },
-  sectionHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
-  sectionTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
-  sectionSubtitle: { fontSize: 13, color: T.text3, fontWeight: "500" },
-  viewAllBtn: { fontSize: 13, fontWeight: "700", color: T.accentMid, marginBottom: 2 },
-
-  healthGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  healthCard: { width: "48%", backgroundColor: T.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  healthIconRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
-  healthIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  healthTrend: { fontSize: 12, fontWeight: "700", marginTop: 4 },
-  healthValue: { fontSize: 24, fontWeight: "700", color: T.text1, marginBottom: 2 },
-  healthLabel: { fontSize: 12, fontWeight: "600", color: T.text3 },
-
-  chartCard: { backgroundColor: T.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  chartBars: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 160 },
+  chartCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...CARD_SHADOW,
+  },
+  chartBars: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 140 },
   chartCol: { alignItems: "center", flex: 1, height: "100%", justifyContent: "flex-end" },
-  chartBar: { width: 12, borderRadius: 6, marginBottom: 8 },
-  chartDay: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase" },
+  chartBar: { width: 14, borderRadius: 4, marginBottom: 8 },
+  chartDay: { fontSize: 10, fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" },
+  chartDayActive: { color: "#0F172A" },
 
-  recentList: { gap: 12 },
-  recentItem: { flexDirection: "row", alignItems: "center", backgroundColor: T.surface, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: T.border, gap: 12, ...CARD_SHADOW },
-  statusIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  recentList: { gap: 8 },
+  recentItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    gap: 12,
+    ...CARD_SHADOW,
+  },
+  statusIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   recentInfo: { flex: 1 },
-  recentName: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 2 },
-  recentStatus: { fontSize: 12, fontWeight: "700", color: T.text3, textTransform: "uppercase" },
-  recentDate: { fontSize: 12, fontWeight: "600", color: T.text2 },
-  emptyText: { textAlign: "center", color: T.text3, paddingVertical: 20 },
+  recentName: { fontSize: 14, fontWeight: "700", color: "#0F172A", marginBottom: 2 },
+  statusLedgerRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  statusDotSmall: { width: 5, height: 5, borderRadius: 3 },
+  recentStatus: { fontSize: 10, fontWeight: "800", color: "#64748B", letterSpacing: 0.4 },
+  recentDate: { fontSize: 11, fontWeight: "600", color: "#94A3B8" },
+  emptyText: { textAlign: "center", color: "#94A3B8", paddingVertical: 20 },
 });

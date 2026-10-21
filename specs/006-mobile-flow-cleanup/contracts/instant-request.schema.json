@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InstantRequestContract",
+  "type": "object",
+  "required": [
+    "serviceCategory",
+    "description",
+    "preferredTime",
+    "latitude",
+    "longitude"
+  ],
+  "properties": {
+    "serviceCategory": { "type": "string" },
+    "description": { "type": "string" },
+    "preferredTime": { "type": "string", "enum": ["asap", "morning", "afternoon"] },
+    "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+    "longitude": { "type": "number", "minimum": -180, "maximum": 180 }
+  }
+}

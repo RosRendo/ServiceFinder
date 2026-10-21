@@ -7,7 +7,16 @@ import api from '../../utils/api';
 
 export default function HistoryScreen() {
   const router = useRouter();
-  const T = { bg: '#F7F8FC', surface: '#FFFFFF', text1: '#0A192F', text2: '#475569', text3: '#94A3B8', accent: '#0A192F', success: '#00A699', border: '#E8EEF4' };
+  const T = {
+    bg: '#F8FAFC',
+    surface: '#FFFFFF',
+    text1: '#0F172A',
+    text2: '#475569',
+    text3: '#94A3B8',
+    accent: '#0F172A',
+    success: '#059669',
+    border: '#E2E8F0',
+  };
   
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +71,7 @@ export default function HistoryScreen() {
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#0A192F" />
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#0F172A" />
         </TouchableOpacity>
         <Text style={s.title}>Job History</Text>
         <View style={{ width: 40 }} />
@@ -93,25 +102,47 @@ export default function HistoryScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F7F8FC' },
+  root: { flex: 1, backgroundColor: '#F8FAFC' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, backgroundColor: '#fff' },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 18, fontWeight: '800', color: '#0A192F' },
-  listContent: { padding: 24, paddingBottom: 100 },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 20, 
+    paddingTop: 12, 
+    paddingBottom: 16, 
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0' },
+  title: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
+  listContent: { padding: 20, paddingBottom: 120 },
   
-  card: { backgroundColor: '#fff', borderRadius: 24, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOffset: {width:0, height:4}, shadowOpacity: 0.03, shadowRadius: 12 },
+  card: { 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 18, 
+    padding: 18, 
+    marginBottom: 14, 
+    borderWidth: 1, 
+    borderColor: '#E2E8F0',
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.03, 
+    shadowRadius: 6, 
+    elevation: 1 
+  },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  serviceName: { fontSize: 16, fontWeight: '700', color: '#0A192F' },
+  serviceName: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
   dateTime: { fontSize: 13, color: '#94A3B8', marginTop: 4, fontWeight: '600' },
-  price: { fontSize: 16, fontWeight: '800', color: '#00A699' },
+  price: { fontSize: 16, fontWeight: '800', color: '#059669' },
   
-  divider: { height: 1, backgroundColor: '#F0F4F8', marginVertical: 16 },
+  divider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 14 },
   
   metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 8 },
   address: { fontSize: 14, color: '#475569', fontWeight: '500', flex: 1 },
   
   emptyState: { alignItems: 'center', marginTop: 80 },
-  emptyTitle: { fontSize: 20, fontWeight: '800', color: '#0A192F', marginTop: 16 },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: '#0F172A', marginTop: 16 },
   emptySub: { fontSize: 14, color: '#94A3B8', marginTop: 8, textAlign: 'center' }
 });

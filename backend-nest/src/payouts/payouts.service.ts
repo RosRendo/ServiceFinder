@@ -536,18 +536,19 @@ export class PayoutsService {
       data: {
         status: 'completed',
         processedAt: new Date(),
-        transactionId: transactionId || `TXN-${Date.now().toString().slice(-6)}`,
+        transactionId:
+          transactionId || `TXN-${Date.now().toString().slice(-6)}`,
       },
     });
 
-    return { success: true, message: 'Payout marked as completed', payout: updated };
+    return {
+      success: true,
+      message: 'Payout marked as completed',
+      payout: updated,
+    };
   }
 
-  async rejectPayout(
-    payoutId: number,
-    adminUserId: bigint,
-    reason?: string,
-  ) {
+  async rejectPayout(payoutId: number, adminUserId: bigint, reason?: string) {
     const payout = await this.prisma.payout.findUnique({
       where: { id: payoutId },
     });
@@ -587,6 +588,10 @@ export class PayoutsService {
       return p;
     });
 
-    return { success: true, message: 'Payout rejected and refunded to company balance', payout: updated };
+    return {
+      success: true,
+      message: 'Payout rejected and refunded to company balance',
+      payout: updated,
+    };
   }
 }

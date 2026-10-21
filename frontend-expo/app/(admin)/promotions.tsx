@@ -1,10 +1,19 @@
 /**
- * Admin Promo Codes Screen (Mobile)
+ * Admin Promo Codes Screen — Enterprise Operations Cockpit
  */
 import React, { useState, useEffect, useCallback } from "react";
 import { 
-  View, Text, StyleSheet, FlatList, TouchableOpacity, 
-  ActivityIndicator, TextInput, Modal, Alert, Switch
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity, 
+  ActivityIndicator,
+  TextInput,
+  Modal,
+  Alert,
+  Switch,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -36,9 +45,11 @@ export default function PromotionsScreen() {
     try {
       const res = await api.get('/api/promo-codes');
       const list = res.data?.data || res.data || [];
-      setPromos(list);
+      setPromos(Array.isArray(list) ? list : []);
+      setHasError(false);
     } catch (error: any) {
       console.error("Failed to fetch promos", error);
+      setHasError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -57,12 +68,12 @@ export default function PromotionsScreen() {
     setSubmitting(true);
     try {
       await api.post('/api/promo-codes', {
-        code: code.toUpperCase(),
+        code: code.toUpperCase().trim(),
         discountPercent: Number(discountPercent),
         maxUses: maxUses ? Number(maxUses) : undefined,
         isActive: true,
       });
-      Alert.alert("Success", "Promo code created!");
+      Alert.alert("Success", "Promo code created successfully.");
       setModalVisible(false);
       setCode("");
       setDiscountPercent("");
@@ -83,57 +94,73 @@ export default function PromotionsScreen() {
     } catch (error) {
       // Revert on failure
       setPromos(prev => prev.map(p => p.id === id ? { ...p, isActive: currentStatus } : p));
-      Alert.alert("Error", "Failed to toggle promo code");
+      Alert.alert("Error", "Failed to toggle promo code status.");
     }
   };
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View style={s.card}>
-      <View style={s.cardHeader}>
-        <View style={s.codeWrap}>
-          <MaterialCommunityIcons name="ticket-percent" size={20} color={T.accent} />
-          <Text style={s.codeText}>{item.code}</Text>
+  const renderItem = ({ item }: { item: any }) => {
+    const isActive = !!item.isActive;
+    return (
+      <View style={s.card}>
+        <View style={s.cardHeader}>
+          <View style={s.codeWrap}>
+            <View style={s.codeBadge}>
+              <Text style={s.codeText}>{item.code}</Text>
+            </View>
+            <View style={s.statusTag}>
+              <View style={[s.statusDot, { backgroundColor: isActive ? "#059669" : "#94A3B8" }]} />
+              <Text style={s.statusTagText}>{isActive ? "Active" : "Disabled"}</Text>
+            </View>
+          </View>
+          <Switch 
+            value={isActive} 
+            onValueChange={() => handleToggle(item.id, item.isActive)}
+            trackColor={{ false: "#CBD5E1", true: "#0F172A" }}
+            thumbColor="#FFFFFF"
+          />
         </View>
-        <Switch 
-          value={item.isActive} 
-          onValueChange={() => handleToggle(item.id, item.isActive)}
-          trackColor={{ false: T.border, true: T.success }}
-        />
+        
+        <View style={s.statsRow}>
+          <View style={s.statBox}>
+            <Text style={s.statLabel}>Discount Rate</Text>
+            <Text style={s.statValue}>{item.discountPercent}% OFF</Text>
+          </View>
+          <View style={s.statDivider} />
+          <View style={s.statBox}>
+            <Text style={s.statLabel}>Redemptions</Text>
+            <Text style={s.statValue}>{item.uses || 0} {item.maxUses ? `/ ${item.maxUses}` : '/ ∞'}</Text>
+          </View>
+        </View>
       </View>
-      
-      <View style={s.statsRow}>
-        <View style={s.statBox}>
-          <Text style={s.statValue}>{item.discountPercent}%</Text>
-          <Text style={s.statLabel}>Discount</Text>
-        </View>
-        <View style={s.statBox}>
-          <Text style={s.statValue}>{item.uses || 0} {item.maxUses ? `/ ${item.maxUses}` : ''}</Text>
-          <Text style={s.statLabel}>Uses</Text>
-        </View>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={T.text1} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Global Promos</Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={s.addBtn}>
-          <MaterialCommunityIcons name="plus" size={24} color={T.accent} />
+        <View style={s.headerLeft}>
+          <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#0F172A" />
+          </TouchableOpacity>
+          <Text style={s.headerTitle}>Promotional Vouchers</Text>
+        </View>
+        <TouchableOpacity 
+          onPress={() => setModalVisible(true)} 
+          style={s.addBtn}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
+          <Text style={s.addBtnText}>New Code</Text>
         </TouchableOpacity>
       </View>
 
       {loading && !refreshing ? (
         <View style={s.centerBox}>
-          <ActivityIndicator size="large" color={T.accent} />
+          <ActivityIndicator size="large" color="#0F172A" />
         </View>
+      ) : hasError ? (
+        <ErrorState onRetry={() => fetchPromos()} />
       ) : (
-        hasError ? (
-          <ErrorState onRetry={() => fetchPromos()} />
-        ) : (
         <FlatList
           data={promos}
           keyExtractor={(i) => i.id?.toString()}
@@ -144,29 +171,29 @@ export default function PromotionsScreen() {
           onRefresh={() => fetchPromos(true)}
           ListEmptyComponent={
             <View style={s.emptyBox}>
-              <MaterialCommunityIcons name="ticket-outline" size={48} color={T.text3} />
+              <MaterialCommunityIcons name="ticket-percent-outline" size={44} color="#94A3B8" />
               <Text style={s.emptyTitle}>No Promo Codes</Text>
-              <Text style={s.emptySub}>Tap the + icon to create one</Text>
+              <Text style={s.emptySub}>Create promotional discounts to drive platform campaigns.</Text>
             </View>
           }
         />
-      ))}
+      )}
 
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
         <View style={s.modalRoot}>
           <View style={s.modalHeader}>
-            <Text style={s.modalTitle}>New Promo Code</Text>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <MaterialCommunityIcons name="close" size={24} color={T.text2} />
+            <Text style={s.modalTitle}>Issue Promo Code</Text>
+            <TouchableOpacity onPress={() => setModalVisible(false)} style={s.modalCloseBtn}>
+              <MaterialCommunityIcons name="close" size={22} color="#0F172A" />
             </TouchableOpacity>
           </View>
           
           <View style={s.modalContent}>
-            <Text style={s.label}>Code Name</Text>
+            <Text style={s.label}>Voucher Code</Text>
             <TextInput 
               style={s.input}
-              placeholder="e.g. SUMMER25"
-              placeholderTextColor={T.text3}
+              placeholder="e.g. ENTERPRISE20"
+              placeholderTextColor="#94A3B8"
               value={code}
               onChangeText={setCode}
               autoCapitalize="characters"
@@ -176,27 +203,32 @@ export default function PromotionsScreen() {
             <TextInput 
               style={s.input}
               placeholder="e.g. 15"
-              placeholderTextColor={T.text3}
+              placeholderTextColor="#94A3B8"
               keyboardType="number-pad"
               value={discountPercent}
               onChangeText={setDiscountPercent}
             />
 
-            <Text style={s.label}>Max Uses (Optional)</Text>
+            <Text style={s.label}>Max Usage Cap (Optional)</Text>
             <TextInput 
               style={s.input}
               placeholder="Leave blank for unlimited"
-              placeholderTextColor={T.text3}
+              placeholderTextColor="#94A3B8"
               keyboardType="number-pad"
               value={maxUses}
               onChangeText={setMaxUses}
             />
 
-            <TouchableOpacity style={s.submitBtn} onPress={handleCreate} disabled={submitting}>
+            <TouchableOpacity 
+              style={s.submitBtn} 
+              onPress={handleCreate} 
+              disabled={submitting}
+              activeOpacity={0.85}
+            >
               {submitting ? (
-                <ActivityIndicator color="#FFF" />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={s.submitBtnText}>Create Promo Code</Text>
+                <Text style={s.submitBtnText}>Publish Promotion</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -207,67 +239,120 @@ export default function PromotionsScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
-    flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
-  backBtn: { padding: 4, marginRight: 12, marginLeft: -4 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1, flex: 1 },
-  addBtn: { padding: 4 },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  backBtn: { marginLeft: -6, padding: 6 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A", letterSpacing: -0.3 },
+  addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#0F172A",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  addBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   
-  listContent: { padding: 16, paddingBottom: 40, gap: 12 },
+  listContent: { padding: 16, paddingBottom: 120, gap: 12 },
   
   card: {
-    backgroundColor: T.surface,
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
-    borderWidth: 1, borderColor: T.border,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  codeWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
-  codeText: { fontSize: 18, fontWeight: "700", color: T.text1, textTransform: "uppercase" },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  codeWrap: { flexDirection: "row", alignItems: "center", gap: 10 },
+  codeBadge: {
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  codeText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F172A",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+  },
+  statusTag: { flexDirection: "row", alignItems: "center", gap: 5 },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusTagText: { fontSize: 11, fontWeight: "600", color: "#64748B" },
   
   statsRow: {
     flexDirection: "row",
-    backgroundColor: T.bg,
+    backgroundColor: "#F8FAFC",
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     padding: 12,
+    alignItems: "center",
   },
   statBox: { flex: 1 },
-  statValue: { fontSize: 16, fontWeight: "700", color: T.text1 },
-  statLabel: { fontSize: 12, color: T.text2, marginTop: 2 },
+  statDivider: { width: 1, height: 28, backgroundColor: "#E2E8F0", marginHorizontal: 12 },
+  statLabel: { fontSize: 11, color: "#64748B", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 2 },
+  statValue: { fontSize: 14, fontWeight: "700", color: "#0F172A" },
   
   centerBox: { flex: 1, alignItems: "center", justifyContent: "center" },
-  emptyBox: { alignItems: "center", justifyContent: "center", paddingVertical: 60, paddingHorizontal: 32 },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: T.text2, marginTop: 16, marginBottom: 4 },
-  emptySub: { fontSize: 14, color: T.text3, textAlign: "center" },
+  emptyBox: { alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 32 },
+  emptyTitle: { fontSize: 15, fontWeight: "700", color: "#0F172A", marginTop: 12, marginBottom: 4 },
+  emptySub: { fontSize: 13, color: "#64748B", textAlign: "center" },
 
-  modalRoot: { flex: 1, backgroundColor: T.bg },
+  modalRoot: { flex: 1, backgroundColor: "#F8FAFC" },
   modalHeader: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    padding: 20, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
+  modalTitle: { fontSize: 17, fontWeight: "700", color: "#0F172A" },
+  modalCloseBtn: { padding: 4 },
   modalContent: { padding: 20 },
   
-  label: { fontSize: 13, fontWeight: "600", color: T.text2, marginBottom: 6, marginTop: 16 },
+  label: { fontSize: 12, fontWeight: "700", color: "#475569", marginBottom: 6, marginTop: 14, textTransform: "uppercase", letterSpacing: 0.3 },
   input: {
-    backgroundColor: T.surface,
-    borderWidth: 1, borderColor: T.border,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: T.text1,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#0F172A",
   },
   
   submitBtn: {
-    backgroundColor: T.accent,
-    paddingVertical: 16, borderRadius: 8,
-    alignItems: "center", justifyContent: "center",
-    marginTop: 32,
+    backgroundColor: "#0F172A",
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 28,
   },
-  submitBtnText: { color: "#FFF", fontSize: 16, fontWeight: "700" },
+  submitBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
 });

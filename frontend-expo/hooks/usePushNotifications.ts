@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import { isRunningInExpoGo } from 'expo';
 import { useAuthStore , api } from '@/store/authStore';
 
 
@@ -25,7 +26,7 @@ export function usePushNotifications() {
   const { user } = useAuthStore();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || isRunningInExpoGo()) return;
 
     registerForPushNotificationsAsync().then(token => {
       if (token) {
@@ -62,6 +63,7 @@ export function usePushNotifications() {
 }
 
 async function registerForPushNotificationsAsync(): Promise<string | undefined> {
+  if (isRunningInExpoGo()) return undefined;
   let token;
 
   if (Platform.OS === 'android') {

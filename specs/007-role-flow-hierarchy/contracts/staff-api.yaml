@@ -1,0 +1,162 @@
+openapi: 3.0.3
+info:
+  title: Field Staff & Technician API
+  version: 1.0.0
+  description: Endpoints powering the Field Technician mobile workspace (Daily Itinerary, Status Transitions, Proof Upload, Cash Collection).
+
+paths:
+  /bookings/my-assignments:
+    get:
+      summary: Retrieve assigned bookings for current field technician
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Target calendar date (defaults to today)
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Optional filter by booking status (e.g., confirmed, en_route, in_progress)
+      responses:
+        '200':
+          description: Chronologically ordered list of daily assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaffAssignment'
+
+  /bookings/{id}/en-route:
+    patch:
+      summary: Pro departs for service location
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Status updated to en_route; ETA notification sent to customer
+
+  /bookings/{id}/arrive:
+    patch:
+      summary: Pro arrives on-site
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Arrival timestamp logged
+
+  /bookings/{id}/start:
+    patch:
+      summary: Pro starts execution of service
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                staffStartLatitude:
+                  type: number
+                staffStartLongitude:
+                  type: number
+      responses:
+        '200':
+          description: Job status updated to in_progress with active work timer
+
+  /bookings/{id}/complete:
+    patch:
+      summary: Complete service, upload proof photo, and confirm payment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - proofOfWorkPhoto
+              properties:
+                proofOfWorkPhoto:
+                  type: string
+                  format: uri
+                staffNotes:
+                  type: string
+                cashCollected:
+                  type: number
+      responses:
+        '200':
+          description: Job completed, earnings tally updated, receipt recorded
+
+  /users/me/working-status:
+    patch:
+      summary: Toggle pro shift availability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - workingStatus
+              properties:
+                workingStatus:
+                  type: string
+                  enum: [online, offline]
+      responses:
+        '200':
+          description: Shift status updated
+
+components:
+  schemas:
+    StaffAssignment:
+      type: object
+      properties:
+        id:
+          type: string
+        customerName:
+          type: string
+        customerPhone:
+          type: string
+        serviceName:
+          type: string
+        status:
+          type: string
+          enum: [confirmed, assigned, en_route, arrived, in_progress, completed]
+        bookingDate:
+          type: string
+          format: date
+        startTime:
+          type: string
+        endTime:
+          type: string
+        serviceAddress:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        totalPrice:
+          type: number
+        staffEarnings:
+          type: number

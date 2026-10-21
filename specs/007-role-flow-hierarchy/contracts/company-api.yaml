@@ -1,0 +1,126 @@
+openapi: 3.0.3
+info:
+  title: Company Dispatch & Fleet API
+  version: 1.0.0
+  description: Endpoints powering Company Dispatchers (Dispatch Queue, Pro Allocation, Staff Roster, Cash Reconciliation).
+
+paths:
+  /companies/my-company/metrics:
+    get:
+      summary: Retrieve operational and financial KPIs
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  todayRevenue:
+                    type: number
+                  activeJobs:
+                    type: integer
+                  unassignedBookings:
+                    type: integer
+                  activeStaffCount:
+                    type: integer
+                  completionRate:
+                    type: number
+
+  /companies/my-company/staff:
+    get:
+      summary: List all technicians and live operational status
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CompanyStaffMember'
+
+  /bookings/{id}/assign-staff:
+    patch:
+      summary: Dispatch an unassigned booking to a specific pro
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - staffId
+              properties:
+                staffId:
+                  type: string
+      responses:
+        '200':
+          description: Staff successfully allocated; notification sent to pro
+
+  /companies/my-company/revenue:
+    get:
+      summary: Get financial ledger and pro cash reconciliation audit
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  grossVolume:
+                    type: number
+                  platformFees:
+                    type: number
+                  netEarnings:
+                    type: number
+                  unremittedCashBalance:
+                    type: number
+                  staffLedgers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        staffId:
+                          type: string
+                        staffName:
+                          type: string
+                        unremittedCash:
+                          type: number
+                        completedJobsToday:
+                          type: integer
+
+components:
+  schemas:
+    CompanyStaffMember:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        fullName:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [worker, supervisor, manager]
+        status:
+          type: string
+          enum: [active, inactive]
+        workingStatus:
+          type: string
+          enum: [online, offline, on_job]
+        walletBalance:
+          type: number
+        creditLimit:
+          type: number
+        currentLatitude:
+          type: number
+        currentLongitude:
+          type: number

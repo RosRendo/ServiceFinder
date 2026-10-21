@@ -1,0 +1,151 @@
+# UI Component Contracts: Non-Customer Role Visual Upgrade
+# Feature: specs/008-role-ui-visual-upgrade
+# Target Subsystems: frontend-expo/app/(staff), frontend-expo/app/(company), frontend-expo/app/(admin)
+
+version: "1.0.0"
+metadata:
+  feature: "008-role-ui-visual-upgrade"
+  scope: "non-customer-roles-only"
+  accessibilityStandard: "WCAG-2.1-AA-Dual-Cue"
+  textDistillationStandard: "Zero-Paragraph-Rule"
+
+components:
+  - name: VisualMilestoneStepper
+    path: "frontend-expo/components/jobs/VisualMilestoneStepper.tsx"
+    description: "Horizontal 4-stage visual milestone progression stepper for field technicians."
+    props:
+      currentStage:
+        type: "enum"
+        values: ["EN_ROUTE", "ARRIVED", "WORKING", "COMPLETED"]
+        required: true
+      completedStages:
+        type: "array"
+        items: "string"
+        required: true
+      onStagePress:
+        type: "function"
+        signature: "(stage: JobMilestoneKey) => void"
+        required: false
+      compact:
+        type: "boolean"
+        default: false
+        required: false
+    constraints:
+      maxLabelLength: 10
+      nodesCount: 4
+      dualCuesRequired: true
+      hapticFeedbackOnTransition: true
+
+  - name: UrgencyBadge
+    path: "frontend-expo/components/common/UrgencyBadge.tsx"
+    description: "Color-graded countdown badge indicating remaining response time before dispatch SLA breach."
+    props:
+      deadlineMinutes:
+        type: "number"
+        required: true
+      compact:
+        type: "boolean"
+        default: false
+        required: false
+      animated:
+        type: "boolean"
+        default: true
+        required: false
+    behavior:
+      criticalThreshold: 5
+      warningThreshold: 15
+      pulseAnimationBelowMinutes: 5
+      dualCues:
+        critical: { icon: "timer-alert", color: "#EF4444", bg: "#FEF2F2" }
+        warning: { icon: "timer-sand", color: "#F59E0B", bg: "#FEF3C7" }
+        healthy: { icon: "clock-check-outline", color: "#10B981", bg: "#ECFDF5" }
+
+  - name: ProRadarRow
+    path: "frontend-expo/components/company/ProRadarRow.tsx"
+    description: "High-density technician card with live status pulses, distance chips, and one-tap communication shortcuts."
+    props:
+      staff:
+        type: "object"
+        schema:
+          id: "string"
+          name: "string"
+          status: "ONLINE | ON_JOB | OFFLINE"
+          distanceKm: "number"
+          currentWorkload: "number"
+          rating: "number"
+          phone: "string"
+          skills: "string[]"
+        required: true
+      onCallPress:
+        type: "function"
+        signature: "(phone: string) => void"
+        required: true
+      onChatPress:
+        type: "function"
+        signature: "(staffId: string) => void"
+        required: true
+      onAssignPress:
+        type: "function"
+        signature: "(staffId: string) => void"
+        required: false
+    constraints:
+      maxSkillsShown: 2
+      ratingPrecision: 1
+      actionPillTouchTargetMin: 44
+
+  - name: CashReconciliationCard
+    path: "frontend-expo/components/company/CashReconciliationCard.tsx"
+    description: "Visual financial meter illustrating unremitted physical cash balance against company credit ceiling."
+    props:
+      currentCash:
+        type: "number"
+        required: true
+      maxLimit:
+        type: "number"
+        required: true
+      currencySymbol:
+        type: "string"
+        default: "$"
+        required: false
+      onSettlePress:
+        type: "function"
+        signature: "() => void"
+        required: false
+    behavior:
+      colorBands:
+        safe: { range: "0-74%", color: "#10B981" }
+        warning: { range: "75-99%", color: "#F59E0B" }
+        breach: { range: ">=100%", color: "#EF4444" }
+
+  - name: CredentialInspectionCard
+    path: "frontend-expo/components/admin/CredentialInspectionCard.tsx"
+    description: "Visual business license and identity proof preview card with immediate one-tap verify/reject action pills."
+    props:
+      item:
+        type: "object"
+        schema:
+          companyId: "string"
+          companyName: "string"
+          category: "BUSINESS_LICENSE | LIABILITY_INSURANCE | ID_PROOF"
+          documentUrl: "string"
+          submittedDate: "string"
+          status: "PENDING | VERIFIED | REJECTED"
+        required: true
+      onVerify:
+        type: "function"
+        signature: "(companyId: string, category: string) => void"
+        required: true
+      onReject:
+        type: "function"
+        signature: "(companyId: string, category: string) => void"
+        required: true
+      onPreview:
+        type: "function"
+        signature: "(documentUrl: string) => void"
+        required: true
+
+isolationGuards:
+  forbiddenImportPaths:
+    - "frontend-expo/app/(customer)/**"
+    - "frontend-expo/components/customer/**"
+  enforcementRule: "Static AST check to ensure zero references inside customer route tree."

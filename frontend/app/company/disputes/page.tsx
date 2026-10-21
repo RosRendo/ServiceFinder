@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useDisputesQuery, Dispute } from "@/lib/hooks/useDisputes";
+import { DisputeDrawer, DisputeRecord } from "@/components/drawers/DisputeDrawer";
 
 const statusConfig: Record<string, { label: string; class: string; icon: any }> = {
   open: {
@@ -53,6 +54,8 @@ export default function CompanyDisputesPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedDispute, setSelectedDispute] = useState<DisputeRecord | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { data: queryData, isLoading: loading, error } = useDisputesQuery("company");
   const disputes = (queryData as any as Dispute[]) || [];
@@ -197,7 +200,21 @@ export default function CompanyDisputesPage() {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
-                                className="p-4 sm:p-6 hover:bg-muted/50 transition-colors flex flex-col lg:flex-row gap-6 items-start lg:items-center relative"
+                                onClick={() => {
+                                  setSelectedDispute({
+                                    id: dispute.id,
+                                    bookingId: dispute.bookingId || (dispute as any).booking?.id,
+                                    customerName: dispute.customer?.fullName || "Customer",
+                                    companyName: dispute.company?.name || "Company",
+                                    reason: dispute.type || "Dispute Case",
+                                    amount: (dispute as any).booking?.totalPrice || 0,
+                                    status: (dispute.status as any) || "open",
+                                    createdAt: dispute.createdAt,
+                                    description: dispute.description,
+                                  });
+                                  setDrawerOpen(true);
+                                }}
+                                className="p-4 sm:p-6 hover:bg-muted/50 transition-colors flex flex-col lg:flex-row gap-6 items-start lg:items-center relative cursor-pointer"
                             >
                                 <div className="flex-1 space-y-4 w-full">
                                     <div className="flex flex-wrap items-center gap-3">
@@ -255,6 +272,13 @@ export default function CompanyDisputesPage() {
             )}
         </div>
       </main>
+
+      <DisputeDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        dispute={selectedDispute}
+        isAdmin={false}
+      />
     </div>
   );
 }

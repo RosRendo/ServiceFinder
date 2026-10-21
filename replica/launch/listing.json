@@ -1,0 +1,21 @@
+{
+  "avoid": [
+    "TaskRabbit",
+    "Thumbtack",
+    "Angi",
+    "Handy"
+  ],
+  "app_store": {
+    "name": "ServiceFinder: Home Services",
+    "subtitle": "Verified Crews & Escrow Pay",
+    "promotional_text": "Book verified multi-technician service crews with live GPS tracking, upfront pricing, and two-phase escrow protection. What you see is what you pay.",
+    "description": "ServiceFinder connects homeowners and businesses with verified local service companies.\n\nWHAT MAKES SERVICEFINDER DIFFERENT:\n\n1. ZERO SURPRISE FEES\nSee the full price breakdown upfront before booking. No unexpected service fees at checkout and no rate changes at your door.\n\n2. CREWLOCK ESCROW PROTECTION\nYour payment is held safely in escrow. Funds are only released after the job is complete, before-and-after photos are verified, and you provide a digital signature.\n\n3. MULTI-TECHNICIAN FLEET DISPATCH\nBook established local trade companies with coordinated crews, not unverified solo gig workers. If a technician is unavailable, the company automatically dispatches a qualified replacement.\n\n4. REAL-TIME GPS TRACKING\nWatch your technician arrive with turn-by-turn live navigation and verified arrival timestamps. No more waiting around all day.\n\n5. BEFORE & AFTER PROOF OF WORK\nEvery milestone includes photographic documentation. Review completed work right on your phone before approving payment.\n\nPOPULAR SERVICES:\n- Air conditioning repair and maintenance\n- Licensed electrical inspections and wiring\n- Emergency plumbing and leak repair\n- Residential and commercial deep cleaning\n- Handyman and appliance installation\n\nBook your trusted service crew in minutes.",
+    "keywords": "repair,handyman,plumbing,electrician,cleaning,contractor,maintenance,dispatch,hvac,wiring",
+    "whats_new": "Emergency broadcast dispatch, live technician GPS navigation, and offline photo proof sync."
+  },
+  "google_play": {
+    "title": "ServiceFinder: Home Services",
+    "short_description": "Book verified trade crews with live GPS tracking and escrow protection.",
+    "full_description": "ServiceFinder connects homeowners and businesses with verified local service companies.\n\nWHAT MAKES SERVICEFINDER DIFFERENT:\n\n1. ZERO SURPRISE FEES\nSee the full price breakdown upfront before booking. No unexpected service fees at checkout and no rate changes at your door.\n\n2. CREWLOCK ESCROW PROTECTION\nYour payment is held safely in escrow. Funds are only released after the job is complete, before-and-after photos are verified, and you provide a digital signature.\n\n3. MULTI-TECHNICIAN FLEET DISPATCH\nBook established local trade companies with coordinated crews, not unverified solo gig workers. If a technician is unavailable, the company automatically dispatches a qualified replacement.\n\n4. REAL-TIME GPS TRACKING\nWatch your technician arrive with turn-by-turn live navigation and verified arrival timestamps. No more waiting around all day.\n\n5. BEFORE & AFTER PROOF OF WORK\nEvery milestone includes photographic documentation. Review completed work right on your phone before approving payment.\n\nPOPULAR SERVICES:\n- Air conditioning repair and maintenance\n- Licensed electrical inspections and wiring\n- Emergency plumbing and leak repair\n- Residential and commercial deep cleaning\n- Handyman and appliance installation\n\nBook your trusted service crew in minutes."
+  }
+}

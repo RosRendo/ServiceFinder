@@ -80,6 +80,32 @@ export default function CompaniesPage() {
     }
   };
 
+  const handleRowClick = (r: any) => {
+    const rawStatus = r.subscriptionStatus === "suspended" ? "suspended" : (r.verificationStatus === "verified" ? "verified" : (r.verificationStatus || "pending_verification"));
+    const formatted: CompanyRow = {
+      id: r.id.toString(),
+      name: r.name || "Unnamed Company",
+      owner: r.owner?.fullName || r.ownerName || "Owner",
+      ownerEmail: r.owner?.email || r.email || "No email",
+      ownerId: r.owner?.id?.toString() || r.ownerId?.toString(),
+      phone: r.phone || r.owner?.phone || "No phone",
+      staffCount: r.staffCount || r._count?.staff || 0,
+      platformFee: r.commissionRate || 15,
+      rating: r.rating || 5,
+      totalRevenue: r.totalRevenue || 0,
+      totalBookings: r.totalBookings || r._count?.bookings || 0,
+      status: rawStatus as any,
+      joinedDate: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "Recent",
+      verified: r.verificationStatus === "verified",
+      services: r.services || [],
+      documents: r.documents || [],
+      verificationDocumentUrl: r.businessLicenseUrl || r.verificationDocumentUrl,
+      logoUrl: r.logoUrl,
+    };
+    setActiveCompany(formatted);
+    setDrawerOpen(true);
+  };
+
   const filteredCompanies = companies.filter((c) => {
     const rawStatus = c.subscriptionStatus === "suspended" ? "suspended" : (c.verificationStatus || "pending_verification");
     if (statusFilter !== "all" && rawStatus !== statusFilter) return false;
@@ -228,7 +254,7 @@ export default function CompaniesPage() {
         columns={columns}
         getRowId={(r) => r.id}
         isLoading={loading}
-        onRowClick={(r) => router.push(`/admin/companies/${r.id}`)}
+        onRowClick={handleRowClick}
         searchPlaceholder="Search company, owner, or city..."
         onSearchChange={setSearch}
         filterSlots={
@@ -286,6 +312,14 @@ export default function CompaniesPage() {
       <AddCompanyModal
         open={addModalOpen}
         onClose={() => setAddModalOpen(false)}
+        onSuccess={fetchCompanies}
+      />
+
+      {/* Slide-over Inspection Drawer */}
+      <CompanyDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        company={activeCompany}
         onSuccess={fetchCompanies}
       />
     </div>

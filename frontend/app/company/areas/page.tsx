@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { ErrorState } from "@/components/common/ErrorState";
 import {
   Plus, MapPin, MoreVertical, CheckCircle2, Search,
-  Edit, Loader2, RefreshCw, AlertCircle
+  Edit, Loader2, RefreshCw, AlertCircle, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,6 +117,20 @@ export default function Areas() {
       toast.error("Failed to update service area.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteArea = async (area: ServiceArea) => {
+    if (!confirm(`Are you sure you want to remove coverage area for "${area.city}"?`)) return;
+    try {
+      await api.put('/companies/my-company', {
+        city: area.city,
+        coverageRadiusKm: 0,
+      });
+      toast.success(`Coverage area for "${area.city}" removed.`);
+      fetchAreas();
+    } catch {
+      toast.error("Failed to remove service area.");
     }
   };
 
@@ -338,6 +352,15 @@ export default function Areas() {
                             className="rounded-lg font-medium cursor-pointer"
                           >
                             <Edit className="w-4 h-4 mr-2 text-muted-foreground" /> Edit Area
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteArea(area);
+                            }}
+                            className="rounded-lg font-medium cursor-pointer text-rose-600 dark:text-rose-400 focus:bg-rose-500/10 focus:text-rose-600"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete Area
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

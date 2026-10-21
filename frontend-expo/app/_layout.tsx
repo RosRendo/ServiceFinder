@@ -8,7 +8,7 @@ import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import "../global.css";
 import '@/utils/i18n';
-import { Platform, Text, TextInput } from 'react-native';
+import { Platform, Text, TextInput, LogBox } from 'react-native';
 
 import {
   useFonts,
@@ -28,10 +28,22 @@ import { OfflineNotice } from '@/components/common/OfflineNotice';
 import * as Sentry from '@sentry/react-native';
 import { PostHogProvider } from 'posthog-react-native';
 
-// Suppress defaultProps warning since it's the most reliable global font hack in RN
+// Suppress known non-actionable warnings and Expo Go SDK 53+ push notification warning
+LogBox.ignoreLogs([
+  'defaultProps will be removed',
+  'expo-notifications: Android Push notifications',
+  '`expo-notifications` functionality is not fully supported in Expo Go',
+]);
+
 const originalConsoleError = console.error;
 console.error = (...args) => {
-  if (args[0] && typeof args[0] === 'string' && args[0].includes('defaultProps will be removed')) {
+  const msg = typeof args[0] === 'string' ? args[0] : '';
+  if (
+    msg.includes('defaultProps will be removed') ||
+    msg.includes('expo-notifications: Android Push notifications') ||
+    msg.includes('was removed from Expo Go with the release of SDK 53')
+  ) {
+    console.warn(...args);
     return;
   }
   originalConsoleError(...args);

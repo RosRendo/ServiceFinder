@@ -48,7 +48,10 @@ export class AdminService {
       this.prisma.companyStaff.count({ where: { status: 'active' } }),
       this.prisma.booking.count({ where: { status: 'in_progress' } }),
       this.prisma.booking.count({
-        where: { assignedStaffId: null, status: { in: ['pending', 'confirmed'] } },
+        where: {
+          assignedStaffId: null,
+          status: { in: ['pending', 'confirmed'] },
+        },
       }),
     ]);
 
@@ -329,22 +332,26 @@ export class AdminService {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const [todayRevenueResult, todayBookingsCount, todayUsersCount, todayCompaniesCount] =
-      await Promise.all([
-        this.prisma.booking.aggregate({
-          where: { status: 'completed', createdAt: { gte: startOfToday } },
-          _sum: { totalPrice: true, platformFee: true },
-        }),
-        this.prisma.booking.count({
-          where: { createdAt: { gte: startOfToday } },
-        }),
-        this.prisma.user.count({
-          where: { createdAt: { gte: startOfToday } },
-        }),
-        this.prisma.company.count({
-          where: { createdAt: { gte: startOfToday } },
-        }),
-      ]);
+    const [
+      todayRevenueResult,
+      todayBookingsCount,
+      todayUsersCount,
+      todayCompaniesCount,
+    ] = await Promise.all([
+      this.prisma.booking.aggregate({
+        where: { status: 'completed', createdAt: { gte: startOfToday } },
+        _sum: { totalPrice: true, platformFee: true },
+      }),
+      this.prisma.booking.count({
+        where: { createdAt: { gte: startOfToday } },
+      }),
+      this.prisma.user.count({
+        where: { createdAt: { gte: startOfToday } },
+      }),
+      this.prisma.company.count({
+        where: { createdAt: { gte: startOfToday } },
+      }),
+    ]);
 
     // Real recently registered companies
     const rawRecentCompanies = await this.prisma.company.findMany({
@@ -945,6 +952,51 @@ export class AdminService {
         };
       }),
       meta: { total, page: Number(page), limit: take },
+    };
+  }
+
+  async getTransactionById(id: bigint) {
+    const t = await this.prisma.transaction.findUnique({
+      where: { id },
+    });
+    if (!t) {
+      throw new NotFoundException(`Transaction #${id} not found`);
+    }
+
+    let booking: any = null;
+    if (t.bookingId) {
+      booking = await this.prisma.booking.findUnique({
+        where: { id: t.bookingId },
+        include: {
+          customer: { select: { id: true, fullName: true, email: true, phone: true } },
+          company: { select: { id: true, name: true, email: true, phone: true } },
+          payment: true,
+        },
+      });
+    }
+
+    let owner: any = null;
+    if (t.ownerId) {
+      owner = await this.prisma.user.findUnique({
+        where: { id: t.ownerId },
+        select: { id: true, fullName: true, email: true, role: true },
+      });
+    }
+
+    return {
+      ...t,
+      id: t.id.toString(),
+      ownerId: t.ownerId.toString(),
+      bookingId: t.bookingId?.toString() || null,
+      amount: Number(t.amount),
+      owner,
+      booking: booking ? {
+        ...booking,
+        id: booking.id.toString(),
+        totalPrice: Number(booking.totalPrice),
+        platformFee: Number(booking.platformFee),
+        companyEarnings: Number(booking.companyEarnings),
+      } : null,
     };
   }
 

@@ -29,6 +29,14 @@ export class StaffPerformanceController {
     private readonly staffPerformanceService: StaffPerformanceService,
   ) {}
 
+  @Get()
+  @UseGuards(RolesGuard)
+  @Roles('admin', 'company_admin')
+  @ApiOperation({ summary: 'List staff members' })
+  getStaffList(@Request() req: any) {
+    return this.staffPerformanceService.getStaffList(req.user);
+  }
+
   @Get('performance')
   @ApiOperation({ summary: 'Get own performance metrics' })
   getMyPerformance(@Request() req: any) {

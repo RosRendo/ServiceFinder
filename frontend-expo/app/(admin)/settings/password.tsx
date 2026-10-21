@@ -19,16 +19,6 @@ import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
 
-const HERO_CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
-  android: { elevation: 8 },
-});
-
-const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
-  android: { elevation: 2 },
-});
-
 export default function ChangePasswordScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -93,10 +83,10 @@ export default function ChangePasswordScreen() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn} activeOpacity={0.8}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={T.accent} />
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#0F172A" />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Change Password</Text>
-        <View style={{ width: 40 }} />
+        <Text style={s.headerTitle}>Security Credentials</Text>
+        <View style={{ width: 36 }} />
       </View>
 
       <KeyboardAvoidingView 
@@ -106,95 +96,98 @@ export default function ChangePasswordScreen() {
         <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
           
           <View style={s.infoBox}>
-            <MaterialCommunityIcons name="shield-lock-outline" size={32} color={T.accent} />
+            <MaterialCommunityIcons name="shield-check-outline" size={24} color="#0F172A" />
             <Text style={s.infoText}>
-              For your security, we require verification before changing your password.
+              Two-factor challenge required. A verification challenge will be dispatched to your registered credentials before password alteration.
             </Text>
           </View>
 
-          {/* Read-Only Email */}
-          <View style={s.fieldGroup}>
-            <Text style={s.fieldLabel}>Account {verificationMethod === "email" ? "Email" : "Phone"}</Text>
-            <View style={[s.inputWrap, s.inputWrapDisabled]}>
-              <MaterialCommunityIcons name={verificationMethod === "email" ? "email-outline" : "phone-outline"} size={20} color={T.text3} />
-              <Text style={s.inputTextDisabled}>{identifierValue}</Text>
+          {/* Form Card */}
+          <View style={s.card}>
+            {/* Read-Only Account Target */}
+            <View style={s.fieldGroup}>
+              <Text style={s.fieldLabel}>Registered {verificationMethod === "email" ? "Email Address" : "Phone Number"}</Text>
+              <View style={[s.inputWrap, s.inputWrapDisabled]}>
+                <MaterialCommunityIcons name={verificationMethod === "email" ? "email-outline" : "phone-outline"} size={18} color="#64748B" />
+                <Text style={s.inputTextDisabled}>{identifierValue}</Text>
+              </View>
             </View>
-          </View>
 
-          {step === "request" && (
-            <TouchableOpacity
-              onPress={handleRequestOtp}
-              disabled={isSubmitting}
-              style={[s.saveBtn, isSubmitting && s.saveBtnDisabled, { marginTop: 24 }]}
-              activeOpacity={0.85}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={s.saveBtnText}>
-                  {verificationMethod === "email" ? "Send Verification Code" : "Send OTP"}
-                </Text>
-              )}
-            </TouchableOpacity>
-          )}
-
-          {step === "verify" && (
-            <>
-              <View style={[s.infoBox, { backgroundColor: T.successBg, marginTop: 16 }]}>
-                <Text style={[s.infoText, { color: T.successText }]}>
-                  {verificationMethod === "email" 
-                    ? "We've sent a 6-digit code verification to your email. Enter it below to proceed."
-                    : "We've sent a 6-digit OTP to your phone. Enter it below to proceed."}
-                </Text>
-              </View>
-
-              <View style={s.fieldGroup}>
-                <Text style={s.fieldLabel}>
-                  {verificationMethod === "email" ? "Verification Code" : "OTP"}
-                </Text>
-                <View style={s.inputWrap}>
-                  <MaterialCommunityIcons name="key-variant" size={20} color={T.text2} />
-                  <TextInput
-                    style={s.input}
-                    placeholder={verificationMethod === "email" ? "Enter 6-digit code" : "Enter 6-digit OTP"}
-                    placeholderTextColor={T.text3}
-                    value={code}
-                    onChangeText={setCode}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                  />
-                </View>
-              </View>
-
-              <View style={s.fieldGroup}>
-                <Text style={s.fieldLabel}>New Password</Text>
-                <View style={s.inputWrap}>
-                  <MaterialCommunityIcons name="lock-outline" size={20} color={T.text2} />
-                  <TextInput
-                    style={s.input}
-                    placeholder="Enter new password"
-                    placeholderTextColor={T.text3}
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    secureTextEntry
-                  />
-                </View>
-              </View>
-
+            {step === "request" && (
               <TouchableOpacity
-                onPress={handleResetPassword}
+                onPress={handleRequestOtp}
                 disabled={isSubmitting}
-                style={[s.saveBtn, isSubmitting && s.saveBtnDisabled, { marginTop: 24 }]}
+                style={[s.saveBtn, isSubmitting && s.saveBtnDisabled, { marginTop: 12 }]}
                 activeOpacity={0.85}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={s.saveBtnText}>Change Password</Text>
+                  <Text style={s.saveBtnText}>
+                    {verificationMethod === "email" ? "Dispatch Verification Code" : "Dispatch OTP Code"}
+                  </Text>
                 )}
               </TouchableOpacity>
-            </>
-          )}
+            )}
+
+            {step === "verify" && (
+              <>
+                <View style={s.noticeBox}>
+                  <Text style={s.noticeText}>
+                    {verificationMethod === "email" 
+                      ? "A 6-digit verification code was transmitted to your corporate email. Enter it below."
+                      : "A 6-digit OTP code was transmitted to your corporate device. Enter it below."}
+                  </Text>
+                </View>
+
+                <View style={s.fieldGroup}>
+                  <Text style={s.fieldLabel}>
+                    {verificationMethod === "email" ? "Security Code" : "OTP Code"}
+                  </Text>
+                  <View style={s.inputWrap}>
+                    <MaterialCommunityIcons name="key-variant" size={18} color="#64748B" />
+                    <TextInput
+                      style={s.input}
+                      placeholder={verificationMethod === "email" ? "Enter 6-digit code" : "Enter 6-digit OTP"}
+                      placeholderTextColor="#94A3B8"
+                      value={code}
+                      onChangeText={setCode}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                    />
+                  </View>
+                </View>
+
+                <View style={s.fieldGroup}>
+                  <Text style={s.fieldLabel}>New Password</Text>
+                  <View style={s.inputWrap}>
+                    <MaterialCommunityIcons name="lock-outline" size={18} color="#64748B" />
+                    <TextInput
+                      style={s.input}
+                      placeholder="Enter new strong password"
+                      placeholderTextColor="#94A3B8"
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  onPress={handleResetPassword}
+                  disabled={isSubmitting}
+                  style={[s.saveBtn, isSubmitting && s.saveBtnDisabled, { marginTop: 12 }]}
+                  activeOpacity={0.85}
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={s.saveBtnText}>Commit New Password</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -202,43 +195,80 @@ export default function ChangePasswordScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
 
   header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
+  backBtn: { width: 36, height: 36, borderRadius: 8, alignItems: "center", justifyContent: "center", marginLeft: -4 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A", letterSpacing: -0.3 },
 
   scroll: { flex: 1 },
-  scrollContent: { padding: 24, paddingBottom: 60 },
+  scrollContent: { padding: 16, paddingBottom: 120 },
 
   infoBox: {
-    alignItems: "center", backgroundColor: T.surface, 
-    padding: 20, borderRadius: 16, marginBottom: 32,
-    borderWidth: 1, borderColor: T.border, gap: 12
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#FFFFFF", 
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    gap: 12,
   },
-  infoText: { fontSize: 14, color: T.text2, textAlign: "center", lineHeight: 20, fontWeight: "500" },
+  infoText: { flex: 1, fontSize: 13, color: "#475569", lineHeight: 18, fontWeight: "500" },
 
-  fieldGroup: { marginBottom: 24 },
-  fieldLabel: { fontSize: 13, fontWeight: "700", color: T.text2, marginBottom: 8 },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+
+  fieldGroup: { marginBottom: 16 },
+  fieldLabel: { fontSize: 12, fontWeight: "700", color: "#475569", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 },
   
   inputWrap: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: T.inputBg, borderWidth: 1, borderColor: T.border,
-    borderRadius: 14, paddingHorizontal: 16, height: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 46,
   },
-  inputWrapDisabled: { backgroundColor: T.inputBgDisabled, borderColor: T.inputBgDisabled },
+  inputWrapDisabled: { backgroundColor: "#F8FAFC" },
   
-  input: { flex: 1, marginLeft: 12, fontSize: 16, color: T.text1, height: "100%" },
-  inputTextDisabled: { marginLeft: 12, fontSize: 16, color: T.text2 },
+  input: { flex: 1, marginLeft: 10, fontSize: 14, color: "#0F172A", height: "100%" },
+  inputTextDisabled: { marginLeft: 10, fontSize: 14, color: "#64748B", fontWeight: "600" },
+
+  noticeBox: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  noticeText: { fontSize: 12, color: "#475569", lineHeight: 17, fontWeight: "500" },
 
   saveBtn: {
-    backgroundColor: T.accent, borderRadius: 16, height: 56,
-    alignItems: "center", justifyContent: "center", ...CARD_SHADOW,
+    backgroundColor: "#0F172A",
+    borderRadius: 8,
+    height: 46,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
+  saveBtnDisabled: { opacity: 0.5 },
+  saveBtnText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
 });

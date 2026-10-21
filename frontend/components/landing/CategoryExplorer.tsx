@@ -59,7 +59,16 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
         lang === "kh"
           ? "លាងសម្អាត បញ្ចូលហ្គាស ជួសជុល និងដំឡើងម៉ាស៊ីនត្រជាក់គ្រប់ប្រភេទ"
           : "Deep cleaning, chemical wash, gas refill, repair & installation",
+      scope:
+        lang === "kh"
+          ? "លាងសម្អាតគីមី & ពិនិត្យហ្គាស"
+          : "Coil Chemical Wash & Gas Check",
+      highlight:
+        lang === "kh"
+          ? "មកដល់ក្នុង ១២ នាទី • ជាងមានអាជ្ញាប័ណ្ណ"
+          : "12m avg arrival • Licensed Pro",
       icon: Wind,
+      iconBg: "bg-blue-50 border-blue-200 text-blue-600",
       startingPrice: 15,
       providerCount: 142,
       popular: true,
@@ -74,7 +83,16 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
         lang === "kh"
           ? "ជួសជុលទុស្សេខ្សែភ្លើង ដំឡើងកុងតាក់ ឌីសង់ទ័រ និងប្រព័ន្ធភ្លើងផ្ទះ"
           : "Circuit repair, breaker box replacement, rewiring & diagnostics",
+      scope:
+        lang === "kh"
+          ? "ប្រអប់ភ្លើងមេ & ខ្សែភ្លើង 3-Phase"
+          : "Circuit Breaker & 3-Phase Rewire",
+      highlight:
+        lang === "kh"
+          ? "ជាងភ្លើងកម្រិតជាន់ខ្ពស់ • ធានាគុណភាព"
+          : "Certified Electrician • 15m ETA",
       icon: Zap,
+      iconBg: "bg-amber-50 border-amber-200 text-amber-600",
       startingPrice: 18,
       providerCount: 96,
       popular: true,
@@ -89,7 +107,16 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
         lang === "kh"
           ? "ដោះស្រាយបញ្ហាស្ទះទុយោ លេចធ្លាយទឹក ដំឡើងម៉ូទ័រ និងឧបករណ៍បន្ទប់ទឹក"
           : "Leak detection, pipe repairs, unclogging & water pump installation",
+      scope:
+        lang === "kh"
+          ? "ម៉ូទ័របូមទឹក & ដោះស្ទះទុយោទឹក"
+          : "Water Booster Pump & Pipe Leak",
+      highlight:
+        lang === "kh"
+          ? "ឧបករណ៍រកកន្លែងលេចធ្លាយទំនើប"
+          : "Leak Detection Tools • Fast Fix",
       icon: Droplet,
+      iconBg: "bg-cyan-50 border-cyan-200 text-cyan-600",
       startingPrice: 15,
       providerCount: 114,
       popular: false,
@@ -104,7 +131,16 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
         lang === "kh"
           ? "សម្អាតគេហដ្ឋាន បោកពូក សាឡុង សម្អាតមុនចូលនៅ និងការិយាល័យ"
           : "Post-construction cleaning, sofa & mattress shampooing, office janitorial",
+      scope:
+        lang === "kh"
+          ? "បោសសម្អាតវីឡា & បោកពូកសាឡុង"
+          : "Villa Cleaning & Deep Sofa Shampoo",
+      highlight:
+        lang === "kh"
+          ? "បុគ្គលិកត្រួតពិនិត្យប្រវត្តិរូប ១០០%"
+          : "Police Cleared Crew • 5-Star",
       icon: Sparkles,
+      iconBg: "bg-emerald-50 border-emerald-200 text-emerald-600",
       startingPrice: 25,
       providerCount: 218,
       popular: true,
@@ -119,7 +155,16 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
         lang === "kh"
           ? "ជួសជុលទូទឹកកក ម៉ាស៊ីនបោកគក់ ចាក់សោរ និងការងារជាងទូទៅ"
           : "Washing machine, refrigerator, furniture assembly & lock services",
+      scope:
+        lang === "kh"
+          ? "គ្រឿងអេឡិចត្រូនិក & ដំឡើងសម្ភារ"
+          : "Appliance Repair & Lock Assembly",
+      highlight:
+        lang === "kh"
+          ? "ជាងចម្រុះមុខងាររហ័ស"
+          : "Multi-Trade Toolkit • On-Demand",
       icon: Wrench,
+      iconBg: "bg-indigo-50 border-indigo-200 text-indigo-600",
       startingPrice: 20,
       providerCount: 88,
       popular: false,
@@ -134,7 +179,16 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
         lang === "kh"
           ? "ដំឡើង ថែទាំ និងត្រួតពិនិត្យប្រព័ន្ធសូឡាគេហដ្ឋាន និងអាជីវកម្ម"
           : "Residential solar maintenance, inverter inspection & panel cleaning",
+      scope:
+        lang === "kh"
+          ? "ត្រួតពិនិត្យ Inverter & បន្ទះសូឡា"
+          : "Solar Inverter Health & Rooftop Panels",
+      highlight:
+        lang === "kh"
+          ? "អ្នកជំនាញថាមពលស្អាត"
+          : "Clean Energy Pros • Warranty",
       icon: Sun,
+      iconBg: "bg-orange-50 border-orange-200 text-orange-600",
       startingPrice: 50,
       providerCount: 42,
       popular: false,
@@ -267,59 +321,58 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
                 >
                   <Link
                     href={`/services?category=${cat.slug}`}
-                    className="group relative rounded-2xl border border-slate-200 bg-slate-900 overflow-hidden shadow-xs hover:shadow-xl hover:border-slate-400 transition-all flex flex-col justify-end min-h-[300px] w-full"
+                    className="group relative rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:shadow-xl hover:border-slate-300 transition-all flex flex-col justify-between w-full select-none"
                   >
-                    {/* Background Trade Photography with Gradient Overlay */}
-                    <img
-                      src={cat.image}
-                      alt={cat.name}
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-80"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
-
-                    {/* Top Badges */}
-                    <div className="absolute top-4 inset-x-4 flex items-center justify-between z-10">
-                      <span className="rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700 px-3 py-1 text-[10px] font-bold text-slate-200">
-                        {cat.badge}
-                      </span>
-                      {cat.popular && (
-                        <span className="rounded-full bg-amber-500/90 text-slate-950 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider">
-                          Popular
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Card Bottom Content with High Contrast Text */}
-                    <div className="relative z-10 p-5 space-y-2 text-white">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-700 text-white backdrop-blur-xs">
-                          <Icon className="h-4 w-4" />
+                    {/* Top Row: Icon Plate + Popular Badge + Verified Pro Count */}
+                    <div>
+                      <div className="flex items-start justify-between">
+                        <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center transition-transform group-hover:scale-105 duration-200 ${cat.iconBg}`}>
+                          <Icon className="h-6 w-6 stroke-[2]" />
                         </div>
-                        <h3 className="font-heading text-lg font-bold text-white group-hover:text-slate-200 transition-colors">
-                          {cat.name}
-                        </h3>
+
+                        <div className="flex items-center gap-1.5">
+                          {cat.popular && (
+                            <span className="rounded-full bg-amber-50 border border-amber-200 text-amber-800 px-2 py-0.5 text-[9.5px] font-bold">
+                              {lang === "kh" ? "ពេញនិយម" : "Popular"}
+                            </span>
+                          )}
+                          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10.5px] font-semibold text-slate-600">
+                            {cat.providerCount} {dict.verifiedPros}
+                          </span>
+                        </div>
                       </div>
 
-                      <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">
-                        {cat.description}
-                      </p>
+                      {/* Middle: Title & Scope */}
+                      <div className="mt-4 space-y-1">
+                        <h3 className="font-heading text-base sm:text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                          {cat.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                          {cat.scope}
+                        </p>
+                      </div>
 
-                      <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                        <div>
-                          <span className="text-[10px] text-slate-400 block">
-                            {dict.startingFrom}
-                          </span>
-                          <span className="text-base font-black text-white">
-                            ${cat.startingPrice}.00
-                          </span>
-                        </div>
+                      {/* Live Telemetry / Proximity Status Strip */}
+                      <div className="mt-3.5 flex items-center gap-2 text-[11px] font-medium text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                        <span className="truncate">{cat.highlight}</span>
+                      </div>
+                    </div>
 
-                        <div className="flex items-center gap-1 text-slate-300 font-medium text-[11px]">
-                          <span>{cat.providerCount}</span>
-                          <span>{dict.verifiedPros}</span>
-                          <ArrowRight className="h-3.5 w-3.5 text-white ml-1 group-hover:translate-x-1 transition-transform" />
-                        </div>
+                    {/* Bottom Row: Transparent Fixed Price + Book Trigger */}
+                    <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-wider">
+                          {dict.startingFrom}
+                        </span>
+                        <span className="font-heading text-lg font-black text-slate-900">
+                          ${cat.startingPrice}.00
+                        </span>
+                      </div>
+
+                      <div className="inline-flex items-center gap-1.5 bg-slate-900 group-hover:bg-blue-600 text-white rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs group-hover:translate-x-0.5">
+                        <span>{lang === "kh" ? "កក់ឥឡូវនេះ" : "Book Pro"}</span>
+                        <ArrowRight className="h-3 w-3" />
                       </div>
                     </div>
                   </Link>

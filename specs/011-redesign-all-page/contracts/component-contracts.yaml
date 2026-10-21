@@ -1,0 +1,92 @@
+# Component Contracts: Enterprise Clean Business Admin Portal
+
+components:
+  ExecutiveMetricRibbon:
+    description: Institutional charcoal summary ribbon displaying platform financial metrics without playful gradients
+    props:
+      totalRevenue:
+        type: number
+        required: true
+      revenueGrowth:
+        type: number
+        required: false
+      completedBookings:
+        type: number
+        required: true
+      onInspectPress:
+        type: "() => void"
+        required: false
+
+  SlaAlertMatrix:
+    description: High-density priority triage matrix using neutral cards with discrete semantic status dots
+    props:
+      pendingVerificationsCount:
+        type: number
+        required: true
+      activeDisputesCount:
+        type: number
+        required: true
+      pendingPayoutsCount:
+        type: number
+        required: true
+      onNavigateQueue:
+        type: "() => void"
+        required: true
+      onNavigateDisputes:
+        type: "() => void"
+        required: true
+      onNavigatePayouts:
+        type: "() => void"
+        required: true
+
+  CredentialInspectionCard:
+    description: Clean business document inspector card with thumbnail preview and verification actions
+    props:
+      item:
+        type: object
+        required: true
+        properties:
+          companyId: string
+          companyName: string
+          category: string
+          documentUrl: string
+          submittedDate: string
+          status: "'PENDING' | 'VERIFIED' | 'REJECTED'"
+      onVerify:
+        type: "(companyId: string, category: string) => void"
+        required: true
+      onReject:
+        type: "(companyId: string, category: string) => void"
+        required: true
+      onPreview:
+        type: "(documentUrl: string) => void"
+        required: true
+
+  DisputeResolutionSheet:
+    description: Two-step confirmation safeguard modal requiring a mandatory audit note before binding escrow settlement
+    props:
+      visible:
+        type: boolean
+        required: true
+      dispute:
+        type: object
+        required: true
+      onClose:
+        type: "() => void"
+        required: true
+      onSubmitResolution:
+        type: "(resolution: 'REFUND' | 'SPLIT' | 'RELEASE', note: string) => Promise<void>"
+        required: true
+      isLoading:
+        type: boolean
+        required: false
+
+  AdminSidebar:
+    description: Clean enterprise sliding navigation drawer with categorized administrative modules
+    props:
+      isOpen:
+        type: boolean
+        required: true
+      onClose:
+        type: "() => void"
+        required: true

@@ -1440,11 +1440,7 @@ export class BookingsService {
     return result;
   }
 
-  async rescheduleBooking(
-    id: bigint,
-    dto: RescheduleBookingDto,
-    user: any,
-  ) {
+  async rescheduleBooking(id: bigint, dto: RescheduleBookingDto, user: any) {
     const booking: any = await this.findOrFail(id, true);
 
     const isCustomer = booking.customerId === BigInt(user.id);

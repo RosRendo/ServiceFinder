@@ -155,12 +155,15 @@ export default function CoverageAreas() {
   return (
     <SafeAreaView style={s.root} edges={["top", "left", "right"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        {/* Header */}
+        {/* Executive Header */}
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#0F172A" />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>Coverage Area</Text>
+          <View style={s.headerCenter}>
+            <Text style={s.headerTitle}>Coverage Area</Text>
+            <Text style={s.headerSubtitle}>Dispatch Radius & Geofence</Text>
+          </View>
           <TouchableOpacity onPress={handleSave} disabled={saving || loading} style={[s.saveBtn, (saving || loading) && { opacity: 0.5 }]}>
             {saving
               ? <ActivityIndicator size="small" color="#fff" />
@@ -324,10 +327,12 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12,
     backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
   },
-  backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
-  saveBtn: { backgroundColor: T.accent, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  saveBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  headerCenter: { alignItems: "center" },
+  headerTitle: { fontSize: 17, fontWeight: "800", color: "#0F172A", letterSpacing: -0.3 },
+  headerSubtitle: { fontSize: 11, fontWeight: "600", color: "#64748B", marginTop: 1 },
+  saveBtn: { backgroundColor: "#0284C7", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
+  saveBtnText: { color: "#fff", fontWeight: "800", fontSize: 13 },
 
   scrollContent: { padding: 16, gap: 16, paddingBottom: 60 },
   loadingBox: { paddingVertical: 100, alignItems: "center" },

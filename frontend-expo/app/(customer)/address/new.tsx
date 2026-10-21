@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -40,12 +40,12 @@ export default function NewAddressScreen() {
       Alert.alert("Missing Info", "Please enter a full address.");
       return;
     }
+    const fullAddress = city.trim() ? `${trimmed}, ${city.trim()}` : trimmed;
     setSaving(true);
     try {
       await api.post("/api/addresses", {
         label,
-        address: trimmed,
-        city: city.trim() || undefined,
+        address: fullAddress,
         isDefault,
       });
       Alert.alert("Address Saved", "Your address has been added.", [

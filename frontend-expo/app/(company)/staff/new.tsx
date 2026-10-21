@@ -1,5 +1,5 @@
 /**
- * Invite Staff — Premium Deep Navy Redesign
+ * Invite Staff — Quiet Executive Monochromatic Standard (Linear / Apple Pro)
  */
 import React, { useState } from "react";
 import {
@@ -10,24 +10,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api } from "@/store/authStore";
-import { Theme } from "@/constants/theme";
-
-const T = Theme.colors;
-
-const HERO_SHADOW = Platform.select({
-  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
-  android: { elevation: 8 },
-});
 
 const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
-  android: { elevation: 2 },
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
+  android: { elevation: 1 },
 });
 
 const ROLES = [
-  { key: "worker",     label: "Worker",     icon: "hammer-wrench",          desc: "Field technician or cleaner" },
-  { key: "supervisor", label: "Supervisor", icon: "shield-account-outline", desc: "Manages field workers" },
-  { key: "manager",    label: "Manager",    icon: "briefcase-outline",      desc: "Full team oversight" },
+  { key: "worker",     label: "Field Technician",  icon: "tools",                  desc: "Receives on-demand job dispatches, fulfills work orders, and collects customer cash." },
+  { key: "supervisor", label: "Field Supervisor",  icon: "shield-account-outline", desc: "Supervises technicians in the field, monitors live SLA timers, and coordinates reassignments." },
+  { key: "manager",    label: "Operations Manager", icon: "briefcase-outline",      desc: "Full operational oversight including fleet radar, service catalog, and financial payouts." },
 ];
 
 export default function AddStaff() {
@@ -39,7 +31,7 @@ export default function AddStaff() {
 
   const handleSend = async () => {
     if (!form.fullName.trim() || !form.email.trim()) {
-      Alert.alert("Missing Fields", "Full name and email are required.");
+      Alert.alert("Required Fields", "Please provide the technician's full name and email address.");
       return;
     }
     setLoading(true);
@@ -51,27 +43,27 @@ export default function AddStaff() {
         role: form.role,
       });
 
-      const data = res.data;
-      const tempPassword = data.defaultPassword;
+      const data = res.data?.data ?? res.data;
+      const tempPassword = data?.defaultPassword;
 
       if (tempPassword) {
         Alert.alert(
-          "Staff Added! 🎉",
-          `${form.fullName} has been added to your team.\n\n` +
-          `📧 Email: ${form.email.trim().toLowerCase()}\n` +
-          `🔑 Temp Password: ${tempPassword}\n\n` +
-          `A welcome email has been sent to their inbox automatically.`,
+          "Team Member Added",
+          `${form.fullName.trim()} has been registered.\n\n` +
+          `Email: ${form.email.trim().toLowerCase()}\n` +
+          `Temporary Password: ${tempPassword}\n\n` +
+          `A welcome notification with setup instructions has been sent to their inbox.`,
           [{ text: "Done", onPress: () => router.back() }]
         );
       } else {
         Alert.alert(
-          "Staff Linked!",
-          `${form.fullName} already has an account and has been added to your team.`,
+          "Staff Linked",
+          `${form.fullName.trim()} has been linked to your fleet roster.`,
           [{ text: "Done", onPress: () => router.back() }]
         );
       }
     } catch (error: any) {
-      Alert.alert("Error", error?.response?.data?.message || "Failed to create staff account.");
+      Alert.alert("Registration Failed", error?.response?.data?.message || "Could not create team member account.");
     } finally {
       setLoading(false);
     }
@@ -80,70 +72,91 @@ export default function AddStaff() {
   return (
     <SafeAreaView style={s.root} edges={["top", "left", "right"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        {/* Header */}
+        {/* Quiet Top Header */}
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <MaterialCommunityIcons name="chevron-left" size={32} color={T.text1} />
+            <MaterialCommunityIcons name="arrow-left" size={22} color="#0F172A" />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>Invite Staff</Text>
-          <TouchableOpacity onPress={handleSend} disabled={loading} style={[s.sendBtn, loading && { opacity: 0.5 }]}>
-            {loading
-              ? <ActivityIndicator size="small" color="#fff" />
-              : <Text style={s.sendBtnText}>Invite</Text>}
+          <View style={s.headerCenter}>
+            <Text style={s.headerTitle}>Invite Team Member</Text>
+            <Text style={s.headerSubtitle}>Fleet Onboarding</Text>
+          </View>
+          <TouchableOpacity
+            onPress={handleSend}
+            disabled={loading}
+            style={[s.sendBtn, loading && { opacity: 0.5 }]}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={s.sendBtnText}>Invite</Text>
+            )}
           </TouchableOpacity>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
-          {/* Header Text */}
-          <View style={s.titleSection}>
-            <Text style={s.pageTitle}>Add a Team Member</Text>
-            <Text style={s.pageDesc}>They will receive login credentials via email and can immediately start accepting jobs.</Text>
+          {/* Subtle Info Banner */}
+          <View style={s.infoBanner}>
+            <MaterialCommunityIcons name="information-outline" size={18} color="#475569" />
+            <Text style={s.infoBannerText}>
+              Invited technicians will receive temporary login credentials to access the mobile app and begin accepting dispatches.
+            </Text>
           </View>
 
-          {/* Form Card */}
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Personal Details</Text>
+          {/* Form Card: Personal Details */}
+          <View style={[s.card, CARD_SHADOW]}>
+            <Text style={s.cardTitle}>Personal Information</Text>
 
             <View style={s.inputGroup}>
-              <Text style={s.label}>Full Name *</Text>
+              <Text style={s.label}>FULL NAME *</Text>
               <View style={s.inputBox}>
-                <MaterialCommunityIcons name="account-outline" size={20} color={T.text3} />
+                <MaterialCommunityIcons name="account-outline" size={18} color="#94A3B8" />
                 <TextInput
-                  value={form.fullName} onChangeText={(t) => setForm({ ...form, fullName: t })}
-                  placeholder="e.g., Sam Green" placeholderTextColor={T.text3} style={s.input}
+                  value={form.fullName}
+                  onChangeText={(t) => setForm({ ...form, fullName: t })}
+                  placeholder="e.g. Sokha Meng"
+                  placeholderTextColor="#94A3B8"
+                  style={s.input}
                 />
               </View>
             </View>
 
             <View style={s.inputGroup}>
-              <Text style={s.label}>Email Address *</Text>
+              <Text style={s.label}>WORK EMAIL ADDRESS *</Text>
               <View style={s.inputBox}>
-                <MaterialCommunityIcons name="email-outline" size={20} color={T.text3} />
+                <MaterialCommunityIcons name="email-outline" size={18} color="#94A3B8" />
                 <TextInput
-                  value={form.email} onChangeText={(t) => setForm({ ...form, email: t })}
-                  placeholder="sam@example.com" placeholderTextColor={T.text3} style={s.input}
-                  keyboardType="email-address" autoCapitalize="none"
+                  value={form.email}
+                  onChangeText={(t) => setForm({ ...form, email: t })}
+                  placeholder="sokha@servicefinder.com"
+                  placeholderTextColor="#94A3B8"
+                  style={s.input}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
                 />
               </View>
             </View>
 
             <View style={s.inputGroup}>
-              <Text style={s.label}>Phone Number</Text>
+              <Text style={s.label}>MOBILE PHONE NUMBER</Text>
               <View style={s.inputBox}>
-                <MaterialCommunityIcons name="phone-outline" size={20} color={T.text3} />
+                <MaterialCommunityIcons name="phone-outline" size={18} color="#94A3B8" />
                 <TextInput
-                  value={form.phone} onChangeText={(t) => setForm({ ...form, phone: t })}
-                  placeholder="+1 (555) 000-0000" placeholderTextColor={T.text3} style={s.input}
+                  value={form.phone}
+                  onChangeText={(t) => setForm({ ...form, phone: t })}
+                  placeholder="+855 12 345 678"
+                  placeholderTextColor="#94A3B8"
+                  style={s.input}
                   keyboardType="phone-pad"
                 />
               </View>
             </View>
           </View>
 
-          {/* Role Selector */}
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Assign Role</Text>
-            <Text style={s.cardSubtitle}>Select what this staff member can access</Text>
+          {/* Role Selection Card */}
+          <View style={[s.card, CARD_SHADOW]}>
+            <Text style={s.cardTitle}>Fleet Role Assignment</Text>
+            <Text style={s.cardSubtitle}>Defines job dispatch eligibility and permission scope</Text>
             
             <View style={s.rolesList}>
               {ROLES.map((role, idx) => {
@@ -157,11 +170,15 @@ export default function AddStaff() {
                     activeOpacity={0.7}
                   >
                     <View style={[s.roleIconWrap, selected && s.roleIconWrapSelected]}>
-                      <MaterialCommunityIcons name={role.icon as any} size={22} color={selected ? "#fff" : T.text3} />
+                      <MaterialCommunityIcons
+                        name={role.icon as any}
+                        size={20}
+                        color={selected ? "#FFFFFF" : "#64748B"}
+                      />
                     </View>
                     <View style={s.roleInfo}>
                       <Text style={[s.roleLabel, selected && s.roleLabelSelected]}>{role.label}</Text>
-                      <Text style={[s.roleDesc, selected && s.roleDescSelected]}>{role.desc}</Text>
+                      <Text style={s.roleDesc}>{role.desc}</Text>
                     </View>
                     <View style={[s.radioOuter, selected && s.radioOuterSelected]}>
                       {selected && <View style={s.radioInner} />}
@@ -171,6 +188,23 @@ export default function AddStaff() {
               })}
             </View>
           </View>
+
+          {/* Bottom Direct CTA */}
+          <TouchableOpacity
+            onPress={handleSend}
+            disabled={loading}
+            style={[s.bottomButton, loading && { opacity: 0.6 }]}
+            activeOpacity={0.85}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="send-outline" size={18} color="#FFFFFF" />
+                <Text style={s.bottomButtonText}>Send Team Invite</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -178,54 +212,76 @@ export default function AddStaff() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: T.bg, 
+    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1, borderBottomColor: "#E2E8F0",
   },
-  backBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.accent },
-  sendBtn: { backgroundColor: T.accentMid, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
-  sendBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  backBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  headerCenter: { alignItems: "center" },
+  headerTitle: { fontSize: 16, fontWeight: "700", color: "#0F172A", letterSpacing: -0.2 },
+  headerSubtitle: { fontSize: 11, fontWeight: "500", color: "#64748B", marginTop: 1 },
+  sendBtn: {
+    backgroundColor: "#0F172A", paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10,
+  },
+  sendBtnText: { color: "#FFFFFF", fontWeight: "600", fontSize: 12 },
 
-  scrollContent: { padding: 24, gap: 24, paddingBottom: 60, paddingTop: 8 },
+  scrollContent: { padding: 16, gap: 14, paddingBottom: 60 },
 
-  titleSection: { gap: 8, paddingHorizontal: 4 },
-  pageTitle: { fontSize: 28, fontWeight: "700", color: T.accent },
-  pageDesc: { fontSize: 14, color: T.text2, lineHeight: 22 },
+  infoBanner: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0",
+    padding: 12, borderRadius: 12,
+  },
+  infoBannerText: { flex: 1, fontSize: 12, fontWeight: "500", color: "#475569", lineHeight: 17 },
 
   card: {
-    backgroundColor: T.surface, borderRadius: 24, padding: 24,
-    
+    backgroundColor: "#FFFFFF", borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: "#E2E8F0", gap: 14,
   },
-  cardTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
-  cardSubtitle: { fontSize: 13, color: T.text3, marginTop: -16 },
+  cardTitle: { fontSize: 14, fontWeight: "700", color: "#0F172A", letterSpacing: -0.1 },
+  cardSubtitle: { fontSize: 11, fontWeight: "400", color: "#64748B", marginTop: -8, marginBottom: 2 },
 
-  inputGroup: { gap: 8 },
-  label: { fontSize: 13, fontWeight: "700", color: T.text2, marginLeft: 4 },
+  inputGroup: { gap: 6 },
+  label: { fontSize: 10, fontWeight: "700", color: "#64748B", letterSpacing: 0.5 },
   inputBox: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: T.bg, borderRadius: 16, paddingHorizontal: 16,
-    height: 54, borderWidth: 1, borderColor: T.border,
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#F8FAFC", borderRadius: 12, paddingHorizontal: 14,
+    height: 48, borderWidth: 1, borderColor: "#E2E8F0",
   },
-  input: { flex: 1, fontSize: 15, color: T.text1, fontWeight: "500" },
+  input: { flex: 1, fontSize: 14, color: "#0F172A", fontWeight: "500" },
 
-  rolesList: { backgroundColor: T.bg, borderRadius: 16, borderWidth: 1, borderColor: T.border, overflow: "hidden" },
-  roleRow: { flexDirection: "row", alignItems: "center", padding: 16, gap: 16, backgroundColor: T.surface },
-  roleRowBorder: { borderBottomWidth: 1, borderBottomColor: T.border },
-  roleRowSelected: { backgroundColor: T.accentLight },
+  rolesList: {
+    borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0", overflow: "hidden",
+  },
+  roleRow: {
+    flexDirection: "row", alignItems: "center", padding: 14, gap: 12, backgroundColor: "#FFFFFF",
+  },
+  roleRowBorder: { borderBottomWidth: 1, borderBottomColor: "#F1F5F9" },
+  roleRowSelected: { backgroundColor: "#F8FAFC" },
   
-  roleIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: T.bg, alignItems: "center", justifyContent: "center" },
-  roleIconWrapSelected: { backgroundColor: T.accentMid },
+  roleIconWrap: {
+    width: 38, height: 38, borderRadius: 10, backgroundColor: "#F1F5F9",
+    alignItems: "center", justifyContent: "center",
+  },
+  roleIconWrapSelected: { backgroundColor: "#0F172A" },
   
   roleInfo: { flex: 1 },
-  roleLabel: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 2 },
-  roleLabelSelected: { color: T.accentMid },
-  roleDesc: { fontSize: 13, color: T.text3 },
-  roleDescSelected: { color: T.text2 },
+  roleLabel: { fontSize: 13, fontWeight: "700", color: "#0F172A", marginBottom: 2 },
+  roleLabelSelected: { color: "#0F172A" },
+  roleDesc: { fontSize: 11, color: "#64748B", lineHeight: 16 },
 
-  radioOuter: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: T.text3, alignItems: "center", justifyContent: "center" },
-  radioOuterSelected: { borderColor: T.accentMid },
-  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: T.accentMid },
+  radioOuter: {
+    width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: "#CBD5E1",
+    alignItems: "center", justifyContent: "center",
+  },
+  radioOuterSelected: { borderColor: "#0F172A" },
+  radioInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#0F172A" },
+
+  bottomButton: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: "#0F172A", paddingVertical: 14, borderRadius: 12, marginTop: 4,
+  },
+  bottomButtonText: { fontSize: 13, fontWeight: "600", color: "#FFFFFF" },
 });

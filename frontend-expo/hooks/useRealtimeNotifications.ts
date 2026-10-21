@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import { isRunningInExpoGo } from 'expo';
 import { io, Socket } from 'socket.io-client';
 import * as SecureStore from 'expo-secure-store';
 import { useNotificationStore, NotificationType } from '@/store/notificationStore';
@@ -38,7 +39,8 @@ const EVENT_MAP: Record<string, { title: string; getBody: (data: any) => string;
 
 // ─── Request push permission & get Expo push token ───────────────────────────
 async function registerForPushNotifications(): Promise<string | null> {
-  if (!Device.isDevice) return null; // simulators don't support push
+  // Remote push notifications are unsupported in Expo Go on Android since SDK 53
+  if (isRunningInExpoGo() || !Device.isDevice) return null;
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;

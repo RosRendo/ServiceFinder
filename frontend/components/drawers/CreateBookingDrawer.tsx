@@ -4,13 +4,14 @@ import { useState, useEffect } from "react";
 import { BaseDrawer } from "./BaseDrawer";
 import { useToast } from "@/lib/hooks/use-toast";
 import { CalendarPlus, Loader2, MapPin, AlignLeft, Building2, Wrench } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import api from "@/lib/api/client";
 
 interface CreateBookingDrawerProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  companyId?: string; // If provided, pre-fills the company
+  companyId?: string;
 }
 
 export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: CreateBookingDrawerProps) {
@@ -45,7 +46,7 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
       const res = await api.get(`/companies/${cid}/services`);
       const payload = res.data?.data || res.data || [];
       setServices(Array.isArray(payload) ? payload : []);
-    } catch (e) {
+    } catch {
       setServices([]);
     }
   };
@@ -56,14 +57,14 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
     if (val) fetchServices(val);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!formData.companyId || !formData.serviceId || !formData.bookingDate || !formData.startTime || !formData.serviceAddress) {
       toast({ title: "Error", description: "Please fill in all required fields.", variant: "destructive" });
       return;
     }
     setLoading(true);
-    
+
     try {
       await api.post("/bookings", formData);
       toast({
@@ -92,29 +93,43 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
   };
 
   return (
-    <BaseDrawer 
-      open={open} 
-      onClose={onClose} 
+    <BaseDrawer
+      open={open}
+      onClose={onClose}
       title="Create Manual Booking"
-      subtitle="Manually dispatch a booking. This bypasses normal customer scheduling rules."
-    >
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto mb-5 shadow-xs border border-primary/20">
-          <CalendarPlus className="w-7 h-7" />
+      subtitle="Manually dispatch an appointment. Bypasses regular customer checkout."
+      headerIcon={CalendarPlus}
+      width="lg"
+      footer={
+        <div className="flex items-center gap-2.5 w-full">
+          <Button variant="outline" type="button" onClick={onClose} className="h-9 px-4 text-xs font-semibold">
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            disabled={loading}
+            onClick={() => handleSubmit()}
+            className="flex-1 h-9 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold gap-2 rounded-xl"
+          >
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CalendarPlus className="w-3.5 h-3.5" />}
+            {loading ? "Creating..." : "Create Order"}
+          </Button>
         </div>
-        
+      }
+    >
+      <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs font-sans">
         {!companyId && (
-          <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Company *</label>
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Company *</label>
             <div className="relative">
               <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <select
                 required
                 value={formData.companyId}
                 onChange={handleCompanyChange}
-                className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all appearance-none"
+                className="w-full pl-9 pr-4 h-9 bg-background border border-border rounded-xl text-xs outline-none focus:border-primary transition-all appearance-none text-foreground"
               >
-                <option value="">Select a company</option>
+                <option value="">Select a service provider</option>
                 {companies.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -123,8 +138,8 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
           </div>
         )}
 
-        <div>
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Service *</label>
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Service Item *</label>
           <div className="relative">
             <Wrench className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             {services.length > 0 ? (
@@ -132,9 +147,9 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
                 required
                 value={formData.serviceId}
                 onChange={e => setFormData({...formData, serviceId: e.target.value})}
-                className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all appearance-none"
+                className="w-full pl-9 pr-4 h-9 bg-background border border-border rounded-xl text-xs outline-none focus:border-primary transition-all appearance-none text-foreground"
               >
-                <option value="">Select a service</option>
+                <option value="">Select a service catalog item</option>
                 {services.map(s => (
                   <option key={s.id} value={s.id}>{s.serviceType?.name || s.name || `Service #${s.id}`}</option>
                 ))}
@@ -145,74 +160,65 @@ export function CreateBookingDrawer({ open, onClose, onSuccess, companyId }: Cre
                 required
                 value={formData.serviceId}
                 onChange={e => setFormData({...formData, serviceId: e.target.value})}
-                className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
-                placeholder="Enter Service ID directly"
+                className="w-full pl-9 pr-4 h-9 bg-background border border-border rounded-xl text-xs outline-none focus:border-primary text-foreground"
+                placeholder={formData.companyId ? "No services found for this company" : "Select a company first"}
               />
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Date *</label>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Date *</label>
             <input
               type="date"
               required
               value={formData.bookingDate}
               onChange={e => setFormData({...formData, bookingDate: e.target.value})}
-              className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
+              className="w-full px-3 h-9 bg-background border border-border rounded-xl text-xs outline-none focus:border-primary text-foreground font-mono"
             />
           </div>
-          <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Time *</label>
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Start Time *</label>
             <input
               type="time"
               required
               value={formData.startTime}
               onChange={e => setFormData({...formData, startTime: e.target.value})}
-              className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
+              className="w-full px-3 h-9 bg-background border border-border rounded-xl text-xs outline-none focus:border-primary text-foreground font-mono"
             />
           </div>
         </div>
 
-        <div>
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Service Address *</label>
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Service Address *</label>
           <div className="relative">
             <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
             <textarea
               required
               value={formData.serviceAddress}
               onChange={e => setFormData({...formData, serviceAddress: e.target.value})}
-              className="w-full pl-9 pr-4 py-2.5 h-20 resize-none bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
-              placeholder="Full address for the worker..."
+              className="w-full pl-9 pr-4 py-2.5 h-20 resize-none bg-background border border-border rounded-xl text-xs outline-none focus:border-primary text-foreground"
+              placeholder="Full location address for dispatch..."
             />
           </div>
         </div>
 
-        <div>
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Customer Notes</label>
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Internal Instructions</label>
           <div className="relative">
             <AlignLeft className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
             <textarea
               value={formData.notes}
               onChange={e => setFormData({...formData, notes: e.target.value})}
-              className="w-full pl-9 pr-4 py-2.5 h-20 resize-none bg-background border border-border rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
-              placeholder="Manual override instructions..."
+              className="w-full pl-9 pr-4 py-2.5 h-18 resize-none bg-background border border-border rounded-xl text-xs outline-none focus:border-primary text-foreground"
+              placeholder="Gate code, customer notes, special tools required..."
             />
           </div>
-        </div>
-
-        <div className="pt-4 border-t border-border">
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarPlus className="w-4 h-4" />}
-            {loading ? "Creating..." : "Create Booking"}
-          </button>
         </div>
       </form>
     </BaseDrawer>
   );
 }
+
+export default CreateBookingDrawer;

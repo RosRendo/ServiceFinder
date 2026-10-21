@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Search, User, MessageSquare, Download, Filter } from "lucide-react";
-import { toast } from "sonner";
-import { useSupportTickets } from "@/lib/hooks/useSupportTickets";
-import { DataGrid, Column } from "@/components/grid/DataGrid";
-import { BulkActionBar } from "@/components/grid/BulkActionBar";
+import { useState, useEffect, useMemo } from "react";
+import { ManagementDataGrid, ColumnDef } from "@/components/admin/ManagementDataGrid";
 import { SupportDrawer } from "@/components/drawers/SupportDrawer";
 import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
+import { Download, MessageSquare, User, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
+import { useSupportTickets } from "@/lib/hooks/useSupportTickets";
+import { cn } from "@/lib/utils";
 
 type TicketStatus = "open" | "pending" | "resolved" | "closed" | "in_progress";
 type TicketPriority = "low" | "medium" | "high" | "urgent";
@@ -33,210 +33,211 @@ export interface UISupportTicket {
   messages: TicketMessage[];
 }
 
-export default function AdminSupportPage() {
-  const { tickets: fetchedTickets, loading, updateTicketStatus, addTicketReply } = useSupportTickets();
-  const [localTickets, setLocalTickets] = useState<UISupportTicket[]>([]);
+const FILTER_TABS = [
+  { id: "all", label: "All Tickets" },
+  { id: "open", label: "Open" },
+  { id: "pending", label: "Pending" },
+  { id: "in_progress", label: "In Progress" },
+  { id: "resolved", label: "Resolved" },
+  { id: "closed", label: "Closed" },
+];
 
-  const exportCSV = () => {
-    const rows = [
-      ["ID", "Subject", "User", "User Type", "Status", "Priority", "Created At"],
-      ...localTickets.map((t) => [t.id, t.subject, t.userName, t.userType, t.status, t.priority, new Date(t.createdAt).toLocaleDateString()]),
-    ];
-    const csv = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `support-tickets-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+export default function AdminSupportPage() {
+  const { tickets: fetchedTickets, loading, updateTicketStatus } = useSupportTickets();
+  const [localTickets, setLocalTickets] = useState<UISupportTicket[]>([]);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedTicket, setSelectedTicket] = useState<UISupportTicket | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
 
   useEffect(() => {
     if (fetchedTickets && fetchedTickets.length > 0) {
-      const mapped = fetchedTickets.map(t => ({
+      const mapped = fetchedTickets.map((t) => ({
         ...t,
         messages: (t as any).messages || [],
-        userType: (t as any).userType || "customer"
+        userType: (t as any).userType || "customer",
       })) as UISupportTicket[];
       setLocalTickets(mapped);
     }
   }, [fetchedTickets]);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<TicketStatus | "all">("all");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  
-  const [selectedTicket, setSelectedTicket] = useState<UISupportTicket | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
-
-  const filteredTickets = localTickets.filter(ticket => {
-    const matchesSearch = ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          ticket.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          ticket.userName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || ticket.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const toggleRow = useCallback((id: string) => {
-    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
-  }, []);
-  
-  const toggleAll = useCallback(() => {
-    setSelectedIds((prev) => prev.size === filteredTickets.length ? new Set() : new Set(filteredTickets.map((t) => t.id)));
-  }, [filteredTickets]);
-
-  const openTicket = (ticket: UISupportTicket) => {
-    setSelectedTicket(ticket);
-    setDrawerOpen(true);
+  const exportCSV = () => {
+    const rows = filteredTickets;
+    if (!rows.length) {
+      toast.error("No support tickets to export.");
+      return;
+    }
+    const header = ["ID", "Subject", "User", "User Type", "Status", "Priority", "Created At"];
+    const csvRows = [
+      header.join(","),
+      ...rows.map((t) =>
+        `"${t.id}","${t.subject}","${t.userName}","${t.userType}","${t.status}","${t.priority}","${new Date(t.createdAt).toLocaleDateString()}"`
+      ),
+    ];
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `support-tickets-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length} support ticket records.`);
   };
 
-  const columns: Column<UISupportTicket>[] = [
+  const filteredTickets = useMemo(() => {
+    return localTickets.filter((ticket) => {
+      if (statusFilter !== "all" && ticket.status !== statusFilter) return false;
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return (
+        ticket.subject.toLowerCase().includes(q) ||
+        ticket.id.toLowerCase().includes(q) ||
+        ticket.userName.toLowerCase().includes(q)
+      );
+    });
+  }, [localTickets, statusFilter, search]);
+
+  const paginatedTickets = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredTickets.slice(start, start + pageSize);
+  }, [filteredTickets, page, pageSize]);
+
+  const columns: ColumnDef<UISupportTicket>[] = [
     {
-      key: "subject", header: "Subject", sortable: true,
-      render: (t) => (
-        <div className="flex flex-col">
-          <span className="font-bold text-foreground">{t.subject}</span>
-          <span className="text-[10px] font-mono font-medium text-muted-foreground uppercase tracking-wider mt-0.5">{t.id}</span>
+      id: "subject",
+      header: "Ticket Ref & Subject",
+      isSortable: true,
+      cell: ({ row }) => (
+        <div>
+          <div className="font-bold text-xs text-foreground truncate max-w-[280px]">
+            {row.subject}
+          </div>
+          <div className="font-mono text-[10px] text-muted-foreground uppercase mt-0.5">
+            #{row.id.slice(-6).toUpperCase()}
+          </div>
         </div>
-      )
+      ),
     },
     {
-      key: "requester", header: "Requester", sortable: true,
-      render: (t) => (
-        <span className="flex items-center gap-1.5 font-semibold text-muted-foreground text-sm">
-          <User className="w-3.5 h-3.5" />
-          {t.userName}
+      id: "requester",
+      header: "Requester",
+      isSortable: true,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1.5 text-xs text-foreground">
+          <User className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="font-medium">{row.userName}</span>
+          <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground capitalize">
+            {row.userType}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: "priority",
+      header: "Priority",
+      isSortable: true,
+      cell: ({ row }) => {
+        let colorClass = "bg-muted text-muted-foreground border-border";
+        if (row.priority === "high" || row.priority === "urgent") {
+          colorClass = "bg-rose-500/10 text-rose-600 border-rose-500/25";
+        } else if (row.priority === "medium") {
+          colorClass = "bg-sky-500/10 text-sky-600 border-sky-500/25";
+        }
+        return (
+          <span className={cn("inline-flex px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider", colorClass)}>
+            {row.priority}
+          </span>
+        );
+      },
+    },
+    {
+      id: "status",
+      header: "Status",
+      isSortable: true,
+      cell: ({ row }) => {
+        let colorClass = "bg-muted text-muted-foreground border-border";
+        if (row.status === "open") colorClass = "bg-sky-500/10 text-sky-600 border-sky-500/25";
+        else if (row.status === "resolved") colorClass = "bg-emerald-500/10 text-emerald-600 border-emerald-500/25";
+        else if (row.status === "pending" || row.status === "in_progress") colorClass = "bg-amber-500/10 text-amber-600 border-amber-500/25";
+        
+        return (
+          <span className={cn("inline-flex px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider", colorClass)}>
+            {row.status.replace("_", " ")}
+          </span>
+        );
+      },
+    },
+    {
+      id: "updatedAt",
+      header: "Last Activity",
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">
+          {new Date(row.updatedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
         </span>
-      )
+      ),
     },
-    {
-      key: "priority", header: "Priority", sortable: true,
-      render: (t) => {
-        let colorClass = "bg-muted/50 text-muted-foreground border-transparent";
-        if (t.priority === "high" || t.priority === "urgent") colorClass = "bg-rose-500/10 text-rose-600 border-rose-500/20";
-        else if (t.priority === "medium") colorClass = "bg-blue-500/10 text-blue-600 border-blue-500/20";
-        
-        return (
-          <span className={`inline-flex px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-widest ${colorClass}`}>
-            {t.priority}
-          </span>
-        );
-      }
-    },
-    {
-      key: "status", header: "Status", sortable: true,
-      render: (t) => {
-        let colorClass = "bg-muted/50 text-muted-foreground border-transparent";
-        if (t.status === "open") colorClass = "bg-blue-500/10 text-blue-600 border-blue-500/20";
-        else if (t.status === "resolved") colorClass = "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
-        else if (t.status === "pending" || t.status === "in_progress") colorClass = "bg-amber-500/10 text-amber-600 border-amber-500/20";
-        
-        return (
-          <span className={`inline-flex px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-widest ${colorClass}`}>
-            {t.status.replace("_", " ")}
-          </span>
-        );
-      }
-    },
-    {
-      key: "updatedAt", header: "Last Updated", sortable: true,
-      render: (t) => <span className="text-sm font-semibold text-muted-foreground">{new Date(t.updatedAt).toLocaleDateString()}</span>
-    }
-  ];
-
-  const handleBulkResolve = () => {
-    if (selectedIds.size === 0) return;
-    setResolveDialogOpen(true);
-  };
-
-  const confirmBulkResolve = async () => {
-    try {
-      await Promise.all(
-        Array.from(selectedIds).map((id) =>
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/support/tickets/${id}`, {
-            method: "PATCH",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "resolved" }),
-          })
-        )
-      );
-      setLocalTickets((prev) =>
-        prev.map((t) => selectedIds.has(t.id) ? { ...t, status: "resolved" as TicketStatus } : t)
-      );
-      setSelectedIds(new Set());
-      toast.success(`${selectedIds.size} ticket(s) marked as resolved.`);
-    } catch {
-      toast.error("Failed to resolve one or more tickets.");
-    }
-  };
-
-  const bulkActions = [
-    { label: "Mark Resolved", icon: MessageSquare, onClick: handleBulkResolve },
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden relative bg-background font-sans">
-      
-      {/* Flush Top Header */}
-      <div className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-border bg-background">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input 
-            value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} 
-            placeholder="Search tickets..."
-            className="w-full pl-9 pr-3 h-9 bg-muted/30 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-violet-500/60 transition-colors" 
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          {["all", "open", "pending", "resolved", "closed"].map((s) => (
-            <button key={s} onClick={() => setStatusFilter(s as any)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === s ? "bg-violet-500/10 text-violet-500 border border-violet-500/20" : "text-muted-foreground hover:bg-muted/50 border border-transparent"}`}>
-              {s === "all" ? "All" : s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-            </button>
-          ))}
-        </div>
-        <div className="flex-1" />
-        <button onClick={exportCSV} className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm text-foreground hover:bg-muted/50 bg-background transition-colors">
-          <Download className="w-3.5 h-3.5 opacity-70" /> Export
-        </button>
-      </div>
-
-      {/* Flush Stats Row */}
-      <div className="shrink-0 flex items-center gap-6 px-6 py-2.5 border-b border-border bg-muted/10">
-        {[
-          { label: "Total Tickets", value: filteredTickets.length, color: "text-foreground" },
-          { label: "Open", value: filteredTickets.filter((t) => t.status === "open").length, color: "text-blue-500" },
-          { label: "Pending", value: filteredTickets.filter((t) => t.status === "pending").length, color: "text-amber-500" },
-          { label: "Resolved", value: filteredTickets.filter((t) => t.status === "resolved").length, color: "text-emerald-500" },
-        ].map((s) => (
-          <div key={s.label} className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">{s.label}</span>
-            <span className={`font-bold ${s.color}`}>{s.value}</span>
+    <div className="h-full flex flex-col p-4 sm:p-6 overflow-hidden bg-background">
+      <ManagementDataGrid
+        title="Help Desk & Support Center"
+        description="Mediate customer support requests, company operational escalations, and platform inquiries."
+        data={paginatedTickets}
+        columns={columns}
+        getRowId={(r) => r.id}
+        isLoading={loading}
+        onRowClick={(ticket) => {
+          setSelectedTicket(ticket);
+          setDrawerOpen(true);
+        }}
+        secondaryActions={[
+          {
+            label: "Export CSV",
+            icon: <Download className="w-3.5 h-3.5" />,
+            onClick: exportCSV,
+          },
+        ]}
+        searchValue={search}
+        onSearchChange={(val) => {
+          setSearch(val);
+          setPage(1);
+        }}
+        searchPlaceholder="Search tickets by subject, ref, or user name..."
+        filterSlots={
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            {FILTER_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(tab.id);
+                  setPage(1);
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap",
+                  statusFilter === tab.id
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        ))}
-      </div>
-
-      {/* Full-height DataGrid */}
-      <div className="flex-1 overflow-hidden relative">
-        <DataGrid<UISupportTicket>
-          data={filteredTickets}
-          columns={columns}
-          loading={loading}
-          selectedIds={selectedIds}
-          onToggleRow={toggleRow}
-          onToggleAll={toggleAll}
-          onRowClick={openTicket}
-          emptyMessage="No tickets found matching your criteria."
-        />
-      </div>
-
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        onClear={() => setSelectedIds(new Set())}
-        actions={bulkActions}
+        }
+        totalCount={filteredTickets.length}
+        pageSize={pageSize}
+        currentPage={page}
+        onPageChange={setPage}
+        emptyState={{
+          title: "No support tickets found",
+          description: search
+            ? "No tickets match your search query."
+            : "No active support inquiries in this filter category.",
+        }}
       />
 
       {selectedTicket && (
@@ -246,16 +247,6 @@ export default function AdminSupportPage() {
           ticket={selectedTicket as any}
         />
       )}
-
-      <ConfirmationDialog
-        isOpen={resolveDialogOpen}
-        onClose={() => setResolveDialogOpen(false)}
-        title="Resolve Support Tickets"
-        description={`Are you sure you want to mark ${selectedIds.size} ticket(s) as resolved?`}
-        actionType="warning"
-        confirmLabel="Mark as Resolved"
-        onConfirm={confirmBulkResolve}
-      />
     </div>
   );
 }

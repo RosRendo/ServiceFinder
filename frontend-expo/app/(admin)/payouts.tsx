@@ -121,10 +121,10 @@ export default function AdminPayoutsScreen() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending": return T.warning;
-      case "completed": return T.success;
-      case "rejected": return T.error;
-      default: return T.text3;
+      case "pending": return "#D97706";
+      case "completed": return "#059669";
+      case "rejected": return "#DC2626";
+      default: return "#64748B";
     }
   };
 
@@ -132,12 +132,13 @@ export default function AdminPayoutsScreen() {
     <View style={s.card}>
       <View style={s.cardHeader}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <View style={[s.typeBadge, { backgroundColor: T.blue + "15" }]}>
-            <MaterialCommunityIcons name="office-building" size={12} color={T.blue} style={{ marginRight: 4 }} />
-            <Text style={[s.typeBadgeText, { color: T.blue }]}>Company Payout</Text>
+          <View style={s.typeBadge}>
+            <MaterialCommunityIcons name="office-building" size={12} color="#0F172A" style={{ marginRight: 4 }} />
+            <Text style={s.typeBadgeText}>Company Payout</Text>
           </View>
-          <View style={[s.statusBadge, { backgroundColor: getStatusColor(item.status) + "15" }]}>
-            <Text style={[s.statusBadgeText, { color: getStatusColor(item.status) }]}>
+          <View style={s.statusBadge}>
+            <View style={[s.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
+            <Text style={s.statusBadgeText}>
               {item.status?.toUpperCase()}
             </Text>
           </View>
@@ -158,7 +159,7 @@ export default function AdminPayoutsScreen() {
 
         {item.bankDetails ? (
           <View style={s.bankBox}>
-            <MaterialCommunityIcons name="bank" size={18} color={T.accentMid} />
+            <MaterialCommunityIcons name="bank" size={18} color="#0F172A" />
             <View style={{ flex: 1 }}>
               <Text style={s.bankName}>{item.bankDetails.type?.toUpperCase() || "BANK"}</Text>
               <Text style={s.bankText}>{item.bankDetails.accountName} • {item.bankDetails.accountNumber}</Text>
@@ -166,14 +167,14 @@ export default function AdminPayoutsScreen() {
           </View>
         ) : (
           <View style={s.methodBox}>
-            <MaterialCommunityIcons name="wallet-outline" size={16} color={T.text2} />
+            <MaterialCommunityIcons name="wallet-outline" size={16} color="#475569" />
             <Text style={s.methodText}>Method: {item.method}</Text>
           </View>
         )}
 
         {item.khqrImageUrl && (
           <View style={s.khqrBadge}>
-            <MaterialCommunityIcons name="qrcode-scan" size={14} color={T.success} />
+            <MaterialCommunityIcons name="qrcode-scan" size={14} color="#059669" />
             <Text style={s.khqrText}>KHQR Code Available</Text>
           </View>
         )}
@@ -209,12 +210,17 @@ export default function AdminPayoutsScreen() {
       <View style={s.header}>
         <View style={s.headerLeft}>
           <TouchableOpacity 
-              accessibilityRole="button"
-              accessibilityLabel={t('common.openMenu')}
-              onPress={() => openSidebar(true)} style={s.menuBtn}>
-            <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
+            accessibilityRole="button"
+            accessibilityLabel="Back or Menu"
+            onPress={() => {
+              if (router.canGoBack()) router.back();
+              else openSidebar(true);
+            }} 
+            style={s.menuBtn}
+          >
+            <MaterialCommunityIcons name={router.canGoBack() ? "arrow-left" : "menu"} size={26} color="#0F172A" />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>Company Payouts</Text>
+          <Text style={s.headerTitle}>Payout Disbursements</Text>
         </View>
       </View>
 
@@ -235,78 +241,78 @@ export default function AdminPayoutsScreen() {
       </View>
 
       {loading ? (
-        <View style={s.centerBox}><ActivityIndicator size="large" color={T.accent} /></View>
+        <View style={s.centerBox}><ActivityIndicator size="large" color="#0F172A" /></View>
+      ) : hasError ? (
+        <ErrorState onRetry={() => fetchPayouts()} />
       ) : (
-        hasError ? (
-          <ErrorState onRetry={() => fetchPayouts()} />
-        ) : (
         <FlatList
           data={filteredPayouts}
           keyExtractor={item => item.id}
           renderItem={renderItem}
           contentContainerStyle={s.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchPayouts(true)} tintColor={T.accent} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchPayouts(true)} tintColor="#0F172A" />}
           ListEmptyComponent={
             <View style={s.centerBox}>
-              <MaterialCommunityIcons name="bank-transfer-out" size={48} color={T.text3} />
+              <MaterialCommunityIcons name="bank-transfer-out" size={48} color="#94A3B8" />
               <Text style={s.emptyText}>No company payouts found.</Text>
             </View>
           }
         />
-      ))}
+      )}
 
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
+    paddingHorizontal: 16, paddingVertical: 14,
+    backgroundColor: "#FFFFFF", borderBottomWidth: 1, borderBottomColor: "#E2E8F0",
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A" },
 
-  filtersContainer: { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
+  filtersContainer: { backgroundColor: "#FFFFFF", borderBottomWidth: 1, borderBottomColor: "#E2E8F0" },
   filtersScroll: { paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: "center" },
-  filterChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: T.bg, borderWidth: 1, borderColor: T.border },
-  filterChipActive: { backgroundColor: T.accent, borderColor: T.accent },
-  filterText: { fontSize: 13, fontWeight: "600", color: T.text2 },
-  filterTextActive: { color: "#fff" },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" },
+  filterChipActive: { backgroundColor: "#0F172A", borderColor: "#0F172A" },
+  filterText: { fontSize: 13, fontWeight: "600", color: "#64748B" },
+  filterTextActive: { color: "#FFFFFF" },
 
-  listContent: { padding: 16, gap: 12, paddingBottom: 60 },
+  listContent: { padding: 16, gap: 12, paddingBottom: 120 },
   centerBox: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 60 },
-  emptyText: { marginTop: 12, color: T.text3, fontWeight: "500", fontSize: 14 },
+  emptyText: { marginTop: 12, color: "#64748B", fontWeight: "500", fontSize: 14 },
 
-  card: { backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.border },
+  card: { backgroundColor: "#FFFFFF", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: "#E2E8F0" },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  typeBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  typeBadgeText: { fontSize: 11, fontWeight: "700" },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  statusBadgeText: { fontSize: 11, fontWeight: "700" },
-  amount: { fontSize: 20, fontWeight: "700", color: T.text1 },
+  typeBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0" },
+  typeBadgeText: { fontSize: 11, fontWeight: "700", color: "#0F172A" },
+  statusBadge: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusBadgeText: { fontSize: 11, fontWeight: "700", color: "#0F172A" },
+  amount: { fontSize: 20, fontWeight: "700", color: "#0F172A" },
 
   cardBody: { gap: 4, marginBottom: 16 },
-  recipientName: { fontSize: 16, fontWeight: "700", color: T.text1 },
-  recipientEmail: { fontSize: 13, color: T.text2, marginBottom: 2 },
-  dateText: { fontSize: 12, color: T.text3 },
-  txnText: { fontSize: 12, color: T.accentMid, fontWeight: "600", marginTop: 2 },
+  recipientName: { fontSize: 16, fontWeight: "700", color: "#0F172A" },
+  recipientEmail: { fontSize: 13, color: "#475569", marginBottom: 2 },
+  dateText: { fontSize: 12, color: "#64748B" },
+  txnText: { fontSize: 12, color: "#64748B", fontWeight: "600", marginTop: 2 },
   methodBox: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
-  methodText: { fontSize: 12, color: T.text2, textTransform: "capitalize" },
+  methodText: { fontSize: 12, color: "#475569", textTransform: "capitalize" },
 
-  bankBox: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8, padding: 10, backgroundColor: T.bg, borderRadius: 10, borderWidth: 1, borderColor: T.border },
-  bankName: { fontSize: 12, fontWeight: "700", color: T.text1, letterSpacing: 0.5 },
-  bankText: { fontSize: 12, color: T.text2, marginTop: 2 },
+  bankBox: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8, padding: 10, backgroundColor: "#F8FAFC", borderRadius: 10, borderWidth: 1, borderColor: "#E2E8F0" },
+  bankName: { fontSize: 12, fontWeight: "700", color: "#0F172A", letterSpacing: 0.5 },
+  bankText: { fontSize: 12, color: "#475569", marginTop: 2 },
 
-  khqrBadge: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: T.success + "15", borderRadius: 8, alignSelf: "flex-start" },
-  khqrText: { fontSize: 11, fontWeight: "600", color: T.success },
+  khqrBadge: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: "#F8FAFC", borderRadius: 8, borderWidth: 1, borderColor: "#E2E8F0", alignSelf: "flex-start" },
+  khqrText: { fontSize: 11, fontWeight: "600", color: "#059669" },
 
-  cardFooter: { flexDirection: "row", gap: 10, borderTopWidth: 1, borderTopColor: T.border, paddingTop: 14 },
-  rejectBtn: { flex: 1, backgroundColor: T.error + "15", borderRadius: 12, paddingVertical: 11, alignItems: "center", borderWidth: 1, borderColor: T.error + "30" },
-  rejectBtnText: { color: T.error, fontWeight: "700", fontSize: 13 },
-  processBtn: { flex: 2, backgroundColor: T.accent, borderRadius: 12, paddingVertical: 11, alignItems: "center" },
-  processBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  cardFooter: { flexDirection: "row", gap: 10, borderTopWidth: 1, borderTopColor: "#E2E8F0", paddingTop: 14 },
+  rejectBtn: { flex: 1, backgroundColor: "#FFFFFF", borderRadius: 12, paddingVertical: 11, alignItems: "center", borderWidth: 1, borderColor: "#E2E8F0" },
+  rejectBtnText: { color: "#DC2626", fontWeight: "700", fontSize: 13 },
+  processBtn: { flex: 2, backgroundColor: "#0F172A", borderRadius: 12, paddingVertical: 11, alignItems: "center" },
+  processBtnText: { color: "#FFFFFF", fontWeight: "700", fontSize: 13 },
 });

@@ -3,6 +3,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Sparkles, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -130,12 +131,7 @@ function LoginPageContent() {
         
         {/* Top Header */}
         <div className="flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center shadow-sm">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-lg tracking-tight text-slate-900">ServiceFinder</span>
-          </Link>
+          <BrandLogo variant="full" size="sm" href="/" />
           
           <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200/60">
             <button 

@@ -78,7 +78,11 @@ export class StaffPerformanceService {
     const weeklyChart = dayNames.map((day, i) => {
       const d = new Date(thisWeek);
       d.setDate(thisWeek.getDate() + i);
-      return { day, amount: 0, isToday: d.toDateString() === today.toDateString() };
+      return {
+        day,
+        amount: 0,
+        isToday: d.toDateString() === today.toDateString(),
+      };
     });
 
     for (const b of completedDetails) {
@@ -328,5 +332,70 @@ export class StaffPerformanceService {
     );
 
     return { success: true, staff: performances };
+  }
+
+  async getStaffList(user: any) {
+    if (user.role === 'company_admin') {
+      const company = await this.prisma.company.findFirst({
+        where: { ownerId: BigInt(user.id) },
+      });
+      if (!company) return [];
+      const staffMembers = await this.prisma.companyStaff.findMany({
+        where: { companyId: company.id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phone: true,
+              avatar: true,
+              status: true,
+              workingStatus: true,
+              lastSeen: true,
+            },
+          },
+          _count: {
+            select: {
+              assignedBookings: { where: { status: 'in_progress' } },
+            },
+          },
+        },
+      });
+      return staffMembers.map((s) => ({
+        id: s.id.toString(),
+        fullName: s.user?.fullName || 'Technician',
+        role: s.role,
+        status: s.status,
+        isAvailable: s.status === 'active' && s._count.assignedBookings === 0,
+        activeJobsCount: s._count.assignedBookings,
+        user: s.user,
+      }));
+    }
+
+    const staffMembers = await this.prisma.companyStaff.findMany({
+      where: { status: 'active' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            avatar: true,
+            status: true,
+            workingStatus: true,
+            lastSeen: true,
+          },
+        },
+      },
+    });
+    return staffMembers.map((s) => ({
+      id: s.id.toString(),
+      fullName: s.user?.fullName || 'Technician',
+      role: s.role,
+      status: s.status,
+      user: s.user,
+    }));
   }
 }

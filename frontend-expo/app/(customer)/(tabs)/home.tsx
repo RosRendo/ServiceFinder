@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import {
   ScrollView,
   Text,
@@ -20,7 +20,7 @@ import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/authStore";
-import { useCustomerHomeStore, ServiceType } from "@/store/customerHomeStore";
+import { useCustomerHomeStore } from "@/store/customerHomeStore";
 import NotificationBell from "@/components/NotificationBell";
 import FadeIn from "@/components/FadeIn";
 import ScaleButton from "@/components/ScaleButton";
@@ -33,22 +33,177 @@ import {
   ElectricianCategorySvg,
   HandymanCategorySvg,
   MovingCategorySvg,
-} from "@/components/svg";
+} from "@/components/svg/CategoryMarks";
 
 const { width } = Dimensions.get("window");
-
 const T = Theme.colors;
 
-const ICON_MAP: Record<string, any> = {
-  Sparkles: "cleaning-services", Wind: "ac-unit", Droplets: "water-drop",
-  Zap: "bolt", TreeDeciduous: "park", Car: "directions-car", Home: "home",
-  Building2: "business", Wrench: "build", PlusCircle: "add-circle-outline",
-  Filter: "format-paint", Cable: "cable", Lightbulb: "lightbulb",
-  Scissors: "content-cut", Flower2: "local-florist", Fuel: "local-gas-station",
-};
-const mapIcon = (icon: string): any => ICON_MAP[icon] || "home-repair-service";
+// ─── TRADE THEMES (Pastel Plates & Semantic Telemetry) ─────────────────
+interface TradeTheme {
+  bg: string;
+  border: string;
+  badgeBg: string;
+  badgeText: string;
+  accent: string;
+  icon: string;
+  tag: string;
+}
 
-function CategoryMarkRenderer({ name, size = 60 }: { name: string; size?: number }) {
+const TRADE_THEMES: Record<string, TradeTheme> = {
+  ac: {
+    bg: "#EFF6FF",
+    border: "#DBEAFE",
+    badgeBg: "#DBEAFE",
+    badgeText: "#1E40AF",
+    accent: "#2563EB",
+    icon: "air-conditioner",
+    tag: "15m arrival",
+  },
+  air: {
+    bg: "#EFF6FF",
+    border: "#DBEAFE",
+    badgeBg: "#DBEAFE",
+    badgeText: "#1E40AF",
+    accent: "#2563EB",
+    icon: "air-conditioner",
+    tag: "15m arrival",
+  },
+  cool: {
+    bg: "#EFF6FF",
+    border: "#DBEAFE",
+    badgeBg: "#DBEAFE",
+    badgeText: "#1E40AF",
+    accent: "#2563EB",
+    icon: "air-conditioner",
+    tag: "15m arrival",
+  },
+  clean: {
+    bg: "#ECFDF5",
+    border: "#A7F3D0",
+    badgeBg: "#D1FAE5",
+    badgeText: "#065F46",
+    accent: "#059669",
+    icon: "broom",
+    tag: "Same day",
+  },
+  maid: {
+    bg: "#ECFDF5",
+    border: "#A7F3D0",
+    badgeBg: "#D1FAE5",
+    badgeText: "#065F46",
+    accent: "#059669",
+    icon: "broom",
+    tag: "Same day",
+  },
+  spark: {
+    bg: "#ECFDF5",
+    border: "#A7F3D0",
+    badgeBg: "#D1FAE5",
+    badgeText: "#065F46",
+    accent: "#059669",
+    icon: "broom",
+    tag: "Same day",
+  },
+  plumb: {
+    bg: "#ECFEFF",
+    border: "#BAE6FD",
+    badgeBg: "#CFFAFE",
+    badgeText: "#0E7490",
+    accent: "#0891B2",
+    icon: "pipe-wrench",
+    tag: "20m arrival",
+  },
+  pipe: {
+    bg: "#ECFEFF",
+    border: "#BAE6FD",
+    badgeBg: "#CFFAFE",
+    badgeText: "#0E7490",
+    accent: "#0891B2",
+    icon: "pipe-wrench",
+    tag: "20m arrival",
+  },
+  water: {
+    bg: "#ECFEFF",
+    border: "#BAE6FD",
+    badgeBg: "#CFFAFE",
+    badgeText: "#0E7490",
+    accent: "#0891B2",
+    icon: "water-pump",
+    tag: "20m arrival",
+  },
+  electric: {
+    bg: "#FFFBEB",
+    border: "#FDE68A",
+    badgeBg: "#FEF3C7",
+    badgeText: "#92400E",
+    accent: "#D97706",
+    icon: "lightning-bolt",
+    tag: "Live dispatch",
+  },
+  wire: {
+    bg: "#FFFBEB",
+    border: "#FDE68A",
+    badgeBg: "#FEF3C7",
+    badgeText: "#92400E",
+    accent: "#D97706",
+    icon: "lightning-bolt",
+    tag: "Live dispatch",
+  },
+  zap: {
+    bg: "#FFFBEB",
+    border: "#FDE68A",
+    badgeBg: "#FEF3C7",
+    badgeText: "#92400E",
+    accent: "#D97706",
+    icon: "lightning-bolt",
+    tag: "Live dispatch",
+  },
+  move: {
+    bg: "#F8FAFC",
+    border: "#E2E8F0",
+    badgeBg: "#F1F5F9",
+    badgeText: "#334155",
+    accent: "#475569",
+    icon: "truck-delivery",
+    tag: "Book ahead",
+  },
+  truck: {
+    bg: "#F8FAFC",
+    border: "#E2E8F0",
+    badgeBg: "#F1F5F9",
+    badgeText: "#334155",
+    accent: "#475569",
+    icon: "truck-delivery",
+    tag: "Book ahead",
+  },
+  paint: {
+    bg: "#FDF4FF",
+    border: "#F5D0FE",
+    badgeBg: "#FAE8FF",
+    badgeText: "#86198F",
+    accent: "#A21CAF",
+    icon: "brush",
+    tag: "Custom quote",
+  },
+};
+
+function getTradeTheme(name: string): TradeTheme {
+  const n = (name || "").toLowerCase();
+  for (const [key, theme] of Object.entries(TRADE_THEMES)) {
+    if (n.includes(key)) return theme;
+  }
+  return {
+    bg: "#F8FAFC",
+    border: "#E2E8F0",
+    badgeBg: "#F1F5F9",
+    badgeText: "#334155",
+    accent: "#475569",
+    icon: "tools",
+    tag: "Verified pro",
+  };
+}
+
+function CategoryMarkRenderer({ name, size = 48 }: { name: string; size?: number }) {
   const n = (name || "").toLowerCase();
   if (n.includes("ac") || n.includes("air") || n.includes("cool")) return <AirconCategorySvg size={size} />;
   if (n.includes("plumb") || n.includes("pipe") || n.includes("water")) return <PlumbingCategorySvg size={size} />;
@@ -58,21 +213,7 @@ function CategoryMarkRenderer({ name, size = 60 }: { name: string; size?: number
   return <HandymanCategorySvg size={size} />;
 }
 
-const getCategoryIcon = (text: string): any => {
-  if (!text) return 'tools';
-  const t = text.toLowerCase();
-  if (t.includes('clean') || t.includes('maid') || t.includes('spark')) return 'broom';
-  if (t.includes('plumb') || t.includes('pipe') || t.includes('water')) return 'pipe-wrench';
-  if (t.includes('electric') || t.includes('wire') || t.includes('volt') || t.includes('zap')) return 'lightning-bolt';
-  if (t.includes('ac') || t.includes('air') || t.includes('cool') || t.includes('wind')) return 'air-conditioner';
-  if (t.includes('paint') || t.includes('color') || t.includes('brush')) return 'brush';
-  if (t.includes('move') || t.includes('pack') || t.includes('truck')) return 'truck-delivery';
-  if (t.includes('garden') || t.includes('lawn') || t.includes('yard') || t.includes('tree') || t.includes('landscap')) return 'tree';
-  if (t.includes('pest') || t.includes('bug')) return 'bug';
-  if (t.includes('build') || t.includes('construct') || t.includes('repair') || t.includes('wrench')) return 'hammer-wrench';
-  return 'tools';
-};
-
+// ─── SKELETON LOADERS ──────────────────────────────────────────────────
 function Skeleton({ width, height, radius = 8, style }: {
   width: number | string; height: number; radius?: number; style?: any;
 }) {
@@ -85,14 +226,41 @@ function Skeleton({ width, height, radius = 8, style }: {
         Animated.timing(anim, { toValue: 0, duration: 900, easing: Easing.ease, useNativeDriver: true }),
       ])
     ).start();
-  }, []);
+  }, [anim]);
 
   const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.75] });
 
   return (
     <Animated.View
-      style={[{ width, height, borderRadius: radius, backgroundColor: "#D1D5DB", opacity }, style]}
+      style={[{ width, height, borderRadius: radius, backgroundColor: "#E2E8F0", opacity }, style]}
     />
+  );
+}
+
+function CategorySkeleton() {
+  return (
+    <View style={{ flexDirection: "row", paddingHorizontal: 24, gap: 14 }}>
+      {[...Array(5)].map((_, i) => (
+        <View key={i} style={{ alignItems: "center", gap: 8 }}>
+          <Skeleton width={64} height={64} radius={20} />
+          <Skeleton width={48} height={10} radius={5} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function ServiceCardSkeleton() {
+  return (
+    <View style={{ flexDirection: "row", paddingHorizontal: 24, gap: 12 }}>
+      {[...Array(3)].map((_, i) => (
+        <View key={i} style={{ width: 168, gap: 10 }}>
+          <Skeleton width={168} height={110} radius={18} />
+          <Skeleton width={120} height={12} radius={6} />
+          <Skeleton width={80} height={10} radius={5} />
+        </View>
+      ))}
+    </View>
   );
 }
 
@@ -113,33 +281,6 @@ function PressCard({ onPress, style, children }: {
         {children}
       </Animated.View>
     </Pressable>
-  );
-}
-
-function CategorySkeleton() {
-  return (
-    <View style={{ flexDirection: "row", paddingHorizontal: 24, gap: 16 }}>
-      {[...Array(5)].map((_, i) => (
-        <View key={i} style={{ alignItems: "center", gap: 8 }}>
-          <Skeleton width={60} height={60} radius={18} />
-          <Skeleton width={40} height={10} radius={5} />
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function ServiceCardSkeleton() {
-  return (
-    <View style={{ flexDirection: "row", paddingHorizontal: 24, gap: 12 }}>
-      {[...Array(3)].map((_, i) => (
-        <View key={i} style={{ width: 152, gap: 8 }}>
-          <Skeleton width={152} height={130} radius={16} />
-          <Skeleton width={100} height={12} radius={6} />
-          <Skeleton width={70} height={10} radius={5} />
-        </View>
-      ))}
-    </View>
   );
 }
 
@@ -197,11 +338,11 @@ export default function Home() {
     ? `${(user as any).city}${(user as any).state ? ", " + (user as any).state : ""}`
     : "Phnom Penh";
 
-  const [selectedPopularCategory, setSelectedPopularCategory] = React.useState("All");
+  const [selectedPopularCategory, setSelectedPopularCategory] = useState("All");
 
   const popularFilterChips = useMemo(() => {
     const base = ["All"];
-    categories.slice(0, 4).forEach(c => base.push(c.name));
+    categories.slice(0, 4).forEach((c) => base.push(c.name));
     return base;
   }, [categories]);
 
@@ -218,91 +359,89 @@ export default function Home() {
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
-    if (h < 12) return t('home.goodMorning');
-    if (h < 18) return t('home.goodAfternoon');
-    return t('home.goodEvening');
+    if (h < 12) return t('home.goodMorning', 'Good morning');
+    if (h < 18) return t('home.goodAfternoon', 'Good afternoon');
+    return t('home.goodEvening', 'Good evening');
   }, [t]);
 
-  const carouselItems = useMemo(() => {
-    // 1. If we have actual sponsored companies from the API, use them!
+  // Spotlight carousel items (clean, light verified partners)
+  const spotlightItems = useMemo(() => {
     if (sponsoredCompanies && sponsoredCompanies.length > 0) {
       return sponsoredCompanies.map((co) => ({
         id: co.id,
         title: co.name,
-        subtitle: co.description || "Top-rated verified provider",
-        image: co.coverImageUrl || co.logoUrl || "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=2070&auto=format&fit=crop",
-        badge: "SPONSORED",
+        subtitle: co.description || "Top-rated verified provider in Phnom Penh",
+        image: co.coverImageUrl || co.logoUrl || "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=600&auto=format&fit=crop",
+        badge: "VERIFIED ELITE",
+        rating: co.ratingSummary?.averageRating ? Number(co.ratingSummary.averageRating).toFixed(1) : "4.9",
+        reviews: co.ratingSummary?.totalReviews || "120+",
         route: `/(customer)/company/${co.id}`,
       }));
     }
 
-    // 2. Fallback to top rated companies if no campaigns are active
     if (topCompanies && topCompanies.length > 0) {
       return topCompanies.slice(0, 3).map((co) => ({
         id: co.id,
         title: co.name,
-        subtitle: co.description || "Top-rated verified provider",
-        image: co.coverImageUrl || co.logoUrl || "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=2070&auto=format&fit=crop",
-        badge: "FEATURED",
+        subtitle: co.description || "Top-rated verified provider in Phnom Penh",
+        image: co.coverImageUrl || co.logoUrl || "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=600&auto=format&fit=crop",
+        badge: "FEATURED PARTNER",
+        rating: co.ratingSummary?.averageRating ? Number(co.ratingSummary.averageRating).toFixed(1) : "4.9",
+        reviews: co.ratingSummary?.totalReviews || "85+",
         route: `/(customer)/company/${co.id}`,
       }));
     }
 
-    // 3. Fallback to mock data if DB is completely empty (for dev sandbox)
     return [
       {
         id: "mock-1",
         title: "Sparkle Cleaning Co.",
-        subtitle: "Top-rated house cleaning in your area.",
-        image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=2070&auto=format&fit=crop",
-        badge: "SPONSORED",
+        subtitle: "Deep cleaning & certified sanitized housekeeping.",
+        image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=600&auto=format&fit=crop",
+        badge: "VERIFIED ELITE",
+        rating: "4.9",
+        reviews: "320+",
         route: "/(customer)/(tabs)/explore",
       },
       {
         id: "mock-2",
-        title: "Elite Plumbing Solutions",
-        subtitle: "24/7 Emergency repairs. Call now.",
-        image: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?q=80&w=2069&auto=format&fit=crop",
-        badge: "SPONSORED",
-        route: "/(customer)/(tabs)/explore",
-      },
-      {
-        id: "mock-3",
-        title: "Urban Handyman",
-        subtitle: "TV Mounting & Furniture Assembly.",
-        image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=2070&auto=format&fit=crop",
-        badge: "SPONSORED",
+        title: "Elite Aircon Solutions",
+        subtitle: "24/7 HVAC repairs, gas refill & deep chemical wash.",
+        image: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?q=80&w=600&auto=format&fit=crop",
+        badge: "EXPRESS DISPATCH",
+        rating: "5.0",
+        reviews: "210+",
         route: "/(customer)/(tabs)/explore",
       },
     ];
   }, [sponsoredCompanies, topCompanies]);
 
-  const carouselRef = useRef<ScrollView>(null);
-  const [carouselIndex, React_setCarouselIndex] = React.useState(0);
+  const spotlightRef = useRef<ScrollView>(null);
+  const [spotlightIndex, setSpotlightIndex] = useState(0);
 
   useEffect(() => {
-    if (activeBooking || carouselItems.length === 0) return;
+    if (activeBooking || spotlightItems.length === 0) return;
     const interval = setInterval(() => {
-      React_setCarouselIndex((prev) => {
-        const next = (prev + 1) % carouselItems.length;
-        carouselRef.current?.scrollTo({ x: next * (width - 48 + 16), animated: true });
+      setSpotlightIndex((prev) => {
+        const next = (prev + 1) % spotlightItems.length;
+        spotlightRef.current?.scrollTo({ x: next * (width - 48 + 12), animated: true });
         return next;
       });
-    }, 4000);
+    }, 4500);
     return () => clearInterval(interval);
-  }, [activeBooking, carouselItems]);
+  }, [activeBooking, spotlightItems]);
 
   return (
     <SafeAreaView style={s.root}>
       {/* ─── HEADER ──────────────────────────────────────────── */}
       <View style={s.header}>
         <View style={{ flex: 1 }}>
-          <Text style={s.greetingText}>{greeting},</Text>
-          <Text style={s.nameText} numberOfLines={1}>{firstName} 👋</Text>
           <View style={s.locationRow}>
-            <MaterialIcons name="location-on" size={13} color={T.accentMid} />
+            <View style={s.locationDot} />
             <Text style={s.locationText}>{locationLabel}</Text>
+            <MaterialIcons name="keyboard-arrow-down" size={16} color={T.text2} />
           </View>
+          <Text style={s.nameText} numberOfLines={1}>{greeting}, {firstName} 👋</Text>
         </View>
 
         <View style={s.headerActions}>
@@ -324,7 +463,7 @@ export default function Home() {
         data={recommendedServices}
         keyExtractor={(item, idx) => item.id || idx.toString()}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 64 }}
+        contentContainerStyle={{ paddingBottom: 80 }}
         refreshControl={
           <RefreshControl refreshing={isLoading} onRefresh={onRefresh} colors={[T.accent]} tintColor={T.accent} />
         }
@@ -337,169 +476,110 @@ export default function Home() {
             {error ? (
               <View style={s.errorBanner}>
                 <MaterialIcons name="wifi-off" size={18} color={T.error} />
-                <Text style={s.errorText}>{t('home.errorLoadData')}</Text>
+                <Text style={s.errorText}>{t('home.errorLoadData', 'Unable to reach service network.')}</Text>
               </View>
             ) : null}
 
-            {/* ─── SEARCH BAR ──────────────────────────────────────── */}
-            <View style={{ paddingHorizontal: 24, marginTop: 24 }}>
+            {/* ─── SECTION 1: SEARCH & FILTER BAR ──────────────────── */}
+            <View style={{ paddingHorizontal: 24, marginTop: 18 }}>
               <PressCard onPress={() => router.push("/(customer)/search" as any)}>
                 <View style={s.searchBar}>
                   <View style={s.searchIconWrap}>
-                    <MaterialIcons name="search" size={20} color={T.accent} />
+                    <MaterialIcons name="search" size={20} color="#0A192F" />
                   </View>
-                  <Text style={s.searchPlaceholder}>{t('home.searchPlaceholder')}</Text>
+                  <Text style={s.searchPlaceholder}>
+                    {t('home.searchPlaceholder', 'Find aircon, plumber, cleaner...')}
+                  </Text>
                   <View style={s.filterBtn}>
-                    <MaterialIcons name="tune" size={16} color={T.accent} />
+                    <MaterialIcons name="tune" size={16} color="#0A192F" />
                   </View>
                 </View>
               </PressCard>
             </View>
 
-            {/* ─── INSTANT REQUEST & EXPLORE PATHS ─────────────────── */}
-            {/* ─── INSTANT REQUEST & EXPLORE PATHS ─────────────────── */}
-            <View style={{ paddingHorizontal: 24, marginTop: 20 }}>
+            {/* ─── SECTION 2: DUAL SPEED-DIAL (URGENT VS SCHEDULED) ── */}
+            <View style={{ paddingHorizontal: 24, marginTop: 18 }}>
               <View style={{ flexDirection: "row", gap: 12 }}>
-                {/* Instant Urgent Request Option */}
+                {/* 1. Live Urgent Pro */}
                 <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    backgroundColor: T.accentLight,
-                    borderRadius: 20,
-                    padding: 16,
-                    borderWidth: 1,
-                    borderColor: T.accent + "20",
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.04,
-                    shadowRadius: 10,
-                    elevation: 2,
-                    position: "relative",
-                    overflow: "hidden"
-                  }}
+                  style={s.urgentActionCard}
+                  activeOpacity={0.88}
                   onPress={() => router.push("/(customer)/map-view?mode=instant" as any)}
                 >
-                  <View style={{
-                    position: "absolute",
-                    top: -12,
-                    right: -12,
-                    backgroundColor: "#F59E0B20",
-                    width: 64,
-                    height: 64,
-                    borderRadius: 32,
-                    alignItems: "center",
-                    justifyContent: "center"
-                  }}>
-                    <MaterialCommunityIcons name="lightning-bolt" size={34} color="#D97706" style={{ opacity: 0.35, transform: [{ rotate: "12deg" }] }} />
-                  </View>
-
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 8 }}>
-                    <View style={{ backgroundColor: "#F59E0B", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, flexDirection: "row", alignItems: "center", gap: 3 }}>
-                      <MaterialCommunityIcons name="flash" size={11} color="#FFF" />
-                      <Text style={{ fontSize: 9, fontWeight: "900", color: "#FFF", letterSpacing: 0.5 }}>
-                        {t("instantBooking.urgentProBadge", "LIVE DISPATCH")}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={{ fontSize: 16, fontWeight: "800", color: T.text1, lineHeight: 22 }}>
-                    {t("instantBooking.urgentProTitle", "Urgent Pro")}
-                  </Text>
-                  <Text style={{ fontSize: 11, color: T.text2, marginTop: 4, lineHeight: 15 }} numberOfLines={1}>
-                    {t("instantBooking.urgentProDesc", "Arrives in 20–30 mins")}
-                  </Text>
-
-                  {/* Action pill */}
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 12, backgroundColor: "#FFF", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: "flex-start", borderWidth: 0.5, borderColor: T.border }}>
-                    <MaterialCommunityIcons name="map-marker-radius-outline" size={12} color={T.accent} />
-                    <Text style={{ fontSize: 10, fontWeight: "700", color: T.accent }}>
-                      {t("instantBooking.urgentProAction", "Find on Map")}
+                  <View style={s.urgentBadgeRow}>
+                    <View style={s.urgentPulseDot} />
+                    <Text style={s.urgentBadgeText}>
+                      {t("instantBooking.urgentProBadge", "15–30M ARRIVAL")}
                     </Text>
-                    <MaterialIcons name="chevron-right" size={12} color={T.accent} style={{ marginLeft: -2 }} />
+                  </View>
+                  <Text style={s.actionCardTitle}>Urgent Pro</Text>
+                  <Text style={s.actionCardSubtitle}>Nearest tech arrives on live map</Text>
+                  <View style={s.actionPillAmber}>
+                    <MaterialCommunityIcons name="lightning-bolt" size={13} color="#D97706" />
+                    <Text style={s.actionPillAmberText}>Live Dispatch</Text>
+                    <MaterialIcons name="chevron-right" size={14} color="#D97706" />
                   </View>
                 </TouchableOpacity>
 
-                {/* Explore Services Option */}
+                {/* 2. Schedule Ahead */}
                 <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    backgroundColor: "#FFF",
-                    borderRadius: 20,
-                    padding: 16,
-                    borderWidth: 1,
-                    borderColor: T.border,
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.04,
-                    shadowRadius: 10,
-                    elevation: 2,
-                    position: "relative",
-                    overflow: "hidden"
-                  }}
+                  style={s.scheduleActionCard}
+                  activeOpacity={0.88}
                   onPress={() => router.push("/(customer)/(tabs)/explore" as any)}
                 >
-                  <View style={{
-                    position: "absolute",
-                    top: -12,
-                    right: -12,
-                    backgroundColor: T.accent + "0D",
-                    width: 64,
-                    height: 64,
-                    borderRadius: 32,
-                    alignItems: "center",
-                    justifyContent: "center"
-                  }}>
-                    <MaterialCommunityIcons name="calendar-month-outline" size={34} color={T.accent} style={{ opacity: 0.25, transform: [{ rotate: "-8deg" }] }} />
-                  </View>
-
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 8 }}>
-                    <View style={{ backgroundColor: T.accent + "18", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, flexDirection: "row", alignItems: "center", gap: 3 }}>
-                      <MaterialCommunityIcons name="calendar-clock" size={11} color={T.accent} />
-                      <Text style={{ fontSize: 9, fontWeight: "900", color: T.accent, letterSpacing: 0.5 }}>
-                        {t("instantBooking.exploreProBadge", "APPOINTMENT")}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={{ fontSize: 16, fontWeight: "800", color: T.text1, lineHeight: 22 }}>
-                    {t("instantBooking.exploreProTitle", "Schedule Ahead")}
-                  </Text>
-                  <Text style={{ fontSize: 11, color: T.text2, marginTop: 4, lineHeight: 15 }} numberOfLines={1}>
-                    {t("instantBooking.exploreProDesc", "Choose date & time")}
-                  </Text>
-
-                  {/* Action chip */}
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 12, backgroundColor: T.surface, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: "flex-start", borderWidth: 0.5, borderColor: T.border }}>
-                    <MaterialCommunityIcons name="book-open-variant" size={12} color={T.text1} />
-                    <Text style={{ fontSize: 10, fontWeight: "700", color: T.text1 }}>
-                      {t("instantBooking.exploreProAction", "Browse Catalog")}
+                  <View style={s.scheduleBadgeRow}>
+                    <MaterialCommunityIcons name="calendar-month-outline" size={12} color="#0284C7" />
+                    <Text style={s.scheduleBadgeText}>
+                      {t("instantBooking.exploreProBadge", "APPOINTMENT")}
                     </Text>
-                    <MaterialIcons name="chevron-right" size={12} color={T.text1} style={{ marginLeft: -2 }} />
+                  </View>
+                  <Text style={s.actionCardTitle}>Schedule Ahead</Text>
+                  <Text style={s.actionCardSubtitle}>Pick date, pro & custom package</Text>
+                  <View style={s.actionPillSlate}>
+                    <MaterialCommunityIcons name="calendar-check" size={13} color="#0F172A" />
+                    <Text style={s.actionPillSlateText}>Browse Catalog</Text>
+                    <MaterialIcons name="chevron-right" size={14} color="#0F172A" />
                   </View>
                 </TouchableOpacity>
               </View>
             </View>
 
-
-            {/* ─── ACTIVE BOOKING DOMINANCE (ANXIETY MODE) ──────────── */}
+            {/* ─── SECTION 3: ACTIVE BOOKING LIVE PULSE (IF ACTIVE) ─── */}
             {activeBooking && (
-              <View style={{ paddingHorizontal: 24, marginTop: 24 }}>
+              <View style={{ paddingHorizontal: 24, marginTop: 20 }}>
                 <FadeIn delay={100}>
                   <PressCard onPress={() => router.push(`/(customer)/booking/${activeBooking.id}` as any)}>
                     <View style={s.activeBookingCard}>
-                      <View style={s.activeBookingHeader}>
-                        <View style={s.activePulse} />
-                        <Text style={s.activeStatusText}>
-                          {activeBooking.status === 'in_progress' ? 'YOUR STAFF IS ARRIVING' : 'BOOKING IN PROGRESS'}
+                      <View style={s.activeHeaderRow}>
+                        <View style={s.activePulseBadge}>
+                          <View style={s.liveGreenDot} />
+                          <Text style={s.activeStatusTitle}>
+                            {activeBooking.status === 'in_progress' ? 'STAFF EN ROUTE' : 'DISPATCH ACTIVE'}
+                          </Text>
+                        </View>
+                        <Text style={s.activeEtaValue}>
+                          {activeBooking.status === 'in_progress' ? '12 MINS' : 'LIVE'}
                         </Text>
                       </View>
-                      <Text style={s.activeTimeText}>
-                        {activeBooking.status === 'in_progress' ? '15 MINS' : 'LIVE'}
-                      </Text>
-                      <Text style={s.activeServiceText}>{activeBooking.service?.name || "Service Active"}</Text>
+
+                      <View style={s.activeBodyRow}>
+                        <View style={s.activeGlyphBox}>
+                          <MaterialCommunityIcons name="tools" size={20} color="#0A192F" />
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 10 }}>
+                          <Text style={s.activeServiceName} numberOfLines={1}>
+                            {activeBooking.service?.name || "Service In Progress"}
+                          </Text>
+                          <Text style={s.activeSubtext}>
+                            Verified technician is traveling to your location
+                          </Text>
+                        </View>
+                      </View>
 
                       <ScaleButton onPress={() => router.push(`/(customer)/booking/${activeBooking.id}` as any)}>
-                        <View style={s.trackBtn}>
-                          <Text style={s.trackBtnText}>TRACK NOW</Text>
-                          <MaterialIcons name="chevron-right" size={20} color="#FFF" />
+                        <View style={s.activeTrackBtn}>
+                          <Text style={s.activeTrackText}>LIVE TRACKING</Text>
+                          <MaterialIcons name="chevron-right" size={16} color="#FFF" />
                         </View>
                       </ScaleButton>
                     </View>
@@ -508,95 +588,134 @@ export default function Home() {
               </View>
             )}
 
-            {/* ─── CATEGORIES ──────────────────────────────────────── */}
-            <View style={{ marginTop: 24 }}>
+            {/* ─── SECTION 4: TACTILE CATEGORIES RAIL ────────────────── */}
+            <View style={{ marginTop: 28 }}>
               <View style={s.sectionHeader}>
-                <Text style={s.sectionTitle}>{t('home.browseCategories')}</Text>
+                <View>
+                  <Text style={s.sectionTitle}>{t('home.browseCategories', 'Categories')}</Text>
+                  <Text style={s.sectionSubtitle}>Tap to explore trade specialists</Text>
+                </View>
                 <TouchableOpacity onPress={() => router.push("/(customer)/(tabs)/explore" as any)}>
-                  <Text style={s.seeAll}>{t('home.seeAll')}</Text>
+                  <Text style={s.seeAllLink}>{t('home.seeAll', 'See all')}</Text>
                 </TouchableOpacity>
               </View>
 
               {isLoading && categories.length === 0 ? (
-                <View style={{ marginTop: 16 }}><CategorySkeleton /></View>
+                <View style={{ marginTop: 14 }}><CategorySkeleton /></View>
               ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, gap: 16, paddingBottom: 4 }}>
-                  {categories.map((cat, i) => (
-                    <FadeIn key={cat.id} delay={i * 100}>
-                      <PressCard onPress={() => router.push({ pathname: "/(customer)/category/[id]", params: { id: cat.slug } })}>
-                        <View style={s.catItem}>
-                          <View style={s.catIconBox}>
-                            {cat.useImageAsBadge && cat.imageUrl ? (
-                              <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-                            ) : (
-                              <CategoryMarkRenderer name={cat.name} size={60} />
-                            )}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 14, gap: 14, paddingBottom: 4 }}
+                >
+                  {categories.map((cat, i) => {
+                    const theme = getTradeTheme(cat.name);
+                    return (
+                      <FadeIn key={cat.id} delay={i * 60}>
+                        <PressCard onPress={() => router.push({ pathname: "/(customer)/category/[id]", params: { id: cat.slug } })}>
+                          <View style={s.catItem}>
+                            <View style={[s.catPlate, { backgroundColor: theme.bg, borderColor: theme.border }]}>
+                              {cat.useImageAsBadge && cat.imageUrl ? (
+                                <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                              ) : (
+                                <CategoryMarkRenderer name={cat.name} size={48} />
+                              )}
+                            </View>
+                            <Text style={s.catLabel} numberOfLines={1}>{cat.name}</Text>
                           </View>
-                          <Text style={s.catLabel} numberOfLines={1}>{cat.name.split(" ")[0]}</Text>
-                        </View>
-                      </PressCard>
-                    </FadeIn>
-                  ))}
+                        </PressCard>
+                      </FadeIn>
+                    );
+                  })}
                 </ScrollView>
               )}
             </View>
 
-            {/* ─── PROMO HERO BANNER CAROUSEL (Sponsors, now in middle) ────── */}
-            {!activeBooking && carouselItems.length > 0 && (
-              <View style={{ marginTop: 32 }}>
+            {/* ─── SECTION 5: SPOTLIGHT PARTNER (Clean Branded Showcase) ── */}
+            {!activeBooking && spotlightItems.length > 0 && (
+              <View style={{ marginTop: 28 }}>
+                <View style={s.sectionHeader}>
+                  <View>
+                    <Text style={s.sectionTitle}>Featured Partner</Text>
+                    <Text style={s.sectionSubtitle}>Vetted top-tier company in your district</Text>
+                  </View>
+                </View>
+
                 <ScrollView
-                  ref={carouselRef}
+                  ref={spotlightRef}
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingHorizontal: 24, gap: 16 }}
-                  snapToInterval={width - 48 + 16}
+                  contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 12, gap: 12 }}
+                  snapToInterval={width - 48 + 12}
                   decelerationRate="fast"
                   snapToAlignment="start"
                   onMomentumScrollEnd={(e) => {
-                    const newIndex = Math.round(e.nativeEvent.contentOffset.x / (width - 48 + 16));
-                    React_setCarouselIndex(newIndex);
+                    const newIndex = Math.round(e.nativeEvent.contentOffset.x / (width - 48 + 12));
+                    setSpotlightIndex(newIndex);
                   }}
                 >
-                  {carouselItems.map((item) => (
-                    <PressCard 
-                      key={item.id.toString()} 
-                      onPress={() => router.push(item.route as any)} 
-                      style={{ width: width - 48, height: 160, borderRadius: 16, overflow: 'hidden' }}
+                  {spotlightItems.map((item) => (
+                    <PressCard
+                      key={item.id.toString()}
+                      onPress={() => router.push(item.route as any)}
+                      style={{ width: width - 48 }}
                     >
-                      <Image
-                        source={{ uri: item.image }}
-                        style={StyleSheet.absoluteFillObject}
-                        contentFit="cover"
-                      />
-                      <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' }} />
-                      <View style={{ position: 'absolute', top: 12, left: 12, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                        <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>{item.badge}</Text>
-                      </View>
-                      <View style={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
-                        <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800' }} numberOfLines={1}>
-                          {item.title}
-                        </Text>
-                        <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: '500', marginTop: 4 }} numberOfLines={1}>
-                          {item.subtitle}
-                        </Text>
+                      <View style={s.spotlightCard}>
+                        <View style={s.spotlightTopRow}>
+                          <View style={s.spotlightBadge}>
+                            <MaterialIcons name="verified" size={12} color="#2563EB" />
+                            <Text style={s.spotlightBadgeText}>{item.badge}</Text>
+                          </View>
+                          <View style={s.spotlightResponsePill}>
+                            <View style={s.onlineDotSmall} />
+                            <Text style={s.spotlightResponseText}>&lt; 5m response</Text>
+                          </View>
+                        </View>
+
+                        <View style={s.spotlightBodyRow}>
+                          <Image
+                            source={{ uri: item.image }}
+                            style={s.spotlightImage}
+                            contentFit="cover"
+                          />
+                          <View style={{ flex: 1, marginLeft: 14, justifyContent: "center" }}>
+                            <Text style={s.spotlightTitle} numberOfLines={1}>{item.title}</Text>
+                            <Text style={s.spotlightSubtitle} numberOfLines={2}>{item.subtitle}</Text>
+                            <View style={s.spotlightRatingRow}>
+                              <MaterialIcons name="star" size={13} color="#F59E0B" />
+                              <Text style={s.spotlightRatingText}>{item.rating}</Text>
+                              <Text style={s.spotlightReviewsText}>({item.reviews} completed)</Text>
+                            </View>
+                          </View>
+                        </View>
+
+                        <View style={s.spotlightFooterRow}>
+                          <Text style={s.spotlightFooterHint}>Bakong KHQR escrow protected</Text>
+                          <View style={s.spotlightActionBtn}>
+                            <Text style={s.spotlightActionText}>View Profile</Text>
+                            <MaterialIcons name="chevron-right" size={14} color="#0A192F" />
+                          </View>
+                        </View>
                       </View>
                     </PressCard>
                   ))}
                 </ScrollView>
               </View>
             )}
-            {/* ─── POPULAR NEAR YOU ──────────────────────────────────── */}
+
+            {/* ─── SECTION 6: POPULAR SERVICES (Tactile Visual Cards) ─── */}
             <View style={{ marginTop: 32 }}>
               <View style={s.sectionHeader}>
                 <View>
-                  <Text style={s.sectionTitle}>Popular Near You</Text>
-                  <Text style={{ fontSize: 12, color: T.text3, marginTop: 4 }}>
-                    Services customers around {locationLabel} are booking
-                  </Text>
+                  <Text style={s.sectionTitle}>Popular Services</Text>
+                  <Text style={s.sectionSubtitle}>Top requested trades around {locationLabel}</Text>
                 </View>
+                <TouchableOpacity onPress={() => router.push("/(customer)/(tabs)/explore" as any)}>
+                  <Text style={s.seeAllLink}>{t('home.seeAll', 'See all')}</Text>
+                </TouchableOpacity>
               </View>
 
-              {/* Category Filters */}
+              {/* Filter Chips */}
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -608,22 +727,9 @@ export default function Home() {
                     <TouchableOpacity
                       key={chip}
                       onPress={() => setSelectedPopularCategory(chip)}
-                      style={[
-                        {
-                          paddingHorizontal: 14,
-                          paddingVertical: 8,
-                          borderRadius: 100,
-                          backgroundColor: "#F3F4F6",
-                          borderWidth: 1,
-                          borderColor: "#E5E7EB",
-                        },
-                        active && {
-                          backgroundColor: T.text1,
-                          borderColor: T.text1,
-                        },
-                      ]}
+                      style={[s.filterChip, active && s.filterChipActive]}
                     >
-                      <Text style={{ fontSize: 13, color: active ? "#FFF" : T.text2, fontWeight: "600" }}>
+                      <Text style={[s.filterChipText, active && s.filterChipTextActive]}>
                         {chip}
                       </Text>
                     </TouchableOpacity>
@@ -632,182 +738,134 @@ export default function Home() {
               </ScrollView>
 
               {isLoading && trendingServices.length === 0 ? (
-                <View style={{ marginTop: 16 }}><ServiceCardSkeleton /></View>
+                <View style={{ marginTop: 10 }}><ServiceCardSkeleton /></View>
               ) : filteredPopularServices.length === 0 ? (
-                <Text style={{ fontSize: 14, color: T.text3, paddingHorizontal: 24, paddingVertical: 12 }}>
-                  No services found in this category.
+                <Text style={s.emptyFilterText}>
+                  No active services found in this category.
                 </Text>
               ) : (
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, gap: 12, paddingBottom: 4 }}
+                  contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 6, gap: 14, paddingBottom: 6 }}
                 >
-                  {filteredPopularServices.map((st, i) => (
-                    <FadeIn key={st.id} delay={i * 100}>
-                      <PressCard onPress={() => router.push(`/(customer)/service/${st.id}` as any)}>
-                        <View style={s.serviceCard}>
-                          <View style={s.serviceImgBox}>
-                            {st.image ? (
-                              <Image source={{ uri: st.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-                            ) : (
-                              <View style={[StyleSheet.absoluteFillObject, { alignItems: "center", justifyContent: "center", backgroundColor: T.accentLight }]}>
-                                <MaterialCommunityIcons name={getCategoryIcon(st.serviceType?.name || st.name)} size={36} color={T.accentMid} />
-                              </View>
-                            )}
-                            <View style={s.priceBadge}>
-                              <Text style={s.priceBadgeText}>${st.basePrice}</Text>
-                            </View>
-                            <View style={s.catBadge}>
-                              {st.serviceType?.category?.useImageAsBadge && st.serviceType?.category?.imageUrl ? (
-                                <Image source={{ uri: st.serviceType.category.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                  {filteredPopularServices.map((st, i) => {
+                    const theme = getTradeTheme(st.serviceType?.name || st.name);
+                    return (
+                      <FadeIn key={st.id} delay={i * 80}>
+                        <PressCard onPress={() => router.push(`/(customer)/service/${st.id}` as any)}>
+                          <View style={s.tactileCard}>
+                            {/* Visual Media Header */}
+                            <View style={[s.tactileMediaBox, { backgroundColor: theme.bg }]}>
+                              {st.image ? (
+                                <Image source={{ uri: st.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
                               ) : (
-                                <MaterialCommunityIcons name={(st.serviceType?.category?.icon as any) || getCategoryIcon(st.serviceType?.category?.name || st.serviceType?.name || st.name)} size={18} color="#fff" />
+                                <View style={s.tactileGlyphWrap}>
+                                  <MaterialCommunityIcons name={theme.icon as any} size={32} color={theme.accent} />
+                                </View>
+                              )}
+
+                              {/* Telemetry Chip */}
+                              <View style={s.tactileTelemetryPill}>
+                                <View style={[s.telemetryDotSmall, { backgroundColor: theme.accent }]} />
+                                <Text style={s.tactileTelemetryText}>{theme.tag}</Text>
+                              </View>
+
+                              {/* Rating Badge */}
+                              {(st.company as any)?.ratingSummary && (
+                                <View style={s.tactileRatingPill}>
+                                  <MaterialIcons name="star" size={10} color="#F59E0B" />
+                                  <Text style={s.tactileRatingText}>
+                                    {Number((st.company as any).ratingSummary.averageRating).toFixed(1)}
+                                  </Text>
+                                </View>
                               )}
                             </View>
-                            {(st.company as any)?.ratingSummary && (
-                              <View style={s.ratingBadge}>
-                                <MaterialIcons name="star" size={10} color={T.gold} />
-                                <Text style={s.ratingBadgeText}>
-                                  {Number((st.company as any).ratingSummary.averageRating).toFixed(1)}
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-                          <View style={s.serviceCardBody}>
-                            <Text style={s.serviceCardTitle} numberOfLines={2}>{st.name}</Text>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                              <Text style={[s.serviceCardProvider, { flex: 1, marginTop: 0 }]} numberOfLines={1}>
+
+                            {/* Card Body */}
+                            <View style={s.tactileBody}>
+                              <Text style={[s.tactileCatTag, { color: theme.accent }]} numberOfLines={1}>
+                                {(st.serviceType?.category?.name || "Service").toUpperCase()}
+                              </Text>
+                              <Text style={s.tactileTitle} numberOfLines={2}>{st.name}</Text>
+                              <Text style={s.tactileCompany} numberOfLines={1}>
                                 {st.company?.name || 'Verified Provider'}
                               </Text>
-                              {(st as any).distanceKm !== undefined && (st as any).distanceKm !== null && (
-                                <Text style={{ fontSize: 11, color: T.accent, fontWeight: '700', marginLeft: 4 }}>
-                                  {(st as any).distanceKm} km
-                                </Text>
-                              )}
+
+                              <View style={s.tactileFooterRow}>
+                                <View>
+                                  <Text style={s.tactileFromText}>From</Text>
+                                  <Text style={s.tactilePriceText}>${st.basePrice}</Text>
+                                </View>
+                                <View style={s.tactileArrowBtn}>
+                                  <MaterialIcons name="arrow-forward" size={14} color="#0A192F" />
+                                </View>
+                              </View>
                             </View>
                           </View>
-                        </View>
-                      </PressCard>
-                    </FadeIn>
-                  ))}
+                        </PressCard>
+                      </FadeIn>
+                    );
+                  })}
                 </ScrollView>
               )}
             </View>
 
-            {/* ─── TRENDING SERVICE TYPES ───────────────────────────── */}
-            <View style={{ marginTop: 32 }}>
-              <View style={s.sectionHeader}>
-                <Text style={s.sectionTitle}>{t('home.trendingServices')}</Text>
-                <TouchableOpacity onPress={() => router.push("/(customer)/(tabs)/explore" as any)}>
-                  <Text style={s.seeAll}>{t('home.seeAll')}</Text>
-                </TouchableOpacity>
-              </View>
-
-              {isLoading && trendingServices.length === 0 ? (
-                <View style={{ marginTop: 16 }}><ServiceCardSkeleton /></View>
-              ) : trendingServices.length === 0 ? (
-                <View style={s.emptyState}>
-                  <Text style={s.emptyIcon}>🔍</Text>
-                  <Text style={s.emptyTitle}>{t('home.noServicesYet')}</Text>
-                  <Text style={s.emptyBody}>{t('home.checkBackSoonServices')}</Text>
-                </View>
-              ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, gap: 12, paddingBottom: 4 }}>
-                  {trendingServices.map((st, i) => (
-                    <FadeIn key={st.id} delay={i * 100}>
-                      <PressCard onPress={() => router.push(`/(customer)/service/${st.id}` as any)}>
-                        <View style={s.serviceCard}>
-                          <View style={s.serviceImgBox}>
-                            {st.image ? (
-                              <Image source={{ uri: st.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-                            ) : (
-                              <View style={[StyleSheet.absoluteFillObject, { alignItems: "center", justifyContent: "center", backgroundColor: T.accentLight }]}>
-                                <MaterialCommunityIcons name={getCategoryIcon(st.serviceType?.name || st.name)} size={36} color={T.accentMid} />
-                              </View>
-                            )}
-                            <View style={s.priceBadge}>
-                              <Text style={s.priceBadgeText}>${st.basePrice}</Text>
-                            </View>
-                            <View style={s.catBadge}>
-                              {st.serviceType?.category?.useImageAsBadge && st.serviceType?.category?.imageUrl ? (
-                                <Image source={{ uri: st.serviceType.category.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-                              ) : (
-                                <MaterialCommunityIcons name={(st.serviceType?.category?.icon as any) || getCategoryIcon(st.serviceType?.category?.name || st.serviceType?.name || st.name)} size={18} color="#fff" />
-                              )}
-                            </View>
-                            {(st.company as any)?.ratingSummary && (
-                              <View style={s.ratingBadge}>
-                                <MaterialIcons name="star" size={10} color={T.gold} />
-                                <Text style={s.ratingBadgeText}>
-                                  {Number((st.company as any).ratingSummary.averageRating).toFixed(1)}
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-                          <View style={s.serviceCardBody}>
-                            <Text style={s.serviceCardTitle} numberOfLines={2}>{st.name}</Text>
-                            <Text style={s.serviceCardProvider} numberOfLines={1}>{st.company?.name || 'Verified Provider'}</Text>
-                          </View>
-                        </View>
-                      </PressCard>
-                    </FadeIn>
-                  ))}
-                </ScrollView>
-              )}
-            </View>
-
-            {/* ─── RECOMMENDED SERVICES ────────────────────────────── */}
+            {/* ─── SECTION 7: RECOMMENDED SERVICES (Vertical Feed) ───── */}
             {recommendedServices.length > 0 && (
-              <View style={{ marginTop: 40, paddingHorizontal: 24, paddingBottom: 16 }}>
-                <Text style={s.sectionTitle}>{t('home.recommendedForYou')}</Text>
+              <View style={{ marginTop: 36, paddingHorizontal: 24, paddingBottom: 14 }}>
+                <View style={s.sectionHeaderNoPad}>
+                  <View>
+                    <Text style={s.sectionTitle}>{t('home.recommendedForYou', 'Recommended For You')}</Text>
+                    <Text style={s.sectionSubtitle}>Handpicked based on your home location</Text>
+                  </View>
+                </View>
               </View>
             )}
           </>
         }
         renderItem={({ item, index }) => {
-          const st = item as any; // Service
+          const st = item as any;
+          const theme = getTradeTheme(st.serviceType?.name || st.name);
           return (
             <View style={{ paddingHorizontal: 24, paddingBottom: 12 }}>
-              <FadeIn delay={index < 5 ? index * 100 : 0}>
+              <FadeIn delay={index < 5 ? index * 70 : 0}>
                 <PressCard onPress={() => router.push(`/(customer)/service/${st.id}` as any)}>
-                  <View style={[s.providerCard, { padding: 12, borderRadius: 16 }]}>
-                    <View style={{ width: 80, height: 80, position: 'relative' }}>
+                  <View style={s.recRowCard}>
+                    {/* Thumbnail */}
+                    <View style={[s.recThumbBox, { backgroundColor: theme.bg, borderColor: theme.border }]}>
                       {st.image ? (
-                        <Image
-                          source={{ uri: st.image }}
-                          style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: T.accentLight }}
-                          contentFit="cover"
-                        />
+                        <Image source={{ uri: st.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
                       ) : (
-                        <View style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: T.accentLight, alignItems: "center", justifyContent: "center" }}>
-                          <MaterialCommunityIcons name={getCategoryIcon(st.serviceType?.name || st.name)} size={28} color={T.accentMid} />
-                        </View>
+                        <MaterialCommunityIcons name={theme.icon as any} size={28} color={theme.accent} />
                       )}
-                      {st.company?.ratingSummary && (
-                        <View style={s.ratingBadgeMini}>
-                          <MaterialIcons name="star" size={9} color={T.gold} />
-                          <Text style={s.ratingBadgeTextMini}>
-                            {Number(st.company.ratingSummary.averageRating).toFixed(1)}
-                          </Text>
-                        </View>
-                      )}
-                      <View style={s.catBadgeMini}>
-                        {st.serviceType?.category?.useImageAsBadge && st.serviceType?.category?.imageUrl ? (
-                          <Image source={{ uri: st.serviceType.category.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-                        ) : (
-                          <MaterialCommunityIcons name={(st.serviceType?.category?.icon as any) || getCategoryIcon(st.serviceType?.category?.name || st.serviceType?.name || st.name)} size={13} color="#fff" />
+                    </View>
+
+                    {/* Meta */}
+                    <View style={s.recMetaWrap}>
+                      <View style={s.recHeaderRow}>
+                        <Text style={[s.recCatTag, { color: theme.accent }]}>
+                          {(st.serviceType?.category?.name || "Service").toUpperCase()}
+                        </Text>
+                        {(st.company as any)?.ratingSummary && (
+                          <View style={s.recRatingRow}>
+                            <MaterialIcons name="star" size={11} color="#F59E0B" />
+                            <Text style={s.recRatingValue}>
+                              {Number((st.company as any).ratingSummary.averageRating).toFixed(1)}
+                            </Text>
+                          </View>
                         )}
                       </View>
-                    </View>
-                    <View style={{ flex: 1, paddingLeft: 12, justifyContent: "center" }}>
-                      <Text style={[s.providerName, { fontSize: 15 }]} numberOfLines={1}>{st.name}</Text>
-                      <Text style={s.providerCity} numberOfLines={1}>{st.company?.name || 'Verified Provider'}</Text>
-                      <View style={[s.ratingRow, { marginTop: 8 }]}>
-                        <Text style={{ fontSize: 14, fontWeight: '800', color: T.accent }}>${st.basePrice}</Text>
+                      <Text style={s.recTitle} numberOfLines={1}>{st.name}</Text>
+                      <Text style={s.recProvider} numberOfLines={1}>{st.company?.name || 'Verified Provider'}</Text>
+                      <View style={s.recBottomRow}>
+                        <Text style={s.recPriceText}>${st.basePrice}</Text>
+                        <View style={s.recBookPill}>
+                          <Text style={s.recBookText}>Book</Text>
+                          <MaterialIcons name="arrow-forward" size={12} color="#0A192F" />
+                        </View>
                       </View>
                     </View>
-                    <MaterialIcons name="chevron-right" size={20} color={T.text3} />
                   </View>
                 </PressCard>
               </FadeIn>
@@ -815,56 +873,48 @@ export default function Home() {
           );
         }}
         ListFooterComponent={
-          <View style={{ paddingBottom: 40 }}>
+          <View style={{ paddingBottom: 32 }}>
             {isLoadingMore && (
               <View style={{ paddingVertical: 20 }}>
                 <ActivityIndicator color={T.accent} />
               </View>
             )}
+
+            {/* Elite Partners Rail */}
             {topCompanies?.length > 0 && (
               <View style={{ marginTop: 24, paddingBottom: 24 }}>
-                <View style={[s.sectionHeader, { marginBottom: 16 }]}>
-                  <Text style={s.sectionTitle}>Elite Partners</Text>
-                  <TouchableOpacity>
-                    <Text style={s.seeAll}>View All</Text>
-                  </TouchableOpacity>
+                <View style={s.sectionHeader}>
+                  <View>
+                    <Text style={s.sectionTitle}>Elite Partners</Text>
+                    <Text style={s.sectionSubtitle}>Licensed and background-checked businesses</Text>
+                  </View>
                 </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, gap: 12 }}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 14, gap: 12 }}
+                >
                   {topCompanies.map((company, i) => (
-                    <FadeIn key={company.id} delay={i * 100}>
+                    <FadeIn key={company.id} delay={i * 80}>
                       <PressCard onPress={() => router.push(`/(customer)/company/${company.id}` as any)}>
-                        <View style={s.providerCard}>
-                          <View style={{ position: 'relative' }}>
-                            <Image
-                              source={{ uri: company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}` }}
-                              style={s.providerLogo}
-                              contentFit="cover"
-                            />
-                            {(() => {
-                              const highlights = Array.isArray(company.cardHighlights) ? company.cardHighlights : (() => { try { return JSON.parse((company as any).cardHighlights || "[]"); } catch { return []; } })();
-                              const primaryCat = highlights[0] || 'Services';
-                              const matchedCat = categories.find(c => c.name.toLowerCase() === primaryCat.toLowerCase() || c.slug.toLowerCase() === primaryCat.toLowerCase());
-                              return (
-                                <View style={s.catBadgeMini}>
-                                  {matchedCat?.useImageAsBadge && matchedCat?.imageUrl ? (
-                                    <Image source={{ uri: matchedCat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-                                  ) : (
-                                    <MaterialCommunityIcons name={(matchedCat?.icon as any) || getCategoryIcon(primaryCat)} size={13} color="#fff" />
-                                  )}
-                                </View>
-                              );
-                            })()}
-                          </View>
+                        <View style={s.elitePartnerCard}>
+                          <Image
+                            source={{ uri: company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}` }}
+                            style={s.eliteLogo}
+                            contentFit="cover"
+                          />
                           <View style={{ flex: 1 }}>
-                            <View style={s.providerNameRow}>
-                              <Text style={s.providerName} numberOfLines={1}>{company.name}</Text>
-                              <MaterialIcons name="verified" size={14} color="#3B82F6" />
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                              <Text style={s.eliteName} numberOfLines={1}>{company.name}</Text>
+                              <MaterialIcons name="verified" size={13} color="#2563EB" />
                             </View>
-                            <Text style={s.providerCity} numberOfLines={1}>{company.city || 'Local Provider'}</Text>
-                            <View style={[s.ratingRow, { marginTop: 6 }]}>
-                              <MaterialIcons name="star" size={14} color="#F59E0B" />
-                              <Text style={s.ratingValue}>{company.ratingSummary?.averageRating ? Number(company.ratingSummary.averageRating).toFixed(1) : "4.9"}</Text>
-                              <Text style={s.ratingCount}>({company.ratingSummary?.totalReviews || '1.5k'} reviews)</Text>
+                            <Text style={s.eliteCity} numberOfLines={1}>{company.city || 'Phnom Penh'}</Text>
+                            <View style={s.eliteRatingRow}>
+                              <MaterialIcons name="star" size={12} color="#F59E0B" />
+                              <Text style={s.eliteRatingNum}>
+                                {company.ratingSummary?.averageRating ? Number(company.ratingSummary.averageRating).toFixed(1) : "4.9"}
+                              </Text>
+                              <Text style={s.eliteRatingCount}>({company.ratingSummary?.totalReviews || '1.2k'})</Text>
                             </View>
                           </View>
                         </View>
@@ -875,20 +925,36 @@ export default function Home() {
               </View>
             )}
 
+            {/* Trust & Guarantee Strip */}
             <View style={{ paddingHorizontal: 24, marginTop: 16 }}>
-              <View style={s.trustStrip}>
-                {[
-                  { icon: "verified-user", label: t('home.verifiedPros') },
-                  { icon: "lock", label: t('home.securePayments') },
-                  { icon: "support-agent", label: t('home.support247') },
-                ].map((item) => (
-                  <View key={item.label} style={s.trustItem}>
-                    <View style={s.trustIconBox}>
-                      <MaterialIcons name={item.icon as any} size={18} color={T.accent} />
-                    </View>
-                    <Text style={s.trustLabel}>{item.label}</Text>
+              <View style={s.trustStripCard}>
+                <View style={s.trustCol}>
+                  <View style={[s.trustIconRound, { backgroundColor: "#EFF6FF" }]}>
+                    <MaterialIcons name="verified-user" size={18} color="#2563EB" />
                   </View>
-                ))}
+                  <Text style={s.trustItemTitle}>{t('home.verifiedPros', 'Verified Pros')}</Text>
+                  <Text style={s.trustItemSub}>100% vetted</Text>
+                </View>
+
+                <View style={s.trustDivider} />
+
+                <View style={s.trustCol}>
+                  <View style={[s.trustIconRound, { backgroundColor: "#ECFDF5" }]}>
+                    <MaterialIcons name="lock" size={18} color="#059669" />
+                  </View>
+                  <Text style={s.trustItemTitle}>{t('home.securePayments', 'Bakong Escrow')}</Text>
+                  <Text style={s.trustItemSub}>Hold till done</Text>
+                </View>
+
+                <View style={s.trustDivider} />
+
+                <View style={s.trustCol}>
+                  <View style={[s.trustIconRound, { backgroundColor: "#FFFBEB" }]}>
+                    <MaterialIcons name="support-agent" size={18} color="#D97706" />
+                  </View>
+                  <Text style={s.trustItemTitle}>{t('home.support247', '24/7 Support')}</Text>
+                  <Text style={s.trustItemSub}>Phnom Penh</Text>
+                </View>
               </View>
             </View>
           </View>
@@ -898,219 +964,791 @@ export default function Home() {
   );
 }
 
+// ─── STYLESHEET ────────────────────────────────────────────────────────
 const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+  ios: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
   android: { elevation: 2 },
 });
 
-const HERO_SHADOW = Platform.select({
-  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
-  android: { elevation: 8 },
-});
-
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
+
+  // Header
   header: {
-    flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between",
-    paddingHorizontal: 24, paddingTop: 8, paddingBottom: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
-  greetingText: { fontSize: 13, color: T.text2, fontWeight: "500", letterSpacing: 0.2 },
-  nameText: { fontSize: 28, color: T.text1, fontWeight: "700", letterSpacing: -0.8, marginTop: 2 },
-  locationRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
-  locationText: { fontSize: 14, color: T.text2, fontWeight: "500" },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4 },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  locationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#10B981",
+  },
+  locationText: {
+    fontSize: 13,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+  nameText: {
+    fontSize: 22,
+    color: "#0F172A",
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   headerIconBtn: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: T.surface,
-    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: T.border,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...CARD_SHADOW,
   },
-  avatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: T.border },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+    backgroundColor: "#E2E8F0",
+  },
+
+  // Error Banner
   errorBanner: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    marginHorizontal: 24, marginTop: 16, padding: 14,
-    backgroundColor: "#FEF2F2", borderRadius: 12, borderWidth: 1, borderColor: "#FECACA",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 24,
+    marginTop: 14,
+    padding: 12,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#FECACA",
   },
-  errorText: { fontSize: 13, color: T.error, fontWeight: "500", flex: 1 },
+  errorText: { fontSize: 13, color: "#DC2626", fontWeight: "600", flex: 1 },
+
+  // Search Bar
   searchBar: {
-    flexDirection: "row", alignItems: "center", height: 56,
-    backgroundColor: "#F7F7F7", borderRadius: 100,
-    paddingHorizontal: 12, gap: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    height: 52,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 100,
+    paddingHorizontal: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...CARD_SHADOW,
   },
   searchIconWrap: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: "#FFFFFF",
-    alignItems: "center", justifyContent: "center"
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  searchPlaceholder: { flex: 1, fontSize: 16, color: T.text2, fontWeight: "500" },
+  searchPlaceholder: {
+    flex: 1,
+    fontSize: 14,
+    color: "#64748B",
+    fontWeight: "500",
+  },
   filterBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: "#FFFFFF",
-    alignItems: "center", justifyContent: "center"
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  heroBanner: {
-    borderRadius: 20, backgroundColor: T.accent, padding: 24,
-    overflow: "hidden", minHeight: 140,
-    flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between",
-    ...HERO_SHADOW,
+
+  // Dual Action Cards
+  urgentActionCard: {
+    flex: 1,
+    backgroundColor: "#FFFBEB",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+    ...CARD_SHADOW,
   },
-  heroCircle1: {
-    position: "absolute", width: 200, height: 200, borderRadius: 100,
-    backgroundColor: "rgba(255,255,255,0.06)", right: -60, top: -60,
+  urgentBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 100,
+    alignSelf: "flex-start",
+    marginBottom: 8,
   },
-  heroCircle2: {
-    position: "absolute", width: 120, height: 120, borderRadius: 60,
-    backgroundColor: "rgba(255,255,255,0.06)", right: 60, bottom: -50,
+  urgentPulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#D97706",
   },
-  heroBadge: {
-    alignSelf: "flex-start", borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.18)", paddingHorizontal: 10, paddingVertical: 4,
+  urgentBadgeText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#92400E",
+    letterSpacing: 0.5,
   },
-  heroBadgeText: { fontSize: 10, color: "#fff", fontWeight: "800", letterSpacing: 1.4 },
-  heroHeadline: { fontSize: 28, color: "#fff", fontWeight: "900", letterSpacing: -0.8, lineHeight: 32, marginTop: 8 },
-  heroSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.7)", marginTop: 6, fontWeight: "400" },
-  heroCode: { color: T.gold, fontWeight: "700" },
-  heroCtaBtn: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
-    alignSelf: "flex-end", zIndex: 2,
+  scheduleActionCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...CARD_SHADOW,
   },
-  heroCtaText: { fontSize: 13, color: T.accent, fontWeight: "700" },
+  scheduleBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#F0F9FF",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 100,
+    alignSelf: "flex-start",
+    marginBottom: 8,
+  },
+  scheduleBadgeText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#0369A1",
+    letterSpacing: 0.5,
+  },
+  actionCardTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0F172A",
+    letterSpacing: -0.2,
+  },
+  actionCardSubtitle: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 3,
+    lineHeight: 15,
+  },
+  actionPillAmber: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 12,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+    borderWidth: 0.5,
+    borderColor: "#FDE68A",
+  },
+  actionPillAmberText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#D97706",
+  },
+  actionPillSlate: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 12,
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+    borderWidth: 0.5,
+    borderColor: "#E2E8F0",
+  },
+  actionPillSlateText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+
+  // Active Booking Live Pulse
   activeBookingCard: {
-    borderRadius: 20, backgroundColor: T.accent, padding: 24,
-    ...HERO_SHADOW,
-  },
-  activeBookingHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  activePulse: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#10B981" },
-  activeStatusText: { fontSize: 12, color: "rgba(255,255,255,0.8)", fontWeight: "700", letterSpacing: 1.2 },
-  activeTimeText: { fontSize: 40, color: "#fff", fontWeight: "900", letterSpacing: -1.2, marginTop: 12 },
-  activeServiceText: { fontSize: 16, color: "rgba(255,255,255,0.9)", fontWeight: "500", marginTop: 4 },
-  trackBtn: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 12, paddingHorizontal: 20, paddingVertical: 14,
-    alignSelf: "flex-start", marginTop: 24,
-  },
-  trackBtnText: { fontSize: 14, color: "#fff", fontWeight: "800", letterSpacing: 1 },
-  sectionHeader: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 24,
-  },
-  sectionTitle: { fontSize: 18, color: T.text1, fontWeight: "800", letterSpacing: -0.4 },
-  seeAll: { fontSize: 13, color: T.accent, fontWeight: "600" },
-  catItem: { alignItems: "center", gap: 8 },
-  catIconBox: {
-    width: 60, height: 60, borderRadius: 18, backgroundColor: "#FFFFFF",
-    alignItems: "center", justifyContent: "center", overflow: "hidden",
-    borderWidth: 1, borderColor: T.border,
+    borderRadius: 22,
+    backgroundColor: "#0A192F",
+    padding: 20,
     ...Platform.select({
-      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 4 },
-      android: { elevation: 1 },
+      ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 16 },
+      android: { elevation: 6 },
     }),
   },
-  catLabel: { fontSize: 12, color: T.text1, fontWeight: "600", maxWidth: 64, textAlign: "center" },
-  serviceCard: {
-    width: 152, backgroundColor: T.surface, borderRadius: 16,
-    overflow: "hidden", borderWidth: 1, borderColor: T.border,
+  activeHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  activePulseBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 100,
+  },
+  liveGreenDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: "#10B981",
+  },
+  activeStatusTitle: {
+    fontSize: 11,
+    color: "#E2E8F0",
+    fontWeight: "800",
+    letterSpacing: 0.8,
+  },
+  activeEtaValue: {
+    fontSize: 26,
+    color: "#FFFFFF",
+    fontWeight: "900",
+    letterSpacing: -0.5,
+  },
+  activeBodyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 14,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    padding: 12,
+    borderRadius: 14,
+  },
+  activeGlyphBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activeServiceName: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  activeSubtext: {
+    fontSize: 11,
+    color: "#94A3B8",
+    marginTop: 2,
+  },
+  activeTrackBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginTop: 16,
+  },
+  activeTrackText: {
+    fontSize: 12,
+    color: "#FFFFFF",
+    fontWeight: "800",
+    letterSpacing: 0.8,
+  },
+
+  // Section Headers
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    paddingHorizontal: 24,
+  },
+  sectionHeaderNoPad: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    color: "#0F172A",
+    fontWeight: "800",
+    letterSpacing: -0.3,
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 2,
+  },
+  seeAllLink: {
+    fontSize: 13,
+    color: "#2563EB",
+    fontWeight: "700",
+  },
+
+  // Category Item
+  catItem: {
+    alignItems: "center",
+    gap: 6,
+    width: 68,
+  },
+  catPlate: {
+    width: 62,
+    height: 62,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    overflow: "hidden",
     ...CARD_SHADOW,
   },
-  serviceImgBox: { width: 152, height: 130, backgroundColor: T.accentLight },
-  priceBadge: {
-    position: "absolute", bottom: 8, right: 8,
-    backgroundColor: T.accent, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
+  catLabel: {
+    fontSize: 11,
+    color: "#334155",
+    fontWeight: "700",
+    textAlign: "center",
   },
-  priceBadgeText: { fontSize: 11, color: "#fff", fontWeight: "800" },
-  serviceCardBody: { padding: 12 },
-  serviceCardTitle: { fontSize: 13, color: T.text1, fontWeight: "700", lineHeight: 18 },
-  serviceCardProvider: { fontSize: 11, color: T.text3, marginTop: 4, fontWeight: "500" },
-  providerCard: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: T.surface, borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: T.border,
+
+  // Spotlight Partner Card
+  spotlightCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     ...CARD_SHADOW,
   },
-  providerLogo: { width: 56, height: 56, borderRadius: 14, backgroundColor: T.accentLight },
-  providerNameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  providerName: { fontSize: 14, color: T.text1, fontWeight: "700", flex: 1 },
-  providerCity: { fontSize: 12, color: T.text3, marginTop: 3, fontWeight: "400" },
-  ratingRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  ratingValue: { fontSize: 12, color: T.text1, fontWeight: "700" },
-  ratingCount: { fontSize: 11, color: T.text3 },
-  emptyState: { alignItems: "center", paddingVertical: 32, paddingHorizontal: 24 },
-  emptyIcon: { fontSize: 40, marginBottom: 12 },
-  emptyTitle: { fontSize: 16, color: T.text1, fontWeight: "700" },
-  emptyBody: { fontSize: 13, color: T.text3, textAlign: "center", marginTop: 6, lineHeight: 20 },
-  trustStrip: {
-    flexDirection: "row", justifyContent: "space-around",
-    backgroundColor: T.surface, borderRadius: 16, padding: 20,
-    borderWidth: 1, borderColor: T.border,
+  spotlightTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  spotlightBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 0.5,
+    borderColor: "#DBEAFE",
+  },
+  spotlightBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#1E40AF",
+    letterSpacing: 0.5,
+  },
+  spotlightResponsePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 100,
+  },
+  onlineDotSmall: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: "#10B981",
+  },
+  spotlightResponseText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#065F46",
+  },
+  spotlightBodyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  spotlightImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: "#EFF6FF",
+  },
+  spotlightTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  spotlightSubtitle: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  spotlightRatingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 4,
+  },
+  spotlightRatingText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  spotlightReviewsText: {
+    fontSize: 11,
+    color: "#94A3B8",
+  },
+  spotlightFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
+  spotlightFooterHint: {
+    fontSize: 11,
+    color: "#94A3B8",
+    fontWeight: "500",
+  },
+  spotlightActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  spotlightActionText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#0A192F",
+  },
+
+  // Popular Filters
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 100,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  filterChipActive: {
+    backgroundColor: "#0A192F",
+    borderColor: "#0A192F",
+  },
+  filterChipText: {
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+  filterChipTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  emptyFilterText: {
+    fontSize: 13,
+    color: "#94A3B8",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+  },
+
+  // Tactile Service Card (Horizontal)
+  tactileCard: {
+    width: 172,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     ...CARD_SHADOW,
   },
-  trustItem: { alignItems: "center", gap: 8 },
-  trustIconBox: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: T.accentLight,
-    alignItems: "center", justifyContent: "center",
+  tactileMediaBox: {
+    width: 172,
+    height: 108,
+    position: "relative",
   },
-  trustLabel: { fontSize: 11, color: T.text2, fontWeight: "600", textAlign: "center" },
-  ratingBadge: {
+  tactileGlyphWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tactileTelemetryPill: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  telemetryDotSmall: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  tactileTelemetryText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#0F172A",
+    letterSpacing: 0.2,
+  },
+  tactileRatingPill: {
     position: "absolute",
     top: 8,
     right: 8,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.90)",
+    gap: 2,
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: 8,
-    gap: 2,
-    ...Platform.select({
-      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
-      android: { elevation: 1 }
-    })
+    borderRadius: 6,
   },
-  ratingBadgeText: { fontSize: 10, fontWeight: "800", color: "#0F172A" },
-  ratingBadgeMini: {
-    position: "absolute",
-    top: 4,
-    right: 4,
+  tactileRatingText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  tactileBody: {
+    padding: 12,
+  },
+  tactileCatTag: {
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+  },
+  tactileTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0F172A",
+    lineHeight: 18,
+    marginTop: 3,
+  },
+  tactileCompany: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 2,
+  },
+  tactileFooterRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
+  tactileFromText: {
+    fontSize: 9,
+    color: "#94A3B8",
+    fontWeight: "600",
+  },
+  tactilePriceText: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#0A192F",
+    letterSpacing: -0.3,
+  },
+  tactileArrowBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Recommended Row Card (Vertical Feed)
+  recRowCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.90)",
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 6,
-    gap: 1.5,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...CARD_SHADOW,
   },
-  ratingBadgeTextMini: { fontSize: 8, fontWeight: "800", color: "#0F172A" },
-  catBadge: {
-    position: "absolute",
-    top: 8,
-    left: 8,
-    backgroundColor: T.accent,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  recThumbBox: {
+    width: 76,
+    height: 76,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#FFFFFF",
-    ...Platform.select({
-      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 3 },
-      android: { elevation: 3 }
-    })
   },
-  catBadgeMini: {
-    position: "absolute",
-    top: 4,
-    left: 4,
-    backgroundColor: T.accent,
-    width: 24,
-    height: 24,
+  recMetaWrap: {
+    flex: 1,
+    paddingLeft: 12,
+    justifyContent: "center",
+  },
+  recHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  recCatTag: {
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  recRatingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  recRatingValue: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  recTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginTop: 2,
+  },
+  recProvider: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 1,
+  },
+  recBottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 6,
+  },
+  recPriceText: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#0A192F",
+  },
+  recBookPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  recBookText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#0A192F",
+  },
+
+  // Elite Partners Rail
+  elitePartnerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    width: 220,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...CARD_SHADOW,
+  },
+  eliteLogo: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: "#F1F5F9",
+  },
+  eliteName: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0F172A",
+    flex: 1,
+  },
+  eliteCity: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 1,
+  },
+  eliteRatingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 4,
+  },
+  eliteRatingNum: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  eliteRatingCount: {
+    fontSize: 10,
+    color: "#94A3B8",
+  },
+
+  // Trust Strip Card
+  trustStripCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...CARD_SHADOW,
+  },
+  trustCol: {
+    flex: 1,
+    alignItems: "center",
+  },
+  trustIconRound: {
+    width: 38,
+    height: 38,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
-    borderWidth: 0.75,
-    borderColor: "#FFFFFF",
-    ...Platform.select({
-      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
-      android: { elevation: 2 }
-    })
+    marginBottom: 6,
+  },
+  trustItemTitle: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#0F172A",
+    textAlign: "center",
+  },
+  trustItemSub: {
+    fontSize: 10,
+    color: "#94A3B8",
+    marginTop: 1,
+    textAlign: "center",
+  },
+  trustDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: "#F1F5F9",
   },
 });

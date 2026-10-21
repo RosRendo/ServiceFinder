@@ -1,12 +1,13 @@
 "use client";
 
 import { BaseDrawer } from "./BaseDrawer";
-import { Briefcase, CheckCircle2, XCircle, Settings2, BarChart3, Loader2 } from "lucide-react";
+import { Briefcase, CheckCircle2, XCircle, Settings2, BarChart3, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { EditServiceModal } from "../company/EditServiceModal";
 import { useToast } from "@/lib/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 import api from "@/lib/api/client";
 
 export interface ServiceRow {
@@ -25,9 +26,12 @@ interface ServiceDrawerProps {
   onClose: () => void;
   service: ServiceRow | null;
   onSuccess?: () => void;
+  onDelete?: (service: ServiceRow) => void;
 }
 
-export function ServiceDrawer({ open, onClose, service, onSuccess }: ServiceDrawerProps) {
+const LABEL = "text-[10px] font-bold uppercase tracking-wider text-muted-foreground";
+
+export function ServiceDrawer({ open, onClose, service, onSuccess, onDelete }: ServiceDrawerProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -35,8 +39,12 @@ export function ServiceDrawer({ open, onClose, service, onSuccess }: ServiceDraw
 
   if (!service) return null;
 
+  const base = Number(service.basePrice || 0);
+  const discount = service.discountPrice ? Number(service.discountPrice) : null;
+  const hasDiscount = discount !== null && discount > 0 && discount < base;
+  const savingsPct = hasDiscount ? Math.round(((base - discount!) / base) * 100) : 0;
+
   const handleToggleStatus = async () => {
-    if (!service) return;
     setToggling(true);
     try {
       await api.put(`/companies/my-company/services/${service.id}`, {
@@ -64,11 +72,77 @@ export function ServiceDrawer({ open, onClose, service, onSuccess }: ServiceDraw
   };
 
   return (
-    <BaseDrawer open={open} onClose={onClose} title={service.name} subtitle={service.serviceType?.name || "Standard Category"}>
-      <div className="p-6 space-y-6">
-        
-        {/* Header Block */}
-        <div className="flex gap-4">
+    <BaseDrawer
+      open={open}
+      onClose={onClose}
+      title={service.name}
+      subtitle={service.serviceType?.name || "Standard Category"}
+      headerIcon={Briefcase}
+      width="md"
+      badge={
+        <span className={cn(
+          "text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider",
+          service.isActive
+            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+            : "bg-muted border-border text-muted-foreground"
+        )}>
+          {service.isActive ? "Active" : "Inactive"}
+        </span>
+      }
+      headerActions={
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            router.push(`/company/analytics?service=${service.id}`);
+            onClose();
+          }}
+          className="h-8 text-[11px] rounded-xl"
+        >
+          <BarChart3 className="w-3.5 h-3.5 mr-1" /> Analytics ↗
+        </Button>
+      }
+      footer={
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleToggleStatus}
+            disabled={toggling}
+            className={cn(
+              "h-9 text-xs rounded-xl",
+              service.isActive
+                ? "border-rose-500/30 text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
+                : "border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500"
+            )}
+          >
+            {toggling ? (
+              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+            ) : service.isActive ? (
+              <XCircle className="w-3.5 h-3.5 mr-1.5" />
+            ) : (
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+            )}
+            {service.isActive ? "Deactivate" : "Activate"}
+          </Button>
+          <Button onClick={() => setEditModalOpen(true)} className="flex-1 h-9 text-xs rounded-xl font-bold">
+            <Settings2 className="w-3.5 h-3.5 mr-1.5" /> Edit Service
+          </Button>
+          {onDelete && (
+            <Button
+              variant="outline"
+              onClick={() => onDelete(service)}
+              className="h-9 px-3 text-xs rounded-xl border-rose-500/30 text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
+              title="Delete Service"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          )}
+        </div>
+      }
+    >
+      <div className="p-6 space-y-4 font-sans text-xs">
+        {/* Hero: image + pricing */}
+        <div className="bg-card border border-border rounded-2xl p-4 flex gap-4">
           <div className="w-20 h-20 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
             {service.image ? (
               <img src={service.image} alt={service.name} className="w-full h-full object-cover" />
@@ -76,80 +150,38 @@ export function ServiceDrawer({ open, onClose, service, onSuccess }: ServiceDraw
               <Briefcase className="w-8 h-8 text-primary" />
             )}
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <span className={cn(
-                "text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider",
-                service.isActive ? "text-emerald-500 bg-emerald-500/10" : "text-muted-foreground bg-muted"
-              )}>
-                {service.isActive ? "Active" : "Inactive"}
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <p className={LABEL}>Price</p>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl font-black text-foreground">
+                ${(hasDiscount ? discount! : base).toFixed(2)}
               </span>
+              {hasDiscount && (
+                <span className="text-xs text-muted-foreground line-through">${base.toFixed(2)}</span>
+              )}
             </div>
-            <div className="text-2xl font-black text-foreground">
-              ${Number(service.basePrice || 0).toFixed(2)}
-            </div>
-            {service.discountPrice && (
-              <div className="text-xs text-rose-500 line-through">
-                Discount: ${Number(service.discountPrice || 0).toFixed(2)}
-              </div>
+            {hasDiscount && (
+              <span className="mt-1 self-start text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                {savingsPct}% OFF
+              </span>
             )}
           </div>
         </div>
 
         {/* Description */}
-        <div className="bg-muted/30 border border-border rounded-xl p-4">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">Description</p>
-          <p className="text-sm text-foreground leading-relaxed">
+        <div className="bg-card border border-border rounded-2xl p-4">
+          <p className={cn(LABEL, "mb-2")}>Description</p>
+          <p className="text-xs text-foreground leading-relaxed">
             {service.description || "No description provided for this service."}
           </p>
         </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-2.5 pt-4 border-t border-border">
-          <button 
-            onClick={() => {
-              router.push(`/company/analytics?service=${service.id}`);
-              onClose();
-            }} 
-            className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl text-xs font-bold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
-          >
-             <BarChart3 className="w-4 h-4" /> View Analytics
-          </button>
-          
-          <button 
-            onClick={() => setEditModalOpen(true)} 
-            className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl text-xs font-bold bg-muted/60 text-foreground border border-border hover:bg-muted transition-colors"
-          >
-            <Settings2 className="w-4 h-4" /> Edit Details
-          </button>
-          
-          <button 
-            onClick={handleToggleStatus}
-            disabled={toggling}
-            className={cn(
-              "flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl text-xs font-bold border transition-colors disabled:opacity-50",
-              service.isActive 
-                ? "bg-rose-500/10 text-rose-600 border-rose-500/20 hover:bg-rose-500/20" 
-                : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20"
-            )}
-          >
-            {toggling ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : service.isActive ? (
-              <XCircle className="w-4 h-4" />
-            ) : (
-              <CheckCircle2 className="w-4 h-4" />
-            )}
-            {service.isActive ? "Deactivate" : "Activate"}
-          </button>
-        </div>
       </div>
-      
-      <EditServiceModal 
-        open={editModalOpen} 
-        onClose={() => setEditModalOpen(false)} 
-        service={service} 
-        onSuccess={onSuccess} 
+
+      <EditServiceModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        service={service}
+        onSuccess={onSuccess}
       />
     </BaseDrawer>
   );

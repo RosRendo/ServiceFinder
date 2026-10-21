@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import api from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 
-export default function CompanyReportsPage() {
+export default function CompanyReportsPage({ hideHeader = false }: { hideHeader?: boolean } = {}) {
   const { data, loading } = useAPI<any>('/api/companies/my-company/metrics');
   const [metrics, setMetrics] = useState<any>(null);
   const [isExporting, setIsExporting] = useState<string | null>(null);
@@ -87,34 +87,60 @@ export default function CompanyReportsPage() {
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto bg-background p-6 space-y-6">
+    <div className={cn("flex flex-col h-full overflow-y-auto bg-background space-y-6", !hideHeader && "p-6")}>
       
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-border">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Reports & Analytics</h1>
-          <p className="text-sm font-medium text-muted-foreground mt-1">Export custom data and view aggregated performance metrics.</p>
+      {!hideHeader && (
+        <div className="flex items-center justify-between pb-4 border-b border-border">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Reports & Analytics</h1>
+            <p className="text-sm font-medium text-muted-foreground mt-1">Export custom data and view aggregated performance metrics.</p>
+          </div>
+          <div className="flex items-center gap-2 bg-muted/40 p-1 rounded-xl border border-border">
+            {(["7d", "30d", "90d", "all"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => {
+                  setTimeframe(t);
+                  toast.info(`Timeframe filtered to ${t.toUpperCase()}`);
+                }}
+                className={cn(
+                  "px-3 py-1 text-xs font-bold rounded-lg transition-all",
+                  timeframe === t
+                    ? "bg-primary text-primary-foreground shadow-xs dark:bg-background dark:text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-2 bg-muted/40 p-1 rounded-xl border border-border">
-          {(["7d", "30d", "90d", "all"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => {
-                setTimeframe(t);
-                toast.info(`Timeframe filtered to ${t.toUpperCase()}`);
-              }}
-              className={cn(
-                "px-3 py-1 text-xs font-bold rounded-lg transition-all",
-                timeframe === t
-                  ? "bg-primary text-primary-foreground shadow-xs dark:bg-background dark:text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {t.toUpperCase()}
-            </button>
-          ))}
+      )}
+
+      {hideHeader && (
+        <div className="flex items-center justify-end pb-1">
+          <div className="flex items-center gap-2 bg-muted/40 p-1 rounded-xl border border-border">
+            {(["7d", "30d", "90d", "all"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => {
+                  setTimeframe(t);
+                  toast.info(`Timeframe filtered to ${t.toUpperCase()}`);
+                }}
+                className={cn(
+                  "px-3 py-1 text-xs font-bold rounded-lg transition-all",
+                  timeframe === t
+                    ? "bg-primary text-primary-foreground shadow-xs dark:bg-background dark:text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center min-h-[400px]">

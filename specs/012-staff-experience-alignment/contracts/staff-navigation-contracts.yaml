@@ -1,0 +1,78 @@
+# Staff Navigation Contracts & Route Mapping
+version: "1.0.0"
+feature: "012-staff-experience-alignment"
+
+routes:
+  sidebar:
+    - label: "Live Dispatch"
+      icon: "lightning-bolt-outline"
+      route: "/(staff)/(tabs)/today"
+      component: "frontend-expo/app/(staff)/(tabs)/today.tsx"
+      purpose: "Active on-shift console, incoming job dispatch, live GPS navigation route map"
+
+    - label: "My Availability"
+      icon: "calendar-clock-outline"
+      route: "/(staff)/availability"
+      component: "frontend-expo/app/(staff)/availability/index.tsx"
+      purpose: "Set weekly working days and operational on-call hours"
+
+    - label: "Shift Earnings"
+      icon: "currency-usd"
+      route: "/(staff)/(tabs)/money"
+      component: "frontend-expo/app/(staff)/(tabs)/money.tsx"
+      purpose: "View daily earnings, weekly velocity bar chart, tips, and trip history"
+
+    - label: "Staff Profile"
+      icon: "account-outline"
+      route: "/(staff)/(tabs)/me"
+      component: "frontend-expo/app/(staff)/(tabs)/me.tsx"
+      purpose: "Technician profile dossier, schedule links, and emergency dispatch alerts"
+
+    - label: "Job History"
+      icon: "history"
+      route: "/(staff)/history"
+      component: "frontend-expo/app/(staff)/history.tsx"
+      purpose: "Archive of previously completed service jobs and customer sign-offs"
+
+    - label: "Performance Score"
+      icon: "chart-line"
+      route: "/(staff)/performance"
+      component: "frontend-expo/app/(staff)/performance/index.tsx"
+      purpose: "Quality scorecards, customer ratings (1-5 stars), and completion velocity"
+
+    - label: "Request Leave"
+      icon: "calendar-remove-outline"
+      route: "/(staff)/timeoff"
+      component: "frontend-expo/app/(staff)/timeoff/index.tsx"
+      purpose: "Submit off-duty and vacation requests to company management"
+
+    - label: "AI Job Diagnostics"
+      icon: "robot-outline"
+      route: "/(staff)/ai/ai"
+      component: "frontend-expo/app/(staff)/ai/ai.tsx"
+      purpose: "AI-assisted field diagnostic assistant for technical troubleshooting"
+
+    - label: "Contact Dispatch"
+      icon: "headphones"
+      route: "/(staff)/messages/new"
+      component: "frontend-expo/app/(staff)/messages/new.tsx"
+      purpose: "Live direct chat line with the company dispatch supervisor"
+
+tabs:
+  - name: "today"
+    label: "Today"
+    icon: "lightning-bolt-outline"
+    iconActive: "lightning-bolt"
+    route: "/(staff)/(tabs)/today"
+
+  - name: "money"
+    label: "Money"
+    icon: "currency-usd"
+    iconActive: "currency-usd"
+    route: "/(staff)/(tabs)/money"
+
+  - name: "me"
+    label: "Profile"
+    icon: "account-outline"
+    iconActive: "account"
+    route: "/(staff)/(tabs)/me"

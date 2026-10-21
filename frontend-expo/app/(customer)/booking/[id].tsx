@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   ScrollView, Text, View, TouchableOpacity, Alert,
   ActivityIndicator, RefreshControl, TextInput, StyleSheet,
-  Platform, Modal, Animated, Easing
+  Platform, Modal, Animated, Easing, Linking
 } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -187,6 +187,17 @@ export default function BookingDetailsScreen() {
 
   const handlePayment = () => {
     router.push(`/(customer)/checkout?bookingId=${id}` as any);
+  };
+
+  const handleCallStaff = () => {
+    const rawPhone = (booking?.assignedStaff as any)?.user?.phone || 
+      (booking?.assignedStaff as any)?.phone || 
+      (booking?.company as any)?.phone || 
+      "+85512345678";
+    const cleanPhone = rawPhone.replace(/[^\d+]/g, '');
+    Linking.openURL(`tel:${cleanPhone}`).catch(() => {
+      Alert.alert("Unable to Call", `Could not launch native phone dialer for ${cleanPhone}`);
+    });
   };
 
   const handleMessageStaff = async () => {
@@ -487,12 +498,20 @@ export default function BookingDetailsScreen() {
                 <Text style={s.staffName}>{staffName}</Text>
                 <Text style={s.staffRole}>Assigned Staff</Text>
               </View>
-              <TouchableOpacity 
-                style={s.chatStaffBtn}
-                onPress={handleMessageStaff}
-              >
-                <MaterialCommunityIcons name="message-text" size={20} color={T.accent} />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity 
+                  style={[s.chatStaffBtn, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}
+                  onPress={handleCallStaff}
+                >
+                  <MaterialCommunityIcons name="phone" size={20} color="#059669" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={s.chatStaffBtn}
+                  onPress={handleMessageStaff}
+                >
+                  <MaterialCommunityIcons name="message-text" size={20} color={T.accent} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         )}
@@ -597,7 +616,14 @@ export default function BookingDetailsScreen() {
         {isActive && !isPending && (
           <>
             <TouchableOpacity style={s.secondaryBtn} onPress={handleCancel}>
-              <Text style={s.secondaryBtnText}>Cancel Booking</Text>
+              <Text style={s.secondaryBtnText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.secondaryBtn, { borderColor: '#10B981', backgroundColor: '#ECFDF5' }]}
+              onPress={handleCallStaff}
+            >
+              <MaterialCommunityIcons name="phone" size={18} color="#059669" style={{ marginRight: 6 }} />
+              <Text style={[s.secondaryBtnText, { color: '#059669' }]}>Call</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[s.primaryBtn, { flex: 1, marginTop: 0 }]}

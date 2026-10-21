@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
+import CashReconciliationCard from '../../../components/company/CashReconciliationCard';
 import api from '../../../utils/api';
 
 const { width } = Dimensions.get('window');
@@ -16,15 +17,15 @@ export default function MoneyScreen() {
     text1: '#0F172A', 
     text2: '#475569', 
     text3: '#94A3B8', 
-    primary: '#0A192F', 
+    primary: '#0F172A', 
     primaryLight: '#F1F5F9',
-    success: '#10B981', 
+    success: '#059669', 
     successLight: '#ECFDF5',
     successDark: '#059669',
-    amber: '#F59E0B',
+    amber: '#D97706',
     amberLight: '#FEF3C7',
     border: '#E2E8F0', 
-    danger: '#EF4444' 
+    danger: '#DC2626' 
   };
 
   const [perf, setPerf] = useState<any>(null);
@@ -141,19 +142,19 @@ export default function MoneyScreen() {
             </View>
           </View>
 
-          {/* Company Payroll Info Banner */}
-          <View style={s.payrollBanner}>
-            <View style={s.payrollIconBox}>
-              <MaterialCommunityIcons name="shield-check" size={18} color="#10B981" />
-            </View>
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={s.payrollTitle}>Direct Company Payroll</Text>
-              <Text style={s.payrollSub}>
-                Your earnings are tracked automatically and disbursed directly by your company manager.
-              </Text>
-            </View>
+          {/* Company Payroll Badge */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, alignSelf: 'center', backgroundColor: '#F8FAFC', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#E2E8F0' }}>
+            <MaterialCommunityIcons name="shield-check" size={14} color="#10B981" />
+            <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569' }}>Disbursed by Company Payroll</Text>
           </View>
         </View>
+
+        {/* Physical Cash Meter */}
+        <CashReconciliationCard
+          currentCash={p.unremittedCash || 0}
+          maxLimit={50}
+          staffName="My"
+        />
 
         {/* 7-Day Weekly Breakdown Bar Chart */}
         <View style={s.sectionHeader}>
@@ -266,7 +267,7 @@ export default function MoneyScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F8FAFC' },
-  content: { padding: 20, paddingBottom: 110 },
+  content: { padding: 20, paddingBottom: 120 },
   
   /* Header */
   headerRow: {
@@ -290,44 +291,48 @@ const s = StyleSheet.create({
   shiftPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     gap: 6,
   },
   shiftDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#10B981',
+    backgroundColor: '#059669',
   },
   shiftText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#059669',
+    color: '#0F172A',
   },
 
   /* Segment */
   segmentContainer: {
     flexDirection: 'row',
     backgroundColor: '#F1F5F9',
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 4,
     marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   segmentBtn: {
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 10,
   },
   segmentBtnActive: {
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
     elevation: 2,
   },
   segmentText: {
@@ -342,38 +347,41 @@ const s = StyleSheet.create({
 
   /* Hero Card */
   heroCard: {
-    backgroundColor: '#0F172A',
-    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 22,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 8,
-    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+    marginBottom: 20,
   },
   heroLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#64748B',
     letterSpacing: 1,
   },
   heroAmount: {
-    fontSize: 38,
+    fontSize: 36,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#0F172A',
     marginTop: 4,
     letterSpacing: -1,
   },
   heroMetricsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.07)',
-    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    marginTop: 18,
-    marginBottom: 18,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   heroMetricItem: {
     alignItems: 'center',
@@ -382,46 +390,17 @@ const s = StyleSheet.create({
   heroMetricValue: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   heroMetricLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
     marginTop: 2,
   },
   heroMetricDivider: {
     width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  payrollBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  payrollIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  payrollTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  payrollSub: {
-    fontSize: 10.5,
-    fontWeight: '500',
-    color: '#94A3B8',
-    lineHeight: 14,
+    backgroundColor: '#E2E8F0',
   },
 
   /* Sections */
@@ -490,7 +469,7 @@ const s = StyleSheet.create({
     backgroundColor: '#CBD5E1',
   },
   barFillToday: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#0F172A',
   },
   barDayLabel: {
     fontSize: 11,
@@ -499,7 +478,7 @@ const s = StyleSheet.create({
     marginTop: 6,
   },
   barDayLabelToday: {
-    color: '#4F46E5',
+    color: '#0F172A',
     fontWeight: '900',
   },
 
@@ -545,7 +524,7 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -583,7 +562,9 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -607,12 +588,14 @@ const s = StyleSheet.create({
     alignItems: 'flex-end',
   },
   tripAmount: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '900',
-    color: '#10B981',
+    color: '#0F172A',
   },
   paidBadge: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -620,7 +603,7 @@ const s = StyleSheet.create({
   },
   paidBadgeText: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#059669',
   },
   emptyTripsCard: {
@@ -643,5 +626,71 @@ const s = StyleSheet.create({
     color: '#94A3B8',
     textAlign: 'center',
     lineHeight: 18,
+  },
+  cashCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cashRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cashIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cashCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  cashCardSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  cashAmountBadge: {
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  cashAmountText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#15803D',
+  },
+  cashWarningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 12,
+    gap: 8,
+  },
+  cashWarningText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B91C1C',
+    lineHeight: 16,
   },
 });

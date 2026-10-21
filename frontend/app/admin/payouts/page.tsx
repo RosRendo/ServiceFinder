@@ -159,9 +159,9 @@ export default function PayoutsPage() {
       header: "Reference",
       sortable: true,
       accessorFn: (r) => r.id,
-      cell: (r) => (
+      cell: ({ row }) => (
         <span className="font-mono text-xs font-semibold text-muted-foreground">
-          {r.id}
+          {row.id}
         </span>
       ),
     },
@@ -170,10 +170,10 @@ export default function PayoutsPage() {
       header: "Company & Owner",
       sortable: true,
       accessorFn: (r) => r.companyName,
-      cell: (r) => (
+      cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="font-medium text-foreground text-sm">{r.companyName}</span>
-          <span className="text-xs text-muted-foreground">{r.ownerName}</span>
+          <span className="font-medium text-foreground text-sm">{row.companyName}</span>
+          <span className="text-xs text-muted-foreground">{row.ownerName}</span>
         </div>
       ),
     },
@@ -182,9 +182,9 @@ export default function PayoutsPage() {
       header: "Disbursement",
       sortable: true,
       accessorFn: (r) => r.amount,
-      cell: (r) => (
+      cell: ({ row }) => (
         <span className="font-mono text-sm font-semibold text-foreground">
-          ${r.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          ${Number(row.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       ),
     },
@@ -192,9 +192,9 @@ export default function PayoutsPage() {
       id: "method",
       header: "Account / Routing",
       accessorFn: (r) => r.method,
-      cell: (r) => (
+      cell: ({ row }) => (
         <span className="font-mono text-xs text-muted-foreground">
-          {r.method}
+          {row.method}
         </span>
       ),
     },
@@ -203,8 +203,8 @@ export default function PayoutsPage() {
       header: "Status",
       sortable: true,
       accessorFn: (r) => r.status,
-      cell: (r) => (
-        <StatusPill status={r.status} />
+      cell: ({ row }) => (
+        <StatusPill status={row.status} />
       ),
     },
     {
@@ -212,24 +212,24 @@ export default function PayoutsPage() {
       header: "Requested Date",
       sortable: true,
       accessorFn: (r) => r.scheduledDate,
-      cell: (r) => (
+      cell: ({ row }) => (
         <span className="font-mono text-xs text-muted-foreground">
-          {r.scheduledDate}
+          {row.scheduledDate}
         </span>
       ),
     },
     {
       id: "actions",
       header: "",
-      cell: (r) => (
+      cell: ({ row }) => (
         <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
-          {r.status === "processing" ? (
+          {row.status === "processing" ? (
             <Button
               variant="outline"
               size="sm"
               className="h-8 text-xs font-medium"
               onClick={() => {
-                setSelectedPayoutForQr(r);
+                setSelectedPayoutForQr(row);
                 setIsQrModalOpen(true);
               }}
             >

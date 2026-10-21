@@ -37,11 +37,14 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 
 import { CookieOptions } from 'express';
 
+const ACCESS_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days (604,800,000 ms)
+const REFRESH_TOKEN_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
+
 const COOKIE_OPTIONS_ACCESS: CookieOptions = {
   httpOnly: true,
   secure: IS_PROD,
   sameSite: IS_PROD ? 'none' : 'lax',
-  maxAge: 15 * 60 * 1000, // 15 minutes
+  maxAge: ACCESS_TOKEN_MAX_AGE,
   path: '/',
 };
 
@@ -49,8 +52,8 @@ const COOKIE_OPTIONS_REFRESH: CookieOptions = {
   httpOnly: true,
   secure: IS_PROD,
   sameSite: IS_PROD ? 'none' : 'lax',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  path: '/api/auth',
+  maxAge: REFRESH_TOKEN_MAX_AGE,
+  path: '/',
 };
 
 @ApiTags('Auth')
@@ -291,7 +294,7 @@ export class AuthController {
       secure: IS_PROD,
     } as const;
     res.clearCookie('token', clearOpts);
-    res.clearCookie('refreshToken', { ...clearOpts, path: '/api/auth' });
+    res.clearCookie('refreshToken', clearOpts);
     return { success: true, message: 'Logged out successfully' };
   }
 

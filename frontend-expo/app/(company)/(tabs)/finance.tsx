@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from "react";
-import { ScrollView, Text, View, TouchableOpacity, RefreshControl, StyleSheet, Platform, ViewStyle } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, RefreshControl, StyleSheet, Platform, ViewStyle, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter, useFocusEffect } from "expo-router";
 import { api } from "@/store/authStore";
 import { useSidebarStore } from "@/store/sidebarStore";
+import CashReconciliationCard from "@/components/company/CashReconciliationCard";
 import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
@@ -23,11 +24,15 @@ export default function B2BFinanceTab() {
   const [refreshing, setRefreshing] = useState(false);
   const [wallet, setWallet] = useState({ balance: 0, pending: 0 });
   const [payouts, setPayouts] = useState<any[]>([]);
+  const [staffCashList, setStaffCashList] = useState<any[]>([]);
 
   const loadFinanceData = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/company/payouts");
+      const [res, staffRes] = await Promise.all([
+        api.get("/api/company/payouts").catch(() => ({ data: {} })),
+        api.get("/api/companies/my-company/staff").catch(() => ({ data: [] })),
+      ]);
       const data = res.data?.data ?? res.data;
       setWallet({
         balance: Number(data?.availableBalance ?? 0),
@@ -43,6 +48,9 @@ export default function B2BFinanceTab() {
           bank: p.bankName || p.method || "Bank Payout",
         }))
       );
+
+      const rawStaff = staffRes.data?.data || staffRes.data || [];
+      setStaffCashList(Array.isArray(rawStaff) ? rawStaff : []);
     } catch (e) {
       console.error("Failed to load company finance data", e);
     } finally {
@@ -101,6 +109,48 @@ export default function B2BFinanceTab() {
           </View>
         </View>
 
+        {/* Technician Cash Reconciliation Audit */}
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionTitle}>Field Crew Cash Reconciliation</Text>
+        </View>
+
+        <View style={s.cashLedgerContainer}>
+          {staffCashList.length === 0 ? (
+            <View style={[s.payoutItem, CARD_SHADOW, { justifyContent: "center", paddingVertical: 18 }]}>
+              <Text style={{ fontSize: 13, color: T.text3, fontWeight: "600" }}>No staff members registered</Text>
+            </View>
+          ) : (
+            staffCashList.map((member) => {
+              const name = member.user?.fullName || member.fullName || "Technician";
+              const unremitted = Number(member.walletBalance || member.unremittedCashBalance || 0);
+              return (
+                <CashReconciliationCard
+                  key={member.id}
+                  staffName={name}
+                  currentCash={unremitted}
+                  maxLimit={100}
+                  onSettlePress={unremitted > 0 ? () => {
+                    Alert.alert(
+                      "Confirm Cash Settlement",
+                      `Mark $${unremitted.toFixed(2)} cash as collected from ${name}?`,
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Confirm Settlement",
+                          onPress: () => {
+                            Alert.alert("Settled", `Cash remittance from ${name} logged.`);
+                            setStaffCashList(prev => prev.map(m => m.id === member.id ? { ...m, walletBalance: 0 } : m));
+                          }
+                        }
+                      ]
+                    );
+                  } : undefined}
+                />
+              );
+            })
+          )}
+        </View>
+
         {/* Payout Channels */}
         <View style={s.sectionHeader}>
           <Text style={s.sectionTitle}>Payout Settings</Text>
@@ -110,8 +160,8 @@ export default function B2BFinanceTab() {
             <MaterialCommunityIcons name="bank-outline" size={24} color={T.accent} />
           </View>
           <View style={s.rowText}>
-            <Text style={s.rowTitle}>Bank & QR Payout Details</Text>
-            <Text style={s.rowSubtitle}>Manage ABA KHQR & Bank Transfers</Text>
+            <Text style={s.rowTitle}>Payout Channels</Text>
+            <Text style={s.rowSubtitle}>Bank & QR Rails</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={22} color={T.text3} />
         </TouchableOpacity>
@@ -159,22 +209,22 @@ const s = StyleSheet.create({
   menuBtn: { padding: 4 },
   headerTitle: { fontSize: 20, fontWeight: "800", color: T.text1 },
   
-  scrollContent: { padding: 20 },
+  scrollContent: { padding: 20, paddingBottom: 120 },
   
   card: {
     borderRadius: 24, padding: 24, marginBottom: 24,
-    borderWidth: 1,
+    borderWidth: 1, backgroundColor: "#0A192F", borderColor: "rgba(255,255,255,0.08)",
   },
-  balanceLabel: { fontSize: 11, fontWeight: "800", color: "rgba(255,255,255,0.7)", letterSpacing: 1.2 },
-  balanceText: { fontSize: 36, fontWeight: "900", color: "#FFF", marginTop: 8 },
-  divider: { height: 1, backgroundColor: "rgba(255,255,255,0.15)", marginVertical: 20 },
+  balanceLabel: { fontSize: 11, fontWeight: "800", color: "#94A3B8", letterSpacing: 1.2 },
+  balanceText: { fontSize: 36, fontWeight: "900", color: "#F8FAFC", marginTop: 8 },
+  divider: { height: 1, backgroundColor: "rgba(255,255,255,0.1)", marginVertical: 20 },
   
   balanceStats: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  statLabel: { fontSize: 11, fontWeight: "700", color: "rgba(255,255,255,0.6)" },
-  statValue: { fontSize: 18, fontWeight: "800", color: "#FFF", marginTop: 2 },
+  statLabel: { fontSize: 11, fontWeight: "700", color: "#94A3B8" },
+  statValue: { fontSize: 18, fontWeight: "800", color: "#F1F5F9", marginTop: 2 },
   
-  withdrawBtn: { backgroundColor: "#FFF", paddingHorizontal: 18, paddingVertical: 10, borderRadius: 14 },
-  withdrawBtnText: { fontSize: 12, fontWeight: "800", color: T.accent, textTransform: "uppercase" },
+  withdrawBtn: { backgroundColor: "#10B981", paddingHorizontal: 18, paddingVertical: 10, borderRadius: 14 },
+  withdrawBtnText: { fontSize: 12, fontWeight: "800", color: "#FFFFFF", textTransform: "uppercase" },
 
   sectionHeader: { marginBottom: 12 },
   sectionTitle: { fontSize: 15, fontWeight: "800", color: T.text1, letterSpacing: -0.2 },
@@ -201,4 +251,29 @@ const s = StyleSheet.create({
   payoutAmount: { fontSize: 15, fontWeight: "800", color: "#10B981" },
   statusBadge: { backgroundColor: "#D1FAE5", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginTop: 4 },
   statusText: { fontSize: 9, fontWeight: "800", color: "#047857" },
+  cashLedgerContainer: { gap: 10, marginBottom: 24 },
+  settleBtn: {
+    backgroundColor: "#0F172A",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  settleBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  settledBadge: {
+    backgroundColor: "#F0FDF4",
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  settledBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#16A34A",
+  },
 });

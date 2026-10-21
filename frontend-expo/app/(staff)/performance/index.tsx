@@ -126,7 +126,7 @@ export default function Performance() {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 80, paddingTop: 16 }}
+        contentContainerStyle={{ paddingBottom: 120, paddingTop: 16 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={T.primary} />}
         showsVerticalScrollIndicator={false}
       >
@@ -147,7 +147,7 @@ export default function Performance() {
             ].map(m => (
               <View key={m.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <View style={s.miniIconBox}>
-                  <MaterialCommunityIcons name={m.icon as any} size={16} color="#FFF" />
+                  <MaterialCommunityIcons name={m.icon as any} size={16} color="#0F172A" />
                 </View>
                 <View>
                   <Text style={s.miniVal}>{m.value}</Text>
@@ -289,14 +289,18 @@ const s = StyleSheet.create({
   headerTitle:{ fontSize: 20, fontWeight: '800', color: T.text },
   headerSub:  { fontSize: 12, color: T.textMuted, marginTop: 1 },
 
-  heroCard:   { marginHorizontal: 16, backgroundColor: T.primary, borderRadius: 20, padding: 22, flexDirection: 'row', alignItems: 'center' },
-  heroLabel:  { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 },
-  heroRating: { fontSize: 52, fontWeight: '900', color: '#FFF', lineHeight: 60 },
-  heroSub:    { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
-  heroDivV:   { width: 1, height: '80%', backgroundColor: 'rgba(255,255,255,0.12)' },
-  miniIconBox:{ width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-  miniVal:    { fontSize: 15, fontWeight: '800', color: '#FFF' },
-  miniLbl:    { fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 1 },
+  heroCard:   { 
+    marginHorizontal: 16, backgroundColor: '#FFFFFF', borderRadius: 20, padding: 22, 
+    flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 6, elevation: 1
+  },
+  heroLabel:  { fontSize: 10, color: '#64748B', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 },
+  heroRating: { fontSize: 48, fontWeight: '900', color: '#0F172A', lineHeight: 56 },
+  heroSub:    { fontSize: 11, color: '#94A3B8', marginTop: 4, fontWeight: '600' },
+  heroDivV:   { width: 1, height: '80%', backgroundColor: '#E2E8F0' },
+  miniIconBox:{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
+  miniVal:    { fontSize: 15, fontWeight: '800', color: '#0F172A' },
+  miniLbl:    { fontSize: 10, color: '#64748B', marginTop: 1, fontWeight: '600' },
 
   banner:     { marginHorizontal: 16, marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, borderWidth: 1 },
   bannerIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
@@ -319,7 +323,7 @@ const s = StyleSheet.create({
   emptyBox:   { alignItems: 'center', paddingVertical: 28, gap: 6 },
   emptyText:  { color: T.textMuted, fontSize: 13, textAlign: 'center' },
 
-  reviewCard: { backgroundColor: T.bg, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: T.border },
+  reviewCard: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#E2E8F0' },
   avatar:     { width: 38, height: 38, borderRadius: 19, backgroundColor: T.primary, alignItems: 'center', justifyContent: 'center' },
   avatarLetter:{ fontSize: 16, fontWeight: '800', color: '#FFF' },
   reviewName: { fontSize: 14, fontWeight: '700', color: T.text },

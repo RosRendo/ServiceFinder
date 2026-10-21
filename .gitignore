@@ -166,3 +166,5 @@ backend/uploads/*
 # ============================================
 .vercel/
 .eslintcache
+**/.cxx/
+.agents/sync_temp/

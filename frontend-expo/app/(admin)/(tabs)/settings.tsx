@@ -1,10 +1,17 @@
 /**
- * Admin Settings — Premium Deep Navy Redesign
+ * Admin Operations Hub & Settings — Quiet Luxury Executive Standard
+ * Centralizes governance, financial, and operational management.
  */
 import React, { useState, useEffect } from "react";
 import {
-  ScrollView, Text, View, TouchableOpacity, Switch,
-  StyleSheet, Platform, Alert
+  ScrollView,
+  Text,
+  View,
+  TouchableOpacity,
+  Switch,
+  StyleSheet,
+  Platform,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -19,35 +26,37 @@ import ErrorState from "@/components/common/ErrorState";
 
 const T = Theme.colors;
 
+const CARD_SHADOW = Platform.select({
+  ios: { shadowColor: "#0F172A", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
 
-
-export default function Settings() {
+export default function OperationsHub() {
   const router = useRouter();
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
   const { t } = useTranslation();
+
   const [notifications, setNotifications] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [twoFactor, setTwoFactor] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [mfaModalVisible, setMfaModalVisible] = useState(false);
   const [hasError, setHasError] = useState(false);
 
   const fetchSettings = async () => {
     try {
-      const response = await api.get('/api/settings');
-      const data = response.data || {};
-      if (data.darkMode !== undefined) setDarkMode(data.darkMode);
-      
-      // Fetch User Preferences
-      const prefsRes = await api.get('/api/users/me/preferences');
+      const prefsRes = await api.get("/api/users/me/preferences");
       const prefsData = prefsRes.data?.data || prefsRes.data;
-      if (prefsData.pushNotificationsEnabled !== undefined) setNotifications(prefsData.pushNotificationsEnabled);
-      if (prefsData.emailNotificationsEnabled !== undefined) setEmailAlerts(prefsData.emailNotificationsEnabled);
+      if (prefsData.pushNotificationsEnabled !== undefined) {
+        setNotifications(prefsData.pushNotificationsEnabled);
+      }
+      if (prefsData.emailNotificationsEnabled !== undefined) {
+        setEmailAlerts(prefsData.emailNotificationsEnabled);
+      }
       setHasError(false);
     } catch (error) {
       console.error("Failed to fetch settings:", error);
-      setHasError(true);
+      // Non-blocking fallback
     }
   };
 
@@ -55,49 +64,23 @@ export default function Settings() {
     fetchSettings();
   }, []);
 
-  const updateSetting = async (key: string, value: boolean) => {
+  const updatePreference = async (key: "pushNotificationsEnabled" | "emailNotificationsEnabled", value: boolean) => {
     try {
-      if (key === 'notifications') {
-        setNotifications(value);
-        await api.patch('/api/users/me/preferences', { pushNotificationsEnabled: value });
-        return;
-      }
-      if (key === 'emailAlerts') {
-        setEmailAlerts(value);
-        await api.patch('/api/users/me/preferences', { emailNotificationsEnabled: value });
-        return;
-      }
-      
-      switch (key) {
-        case 'twoFactor':
-          if (value) {
-            setMfaModalVisible(true);
-            return; // Don't call API yet, handled by modal
-          } else {
-            setTwoFactor(false);
-          }
-          break;
-        case 'darkMode': setDarkMode(value); break;
-      }
-      if (key !== 'twoFactor') {
-        await api.put('/api/settings', { [key]: value });
-      }
+      if (key === "pushNotificationsEnabled") setNotifications(value);
+      if (key === "emailNotificationsEnabled") setEmailAlerts(value);
+      await api.patch("/api/users/me/preferences", { [key]: value });
     } catch (error) {
       console.error(`Failed to update ${key}:`, error);
-      switch (key) {
-        case 'notifications': setNotifications(!value); break;
-        case 'emailAlerts': setEmailAlerts(!value); break;
-        case 'twoFactor': setTwoFactor(!value); break;
-        case 'darkMode': setDarkMode(!value); break;
-      }
+      if (key === "pushNotificationsEnabled") setNotifications(!value);
+      if (key === "emailNotificationsEnabled") setEmailAlerts(!value);
     }
   };
 
   const handleLogout = () => {
-    Alert.alert(t('adminSettings.logOutTitle'), t('adminSettings.logOutConfirm'), [
-      { text: t('adminSettings.cancel'), style: "cancel" },
+    Alert.alert(t("adminSettings.logOutTitle", "Log Out"), t("adminSettings.logOutConfirm", "Are you sure you want to end your executive session?"), [
+      { text: t("adminSettings.cancel", "Cancel"), style: "cancel" },
       {
-        text: t('adminSettings.logOutBtn'),
+        text: t("adminSettings.logOutBtn", "Log Out"),
         style: "destructive",
         onPress: async () => {
           await logout();
@@ -106,105 +89,185 @@ export default function Settings() {
     ]);
   };
 
-  const sections = [
+  const operationalSections = [
     {
-      title: t('adminSettings.accountSecurity'),
-      icon: "shield-account",
+      category: "FINANCIAL GOVERNANCE",
       items: [
-        { label: t('adminSettings.profileSettings'), subtitle: t('adminSettings.profileDesc'), icon: "account-edit", action: () => router.push("/(admin)/settings/profile" as any) },
-        { label: t('adminSettings.changePassword'), subtitle: t('adminSettings.passwordDesc'), icon: "lock-reset", action: () => router.push("/(admin)/settings/password" as any) },
-        { label: t('adminSettings.twoFactor'), subtitle: t('adminSettings.twoFactorDesc'), toggle: true, value: twoFactor, setValue: (v: boolean) => updateSetting('twoFactor', v) },
+        {
+          label: "Payout Batches",
+          subtitle: "Authorize service provider payouts & bank disbursements",
+          icon: "bank-transfer",
+          route: "/(admin)/payouts",
+          badge: "Financial",
+          color: "#0284C7",
+        },
+        {
+          label: "Refunds Ledger",
+          subtitle: "Customer refunds, chargebacks, and transaction reverses",
+          icon: "cash-refund",
+          route: "/(admin)/refunds",
+          badge: "Ledger",
+          color: "#0D9488",
+        },
+        {
+          label: "Escrow Dispute Mediation",
+          subtitle: "Arbitrate disputes and manage held funds",
+          icon: "scale-balance",
+          route: "/(admin)/(tabs)/issues",
+          badge: "Mediation",
+          color: "#EF4444",
+        },
       ],
     },
     {
-      title: t('adminSettings.notificationsTitle'),
-      icon: "bell-outline",
+      category: "PLATFORM GOVERNANCE & TELEMETRY",
       items: [
-        { label: t('adminSettings.pushNotifications'), subtitle: t('adminSettings.pushDesc'), toggle: true, value: notifications, setValue: (v: boolean) => updateSetting('notifications', v) },
-        { label: t('adminSettings.emailAlerts'), subtitle: t('adminSettings.emailDesc'), toggle: true, value: emailAlerts, setValue: (v: boolean) => updateSetting('emailAlerts', v) },
+        {
+          label: "System Audit Logs",
+          subtitle: "Immutable activity trail of admin & system actions",
+          icon: "clipboard-text-clock",
+          route: "/(admin)/audit",
+          badge: "Security",
+          color: "#6366F1",
+        },
+        {
+          label: "Infrastructure Monitoring",
+          subtitle: "Server health, API telemetry, database latencies",
+          icon: "monitor-dashboard",
+          route: "/(admin)/monitoring",
+          badge: "Live",
+          color: "#10B981",
+        },
+        {
+          label: "Content & User Moderation",
+          subtitle: "Flagged user profiles, reviews, and violation bans",
+          icon: "shield-account-outline",
+          route: "/(admin)/moderation",
+          badge: "Safety",
+          color: "#D97706",
+        },
+        {
+          label: "Legal Compliance",
+          subtitle: "Terms of service, privacy protocols, and regulatory filings",
+          icon: "file-certificate-outline",
+          route: "/(admin)/compliance",
+          badge: "Legal",
+          color: "#64748B",
+        },
       ],
     },
-
     {
-      title: t('adminSettings.platformSetup'),
-      icon: "tune-variant",
+      category: "MARKETPLACE CONFIGURATION",
       items: [
-        { label: t('adminSettings.manageUsers'), subtitle: t('adminSettings.usersDesc'), icon: "account-multiple-check", action: () => router.push("/(admin)/(tabs)/users" as any) },
-        { label: t('adminSettings.serviceCategories'), subtitle: t('adminSettings.categoriesDesc'), icon: "list-box-outline", action: () => router.push("/(admin)/categories" as any) },
+        {
+          label: "Global Bookings Ledger",
+          subtitle: "Inspect active orders, customer bookings & job status",
+          icon: "calendar-check-outline",
+          route: "/(admin)/bookings",
+          badge: "Orders",
+          color: "#0F172A",
+        },
+        {
+          label: "Platform User Accounts",
+          subtitle: "Browse and govern all customer and provider profiles",
+          icon: "account-multiple-outline",
+          route: "/(admin)/(tabs)/users",
+          badge: "Directory",
+          color: "#3B82F6",
+        },
+        {
+          label: "Service Categories",
+          subtitle: "Manage categories, taxonomy, and icon assignments",
+          icon: "shape-outline",
+          route: "/(admin)/categories",
+          badge: "Taxonomy",
+          color: "#8B5CF6",
+        },
+        {
+          label: "Service Specifications",
+          subtitle: "Standardize service templates and pricing bounds",
+          icon: "briefcase-outline",
+          route: "/(admin)/service-types",
+          badge: "Catalog",
+          color: "#EC4899",
+        },
       ],
     },
     {
-      title: "Marketing & Communication",
-      icon: "bullhorn-outline",
+      category: "MARKETING & COMMUNICATIONS",
       items: [
-        { label: "Push Broadcasts", subtitle: "Send platform-wide alerts", icon: "radio-tower", action: () => router.push("/(admin)/broadcasts" as any) },
-        { label: "Promo Codes", subtitle: "Manage global discounts", icon: "ticket-percent-outline", action: () => router.push("/(admin)/promotions" as any) },
+        {
+          label: "Broadcast Announcements",
+          subtitle: "Push mass notifications to users or providers",
+          icon: "radio-tower",
+          route: "/(admin)/broadcasts",
+          badge: "Push",
+          color: "#F97316",
+        },
+        {
+          label: "Promotions & Vouchers",
+          subtitle: "Discount campaigns, platform promo vouchers",
+          icon: "ticket-percent-outline",
+          route: "/(admin)/promotions",
+          badge: "Campaigns",
+          color: "#14B8A6",
+        },
+        {
+          label: "Support Desk",
+          subtitle: "Escalated user support tickets and live assistance",
+          icon: "ticket-confirmation-outline",
+          route: "/(admin)/support",
+          badge: "Helpdesk",
+          color: "#3B82F6",
+        },
       ],
     },
   ];
 
   return (
-    <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={s.root} edges={["top", "left", "right"]}>
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}
-              accessibilityRole="button"
-              accessibilityLabel={t('common.openMenu')}
-            >
-            <MaterialCommunityIcons name="menu" size={28} color={T.text1} />
+          <TouchableOpacity onPress={() => openSidebar(true)} style={s.menuBtn}>
+            <MaterialCommunityIcons name="menu" size={26} color="#0F172A" />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>{t('adminSettings.title')}</Text>
+          <Text style={s.headerTitle}>Operations & Control</Text>
         </View>
       </View>
 
-      {hasError ? (
-        <ErrorState onRetry={() => { setHasError(false); fetchSettings(); }} />
-      ) : (
-      <ScrollView style={s.scrollView} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
-        {sections.map((sec, sIdx) => (
+      <ScrollView
+        style={s.scrollView}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Operations Hub Navigation Categories */}
+        {operationalSections.map((section, sIdx) => (
           <View key={sIdx} style={s.section}>
-            <View style={s.sectionHeader}>
-              <MaterialCommunityIcons name={sec.icon as any} size={20} color={T.accent} />
-              <Text style={s.sectionTitle}>{sec.title}</Text>
-            </View>
-
-            <View style={s.card}>
-              {sec.items.map((item: any, iIdx) => {
-                const isLast = iIdx === sec.items.length - 1;
+            <Text style={s.sectionHeaderTitle}>{section.category}</Text>
+            <View style={[s.sectionCard, CARD_SHADOW]}>
+              {section.items.map((item, iIdx) => {
+                const isLast = iIdx === section.items.length - 1;
                 return (
                   <TouchableOpacity
                     key={iIdx}
-                    style={[s.row, !isLast && s.rowBorder]}
-                    onPress={() => {
-                      if (item.action) item.action();
-                      else if (item.route) router.push(item.route as any);
-                    }}
-                    disabled={item.toggle}
+                    style={[s.hubRow, !isLast && s.rowBorder]}
+                    onPress={() => router.push(item.route as any)}
                     activeOpacity={0.7}
                   >
-                    <View style={s.rowLeft}>
-                      {item.icon && (
-                        <View style={s.iconWrap}>
-                          <MaterialCommunityIcons name={item.icon as any} size={22} color={T.text2} />
-                        </View>
-                      )}
-                      <View style={s.rowText}>
-                        <Text style={s.rowTitle}>{item.label}</Text>
-                        <Text style={s.rowSubtitle}>{item.subtitle}</Text>
-                      </View>
+                    <View style={s.iconBox}>
+                      <MaterialCommunityIcons name={item.icon as any} size={18} color="#0F172A" />
                     </View>
-                    
-                    {item.toggle ? (
-                      <Switch
-                        value={item.value}
-                        onValueChange={item.setValue}
-                        trackColor={{ false: T.border, true: T.success }}
-                        thumbColor="#fff"
-                      />
-                    ) : (
-                      <MaterialCommunityIcons name="chevron-right" size={24} color={T.text3} />
-                    )}
+                    <View style={s.rowTextWrap}>
+                      <Text style={s.rowTitle}>{item.label}</Text>
+                      <Text style={s.rowSubtitle} numberOfLines={1}>
+                        {item.subtitle}
+                      </Text>
+                    </View>
+                    <View style={s.badgePill}>
+                      <Text style={s.badgeText}>{item.badge}</Text>
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={16} color="#94A3B8" />
                   </TouchableOpacity>
                 );
               })}
@@ -212,35 +275,91 @@ export default function Settings() {
           </View>
         ))}
 
-        {/* Danger Zone */}
-        <View style={[s.section, { marginTop: 12 }]}>
-          <View style={s.sectionHeader}>
-            <MaterialCommunityIcons name="alert-octagon-outline" size={20} color={T.error} />
-            <Text style={[s.sectionTitle, { color: T.error }]}>{t('adminSettings.dangerZone')}</Text>
-          </View>
-          <View style={[s.card, { borderColor: T.error + "40" }]}>
-            <TouchableOpacity style={s.row} activeOpacity={0.7} onPress={handleLogout}>
-              <View style={s.rowLeft}>
-                <View style={[s.iconWrap, { backgroundColor: T.error + "10" }]}>
-                  <MaterialCommunityIcons name="logout" size={22} color={T.error} />
-                </View>
-                <View style={s.rowText}>
-                  <Text style={[s.rowTitle, { color: T.error }]}>{t('adminSettings.logoutOption')}</Text>
-                  <Text style={s.rowSubtitle}>{t('adminSettings.logoutDesc')}</Text>
-                </View>
+        {/* Security & Authentication */}
+        <View style={s.section}>
+          <Text style={s.sectionHeaderTitle}>EXECUTIVE SECURITY & PREFERENCES</Text>
+          <View style={[s.sectionCard, CARD_SHADOW]}>
+            {/* MFA Switch */}
+            <View style={[s.hubRow, s.rowBorder]}>
+              <View style={s.iconBox}>
+                <MaterialCommunityIcons name="shield-key-outline" size={18} color="#0F172A" />
               </View>
+              <View style={s.rowTextWrap}>
+                <Text style={s.rowTitle}>Two-Factor Authentication (2FA)</Text>
+                <Text style={s.rowSubtitle}>TOTP security codes for privileged actions</Text>
+              </View>
+              <Switch
+                value={twoFactor}
+                onValueChange={(val) => {
+                  if (val) setMfaModalVisible(true);
+                  else setTwoFactor(false);
+                }}
+                trackColor={{ false: "#E2E8F0", true: "#0F172A" }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+
+            {/* Push Notifications */}
+            <View style={[s.hubRow, s.rowBorder]}>
+              <View style={s.iconBox}>
+                <MaterialCommunityIcons name="bell-ring-outline" size={18} color="#0F172A" />
+              </View>
+              <View style={s.rowTextWrap}>
+                <Text style={s.rowTitle}>Emergency Push Alerts</Text>
+                <Text style={s.rowSubtitle}>Immediate device alerts for SLA breaches</Text>
+              </View>
+              <Switch
+                value={notifications}
+                onValueChange={(val) => updatePreference("pushNotificationsEnabled", val)}
+                trackColor={{ false: "#E2E8F0", true: "#0F172A" }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+
+            {/* Email Alerts */}
+            <View style={s.hubRow}>
+              <View style={s.iconBox}>
+                <MaterialCommunityIcons name="email-check-outline" size={18} color="#0F172A" />
+              </View>
+              <View style={s.rowTextWrap}>
+                <Text style={s.rowTitle}>Daily Executive Digest</Text>
+                <Text style={s.rowSubtitle}>Summary of GMV, disputes, and verifications</Text>
+              </View>
+              <Switch
+                value={emailAlerts}
+                onValueChange={(val) => updatePreference("emailNotificationsEnabled", val)}
+                trackColor={{ false: "#E2E8F0", true: "#0F172A" }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Danger Zone: Log Out */}
+        <View style={s.section}>
+          <View style={[s.sectionCard, CARD_SHADOW]}>
+            <TouchableOpacity style={s.hubRow} activeOpacity={0.7} onPress={handleLogout}>
+              <View style={[s.iconBox, { borderColor: "#FECACA" }]}>
+                <MaterialCommunityIcons name="logout" size={18} color="#DC2626" />
+              </View>
+              <View style={s.rowTextWrap}>
+                <Text style={[s.rowTitle, { color: "#DC2626" }]}>End Executive Session</Text>
+                <Text style={s.rowSubtitle}>Safely log out of the admin cockpit</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={16} color="#DC2626" />
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
-      )}
+
+      {/* 2FA Setup Modal */}
       <MfaSetupModal
         visible={mfaModalVisible}
         onClose={() => setMfaModalVisible(false)}
         onSuccess={() => {
           setMfaModalVisible(false);
           setTwoFactor(true);
-          Alert.alert(t('adminSettings.success'), t('adminSettings.twoFactorEnabled'));
+          Alert.alert("2FA Enabled", "Two-factor authentication is now active on your account.");
         }}
       />
     </SafeAreaView>
@@ -248,30 +367,71 @@ export default function Settings() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: T.surface,
-    borderBottomWidth: 1, borderBottomColor: T.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 14,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  menuBtn: { marginLeft: -8, padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
+  menuBtn: { marginLeft: -6, padding: 6 },
+  headerTitle: { fontSize: 20, fontWeight: "800", color: "#0F172A", letterSpacing: -0.3 },
 
   scrollView: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 60, gap: 24 },
+  // paddingBottom: 120 guarantees content does not hide behind the floating tab bar
+  scrollContent: { padding: 16, paddingBottom: 120, gap: 20 },
 
-  section: { gap: 12 },
-  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4 },
-  sectionTitle: { fontSize: 15, fontWeight: "700", color: T.text1 },
-
-  card: { backgroundColor: T.surface, borderRadius: 20, borderWidth: 1, borderColor: T.border, overflow: "hidden" },
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, backgroundColor: T.surface },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: T.border },
-  rowLeft: { flexDirection: "row", alignItems: "center", gap: 14, flex: 1 },
-  iconWrap: { width: 40, height: 40, borderRadius: 12, backgroundColor: T.bg, alignItems: "center", justifyContent: "center" },
-  rowText: { flex: 1 },
-  rowTitle: { fontSize: 15, fontWeight: "700", color: T.text1, marginBottom: 2 },
-  rowSubtitle: { fontSize: 13, color: T.text3, fontWeight: "500" },
+  section: { gap: 8 },
+  sectionHeaderTitle: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#64748B",
+    letterSpacing: 0.6,
+    paddingHorizontal: 4,
+  },
+  sectionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    overflow: "hidden",
+  },
+  hubRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  rowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  iconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  rowTextWrap: { flex: 1, marginRight: 8 },
+  rowTitle: { fontSize: 14, fontWeight: "700", color: "#0F172A", marginBottom: 2 },
+  rowSubtitle: { fontSize: 12, color: "#64748B", fontWeight: "500" },
+  badgePill: {
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginRight: 6,
+  },
+  badgeText: { fontSize: 10, fontWeight: "700", color: "#475569" },
 });
-

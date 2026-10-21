@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshCon
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSidebarStore } from "@/store/sidebarStore";
+import { useRouter } from "expo-router";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
 import ErrorState from "@/components/common/ErrorState";
@@ -23,18 +24,19 @@ interface ServiceStatus {
 }
 
 const STATUS_COLOR = {
-  operational: { dot: "#059669", label: "Operational", bg: "#d1fae5", text: "#059669" },
-  degraded:    { dot: "#d97706", label: "Degraded",    bg: "#fef3c7", text: "#d97706" },
-  down:        { dot: "#dc2626", label: "Down",        bg: "#fee2e2", text: "#dc2626" },
+  operational: { dot: "#059669", label: "Operational", bg: "#F8FAFC", text: "#0F172A", border: "#E2E8F0" },
+  degraded:    { dot: "#D97706", label: "Degraded",    bg: "#F8FAFC", text: "#0F172A", border: "#E2E8F0" },
+  down:        { dot: "#DC2626", label: "Down",        bg: "#F8FAFC", text: "#0F172A", border: "#E2E8F0" },
 };
 
 function StatusDot({ status }: { status: keyof typeof STATUS_COLOR }) {
+  const cfg = STATUS_COLOR[status] || STATUS_COLOR.operational;
   return (
     <View style={s.statusContainer}>
-      <View style={[s.statusDot, { backgroundColor: STATUS_COLOR[status].dot }]} />
-      <View style={[s.statusBadge, { backgroundColor: STATUS_COLOR[status].bg }]}>
-        <Text style={[s.statusLabel, { color: STATUS_COLOR[status].text }]}>
-          {STATUS_COLOR[status].label}
+      <View style={[s.statusDot, { backgroundColor: cfg.dot }]} />
+      <View style={[s.statusBadge, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
+        <Text style={[s.statusLabel, { color: cfg.text }]}>
+          {cfg.label}
         </Text>
       </View>
     </View>
@@ -42,6 +44,7 @@ function StatusDot({ status }: { status: keyof typeof STATUS_COLOR }) {
 }
 
 export default function SystemMonitoringScreen() {
+  const router = useRouter();
   const { t } = useTranslation();
   const openSidebar = useSidebarStore((s) => s.setAdminOpen);
   const [services, setServices] = useState<ServiceStatus[]>([]);
@@ -156,12 +159,17 @@ export default function SystemMonitoringScreen() {
       <View style={s.header}>
         <View style={s.headerLeft}>
           <TouchableOpacity 
-              accessibilityRole="button"
-              accessibilityLabel={t('common.openMenu')}
-              onPress={() => openSidebar(true)} style={s.menuBtn}>
-            <MaterialCommunityIcons name="menu" size={28} color={T.primary} />
+            accessibilityRole="button"
+            accessibilityLabel="Back or Menu"
+            onPress={() => {
+              if (router.canGoBack()) router.back();
+              else openSidebar(true);
+            }} 
+            style={s.menuBtn}
+          >
+            <MaterialCommunityIcons name={router.canGoBack() ? "arrow-left" : "menu"} size={26} color={T.primary} />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>System Status</Text>
+          <Text style={s.headerTitle}>System Infrastructure Health</Text>
         </View>
         <TouchableOpacity onPress={() => { setRefreshing(true); checkServices(); }} style={s.refreshBtn}>
           <MaterialCommunityIcons name="refresh" size={20} color={T.text2} />
@@ -299,21 +307,23 @@ const s = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 60,
+    paddingBottom: 120,
   },
   banner: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   bannerSuccess: {
-    backgroundColor: "#d1fae5",
-    borderColor: "rgba(5, 150, 105, 0.2)",
+    borderLeftWidth: 4,
+    borderLeftColor: "#059669",
   },
   bannerWarning: {
-    backgroundColor: "#fee2e2",
-    borderColor: "rgba(220, 38, 38, 0.2)",
+    borderLeftWidth: 4,
+    borderLeftColor: "#DC2626",
   },
   bannerRow: {
     flexDirection: "row",
@@ -325,31 +335,30 @@ const s = StyleSheet.create({
   bannerTitle: {
     fontWeight: "700",
     fontSize: 16,
-    color: T.text1,
+    color: "#0F172A",
   },
   bannerSubtitle: {
     fontSize: 12,
-    color: T.text2,
+    color: "#64748B",
     marginTop: 2,
     fontWeight: "500",
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: T.text1,
+    color: "#0F172A",
     marginBottom: 12,
   },
   sectionSpacing: {
     marginBottom: 20,
   },
   serviceCard: {
-    backgroundColor: T.surface,
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: T.border,
-    ...CARD_SHADOW,
+    borderColor: "#E2E8F0",
   },
   serviceHeader: {
     flexDirection: "row",
@@ -359,22 +368,23 @@ const s = StyleSheet.create({
   serviceName: {
     fontWeight: "700",
     fontSize: 15,
-    color: T.text1,
+    color: "#0F172A",
   },
   statusContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
   statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 6,
+    borderWidth: 1,
   },
   statusLabel: {
     fontSize: 11,
@@ -385,12 +395,12 @@ const s = StyleSheet.create({
     gap: 24,
     marginTop: 12,
     borderTopWidth: 1,
-    borderTopColor: T.border,
+    borderTopColor: "#E2E8F0",
     paddingTop: 10,
   },
   metricLabel: {
     fontSize: 10,
-    color: T.text3,
+    color: "#64748B",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 2,
@@ -398,7 +408,7 @@ const s = StyleSheet.create({
   metricValue: {
     fontWeight: "700",
     fontSize: 14,
-    color: T.text1,
+    color: "#0F172A",
   },
   statsGrid: {
     flexDirection: "row",
@@ -408,17 +418,16 @@ const s = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: "45%",
-    backgroundColor: T.surface,
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: T.border,
-    ...CARD_SHADOW,
+    borderColor: "#E2E8F0",
   },
   statValue: {
     fontWeight: "700",
     fontSize: 20,
-    color: T.text1,
+    color: "#0F172A",
     marginTop: 8,
   },
   statLabel: {

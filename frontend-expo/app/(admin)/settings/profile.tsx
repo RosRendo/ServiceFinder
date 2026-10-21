@@ -22,16 +22,6 @@ import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
 
-const HERO_CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#0A192F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
-  android: { elevation: 8 },
-});
-
-const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
-  android: { elevation: 2 },
-});
-
 export default function EditProfileScreen() {
   const router = useRouter();
   const { user, setUser } = useAuthStore();
@@ -47,8 +37,8 @@ export default function EditProfileScreen() {
   const [isVerifying, setIsVerifying] = useState(false);
 
   const defaultAvatar = `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(
-    user?.fullName || "User"
-  )}&backgroundColor=0A192F&textColor=ffffff`;
+    user?.fullName || "Admin"
+  )}&backgroundColor=0F172A&textColor=ffffff`;
 
   const handlePickImage = async () => {
     try {
@@ -177,7 +167,7 @@ export default function EditProfileScreen() {
       setShowOtpModal(false);
       setPendingContact(null);
       setOtpCode("");
-      Alert.alert("Success", "Profile updated successfully.");
+      Alert.alert("Success", "Profile verified and updated successfully.");
       router.back();
     } catch (e: any) {
       const msg = e?.response?.data?.message || "Invalid or expired code.";
@@ -192,10 +182,10 @@ export default function EditProfileScreen() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn} activeOpacity={0.8}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={T.accent} />
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#0F172A" />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Edit Profile</Text>
-        <View style={{ width: 40 }} />
+        <Text style={s.headerTitle}>Administrator Dossier</Text>
+        <View style={{ width: 36 }} />
       </View>
 
       <KeyboardAvoidingView 
@@ -216,72 +206,76 @@ export default function EditProfileScreen() {
                 activeOpacity={0.8}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <MaterialCommunityIcons name="camera-plus-outline" size={16} color="#fff" />
+                <MaterialCommunityIcons name="camera" size={14} color="#FFFFFF" />
               </TouchableOpacity>
+            </View>
+            <Text style={s.avatarHint}>Corporate Administrator Profile</Text>
+          </View>
+
+          {/* Form Card */}
+          <View style={s.card}>
+            {/* Full Name */}
+            <View style={s.fieldGroup}>
+              <Text style={s.fieldLabel}>Full Legal Name</Text>
+              <View style={s.inputWrap}>
+                <MaterialCommunityIcons name="account-outline" size={18} color="#64748B" />
+                <TextInput
+                  style={s.input}
+                  placeholder="Enter full name"
+                  placeholderTextColor="#94A3B8"
+                  value={fullName}
+                  onChangeText={setFullName}
+                  autoCapitalize="words"
+                />
+              </View>
+            </View>
+
+            {/* Email Address */}
+            <View style={s.fieldGroup}>
+              <Text style={s.fieldLabel}>Official Email Address</Text>
+              <View style={s.inputWrap}>
+                <MaterialCommunityIcons name="email-outline" size={18} color="#64748B" />
+                <TextInput
+                  style={s.input}
+                  placeholder="name@company.com"
+                  placeholderTextColor="#94A3B8"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+            </View>
+
+            {/* Phone Number */}
+            <View style={[s.fieldGroup, { marginBottom: 8 }]}>
+              <Text style={s.fieldLabel}>Direct Contact Phone</Text>
+              <View style={s.inputWrap}>
+                <MaterialCommunityIcons name="phone-outline" size={18} color="#64748B" />
+                <TextInput
+                  style={s.input}
+                  placeholder="+1 234 567 8900"
+                  placeholderTextColor="#94A3B8"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                />
+              </View>
             </View>
           </View>
 
-        {/* Email Address */}
-        <View style={s.fieldGroup}>
-          <Text style={s.fieldLabel}>Email Address</Text>
-          <View style={s.inputWrap}>
-            <MaterialCommunityIcons name="email-outline" size={20} color={T.text2} />
-            <TextInput
-              style={s.input}
-              placeholder="name@example.com"
-              placeholderTextColor={T.text3}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-        </View>
-
-        {/* Full Name */}
-        <View style={s.fieldGroup}>
-          <Text style={s.fieldLabel}>Full Name</Text>
-          <View style={s.inputWrap}>
-            <MaterialCommunityIcons name="account-outline" size={20} color={T.text2} />
-            <TextInput
-              style={s.input}
-              placeholder="John Doe"
-              placeholderTextColor={T.text3}
-              value={fullName}
-              onChangeText={setFullName}
-              autoCapitalize="words"
-            />
-          </View>
-        </View>
-
-        {/* Phone Number */}
-        <View style={[s.fieldGroup, { marginBottom: 40 }]}>
-          <Text style={s.fieldLabel}>Phone Number</Text>
-          <View style={s.inputWrap}>
-            <MaterialCommunityIcons name="phone-outline" size={20} color={T.text2} />
-            <TextInput
-              style={s.input}
-              placeholder="+1 234 567 8900"
-              placeholderTextColor={T.text3}
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-            />
-          </View>
-        </View>
-
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={isSubmitting}
-          style={[s.saveBtn, isSubmitting && s.saveBtnDisabled]}
-          activeOpacity={0.85}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={s.saveBtnText}>Save Changes</Text>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleSave}
+            disabled={isSubmitting}
+            style={[s.saveBtn, isSubmitting && s.saveBtnDisabled]}
+            activeOpacity={0.85}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={s.saveBtnText}>Save Profile Updates</Text>
+            )}
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -293,12 +287,12 @@ export default function EditProfileScreen() {
               <View style={s.modalHeader}>
                 <Text style={s.modalTitle}>Verification Required</Text>
                 <TouchableOpacity onPress={() => setShowOtpModal(false)} style={s.modalCloseBtn}>
-                  <MaterialCommunityIcons name="close" size={24} color={T.text2} />
+                  <MaterialCommunityIcons name="close" size={22} color="#0F172A" />
                 </TouchableOpacity>
               </View>
 
-              <View style={[s.infoBox, { backgroundColor: T.successBg, marginTop: 16, marginBottom: 24 }]}>
-                <Text style={[s.infoText, { color: T.successText }]}>
+              <View style={s.infoBox}>
+                <Text style={s.infoText}>
                   {pendingContact?.type === "email" 
                     ? `We've sent a 6-digit verification code to ${pendingContact?.value}.`
                     : `We've sent a 6-digit OTP to ${pendingContact?.value}.`}
@@ -307,14 +301,14 @@ export default function EditProfileScreen() {
 
               <View style={s.fieldGroup}>
                 <Text style={s.fieldLabel}>
-                  {pendingContact?.type === "email" ? "Verification Code" : "OTP"}
+                  {pendingContact?.type === "email" ? "Verification Code" : "OTP Code"}
                 </Text>
                 <View style={s.inputWrap}>
-                  <MaterialCommunityIcons name="key-variant" size={20} color={T.text2} />
+                  <MaterialCommunityIcons name="key-variant" size={18} color="#64748B" />
                   <TextInput
                     style={s.input}
-                    placeholder={pendingContact?.type === "email" ? "Enter 6-digit code" : "Enter 6-digit OTP"}
-                    placeholderTextColor={T.text3}
+                    placeholder="Enter 6-digit code"
+                    placeholderTextColor="#94A3B8"
                     value={otpCode}
                     onChangeText={setOtpCode}
                     keyboardType="number-pad"
@@ -331,72 +325,111 @@ export default function EditProfileScreen() {
                 activeOpacity={0.85}
               >
                 {isVerifying ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={s.saveBtnText}>Verify and Save</Text>
+                  <Text style={s.saveBtnText}>Verify and Commit</Text>
                 )}
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
 
   header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
+  backBtn: { width: 36, height: 36, borderRadius: 8, alignItems: "center", justifyContent: "center", marginLeft: -4 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A", letterSpacing: -0.3 },
 
   scroll: { flex: 1 },
-  scrollContent: { padding: 24, paddingBottom: 60 },
+  scrollContent: { padding: 16, paddingBottom: 120 },
 
-  avatarContainer: { alignItems: "center", marginBottom: 32 },
+  avatarContainer: { alignItems: "center", marginVertical: 20 },
   avatarWrapper: { position: "relative" },
-  avatarImage: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: T.border },
+  avatarImage: { width: 90, height: 90, borderRadius: 45, borderWidth: 2, borderColor: "#E2E8F0" },
   avatarEditBtn: {
-    position: "absolute", bottom: 0, right: 0,
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: T.accent,
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 3, borderColor: T.surface,
-    zIndex: 10,
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#0F172A",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
+  avatarHint: { fontSize: 12, color: "#64748B", marginTop: 8, fontWeight: "500" },
+
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: 16,
+    marginBottom: 16,
   },
 
-  fieldGroup: { marginBottom: 24 },
-  fieldLabel: { fontSize: 13, fontWeight: "700", color: T.text2, marginBottom: 8 },
+  fieldGroup: { marginBottom: 16 },
+  fieldLabel: { fontSize: 12, fontWeight: "700", color: "#475569", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 },
   
   inputWrap: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: T.inputBg, borderWidth: 1, borderColor: T.border,
-    borderRadius: 14, paddingHorizontal: 16, height: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 46,
   },
-  inputWrapDisabled: { backgroundColor: T.inputBgDisabled, borderColor: T.inputBgDisabled },
   
-  input: { flex: 1, marginLeft: 12, fontSize: 16, color: T.text1, height: "100%" },
-  inputTextDisabled: { marginLeft: 12, fontSize: 16, color: T.text2 },
+  input: { flex: 1, marginLeft: 10, fontSize: 14, color: "#0F172A", height: "100%" },
 
   saveBtn: {
-    backgroundColor: T.accent, borderRadius: 16, height: 56,
-    alignItems: "center", justifyContent: "center", ...CARD_SHADOW,
+    backgroundColor: "#0F172A",
+    borderRadius: 8,
+    height: 46,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
+  saveBtnDisabled: { opacity: 0.5 },
+  saveBtnText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
 
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 24 },
-  modalContent: { width: "100%", backgroundColor: T.surface, borderRadius: 24, padding: 24, ...CARD_SHADOW },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  modalTitle: { fontSize: 20, fontWeight: "700", color: T.text1 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(15, 23, 42, 0.4)", justifyContent: "center", alignItems: "center", padding: 20 },
+  modalContent: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  modalTitle: { fontSize: 17, fontWeight: "700", color: "#0F172A" },
   modalCloseBtn: { padding: 4 },
   
-  infoBox: { padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "rgba(16,185,129,0.2)" },
-  infoText: { fontSize: 13, fontWeight: "600", lineHeight: 20 },
+  infoBox: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginBottom: 16,
+  },
+  infoText: { fontSize: 13, color: "#475569", lineHeight: 18, fontWeight: "500" },
 });

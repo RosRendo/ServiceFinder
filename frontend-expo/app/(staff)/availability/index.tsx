@@ -176,7 +176,7 @@ export default function AvailabilityScreen() {
 
       <ScrollView contentContainerStyle={s.content}>
         <View style={s.heroCard}>
-          <MaterialCommunityIcons name="calendar-clock" size={40} color="#fff" />
+          <MaterialCommunityIcons name="calendar-clock" size={36} color="#0F172A" />
           <Text style={s.heroTitle}>Working Hours</Text>
           <Text style={s.heroSub}>Set your default weekly schedule. Jobs will only be assigned during these times.</Text>
         </View>
@@ -259,14 +259,16 @@ const s = StyleSheet.create({
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontWeight: "800", color: T.primary },
   
-  content: { padding: 20, paddingBottom: 60, gap: 20 },
+  content: { padding: 20, paddingBottom: 120, gap: 16 },
   
   heroCard: {
-    backgroundColor: T.primary, borderRadius: 20, padding: 24,
-    alignItems: "center", borderWidth: 1, borderColor: T.border,
+    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 22,
+    alignItems: "center", borderWidth: 1, borderColor: '#E2E8F0',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
   },
-  heroTitle: { fontSize: 22, fontWeight: "800", color: "#fff", marginTop: 12, marginBottom: 8 },
-  heroSub: { fontSize: 14, color: "rgba(255,255,255,0.7)", textAlign: "center", lineHeight: 20 },
+  heroTitle: { fontSize: 20, fontWeight: "800", color: "#0F172A", marginTop: 10, marginBottom: 6 },
+  heroSub: { fontSize: 13, color: "#64748B", textAlign: "center", lineHeight: 18 },
 
   card: {
     backgroundColor: T.surface, borderRadius: 16,

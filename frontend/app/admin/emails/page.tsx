@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import api from "@/lib/api/client";
+import { cn } from "@/lib/utils";
 
 export default function EmailManagementPage() {
   const [templates, setTemplates] = useState<any[]>([]);

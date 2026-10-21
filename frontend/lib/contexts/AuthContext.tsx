@@ -63,25 +63,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      let response = await fetch(`${apiUrl}/api/auth/me`, {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-      })
+      });
+
+      if (!response.ok && response.status === 401) {
+        // Attempt silent token refresh using refreshToken cookie
+        const refreshRes = await fetch(`${apiUrl}/api/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (refreshRes.ok) {
+          response = await fetch(`${apiUrl}/api/auth/me`, {
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+      }
 
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
         // /api/auth/me returns { success, data: { user } } — handle both shapes.
-        setUser(data.user ?? data.data?.user ?? null)
+        setUser(data.user ?? data.data?.user ?? null);
       } else {
-        clearToken()
-        setUser(null)
+        clearToken();
+        setUser(null);
       }
-    } catch (err) {
-      setUser(null)
+    } catch {
+      setUser(null);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const login = async (email: string, password: string): Promise<AuthResult> => {
     try {

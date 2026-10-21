@@ -1,17 +1,21 @@
+
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Mail, Phone, Calendar, Loader2, AlertCircle, CheckCircle, Shield,
   XCircle, MessageSquare, Building2, Briefcase, Star, Clock, Lock, MonitorSmartphone,
   Activity, CheckCircle2, AlertTriangle, List, Edit, Key, LogOut, DollarSign, TrendingUp,
-  Users, BarChart3, Wallet
+  Users, BarChart3, Wallet, ChevronRight, RefreshCw, ArrowUpRight, ShieldAlert,
+  Percent, FileText
 } from "lucide-react";
-import { StatusBadge } from "@/components/admin/StatusBadge";
+import { StatusPill } from "@/components/admin/StatusPill";
+import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
 } from "@/components/ui/dialog";
@@ -25,6 +29,7 @@ import { differenceInDays, format } from "date-fns";
 import { ErrorState } from "@/components/common/ErrorState";
 import api from "@/lib/api/client";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface CompanyOwned {
@@ -70,6 +75,7 @@ interface UserData {
   fullName: string;
   email: string;
   phone?: string;
+  avatarUrl?: string;
   role: string;
   status: string;
   createdAt: string;
@@ -113,29 +119,16 @@ function buildCategoryData(bookings: BookingAsCustomer[]) {
   return Object.values(map).sort((a, b) => b.count - a.count).slice(0, 5);
 }
 
-const staggerContainer: any = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.06 } }
-};
-const fadeUp: any = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 280, damping: 22 } }
-};
-
-const BOOKING_STATUS_COLOR: Record<string, string> = {
-  completed: "bg-emerald-500/10 text-emerald-600",
-  pending: "bg-amber-500/10 text-amber-600",
-  cancelled: "bg-rose-500/10 text-rose-600",
-  in_progress: "bg-blue-500/10 text-blue-600",
-};
-
 // ─── Component ──────────────────────────────────────────────────────────
 export default function UserDetailPage() {
-  const { id } = useParams();
+  const params = useParams();
   const router = useRouter();
+  const id = params?.id ? String(params.id) : "";
+
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Edit Modal State
   const [editOpen, setEditOpen] = useState(false);
@@ -143,10 +136,16 @@ export default function UserDetailPage() {
   const [editPhone, setEditPhone] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Confirmation dialogs
+  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [activateDialogOpen, setActivateDialogOpen] = useState(false);
+  const [isActioning, setIsActioning] = useState(false);
+
   useEffect(() => {
     const fetchUser = async () => {
       if (!id) return;
-      setLoading(true); setError(null);
+      setLoading(true); 
+      setError(null);
       try {
         const res = await api.get(`/users/${id}`);
         const data = res.data;
@@ -158,20 +157,35 @@ export default function UserDetailPage() {
       }
     };
     fetchUser();
-  }, [id]);
+  }, [id, refreshTrigger]);
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleConfirmSuspend = async () => {
     if (!user) return;
+    setIsActioning(true);
     try {
-      if (newStatus === "suspended") {
-        await api.post(`/admin/users/${id}/suspend`, { reason: "Suspended via Admin Console" });
-      } else {
-        await api.post(`/admin/users/${id}/unsuspend`);
-      }
-      setUser({ ...user, status: newStatus });
-      toast.success(newStatus === "suspended" ? "User account suspended" : "User account activated");
+      await api.post(`/admin/users/${id}/suspend`, { reason: "Suspended via Admin Console" });
+      setUser({ ...user, status: "suspended" });
+      toast.success("User account has been suspended");
+      setSuspendDialogOpen(false);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to update user status.");
+      toast.error(err.response?.data?.message || "Failed to suspend user.");
+    } finally {
+      setIsActioning(false);
+    }
+  };
+
+  const handleConfirmActivate = async () => {
+    if (!user) return;
+    setIsActioning(true);
+    try {
+      await api.post(`/admin/users/${id}/unsuspend`);
+      setUser({ ...user, status: "active" });
+      toast.success("User account activated");
+      setActivateDialogOpen(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to activate user.");
+    } finally {
+      setIsActioning(false);
     }
   };
 
@@ -200,29 +214,37 @@ export default function UserDetailPage() {
     }
   };
 
-  if (loading) return (
-    <div className="h-full flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-primary opacity-40" />
-    </div>
-  );
-  if (error) return (
-    <div className="h-full flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
-        <ErrorState title="Couldn't load user" message={error} onRetry={() => window.location.reload()} />
-        <div className="mt-4 text-center">
-          <Button variant="outline" onClick={() => router.push("/admin/users")}>← Back to Users</Button>
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[400px] bg-background gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Loading User Dossier...</p>
+      </div>
+    );
+  }
+
+  if (error || !user) {
+    return (
+      <div className="h-full flex items-center justify-center p-6">
+        <div className="max-w-md w-full">
+          <ErrorState title="Couldn't load user" message={error || "User record not found"} onRetry={() => setRefreshTrigger(p => p + 1)} />
+          <div className="mt-4 text-center">
+            <Button variant="outline" size="sm" onClick={() => router.push("/admin/users")}>
+              ← Back to Users
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  const u = user!;
+  const u = user;
   const isOwner = u.role === "company_admin" || u.role === "COMPANY_OWNER" || u.role === "owner" || ((u.ownedCompanies || []).length > 0);
   const isStaff = u.role === "staff" || u.role === "STAFF" || ((u.staffMemberships || []).length > 0);
   const isAdmin = u.role === "admin" || u.role === "ADMIN";
   const isCustomer = !isOwner && !isStaff && !isAdmin;
 
-  // ── Pre-compute metrics ──────────────────────────────────────────────
+  // ── Metrics ──────────────────────────────────────────────────────────
   const accountAgeDays = differenceInDays(new Date(), new Date(u.createdAt));
 
   // Customer
@@ -258,7 +280,7 @@ export default function UserDetailPage() {
 
   const roleDisplayName = 
     isOwner ? "Company Owner" :
-    isStaff ? "Field Staff" :
+    isStaff ? "Field Technician" :
     isAdmin ? "Platform Admin" :
     "Customer";
 
@@ -271,189 +293,253 @@ export default function UserDetailPage() {
     .toUpperCase();
 
   return (
-    <motion.div variants={staggerContainer} initial="hidden" animate="show"
-      className="h-full flex flex-col p-4 sm:p-6 font-sans overflow-y-auto">
-
-      {/* ── Breadcrumb + Actions ─────────────────────────────────── */}
-      <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
+    <div className="h-full overflow-y-auto bg-background p-4 sm:p-6 lg:p-8 space-y-6 font-sans max-w-7xl mx-auto">
+      
+      {/* ─── Breadcrumb & Top Command Bar ───────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" onClick={() => router.push("/admin/users")}
-            className="rounded-lg h-9 w-9 shrink-0">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={() => router.push("/admin/users")} 
+            className="h-8 w-8 rounded-lg bg-card border-border hover:bg-muted shrink-0 text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">
-              Admin / Users / {u.fullName}
-            </p>
-            <h1 className="text-xl font-black text-foreground tracking-tight">User Dashboard</h1>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <Link href="/admin/users" className="hover:text-foreground transition-colors">Users</Link>
+              <ChevronRight className="w-3 h-3 text-muted-foreground/60" />
+              <span className="text-foreground">#{u.id}</span>
+            </div>
+            <div className="flex items-center gap-2.5 mt-0.5">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+                {u.fullName}
+              </h1>
+              <StatusPill status={u.status} />
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-muted text-foreground px-2 py-0.5 rounded-md border border-border">
+                {roleDisplayName}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 pl-12 sm:pl-0">
-          <Button variant="outline" size="sm" className="font-bold"
-            onClick={() => router.push(`/admin/messages?new=${u.id}`)}>
-            <MessageSquare className="w-4 h-4 mr-2 text-primary" /> Message
-          </Button>
-          <Button variant="outline" size="sm"
-            className={u.status === "active"
-              ? "font-bold border-rose-500/30 text-rose-600 hover:bg-rose-500/10"
-              : "font-bold border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"}
-            onClick={() => handleStatusChange(u.status === "active" ? "suspended" : "active")}>
-            {u.status === "active"
-              ? <><XCircle className="w-4 h-4 mr-2" />Suspend</>
-              : <><CheckCircle className="w-4 h-4 mr-2" />Activate</>}
-          </Button>
-        </div>
-      </motion.div>
 
-      {/* ── Profile Header ───────────────────────────────────────── */}
-      <motion.div variants={fadeUp} className="bg-background border border-border rounded-xl p-5 shadow-sm mb-5 flex flex-col md:flex-row items-start md:items-center gap-5">
-        <div className="relative shrink-0">
-          <Avatar className="h-20 w-20 rounded-2xl shadow-md border border-border/50">
-            <AvatarFallback className="rounded-2xl bg-primary/10 text-primary text-2xl font-black">
+        {/* Global Action Toolbar */}
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setRefreshTrigger(p => p + 1)} 
+            className="h-8 px-2.5 text-xs font-semibold rounded-lg bg-card border-border text-muted-foreground hover:text-foreground"
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => router.push(`/admin/messages?user=${u.id}`)}
+            className="h-8 px-3 text-xs font-semibold rounded-lg bg-card border-border text-foreground hover:bg-muted"
+          >
+            <MessageSquare className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" /> Direct Message
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleOpenEdit}
+            className="h-8 px-3 text-xs font-semibold rounded-lg bg-card border-border text-foreground hover:bg-muted"
+          >
+            <Edit className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" /> Edit Profile
+          </Button>
+          {u.status === "active" ? (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setSuspendDialogOpen(true)}
+              className="h-8 px-3 text-xs font-semibold rounded-lg border-rose-500/30 text-rose-600 hover:bg-rose-500/10"
+            >
+              Suspend User
+            </Button>
+          ) : (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setActivateDialogOpen(true)}
+              className="h-8 px-3 text-xs font-semibold rounded-lg border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+            >
+              Activate User
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* ─── Profile Hero Card ─────────────────────────────────────────── */}
+      <div className="bg-card rounded-2xl border border-border p-5 sm:p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+        <div className="flex items-center gap-4">
+          <Avatar className="w-16 h-16 rounded-2xl border border-border shrink-0 shadow-xs">
+            <AvatarImage src={u.avatarUrl} />
+            <AvatarFallback className="rounded-2xl bg-muted text-foreground text-xl font-bold">
               {initials}
             </AvatarFallback>
           </Avatar>
-          <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-background rounded-full border border-border flex items-center justify-center shadow-sm">
-            {u.status === "active"
-              ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              : <AlertTriangle className="w-4 h-4 text-rose-500" />}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h2 className="text-lg font-bold text-foreground">{u.fullName}</h2>
+              <span className="text-[10px] font-mono text-muted-foreground bg-muted/60 px-2 py-0.5 rounded border border-border">
+                ID: {u.id}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />{u.email}</span>
+              {u.phone && <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{u.phone}</span>}
+              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />Registered {format(new Date(u.createdAt), "MMM d, yyyy")}</span>
+            </div>
           </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2.5 mb-2">
-            <h2 className="text-xl font-black text-foreground">{u.fullName}</h2>
-            <StatusBadge status={(u.status === "active" ? "active" : "suspended") as any} />
-            <span className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-primary/20">
-              <Shield className="w-3 h-3" />{roleDisplayName}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm font-medium text-muted-foreground">
-            <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />{u.email}</span>
-            {u.phone && <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{u.phone}</span>}
-            <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />Joined {format(new Date(u.createdAt), "MMM d, yyyy")}</span>
-            {u.lastLoginAt && <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />Last seen {format(new Date(u.lastLoginAt), "MMM d, yyyy")}</span>}
-          </div>
-        </div>
-        <div className="flex flex-wrap md:flex-col gap-2 shrink-0">
-          <Button variant="outline" size="sm" className="font-bold justify-start" onClick={handleOpenEdit}>
-            <Edit className="w-3.5 h-3.5 mr-2 text-muted-foreground" />Edit Profile
-          </Button>
-          <Button variant="outline" size="sm" className="font-bold justify-start"
-            onClick={() => toast.success(`Password reset link sent to ${u.email}`)}>
-            <Key className="w-3.5 h-3.5 mr-2 text-muted-foreground" />Reset Password
-          </Button>
-        </div>
-      </motion.div>
 
-      {/* ── Quick Stats (role-adaptive real data) ───────────────────── */}
-      <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        <div className="flex items-center gap-2 self-stretch md:self-auto pt-2 md:pt-0 border-t md:border-t-0 border-border">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => toast.success(`Password reset verification email sent to ${u.email}`)}
+            className="flex-1 md:flex-initial h-8 text-xs font-semibold rounded-lg bg-card border-border hover:bg-muted text-foreground"
+          >
+            <Key className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" /> Reset Password
+          </Button>
+        </div>
+      </div>
+
+      {/* ─── Telemetry Overview Ribbon ──────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {(isOwner ? [
           { label: "Account Age", value: `${accountAgeDays}d`, icon: Clock },
           { label: "Companies", value: ownedCos.length, icon: Building2 },
           { label: "Total Staff", value: totalStaff, icon: Users },
           { label: "Active Services", value: totalServices, icon: Briefcase },
           { label: "Completed Jobs", value: totalCompletedJobs, icon: CheckCircle2 },
-          { label: "Messages", value: u._count?.messages ?? 0, icon: MessageSquare },
+          { label: "Direct Messages", value: u._count?.messages ?? 0, icon: MessageSquare },
         ] : isStaff ? [
           { label: "Account Age", value: `${accountAgeDays}d`, icon: Clock },
-          { label: "Jobs Assigned", value: staffJobs.length, icon: Briefcase },
+          { label: "Assigned Jobs", value: staffJobs.length, icon: Briefcase },
           { label: "Completed Jobs", value: staffCompleted, icon: CheckCircle2 },
           { label: "Commission", value: fmt(commissionEarned), icon: DollarSign },
           { label: "Rating", value: avgStaffRating ? `${avgStaffRating.toFixed(1)} ★` : "—", icon: Star },
-          { label: "Messages", value: u._count?.messages ?? 0, icon: MessageSquare },
+          { label: "Direct Messages", value: u._count?.messages ?? 0, icon: MessageSquare },
         ] : isAdmin ? [
           { label: "Account Age", value: `${accountAgeDays}d`, icon: Clock },
           { label: "Access Level", value: "Root Admin", icon: Shield },
           { label: "Audit Logs", value: u.auditLogs?.length ?? 0, icon: List },
-          { label: "Messages", value: u._count?.messages ?? 0, icon: MessageSquare },
+          { label: "Direct Messages", value: u._count?.messages ?? 0, icon: MessageSquare },
           { label: "Notifications", value: u._count?.notifications ?? 0, icon: Activity },
-          { label: "Security", value: "Enforced", icon: Lock },
+          { label: "Security Mode", value: "Enforced", icon: Lock },
         ] : [
           { label: "Account Age", value: `${accountAgeDays}d`, icon: Clock },
-          { label: "Messages", value: u._count?.messages ?? 0, icon: MessageSquare },
-          { label: "Notifications", value: u._count?.notifications ?? 0, icon: Activity },
-          { label: "Bookings", value: u._count?.bookingsAsCustomer ?? 0, icon: BarChart3 },
+          { label: "Total Bookings", value: customerBookings.length, icon: BarChart3 },
+          { label: "Completed Jobs", value: completedCount, icon: CheckCircle2 },
+          { label: "Total Spent", value: fmt(lifetimeValue), icon: DollarSign },
           { label: "Reviews Written", value: u._count?.reviews ?? 0, icon: Star },
-          { label: "Cancellations", value: u._count?.cancellationsMade ?? 0, icon: AlertTriangle, color: (u._count?.cancellationsMade ?? 0) > 0 ? "text-rose-500" : "text-emerald-500" },
+          { label: "Cancellations", value: cancelledCount, icon: AlertTriangle },
         ]).map((stat, i) => (
-          <div key={i} className="bg-background border border-border rounded-xl p-3.5 shadow-sm hover:bg-muted/10 transition-colors">
-            <stat.icon className={`w-3.5 h-3.5 mb-2 ${(stat as any).color || "text-muted-foreground"}`} />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
-            <p className="text-xl font-black text-foreground mt-0.5">{stat.value}</p>
+          <div key={i} className="bg-card border border-border rounded-xl p-3.5 shadow-xs flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-muted/60 border border-border flex items-center justify-center text-muted-foreground shrink-0">
+              <stat.icon className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-base font-bold font-mono text-foreground leading-none truncate">{stat.value}</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1 truncate">{stat.label}</p>
+            </div>
           </div>
         ))}
-      </motion.div>
+      </div>
 
-      {/* ── Role Section Header ──────────────────────────────────── */}
-      <motion.div variants={fadeUp} className="mb-3">
-        <div className="flex items-center gap-2">
-          {isOwner ? <Building2 className="w-4 h-4 text-primary" />
-            : isStaff ? <Briefcase className="w-4 h-4 text-blue-500" />
-            : isAdmin ? <Shield className="w-4 h-4 text-amber-500" />
-            : <Star className="w-4 h-4 text-emerald-500" />}
-          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            {isOwner ? "Company & Business Management"
-              : isStaff ? "Field Staff & Performance"
-              : isAdmin ? "System Administration Privileges"
-              : "Customer Overview"}
-          </span>
-        </div>
-      </motion.div>
-
-      {/* ════════════════════════════════════════════════════════════
-          CUSTOMER DASHBOARD
-      ════════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════════════
+          ROLE-SPECIFIC DOSSIER CONTENT
+      ══════════════════════════════════════════════════════════════════ */}
+      
+      {/* 1. CUSTOMER VIEW */}
       {isCustomer && (
-        <>
-          <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-            {[
-              { label: "Lifetime Value", value: fmt(lifetimeValue), accent: "bg-primary text-primary-foreground shadow-lg shadow-primary/20" },
-              { label: "Completed Bookings", value: completedCount.toString() },
-              { label: "Avg. Booking Value", value: fmt(avgBookingValue) },
-              { label: "Cancellations", value: cancelledCount.toString(), red: cancelledCount > 0 },
-            ].map((c, i) => (
-              <div key={i} className={`rounded-xl p-4 shadow-sm ${c.accent || "bg-background border border-border"}`}>
-                <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${c.accent ? "opacity-80" : "text-muted-foreground"}`}>{c.label}</p>
-                <p className={`text-2xl font-black ${c.accent ? "" : c.red ? "text-rose-500" : "text-foreground"}`}>{c.value}</p>
-              </div>
-            ))}
-          </motion.div>
+        <div className="space-y-6">
+          
+          {/* Customer Financial Summary Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Lifetime Realized Value</p>
+              <p className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">{fmt(lifetimeValue)}</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Completed Services</p>
+              <p className="text-2xl font-bold font-mono text-foreground mt-1">{completedCount}</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Average Order Ticket</p>
+              <p className="text-2xl font-bold font-mono text-foreground mt-1">{fmt(avgBookingValue)}</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cancellations Recorded</p>
+              <p className={cn("text-2xl font-bold font-mono mt-1", cancelledCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground")}>
+                {cancelledCount}
+              </p>
+            </div>
+          </div>
 
-          <motion.div variants={fadeUp} className="grid lg:grid-cols-12 gap-5 mb-5">
-            {/* Booking History */}
-            <div className="lg:col-span-8 bg-background border border-border rounded-xl shadow-sm overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border bg-muted/20 flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Booking History</span>
-                <span className="text-[10px] font-bold uppercase text-muted-foreground">{customerBookings.length} records</span>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Booking History Table (8 cols) */}
+            <div className="lg:col-span-8 bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
+              <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Order & Booking History</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Chronological record of services booked by this customer.</p>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-2 py-0.5 rounded border border-border">
+                  {customerBookings.length} records
+                </span>
               </div>
+
               {customerBookings.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">No bookings found</div>
+                <div className="p-10 text-center text-muted-foreground text-xs">
+                  No service orders found for this customer account.
+                </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/10 text-[10px] uppercase font-bold tracking-widest text-muted-foreground border-b border-border/50">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/30 text-[10px] uppercase font-bold tracking-wider text-muted-foreground border-b border-border">
                       <tr>
-                        <th className="px-4 py-3 text-left">Service</th>
-                        <th className="px-4 py-3 text-left hidden md:table-cell">Company</th>
-                        <th className="px-4 py-3 text-left hidden lg:table-cell">Staff</th>
-                        <th className="px-4 py-3 text-left">Date</th>
-                        <th className="px-4 py-3 text-center">Status</th>
-                        <th className="px-4 py-3 text-right">Amount</th>
+                        <th className="px-4 py-2.5 text-left">Order</th>
+                        <th className="px-4 py-2.5 text-left">Service</th>
+                        <th className="px-4 py-2.5 text-left hidden sm:table-cell">Provider</th>
+                        <th className="px-4 py-2.5 text-left hidden md:table-cell">Date</th>
+                        <th className="px-4 py-2.5 text-center">Status</th>
+                        <th className="px-4 py-2.5 text-right">Charged</th>
+                        <th className="px-4 py-2.5 text-right">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border/50">
-                      {customerBookings.map(bk => (
-                        <tr key={bk.id} className="hover:bg-muted/10 transition-colors">
-                          <td className="px-4 py-3 font-bold text-foreground">{bk.service?.name || "—"}</td>
-                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{bk.company?.name || "—"}</td>
-                          <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{bk.assignedStaff?.user?.fullName || "—"}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{bk.bookingDate ? format(new Date(bk.bookingDate), "MMM d, yyyy") : "—"}</td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${BOOKING_STATUS_COLOR[bk.status] || "bg-muted text-muted-foreground"}`}>
-                              {bk.status}
-                            </span>
+                    <tbody className="divide-y divide-border/60">
+                      {customerBookings.map((bk) => (
+                        <tr key={bk.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3 font-mono font-bold text-foreground">#{bk.id}</td>
+                          <td className="px-4 py-3 font-semibold text-foreground">{bk.service?.name || "Service"}</td>
+                          <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{bk.company?.name || "Merchant"}</td>
+                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
+                            {bk.bookingDate ? format(new Date(bk.bookingDate), "MMM d, yyyy") : "—"}
                           </td>
-                          <td className="px-4 py-3 text-right font-black text-foreground">{fmt(num(bk.totalPrice))}</td>
+                          <td className="px-4 py-3 text-center">
+                            <StatusPill status={bk.status} />
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono font-bold text-foreground">
+                            {fmt(num(bk.totalPrice))}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <Button 
+                              asChild 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 px-2 text-xs font-semibold text-foreground hover:bg-muted"
+                            >
+                              <Link href={`/admin/bookings/${bk.id}`}>
+                                View <ChevronRight className="w-3 h-3 ml-0.5" />
+                              </Link>
+                            </Button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -462,238 +548,213 @@ export default function UserDetailPage() {
               )}
             </div>
 
-            {/* Favorite Categories */}
-            <div className="lg:col-span-4 bg-background border border-border rounded-xl shadow-sm">
-              <div className="px-5 py-3.5 border-b border-border bg-muted/20">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Favorite Categories</span>
+            {/* Favorite Categories Sidebar (4 cols) */}
+            <div className="lg:col-span-4 bg-card border border-border rounded-2xl shadow-xs p-5 space-y-4">
+              <div className="border-b border-border pb-3">
+                <h3 className="text-sm font-bold text-foreground">Category Affinities</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Services frequently commissioned by this user.</p>
               </div>
-              <div className="p-4 space-y-2.5">
-                {categoryData.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No data yet</p>
-                ) : categoryData.map((cat, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/10">
-                    <div>
-                      <p className="font-bold text-sm text-foreground">{cat.name}</p>
-                      <p className="text-[10px] font-bold text-muted-foreground">{cat.count} booking{cat.count !== 1 ? "s" : ""} · {fmt(cat.spent)}</p>
-                    </div>
-                    <span className="text-xs font-black text-primary">#{i + 1}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        </>
-      )}
 
-      {/* ════════════════════════════════════════════════════════════
-          COMPANY OWNER DASHBOARD
-      ════════════════════════════════════════════════════════════ */}
-      {isOwner && (
-        <>
-          <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-            {[
-              { label: "Gross Revenue", value: fmt(ownerGross), accent: "bg-primary text-primary-foreground shadow-lg shadow-primary/20" },
-              { label: "Platform Fees", value: fmt(ownerFees), red: true },
-              { label: "Net Earnings", value: fmt(ownerNet) },
-              { label: "Pending Payout", value: fmt(ownerPending), amber: true },
-            ].map((c, i) => (
-              <div key={i} className={`rounded-xl p-4 shadow-sm ${c.accent || "bg-background border border-border"}`}>
-                <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${c.accent ? "opacity-80" : "text-muted-foreground"}`}>{c.label}</p>
-                <p className={`text-2xl font-black ${c.accent ? "" : c.red ? "text-rose-500" : (c as any).amber ? "text-amber-500" : "text-foreground"}`}>{c.value}</p>
-              </div>
-            ))}
-          </motion.div>
-
-          <motion.div variants={fadeUp} className="grid lg:grid-cols-12 gap-5 mb-5">
-            {/* Revenue Chart */}
-            <div className="lg:col-span-8 bg-background border border-border rounded-xl shadow-sm p-5">
-              <div className="flex items-center justify-between mb-5">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Revenue Overview (Completed Jobs)</p>
-                <div className="flex gap-3 text-xs">
-                  <span className="flex items-center gap-1.5 text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-primary inline-block"></span>Revenue</span>
-                </div>
-              </div>
-              {revenueChartData.length === 0 ? (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm border border-dashed border-border rounded-xl">
-                  No completed booking revenue recorded yet
-                </div>
+              {categoryData.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">No service category data available.</p>
               ) : (
-                <div className="h-[220px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={revenueChartData}>
-                      <defs>
-                        <linearGradient id="gRev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--primary, #3b82f6)" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="var(--primary, #3b82f6)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} dy={8} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} dx={-6} tickFormatter={v => `$${v / 1000}k`} />
-                      <RechartsTooltip formatter={(v: any) => fmt(v)} contentStyle={{ borderRadius: "12px", border: "1px solid hsl(var(--border))", background: "hsl(var(--background))" }} />
-                      <Area type="monotone" dataKey="revenue" stroke="var(--primary, #3b82f6)" strokeWidth={2.5} fillOpacity={1} fill="url(#gRev)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                <div className="space-y-3">
+                  {categoryData.map((cat, i) => (
+                    <div key={i} className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <p className="font-bold text-xs text-foreground truncate">{cat.name}</p>
+                        <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                          {cat.count} booking{cat.count !== 1 ? "s" : ""} · {fmt(cat.spent)}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border">
+                        #{i + 1}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* Owner Summary Stats */}
-            <div className="lg:col-span-4 grid grid-cols-2 gap-3 content-start">
-              {[
-                { label: "Companies", value: ownedCos.length, icon: Building2 },
-                { label: "Total Staff", value: totalStaff, icon: Users },
-                { label: "Active Services", value: totalServices, icon: Briefcase },
-                { label: "Completed Jobs", value: totalCompletedJobs, icon: CheckCircle2 },
-              ].map((s, i) => (
-                <div key={i} className="bg-background border border-border rounded-xl p-4 shadow-sm">
-                  <s.icon className="w-4 h-4 text-muted-foreground mb-2" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{s.label}</p>
-                  <p className="text-2xl font-black text-foreground mt-0.5">{s.value}</p>
+          </div>
+        </div>
+      )}
+
+      {/* 2. COMPANY OWNER VIEW */}
+      {isOwner && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Gross Merchant Volume</p>
+              <p className="text-2xl font-bold font-mono text-foreground mt-1">{fmt(ownerGross)}</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Platform Commission</p>
+              <p className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">{fmt(ownerFees)}</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Net Merchant Payout</p>
+              <p className="text-2xl font-bold font-mono text-foreground mt-1">{fmt(ownerNet)}</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pending Balance</p>
+              <p className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1">{fmt(ownerPending)}</p>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-2xl border border-border p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Revenue Realization Trend</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Historical earnings realized by owned enterprise accounts.</p>
+              </div>
+            </div>
+
+            {revenueChartData.length === 0 ? (
+              <div className="h-[200px] flex items-center justify-center text-muted-foreground text-xs border border-dashed border-border rounded-xl">
+                No historical revenue data recorded yet.
+              </div>
+            ) : (
+              <div className="h-[220px] w-full pt-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={revenueChartData}>
+                    <defs>
+                      <linearGradient id="userRevGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.6} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }} dy={8} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--muted-foreground))" }} dx={-6} tickFormatter={v => `$${v / 1000}k`} />
+                    <RechartsTooltip formatter={(v: any) => fmt(v)} />
+                    <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#userRevGrad)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          {/* Owned Companies Grid */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Owned Business Entities</h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {ownedCos.map((co, i) => (
+                <div key={i} className="bg-card border border-border rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-muted/60 border border-border flex items-center justify-center shrink-0">
+                      <Building2 className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm text-foreground truncate">{co.name}</p>
+                      <StatusPill status={co.verificationStatus} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-muted/30 border border-border rounded-lg p-2">
+                      <p className="text-[10px] text-muted-foreground font-bold uppercase">Staff</p>
+                      <p className="font-mono font-bold text-foreground text-sm">{co._count?.staff || 0}</p>
+                    </div>
+                    <div className="bg-muted/30 border border-border rounded-lg p-2">
+                      <p className="text-[10px] text-muted-foreground font-bold uppercase">Services</p>
+                      <p className="font-mono font-bold text-foreground text-sm">{co._count?.services || 0}</p>
+                    </div>
+                    <div className="bg-muted/30 border border-border rounded-lg p-2">
+                      <p className="text-[10px] text-muted-foreground font-bold uppercase">Jobs</p>
+                      <p className="font-mono font-bold text-foreground text-sm">{co.completedJobs || 0}</p>
+                    </div>
+                  </div>
+
+                  <Button 
+                    asChild 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full h-8 text-xs font-semibold rounded-xl bg-card border-border hover:bg-muted"
+                  >
+                    <Link href={`/admin/companies/${co.id}`}>
+                      Manage Company Dossier →
+                    </Link>
+                  </Button>
                 </div>
               ))}
             </div>
-          </motion.div>
-
-          {/* Companies List */}
-          <motion.div variants={fadeUp} className="mb-5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Owned Companies</p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {ownedCos.length === 0 ? (
-                <p className="col-span-full text-sm text-muted-foreground text-center py-6 border border-dashed border-border rounded-xl">No companies registered</p>
-              ) : ownedCos.map((co, i) => {
-                const coRevenue = (co.bookings || []).reduce((s, b) => s + num(b.companyEarnings), 0);
-                return (
-                  <div key={i} className="bg-background border border-border rounded-xl p-5 shadow-sm hover:bg-muted/10 transition-colors">
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                        <Building2 className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-black text-foreground truncate">{co.name}</p>
-                        <span className={`text-[10px] font-bold uppercase tracking-widest ${co.verificationStatus === "verified" ? "text-emerald-500" : co.verificationStatus === "pending" ? "text-amber-500" : "text-rose-500"}`}>
-                          {co.verificationStatus}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 mb-3 text-center">
-                      <div className="bg-muted/20 rounded-lg p-2"><p className="text-[10px] text-muted-foreground">Staff</p><p className="font-black">{co._count?.staff || 0}</p></div>
-                      <div className="bg-muted/20 rounded-lg p-2"><p className="text-[10px] text-muted-foreground">Services</p><p className="font-black">{co._count?.services || 0}</p></div>
-                      <div className="bg-muted/20 rounded-lg p-2"><p className="text-[10px] text-muted-foreground">Jobs</p><p className="font-black">{co.completedJobs || 0}</p></div>
-                    </div>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-[10px] text-muted-foreground font-bold uppercase">Revenue</span>
-                      <span className="text-sm font-black text-emerald-600">{fmt(coRevenue)}</span>
-                    </div>
-                    {co.ratingSummary?.averageRating && (
-                      <div className="flex items-center gap-1 text-amber-500 text-xs font-bold mb-3">
-                        <Star className="w-3.5 h-3.5 fill-current" />
-                        {parseFloat(co.ratingSummary.averageRating).toFixed(1)}
-                        <span className="text-muted-foreground ml-1">({co.ratingSummary.totalReviews} reviews)</span>
-                      </div>
-                    )}
-                    <Button variant="outline" size="sm" className="w-full text-xs font-bold h-8"
-                      onClick={() => router.push(`/admin/companies/${co.id}`)}>
-                      Manage Company →
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          </motion.div>
-        </>
+          </div>
+        </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════
-          STAFF DASHBOARD
-      ════════════════════════════════════════════════════════════ */}
+      {/* 3. STAFF TECHNICIAN VIEW */}
       {isStaff && (
-        <>
-          <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-            {[
-              { label: "Commission Earned", value: fmt(commissionEarned), accent: "bg-emerald-600 text-white shadow-lg shadow-emerald-500/20" },
-              { label: "Jobs Completed", value: staffCompleted.toString() },
-              { label: "Avg Rating", value: avgStaffRating ? avgStaffRating.toFixed(1) + " ★" : "—" },
-              { label: "Pending Commission", value: fmt(pendingCommission), amber: true },
-            ].map((c, i) => (
-              <div key={i} className={`rounded-xl p-4 shadow-sm ${c.accent || "bg-background border border-border"}`}>
-                <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${c.accent ? "opacity-80" : "text-muted-foreground"}`}>{c.label}</p>
-                <p className={`text-2xl font-black ${c.accent ? "" : (c as any).amber ? "text-amber-500" : "text-foreground"}`}>{c.value}</p>
-              </div>
-            ))}
-          </motion.div>
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Realized Commission</p>
+              <p className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">{fmt(commissionEarned)}</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Jobs Completed</p>
+              <p className="text-2xl font-bold font-mono text-foreground mt-1">{staffCompleted}</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Customer Satisfaction</p>
+              <p className="text-2xl font-bold font-mono text-amber-500 mt-1">{avgStaffRating ? `${avgStaffRating.toFixed(1)} ★` : "—"}</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pending Payout</p>
+              <p className="text-2xl font-bold font-mono text-foreground mt-1">{fmt(pendingCommission)}</p>
+            </div>
+          </div>
 
-          <motion.div variants={fadeUp} className="grid lg:grid-cols-12 gap-5 mb-5">
-            {/* Employer Card */}
-            <div className="lg:col-span-4 bg-background border border-border rounded-xl shadow-sm overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border bg-muted/20">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Employment Info</span>
-              </div>
-              <div className="p-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
-                    <Building2 className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="font-black text-foreground">{membership?.company?.name || "No Employer"}</p>
-                    {membership?.company?.ratingSummary?.averageRating && (
-                      <p className="text-xs font-bold text-amber-500 flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-current" />
-                        {parseFloat(membership.company.ratingSummary.averageRating).toFixed(1)} avg rating
-                      </p>
-                    )}
-                  </div>
+          {/* Employer & Recent Assigned Jobs */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-4 bg-card border border-border rounded-2xl p-5 shadow-xs space-y-4">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block border-b border-border pb-3">
+                Affiliated Merchant
+              </span>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-muted/60 border border-border flex items-center justify-center shrink-0">
+                  <Building2 className="w-5 h-5 text-muted-foreground" />
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-center mb-4">
-                  <div className="bg-muted/20 rounded-lg p-3">
-                    <p className="text-[10px] font-bold text-muted-foreground">Split %</p>
-                    <p className="font-black text-foreground">{membership?.splitPercent ? `${membership.splitPercent}%` : "—"}</p>
-                  </div>
-                  <div className="bg-muted/20 rounded-lg p-3">
-                    <p className="text-[10px] font-bold text-muted-foreground">Wallet Balance</p>
-                    <p className="font-black text-emerald-600">{fmt(num(membership?.walletBalance))}</p>
-                  </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-sm text-foreground truncate">{membership?.company?.name || "Independent Contractor"}</p>
+                  <p className="text-xs text-muted-foreground">Commission Split: {membership?.splitPercent || "30"}%</p>
                 </div>
-                {membership?.company?.id && (
-                  <Button variant="outline" className="w-full text-xs font-bold"
-                    onClick={() => router.push(`/admin/companies/${membership.company.id}`)}>
-                    View Employer
-                  </Button>
-                )}
               </div>
+              {membership?.company?.id && (
+                <Button asChild variant="outline" size="sm" className="w-full h-8 text-xs font-semibold rounded-xl bg-card border-border hover:bg-muted">
+                  <Link href={`/admin/companies/${membership.company.id}`}>
+                    View Employer Dossier →
+                  </Link>
+                </Button>
+              )}
             </div>
 
-            {/* Recent Jobs */}
-            <div className="lg:col-span-8 bg-background border border-border rounded-xl shadow-sm overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border bg-muted/20">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Recent Assigned Jobs</span>
+            <div className="lg:col-span-8 bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
+              <div className="p-4 border-b border-border">
+                <h3 className="text-sm font-bold text-foreground">Recent Dispatched Assignments</h3>
               </div>
               {staffJobs.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">No jobs assigned yet</div>
+                <div className="p-8 text-center text-xs text-muted-foreground">No recent jobs recorded.</div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/10 text-[10px] uppercase font-bold tracking-widest text-muted-foreground border-b border-border/50">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/30 text-[10px] uppercase font-bold tracking-wider text-muted-foreground border-b border-border">
                       <tr>
-                        <th className="px-4 py-3 text-left">Service</th>
-                        <th className="px-4 py-3 text-left hidden md:table-cell">Customer</th>
-                        <th className="px-4 py-3 text-left">Date</th>
-                        <th className="px-4 py-3 text-center">Status</th>
-                        <th className="px-4 py-3 text-right">Earnings</th>
+                        <th className="px-4 py-2.5 text-left">Service</th>
+                        <th className="px-4 py-2.5 text-left hidden sm:table-cell">Customer</th>
+                        <th className="px-4 py-2.5 text-center">Status</th>
+                        <th className="px-4 py-2.5 text-right">Commission</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border/50">
+                    <tbody className="divide-y divide-border/60">
                       {staffJobs.map(job => (
-                        <tr key={job.id} className="hover:bg-muted/10 transition-colors">
-                          <td className="px-4 py-3 font-bold text-foreground">{job.service?.name || "—"}</td>
-                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{job.customer?.fullName || "—"}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{job.bookingDate ? format(new Date(job.bookingDate), "MMM d, yyyy") : "—"}</td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${BOOKING_STATUS_COLOR[job.status] || "bg-muted text-muted-foreground"}`}>
-                              {job.status}
-                            </span>
+                        <tr key={job.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3 font-semibold text-foreground">{job.service?.name || "Service"}</td>
+                          <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{job.customer?.fullName || "—"}</td>
+                          <td className="px-4 py-3 text-center"><StatusPill status={job.status} /></td>
+                          <td className="px-4 py-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {fmt(num(job.staffEarnings))}
                           </td>
-                          <td className="px-4 py-3 text-right font-black text-emerald-600">{fmt(num(job.staffEarnings))}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -701,158 +762,137 @@ export default function UserDetailPage() {
                 </div>
               )}
             </div>
-          </motion.div>
-
-          {/* Staff Reviews */}
-          {staffReviews.length > 0 && (
-            <motion.div variants={fadeUp} className="mb-5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Customer Reviews</p>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {staffReviews.map(rev => (
-                  <div key={rev.id} className="bg-background border border-border rounded-xl p-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="font-bold text-sm text-foreground">{rev.customer?.fullName}</p>
-                      <div className="flex items-center gap-0.5 text-amber-500">
-                        {[1, 2, 3, 4, 5].map(n => (
-                          <Star key={n} className={`w-3.5 h-3.5 ${n <= (rev.staffRating || 0) ? "fill-current" : "opacity-30"}`} />
-                        ))}
-                      </div>
-                    </div>
-                    {rev.staffComment && <p className="text-sm text-muted-foreground italic">"{rev.staffComment}"</p>}
-                    <p className="text-[10px] text-muted-foreground mt-2">{rev.booking?.service?.name} · {format(new Date(rev.createdAt), "MMM d, yyyy")}</p>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </>
+          </div>
+        </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════
-          ADMIN OVERVIEW
-      ════════════════════════════════════════════════════════════ */}
-      {isAdmin && (
-        <motion.div variants={fadeUp} className="mb-5 bg-background border border-border rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-              <Shield className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-lg font-black text-foreground">Super Administrator Privileges</h3>
-              <p className="text-xs text-muted-foreground">Full system orchestration, RBAC role elevation, and audit access.</p>
-            </div>
+      {/* ─── Security & Audit Logs ──────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
+        <div className="lg:col-span-8 bg-card border border-border rounded-2xl shadow-xs p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <List className="w-3.5 h-3.5" /> Security & Activity Audit Log
+            </span>
+            <span className="text-xs font-mono text-muted-foreground">
+              {(u.auditLogs || []).length} events
+            </span>
           </div>
-          <div className="grid sm:grid-cols-3 gap-3 text-center">
-            <div className="bg-muted/20 rounded-lg p-3">
-              <p className="text-[10px] font-bold uppercase text-muted-foreground">Console Access</p>
-              <p className="text-sm font-black text-emerald-600 mt-0.5">Unrestricted (Root)</p>
-            </div>
-            <div className="bg-muted/20 rounded-lg p-3">
-              <p className="text-[10px] font-bold uppercase text-muted-foreground">Audit Log Count</p>
-              <p className="text-sm font-black text-foreground mt-0.5">{u.auditLogs?.length ?? 0} Recorded Actions</p>
-            </div>
-            <div className="bg-muted/20 rounded-lg p-3">
-              <p className="text-[10px] font-bold uppercase text-muted-foreground">Security Mode</p>
-              <p className="text-sm font-black text-foreground mt-0.5">MFA Guarded</p>
-            </div>
-          </div>
-        </motion.div>
-      )}
 
-      {/* ── Activity Timeline + Security ─────────────────────────── */}
-      <motion.div variants={fadeUp} className="grid lg:grid-cols-2 gap-5 mt-2">
-        <div className="bg-background border border-border rounded-xl shadow-sm">
-          <div className="px-5 py-3.5 border-b border-border bg-muted/20 flex items-center gap-2">
-            <List className="w-4 h-4 text-muted-foreground" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Audit Log</span>
-          </div>
-          <div className="p-5 space-y-3 max-h-72 overflow-y-auto">
+          <div className="space-y-3 max-h-72 overflow-y-auto">
             {(u.auditLogs || []).length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No audit logs found</p>
-            ) : (u.auditLogs || []).map(log => (
-              <div key={log.id} className="flex justify-between items-start pb-3 border-b border-border/50 last:border-0 last:pb-0">
-                <div>
-                  <p className="font-bold text-foreground text-sm">{log.action}</p>
-                  <p className="text-[10px] font-bold text-muted-foreground mt-0.5">{format(new Date(log.createdAt), "MMM d, yyyy · h:mm a")}</p>
+              <p className="text-xs text-muted-foreground text-center py-6">No administrative audit records logged for this account.</p>
+            ) : (
+              (u.auditLogs || []).map((log) => (
+                <div key={log.id} className="flex justify-between items-start pb-3 border-b border-border/50 last:border-0 last:pb-0">
+                  <div>
+                    <p className="font-bold text-foreground text-xs">{log.action}</p>
+                    <p className="text-[10px] font-mono text-muted-foreground mt-0.5">
+                      {format(new Date(log.createdAt), "MMM d, yyyy · h:mm a")}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
-        <div className="bg-background border border-border rounded-xl shadow-sm">
-          <div className="px-5 py-3.5 border-b border-border bg-muted/20 flex items-center gap-2">
-            <Lock className="w-4 h-4 text-muted-foreground" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Security & Audit</span>
-          </div>
-          <div className="p-5 space-y-3">
-            <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/5">
-              <div className="flex items-center gap-3"><MonitorSmartphone className="w-4 h-4 text-muted-foreground" /><span className="text-sm font-bold">Last Login</span></div>
-              <span className="text-xs font-medium text-muted-foreground">
-                {u.lastLoginAt ? format(new Date(u.lastLoginAt), "MMM d, yyyy · h:mm a") : "Never"}
+        <div className="lg:col-span-4 bg-card border border-border rounded-2xl shadow-xs p-5 space-y-4">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border pb-3">
+            <Lock className="w-3.5 h-3.5" /> Authentication State
+          </span>
+
+          <div className="space-y-2.5 text-xs">
+            <div className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <MonitorSmartphone className="w-3.5 h-3.5" /> Last Active
+              </span>
+              <span className="font-medium text-foreground">
+                {u.lastLoginAt ? format(new Date(u.lastLoginAt), "MMM d, yyyy") : "Never"}
               </span>
             </div>
-            <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/5">
-              <div className="flex items-center gap-3"><Calendar className="w-4 h-4 text-muted-foreground" /><span className="text-sm font-bold">Account Created</span></div>
-              <span className="text-xs font-medium text-muted-foreground">{format(new Date(u.createdAt), "MMM d, yyyy")}</span>
+
+            <div className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5" /> Created On
+              </span>
+              <span className="font-medium text-foreground">
+                {format(new Date(u.createdAt), "MMM d, yyyy")}
+              </span>
             </div>
-            <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/5">
-              <div className="flex items-center gap-3"><Activity className="w-4 h-4 text-muted-foreground" /><span className="text-sm font-bold">Total Audit Events</span></div>
-              <span className="text-xs font-black text-foreground">{u.auditLogs?.length ?? 0}</span>
-            </div>
-            <div className="pt-1">
-              <Button variant="outline" className="w-full text-xs font-bold border-border hover:bg-muted/50"
-                onClick={() => toast.success(`Active sessions revoked for ${u.fullName}`)}>
-                <LogOut className="w-4 h-4 mr-2 opacity-50" /> Force Logout All Devices
-              </Button>
-            </div>
+
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => toast.success(`Active sessions revoked for ${u.fullName}`)}
+              className="w-full h-8 text-xs font-semibold rounded-xl bg-card border-border hover:bg-muted text-foreground mt-2"
+            >
+              <LogOut className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" /> Terminate Active Sessions
+            </Button>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* ── Edit Profile Dialog ── */}
+      {/* ─── Edit Profile Modal ─────────────────────────────────────────── */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-background border border-border">
+        <DialogContent className="rounded-2xl sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-black text-foreground">Edit User Profile</DialogTitle>
+            <DialogTitle className="text-base font-bold text-foreground">Edit User Profile</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Update name and contact details for this account.
+              Update personal identity and telephone records for this user.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="edit-name" className="text-xs font-bold text-foreground">Full Name</Label>
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Full Name</Label>
               <Input
-                id="edit-name"
                 value={editFullName}
                 onChange={(e) => setEditFullName(e.target.value)}
                 placeholder="Full Name"
-                className="h-10 bg-muted/20 border-border"
+                className="h-9 text-xs rounded-xl bg-background border-border"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-phone" className="text-xs font-bold text-foreground">Phone Number</Label>
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Phone Number</Label>
               <Input
-                id="edit-phone"
                 value={editPhone}
                 onChange={(e) => setEditPhone(e.target.value)}
                 placeholder="+855 12 345 678"
-                className="h-10 bg-muted/20 border-border"
+                className="h-9 text-xs rounded-xl bg-background border-border"
               />
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={savingEdit}>
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(false)} disabled={savingEdit} className="rounded-xl h-9 text-xs">
               Cancel
             </Button>
-            <Button onClick={handleSaveEdit} disabled={savingEdit || !editFullName.trim()} className="bg-primary text-primary-foreground font-bold">
-              {savingEdit ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
-              Save Changes
+            <Button size="sm" onClick={handleSaveEdit} disabled={savingEdit || !editFullName.trim()} className="rounded-xl h-9 text-xs">
+              {savingEdit && <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />} Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-    </motion.div>
+      {/* Confirmation Dialogs */}
+      <ConfirmationDialog
+        isOpen={suspendDialogOpen}
+        onClose={() => setSuspendDialogOpen(false)}
+        onConfirm={handleConfirmSuspend}
+        title="Suspend User Account"
+        description={`Are you sure you want to suspend ${u.fullName}? They will be unable to log in or initiate new orders.`}
+        confirmLabel="Confirm Suspension"
+        actionType="danger"
+      />
+
+      <ConfirmationDialog
+        isOpen={activateDialogOpen}
+        onClose={() => setActivateDialogOpen(false)}
+        onConfirm={handleConfirmActivate}
+        title="Activate User Account"
+        description={`Activate ${u.fullName}'s account to restore full platform access?`}
+        confirmLabel="Activate Account"
+        actionType="neutral"
+      />
+
+    </div>
   );
 }

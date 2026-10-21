@@ -7,6 +7,7 @@ import {
   Target, Download, PieChart as PieChartIcon, Activity, RefreshCw, BarChart3, AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useAPI } from "@/lib/hooks/useAPI";
 import { toast } from "sonner";
 import {
@@ -27,7 +28,7 @@ const cleanTooltipStyle = {
   fontWeight: 600,
 };
 
-export default function AdminAnalyticsPage() {
+export default function AdminAnalyticsPage({ hideHeader = false }: { hideHeader?: boolean } = {}) {
   const { data, loading, refetch } = useAPI<any>('/api/admin/analytics');
   const [activeTab, setActiveTab] = useState<"overview" | "revenue" | "bookings" | "marketplace">("overview");
   const [timeframe, setTimeframe] = useState("30");
@@ -110,16 +111,53 @@ export default function AdminAnalyticsPage() {
   const categorySaturationData = (data?.categorySaturationData || []) as Array<{ name: string; value: number; fill: string; status: string }>;
 
   return (
-    <div className="h-full overflow-y-auto p-6 space-y-6 font-sans bg-background text-foreground">
+    <div className={cn("h-full overflow-y-auto space-y-6 font-sans bg-background text-foreground", !hideHeader && "p-6")}>
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Analytics & Marketplace Velocity</h1>
-          <p className="text-xs font-medium text-muted-foreground mt-0.5">High-fidelity marketplace performance metrics, revenue growth, and conversion trends.</p>
+      {!hideHeader && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Analytics & Marketplace Velocity</h1>
+            <p className="text-xs font-medium text-muted-foreground mt-0.5">High-fidelity marketplace performance metrics, revenue growth, and conversion trends.</p>
+          </div>
+          
+          <div className="flex items-center gap-2.5">
+            <select 
+              value={timeframe} 
+              onChange={(e) => {
+                setTimeframe(e.target.value);
+                toast.info(`Timeframe filtered to last ${e.target.value} days`);
+              }}
+              className="h-8.5 px-3 rounded-lg border border-border bg-background text-xs font-semibold text-foreground/90 outline-none hover:bg-background"
+            >
+              <option value="7">Last 7 Days</option>
+              <option value="30">Last 30 Days</option>
+              <option value="90">Last 90 Days</option>
+              <option value="365">Last 12 Months</option>
+            </select>
+            <Button 
+              variant="outline" 
+              onClick={handleExport}
+              disabled={isExporting}
+              className="border-border bg-background rounded-lg h-8.5 px-3.5 text-xs font-bold text-foreground/90 hover:bg-background transition-all shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+              {isExporting ? "Exporting..." : "Export CSV"}
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="border-border bg-background rounded-lg h-8.5 w-8.5 p-0 text-foreground/90 hover:bg-background transition-all shadow-2xs"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5 text-muted-foreground", isRefreshing && "animate-spin")} />
+            </Button>
+          </div>
         </div>
-        
-        <div className="flex items-center gap-2.5">
+      )}
+
+      {hideHeader && (
+        <div className="flex items-center justify-end gap-2.5 pt-1">
           <select 
             value={timeframe} 
             onChange={(e) => {
@@ -143,15 +181,15 @@ export default function AdminAnalyticsPage() {
             {isExporting ? "Exporting..." : "Export CSV"}
           </Button>
           <Button 
-            variant="outline" 
-            size="icon" 
+            variant="outline"
             onClick={handleRefresh}
-            className="h-8.5 w-8.5 rounded-lg border-border bg-background text-foreground/90 hover:bg-background"
+            disabled={isRefreshing}
+            className="border-border bg-background rounded-lg h-8.5 w-8.5 p-0 text-foreground/90 hover:bg-background transition-all shadow-2xs"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-muted-foreground ${isRefreshing ? "animate-spin" : ""}`} />
+            <RefreshCw className={cn("w-3.5 h-3.5 text-muted-foreground", isRefreshing && "animate-spin")} />
           </Button>
         </div>
-      </div>
+      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-border">

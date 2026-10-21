@@ -1,0 +1,131 @@
+{
+  "_about": "ServiceFinder category themes for service marketplaces (TaskRabbit, Thumbtack, Angi).",
+  "request_patterns": [
+    "\\bi wish\\b",
+    "\\bplease add\\b",
+    "\\bwould be (nice|great|good|helpful)\\b",
+    "\\bwould love\\b",
+    "\\bneeds? (a|an|the|to|more)\\b",
+    "\\bno way to\\b",
+    "\\bthere'?s no (way|option)\\b",
+    "\\b(can'?t|cannot|unable to) (even )?(add|change|edit|set|choose|export|import|customi[sz]e|connect|undo|delete|turn off|reply|chat|message)\\b",
+    "\\b(missing|lacks|lacking)\\b",
+    "\\bdoesn'?t (have|support|let|allow)\\b",
+    "\\bif only\\b",
+    "\\bfeature request\\b",
+    "\\bwhy (can'?t|isn'?t|doesn'?t)\\b"
+  ],
+  "themes": [
+    {
+      "id": "billing",
+      "label": "Billing, cancellations, hidden fees & refund denials",
+      "kind": "complaint",
+      "patterns": [
+        "\\bcharged\\b",
+        "\\brefund\\b",
+        "\\bcancel(l?ing|l?ed|lation)?\\b",
+        "\\bhidden (fee|charge)\\b",
+        "\\bservice fee\\b",
+        "\\btrust (&|and) support\\b",
+        "\\bbilling\\b",
+        "\\bscam\\b",
+        "\\bfee\\b"
+      ]
+    },
+    {
+      "id": "leads",
+      "label": "Pay-per-lead charges, fake leads & calendar leakage",
+      "kind": "complaint",
+      "patterns": [
+        "\\blead(s)?\\b",
+        "\\binstant book(ing)?\\b",
+        "\\bblocked off\\b",
+        "\\bghost(ed)?\\b",
+        "\\bdead lead\\b",
+        "\\bfake lead\\b"
+      ]
+    },
+    {
+      "id": "unreliable",
+      "label": "Contractor no-shows, tardiness & last-minute abandonment",
+      "kind": "complaint",
+      "patterns": [
+        "\\bno.?shows?\\b",
+        "\\bdidn'?t show\\b",
+        "\\bnever arrived\\b",
+        "\\bnever (came|come)\\b",
+        "\\bunreliable\\b",
+        "\\bflak(y|e)\\b",
+        "\\bday.?of\\b",
+        "\\blast.?minute\\b"
+      ]
+    },
+    {
+      "id": "pricing",
+      "label": "Exorbitant markups, opaque pricing & rate switching",
+      "kind": "complaint",
+      "patterns": [
+        "\\bexpensive\\b",
+        "\\boverpriced\\b",
+        "\\bmarkup\\b",
+        "\\bastronomical\\b",
+        "\\bpric(e|es|ey|ing)\\b",
+        "\\bnot worth\\b",
+        "\\bcost(s|ly)?\\b",
+        "\\bbottom line\\b"
+      ]
+    },
+    {
+      "id": "support",
+      "label": "Non-existent support, AI bot loops & ignored complaints",
+      "kind": "complaint",
+      "patterns": [
+        "\\bcustomer (service|support)\\b",
+        "\\bsupport (team|is|was)\\b",
+        "\\bno (response|reply)\\b",
+        "\\bnever (replied|responded|heard back)\\b",
+        "\\bticket\\b",
+        "\\bchat ?bot\\b",
+        "\\bai bot\\b",
+        "\\bmediation\\b"
+      ]
+    },
+    {
+      "id": "communication",
+      "label": "Broken in-app messaging & email-to-app disconnection",
+      "kind": "complaint",
+      "patterns": [
+        "\\bcan'?t reply\\b",
+        "\\bcannot reply\\b",
+        "\\bno way to (chat|reply)\\b",
+        "\\bmessag(e|ing|es)\\b",
+        "\\bchat\\b"
+      ]
+    },
+    {
+      "id": "account",
+      "label": "Login failures, password reset loops & lockouts",
+      "kind": "complaint",
+      "patterns": [
+        "\\blog ?in\\b",
+        "\\bsign ?in\\b",
+        "\\bpassword\\b",
+        "\\blocked out\\b",
+        "\\bverification\\b",
+        "\\bwebpage\\b"
+      ]
+    },
+    {
+      "id": "transparency",
+      "label": "Transparent pricing, verified credentials & team dispatch",
+      "kind": "request",
+      "patterns": [
+        "\\bteam(s)?\\b",
+        "\\btransparent\\b",
+        "\\bverif(ied|ication)\\b",
+        "\\binsur(ed|ance)\\b",
+        "\\blicens(ed|e)\\b"
+      ]
+    }
+  ]
+}

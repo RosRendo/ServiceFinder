@@ -1,22 +1,17 @@
 /**
- * Admin User Details — Premium Light Bento Redesign
+ * Admin User Details — Enterprise Clean Business Dossier Redesign
  */
 import React, { useEffect, useState } from "react";
-import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Platform, Modal, TextInput } from "react-native";
+import {
+  ScrollView, Text, View, TouchableOpacity, ActivityIndicator,
+  Alert, StyleSheet, Modal, TextInput, Platform,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { api } from "@/store/authStore";
 import InitialsAvatar from "@/components/common/InitialsAvatar";
-import { Theme } from "@/constants/theme";
 import ErrorState from "@/components/common/ErrorState";
-
-const T = Theme.colors;
-
-const CARD_SHADOW = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12 },
-  android: { elevation: 3 },
-});
 
 interface UserDetailData {
   id: string;
@@ -52,8 +47,8 @@ export default function UserDetail() {
   const safeFormatDate = (dateStr: any) => {
     if (!dateStr) return "—";
     const d = new Date(dateStr);
-    return isNaN(d.getTime()) 
-      ? "—" 
+    return isNaN(d.getTime())
+      ? "—"
       : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
@@ -76,8 +71,8 @@ export default function UserDetail() {
         ownedCompanies: obj.ownedCompanies || [],
         staffMemberships: obj.staffMemberships || [],
         stats: {
-           bookings: obj._count?.bookingsAsCustomer || 0,
-           reviews: obj._count?.reviews || 0,
+          bookings: obj._count?.bookingsAsCustomer || 0,
+          reviews: obj._count?.reviews || 0,
         },
         auditLogs: obj.auditLogs || [],
         fraudScore: obj.fraudScore ?? (id === '2' ? 92 : Math.floor(Math.random() * 20)),
@@ -97,15 +92,15 @@ export default function UserDetail() {
   const confirmSuspend = async () => {
     if (!user) return;
     if (!suspendReason.trim()) {
-      Alert.alert("Reason Required", "You must provide a reason to suspend the user.");
+      Alert.alert("Reason Required", "Please provide a reason to suspend this user.");
       return;
     }
     setActionLoading(true);
     setSuspendModalVisible(false);
     try {
       await api.patch(`/api/users/${id}/status`, { status: "suspended", reason: suspendReason.trim() });
-      setUser((prev) => prev ? { 
-        ...prev, 
+      setUser((prev) => prev ? {
+        ...prev,
         status: "suspended",
         auditLogs: [{
           id: Math.random().toString(),
@@ -126,8 +121,8 @@ export default function UserDetail() {
     setActionLoading(true);
     try {
       await api.patch(`/api/users/${id}/status`, { status: newStatus, reason: "Restored by Admin" });
-      setUser((prev) => prev ? { 
-        ...prev, 
+      setUser((prev) => prev ? {
+        ...prev,
         status: newStatus,
         auditLogs: [{
           id: Math.random().toString(),
@@ -147,11 +142,11 @@ export default function UserDetail() {
     if (!user) return;
     Alert.alert(
       "Ban Account",
-      `Permanently ban ${user.fullName}? This cannot be undone and will revoke all access.`,
+      `Permanently ban ${user.fullName}? This cannot be undone and will revoke all platform access.`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Ban",
+          text: "Ban Account",
           style: "destructive",
           onPress: async () => {
             setActionLoading(true);
@@ -178,7 +173,7 @@ export default function UserDetail() {
       if (convId) {
         router.push(`/(admin)/messages/${convId}?otherName=${encodeURIComponent(user.fullName)}` as any);
       } else {
-        Alert.alert('Error', 'Could not start conversation: No ID returned.');
+        Alert.alert('Error', 'Could not start conversation: No conversation ID returned.');
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message || err.message || 'Unknown error';
@@ -188,25 +183,25 @@ export default function UserDetail() {
     }
   };
 
-  const getRoleColor = (role: string) => {
+  const getRoleConfig = (role: string) => {
     switch (role) {
-      case "admin": return { bg: "rgba(239, 68, 68, 0.1)", text: T.error, icon: "shield-account-outline" };
-      case "company_admin": return { bg: "rgba(37, 99, 235, 0.1)", text: T.blue, icon: "domain" };
-      case "staff": return { bg: "rgba(100, 116, 139, 0.1)", text: T.gray, icon: "briefcase-account-outline" };
-      default: return { bg: "rgba(16, 185, 129, 0.1)", text: T.success, icon: "account-outline" };
+      case "admin": return { label: "System Admin", icon: "shield-crown-outline" };
+      case "company_admin": return { label: "Commercial Partner", icon: "domain" };
+      case "staff": return { label: "Operational Staff", icon: "briefcase-outline" };
+      default: return { label: "Individual Client", icon: "account-outline" };
     }
   };
 
-  const getStatusStyle = (status: string) => {
-    return status === 'active' 
-      ? { bg: T.success, color: "#fff", icon: "check" }
-      : { bg: T.warning, color: "#fff", icon: "pause" };
+  const getFraudConfig = (score: number) => {
+    if (score < 30) return { label: "Low Risk", color: "#059669", desc: "Account exhibits normal verified platform behavior." };
+    if (score < 80) return { label: "Elevated Risk", color: "#D97706", desc: "Unusual activity patterns observed. Secondary audit recommended." };
+    return { label: "Critical Risk", color: "#DC2626", desc: "Critical flags detected. Immediate suspension advisory." };
   };
 
   if (loading) {
     return (
       <SafeAreaView style={s.centerArea} edges={['top', 'left', 'right']}>
-        <ActivityIndicator size="large" color={T.primary} />
+        <ActivityIndicator size="large" color="#0F172A" />
       </SafeAreaView>
     );
   }
@@ -222,209 +217,226 @@ export default function UserDetail() {
     );
   }
 
-  const roleStyle = getRoleColor(user.role);
-  const statusStyle = getStatusStyle(user.status);
-
-  // Custom function to format fraud risk level and colors
-  const getFraudConfig = (score: number) => {
-    if (score < 30) return { label: "Low Risk", color: T.success, desc: "Account exhibits normal behavior patterns." };
-    if (score < 80) return { label: "Medium Risk", color: T.warning, desc: "Suspicious activity detected. Audit suggested." };
-    return { label: "High Risk", color: T.error, desc: "Critical flags triggered. Suspension recommended." };
-  };
-
+  const roleConfig = getRoleConfig(user.role);
   const fraudConfig = getFraudConfig(user.fraudScore || 0);
 
   return (
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.headerBtn}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color={T.text1} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>User Details</Text>
-        <View style={{ width: 38 }} />
+        <View style={s.headerLeft}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={s.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <MaterialCommunityIcons name="arrow-left" size={20} color="#0F172A" />
+          </TouchableOpacity>
+          <View>
+            <Text style={s.headerTitle}>User Account Dossier</Text>
+            <Text style={s.headerSubtitle}>ID #{user.id} • Registered Account</Text>
+          </View>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
         
-        {/* Asymmetrical Bento Hero Profile Card */}
+        {/* Hero Identity Card */}
         <View style={s.heroCard}>
           <View style={s.avatarWrap}>
-            <InitialsAvatar name={user.fullName} size={88} radius={28} />
+            <InitialsAvatar name={user.fullName} size={64} radius={18} />
           </View>
           <View style={s.heroDetails}>
-            <Text style={s.userName} numberOfLines={1}>{user.fullName}</Text>
-            <Text style={s.userId}>#{user.id}</Text>
-            <View style={[s.roleBadge, { backgroundColor: roleStyle.bg }]}>
-              <MaterialCommunityIcons name={roleStyle.icon as any} size={12} color={roleStyle.text} />
-              <Text style={[s.roleText, { color: roleStyle.text }]}>{user.role.replace('_', ' ')}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Pulsing Status & Fraud Box */}
-        <View style={s.fraudCard}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <View style={[s.statusBadge, { borderColor: statusStyle.bg + "40", backgroundColor: statusStyle.bg + "10" }]}>
-              <View style={[s.statusDot, { backgroundColor: statusStyle.bg }]} />
-              <Text style={[s.statusText, { color: statusStyle.bg }]}>{user.status}</Text>
-            </View>
-            <Text style={[s.fraudScoreText, { color: fraudConfig.color }]}>{user.fraudScore}% Fraud Score</Text>
-          </View>
-
-          <Text style={s.fraudTitle}>Safety & Trust Profile</Text>
-          <View style={s.gaugeTrack}>
-            <View style={[s.gaugeBar, { width: `${user.fraudScore ?? 0}%` as any, backgroundColor: fraudConfig.color }]} />
-          </View>
-          <Text style={s.fraudDesc}>{fraudConfig.desc}</Text>
-        </View>
-
-        {/* Metrics Grid (Bookings & Reviews) */}
-        <View style={s.bentoRow}>
-          {/* Bookings Card */}
-          <View style={s.bentoBox}>
-            <View style={[s.metricIconWrap, { backgroundColor: "rgba(124, 58, 237, 0.1)" }]}>
-              <MaterialCommunityIcons name="calendar-check" size={22} color={T.purple} />
-            </View>
-            <Text style={s.metricValue}>{user.stats.bookings}</Text>
-            <Text style={s.metricLabel}>Total Bookings</Text>
-          </View>
-
-          {/* Reviews Card */}
-          <View style={s.bentoBox}>
-            <View style={[s.metricIconWrap, { backgroundColor: "rgba(245, 158, 11, 0.1)" }]}>
-              <MaterialCommunityIcons name="star" size={22} color={T.gold} />
-            </View>
-            <Text style={s.metricValue}>{user.stats.reviews}</Text>
-            <Text style={s.metricLabel}>Reviews Written</Text>
-          </View>
-        </View>
-
-        {/* Quick Contact Info */}
-        <View style={s.metaCard}>
-          <Text style={s.metaTitle}>Contact Details</Text>
-          
-          <View style={s.metaRow}>
-            <View style={[s.metricIconWrap, { backgroundColor: T.inputBg }]}><MaterialCommunityIcons name="email-outline" size={20} color={T.text2} /></View>
-            <View style={s.metaTextWrap}>
-              <Text style={s.metaLabel}>Email Address</Text>
-              <Text style={s.metaValue} numberOfLines={1}>{user.email}</Text>
-            </View>
-          </View>
-
-          {!!user.phone && (
-            <View style={[s.metaRow, { marginTop: 8 }]}>
-              <View style={[s.metricIconWrap, { backgroundColor: T.inputBg }]}><MaterialCommunityIcons name="phone-outline" size={20} color={T.text2} /></View>
-              <View style={s.metaTextWrap}>
-                <Text style={s.metaLabel}>Phone Number</Text>
-                <Text style={s.metaValue} numberOfLines={1}>{user.phone}</Text>
+            <View style={s.heroTopRow}>
+              <Text style={s.userName} numberOfLines={1}>{user.fullName}</Text>
+              <View style={s.statusBadge}>
+                <View style={[s.statusDot, { backgroundColor: user.status === 'active' ? '#059669' : '#D97706' }]} />
+                <Text style={s.statusText}>{user.status.toUpperCase()}</Text>
               </View>
             </View>
-          )}
+            <Text style={s.userEmail} numberOfLines={1}>{user.email}</Text>
+            <View style={s.badgeRow}>
+              <View style={s.roleBadge}>
+                <MaterialCommunityIcons name={roleConfig.icon as any} size={12} color="#0F172A" />
+                <Text style={s.roleText}>{roleConfig.label.toUpperCase()}</Text>
+              </View>
+              {user.phone ? (
+                <View style={s.phoneBadge}>
+                  <MaterialCommunityIcons name="phone-outline" size={12} color="#64748B" />
+                  <Text style={s.phoneText}>{user.phone}</Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
         </View>
 
-        {/* Joined & Last Login */}
+        {/* Operational Telemetry (Bookings & Reviews Bento) */}
         <View style={s.bentoRow}>
           <View style={s.bentoBox}>
-            <MaterialCommunityIcons name="calendar-clock" size={20} color={T.text3} style={{ marginBottom: 8 }} />
-            <Text style={s.metaValue}>{user.createdAt}</Text>
-            <Text style={s.metaLabel}>Joined Platform</Text>
+            <View style={s.bentoHeaderRow}>
+              <Text style={s.bentoLabel}>TOTAL ORDERS</Text>
+              <View style={s.bentoIconWrap}>
+                <MaterialCommunityIcons name="calendar-check" size={16} color="#0F172A" />
+              </View>
+            </View>
+            <Text style={s.bentoValue}>{user.stats.bookings}</Text>
+            <Text style={s.bentoSub}>Bookings placed as client</Text>
           </View>
           <View style={s.bentoBox}>
-            <MaterialCommunityIcons name="login-variant" size={20} color={T.text3} style={{ marginBottom: 8 }} />
-            <Text style={s.metaValue}>{user.lastLoginAt}</Text>
-            <Text style={s.metaLabel}>Last Session</Text>
+            <View style={s.bentoHeaderRow}>
+              <Text style={s.bentoLabel}>REVIEWS FILED</Text>
+              <View style={s.bentoIconWrap}>
+                <MaterialCommunityIcons name="star-outline" size={16} color="#0F172A" />
+              </View>
+            </View>
+            <Text style={s.bentoValue}>{user.stats.reviews}</Text>
+            <Text style={s.bentoSub}>Client feedback authored</Text>
           </View>
         </View>
 
-        {/* Interactive Action Hub */}
-        <View style={s.actionHub}>
-          <Text style={s.actionTitle}>Profile Management Actions</Text>
-          <View style={s.actionButtons}>
-            {/* Contact Chat */}
-            <TouchableOpacity style={[s.actionBtn, { borderColor: T.blue, backgroundColor: T.blue + "08" }]} onPress={handleMessageUser} disabled={actionLoading}>
-              <MaterialCommunityIcons name="message-text-outline" size={18} color={T.blue} />
-              <Text style={[s.actionBtnText, { color: T.blue }]}>Chat</Text>
-            </TouchableOpacity>
-
-            {/* Suspend/Restore */}
-            {user.status === "suspended" ? (
-              <TouchableOpacity style={[s.actionBtn, { borderColor: T.success, backgroundColor: T.success + "08" }]} onPress={() => confirmStatusChange("active")} disabled={actionLoading}>
-                <MaterialCommunityIcons name="account-check-outline" size={18} color={T.success} />
-                <Text style={[s.actionBtnText, { color: T.success }]}>Restore</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={[s.actionBtn, { borderColor: T.warning, backgroundColor: T.warning + "08" }]} onPress={() => setSuspendModalVisible(true)} disabled={actionLoading}>
-                <MaterialCommunityIcons name="account-off-outline" size={18} color={T.warning} />
-                <Text style={[s.actionBtnText, { color: T.warning }]}>Suspend</Text>
-              </TouchableOpacity>
-            )}
-
-            {/* Ban/Delete */}
-            <TouchableOpacity style={[s.actionBtn, { borderColor: T.error, backgroundColor: T.error + "08" }]} onPress={handleDelete} disabled={actionLoading}>
-              <MaterialCommunityIcons name="gavel" size={18} color={T.error} />
-              <Text style={[s.actionBtnText, { color: T.error }]}>Ban Account</Text>
-            </TouchableOpacity>
+        {/* Security & Risk Assessment Card */}
+        <View style={s.sectionCard}>
+          <View style={s.sectionHeader}>
+            <Text style={s.sectionTitle}>Account Risk & Compliance Profile</Text>
+            <View style={s.riskBadge}>
+              <View style={[s.statusDot, { backgroundColor: fraudConfig.color }]} />
+              <Text style={[s.riskBadgeText, { color: fraudConfig.color }]}>{fraudConfig.label.toUpperCase()}</Text>
+            </View>
+          </View>
+          <View style={s.ledgerGrid}>
+            <View style={s.ledgerRow}>
+              <Text style={s.ledgerLabel}>Risk Factor Index</Text>
+              <Text style={s.ledgerValue}>{user.fraudScore ?? 0}% Benchmark</Text>
+            </View>
+            <View style={s.ledgerRow}>
+              <Text style={s.ledgerLabel}>Platform Standing</Text>
+              <Text style={s.ledgerValue}>{user.status === 'active' ? 'Good Standing' : 'Account Restricted'}</Text>
+            </View>
+            <View style={[s.ledgerRow, { borderBottomWidth: 0 }]}>
+              <Text style={s.ledgerLabel}>Telemetry Advisory</Text>
+              <Text style={s.ledgerValue}>{fraudConfig.desc}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Associations Bento */}
+        {/* Detailed Account Ledger (Attributes & Timestamps) */}
+        <View style={s.sectionCard}>
+          <Text style={s.sectionTitle}>Account Attributes & Ledger</Text>
+          <View style={s.ledgerGrid}>
+            <View style={s.ledgerRow}>
+              <Text style={s.ledgerLabel}>System User ID</Text>
+              <Text style={s.ledgerValueMono}>#{user.id}</Text>
+            </View>
+            <View style={s.ledgerRow}>
+              <Text style={s.ledgerLabel}>Email Address</Text>
+              <Text style={s.ledgerValue}>{user.email || "—"}</Text>
+            </View>
+            <View style={s.ledgerRow}>
+              <Text style={s.ledgerLabel}>Direct Phone</Text>
+              <Text style={s.ledgerValue}>{user.phone || "Not linked"}</Text>
+            </View>
+            <View style={s.ledgerRow}>
+              <Text style={s.ledgerLabel}>Registered On</Text>
+              <Text style={s.ledgerValue}>{user.createdAt}</Text>
+            </View>
+            <View style={[s.ledgerRow, { borderBottomWidth: 0 }]}>
+              <Text style={s.ledgerLabel}>Last Active Session</Text>
+              <Text style={s.ledgerValue}>{user.lastLoginAt}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Commercial & Marketplace Affiliations */}
         {(user.ownedCompanies.length > 0 || user.staffMemberships.length > 0) && (
-          <View style={s.bentoCard}>
-            <Text style={s.cardTitle}>Marketplace Affiliations</Text>
-            
+          <View style={s.sectionCard}>
+            <Text style={s.sectionTitle}>Marketplace Affiliations</Text>
             {user.ownedCompanies.map((c) => (
-              <View key={`owned-${c.id}`} style={s.associationRow}>
-                <View style={[s.assocIcon, { backgroundColor: "rgba(37, 99, 235, 0.1)" }]}>
-                  <MaterialCommunityIcons name="domain" size={20} color={T.blue} />
+              <View key={`owned-${c.id}`} style={s.assocRow}>
+                <View style={s.assocIcon}>
+                  <MaterialCommunityIcons name="office-building" size={18} color="#0F172A" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.assocLabel}>Company Owner</Text>
-                  <Text style={s.assocValue}>{c.name}</Text>
+                  <Text style={s.assocName}>{c.name}</Text>
+                  <Text style={s.assocRole}>Corporate Legal Owner</Text>
                 </View>
-                <View style={[s.statusBadge, { borderColor: T.success + "30", backgroundColor: T.success + "08", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }]}>
-                  <Text style={{ fontSize: 9, fontWeight: "700", color: T.success }}>{c.verificationStatus}</Text>
+                <View style={s.assocBadge}>
+                  <View style={[s.statusDotSmall, { backgroundColor: c.verificationStatus === 'verified' ? '#059669' : '#D97706' }]} />
+                  <Text style={s.assocBadgeText}>{c.verificationStatus.toUpperCase()}</Text>
                 </View>
               </View>
             ))}
 
             {user.staffMemberships.map((m) => (
-              <View key={`staff-${m.id}`} style={s.associationRow}>
-                <View style={[s.assocIcon, { backgroundColor: "rgba(100, 116, 139, 0.1)" }]}>
-                  <MaterialCommunityIcons name="briefcase-account-outline" size={20} color={T.gray} />
+              <View key={`staff-${m.id}`} style={s.assocRow}>
+                <View style={s.assocIcon}>
+                  <MaterialCommunityIcons name="badge-account-outline" size={18} color="#0F172A" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.assocLabel}>Staff Representative</Text>
-                  <Text style={s.assocValue}>{m.company.name}</Text>
+                  <Text style={s.assocName}>{m.company.name}</Text>
+                  <Text style={s.assocRole}>Staff Representative</Text>
+                </View>
+                <View style={s.assocBadge}>
+                  <Text style={s.assocBadgeText}>FIELD CREW</Text>
                 </View>
               </View>
             ))}
           </View>
         )}
 
-        {/* Chronological Security Timeline */}
-        <View style={s.bentoCard}>
-          <Text style={s.cardTitle}>Security & Audit History</Text>
+        {/* Security & Audit History */}
+        <View style={s.sectionCard}>
+          <Text style={s.sectionTitle}>Security & Audit History</Text>
           {user.auditLogs && user.auditLogs.length > 0 ? (
-            <View style={s.timelineContainer}>
-              <View style={s.timelineLine} />
-              {user.auditLogs.map((log) => (
-                <View key={log.id} style={s.timelineNode}>
-                  <View style={s.timelineDot}>
-                    <MaterialCommunityIcons name="shield-lock" size={14} color={T.text3} />
+            <View style={s.auditList}>
+              {user.auditLogs.map((log, idx) => (
+                <View key={log.id || idx} style={[s.auditItem, idx > 0 && s.auditItemBorder]}>
+                  <View style={s.auditIconWrap}>
+                    <MaterialCommunityIcons name="shield-lock-outline" size={14} color="#0F172A" />
                   </View>
-                  <View style={s.timelineContent}>
-                    <Text style={s.logMeta}>
-                      {new Date(log.createdAt).toLocaleDateString()} • by {log.user?.fullName || "System"}
-                    </Text>
-                    <Text style={s.logAction}>{log.action}</Text>
+                  <View style={{ flex: 1 }}>
+                    <View style={s.auditMetaRow}>
+                      <Text style={s.auditActor}>{log.user?.fullName || "System Engine"}</Text>
+                      <Text style={s.auditDate}>{new Date(log.createdAt).toLocaleDateString()}</Text>
+                    </View>
+                    <Text style={s.auditAction}>{log.action}</Text>
                   </View>
                 </View>
               ))}
             </View>
           ) : (
-            <Text style={s.noneText}>No security events logged.</Text>
+            <View style={s.emptyAudit}>
+              <Text style={s.emptyAuditText}>No security infractions or status modifications recorded.</Text>
+            </View>
           )}
+        </View>
+
+        {/* Administrative Enforcement Actions */}
+        <View style={s.actionCard}>
+          <Text style={s.sectionTitle}>Administrative Enforcement Actions</Text>
+          <View style={s.actionGrid}>
+            <TouchableOpacity style={s.secondaryActionBtn} onPress={handleMessageUser} disabled={actionLoading}>
+              <MaterialCommunityIcons name="chat-outline" size={18} color="#0F172A" />
+              <Text style={s.secondaryActionText}>Direct Message</Text>
+            </TouchableOpacity>
+
+            {user.status === "suspended" ? (
+              <TouchableOpacity style={s.primaryActionBtn} onPress={() => confirmStatusChange("active")} disabled={actionLoading}>
+                <MaterialCommunityIcons name="account-check-outline" size={18} color="#FFFFFF" />
+                <Text style={s.primaryActionText}>Restore Account</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={s.warningActionBtn} onPress={() => setSuspendModalVisible(true)} disabled={actionLoading}>
+                <MaterialCommunityIcons name="account-off-outline" size={18} color="#0F172A" />
+                <Text style={s.warningActionText}>Suspend User</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity style={s.dangerActionBtn} onPress={handleDelete} disabled={actionLoading}>
+              <MaterialCommunityIcons name="gavel" size={18} color="#DC2626" />
+              <Text style={s.dangerActionText}>Ban Permanently</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
       </ScrollView>
@@ -433,13 +445,13 @@ export default function UserDetail() {
       <Modal visible={suspendModalVisible} transparent animationType="fade">
         <View style={s.modalOverlay}>
           <View style={s.modalContainer}>
-            <Text style={s.modalTitle}>Suspend User</Text>
-            <Text style={s.modalDesc}>Please provide a reason for suspending {user?.fullName}. This will be logged in the audit history.</Text>
-            
+            <Text style={s.modalTitle}>Suspend User Account</Text>
+            <Text style={s.modalDesc}>Specify the reason for suspending {user.fullName}. This decision will be recorded in the audit trail.</Text>
+
             <TextInput
               style={s.modalInput}
-              placeholder="e.g. Fraudulent activity"
-              placeholderTextColor={T.text3}
+              placeholder="e.g. Terms violation, fraudulent transactions, chargeback dispute..."
+              placeholderTextColor="#94A3B8"
               value={suspendReason}
               onChangeText={setSuspendReason}
               multiline
@@ -451,7 +463,7 @@ export default function UserDetail() {
                 <Text style={s.modalBtnSecondaryText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.modalBtnPrimary} onPress={confirmSuspend} disabled={actionLoading}>
-                {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.modalBtnPrimaryText}>Suspend</Text>}
+                {actionLoading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={s.modalBtnPrimaryText}>Confirm Suspension</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -463,87 +475,175 @@ export default function UserDetail() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
-  centerArea: { flex: 1, backgroundColor: T.bg, alignItems: "center", justifyContent: "center" },
-  
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, backgroundColor: T.bg },
-  headerBtn: { padding: 8, borderRadius: 12, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: T.text1, letterSpacing: -0.5 },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
+  centerArea: { flex: 1, backgroundColor: "#F8FAFC", alignItems: "center", justifyContent: "center" },
 
-  content: { padding: 20, gap: 16, paddingBottom: 60 },
+  header: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1, borderBottomColor: "#E2E8F0",
+  },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  backBtn: { padding: 8, borderRadius: 10, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A" },
+  headerSubtitle: { fontSize: 12, color: "#64748B", fontWeight: "500", marginTop: 1 },
 
-  // Bento Hero Card (Asymmetrical Row Layout)
-  heroCard: { flexDirection: "row", backgroundColor: T.surface, borderRadius: 24, padding: 20, alignItems: "center", borderWidth: 1, borderColor: T.border, gap: 16, ...CARD_SHADOW },
+  content: { padding: 16, gap: 14, paddingBottom: 120 },
+
+  // Hero Card
+  heroCard: {
+    flexDirection: "row", backgroundColor: "#FFFFFF", borderRadius: 16, padding: 18,
+    alignItems: "center", borderWidth: 1, borderColor: "#E2E8F0", gap: 14,
+  },
   avatarWrap: { position: "relative" },
   heroDetails: { flex: 1, gap: 4 },
-  userName: { fontSize: 22, fontWeight: "800", color: T.text1, letterSpacing: -0.5 },
-  userId: { fontSize: 13, fontWeight: "600", color: T.text3 },
-  roleBadge: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginTop: 4 },
-  roleText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
+  heroTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  userName: { fontSize: 18, fontWeight: "700", color: "#0F172A", flex: 1, marginRight: 8 },
+  userEmail: { fontSize: 13, color: "#475569" },
+  badgeRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" },
+  roleBadge: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0",
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+  },
+  roleText: { fontSize: 10, fontWeight: "700", color: "#0F172A" },
+  phoneBadge: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0",
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+  },
+  phoneText: { fontSize: 11, color: "#64748B", fontWeight: "500" },
 
-  // Status Badge with pulsing dot
-  statusBadge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1 },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-  statusText: { fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
+  // Status Badge
+  statusBadge: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0",
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusDotSmall: { width: 5, height: 5, borderRadius: 2.5 },
+  statusText: { fontSize: 10, fontWeight: "700", color: "#0F172A" },
 
-  // Fraud Score Bento Box
-  fraudCard: { backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  fraudHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  fraudTitle: { fontSize: 14, fontWeight: "700", color: T.text2 },
-  fraudScoreText: { fontSize: 16, fontWeight: "800" },
-  gaugeTrack: { height: 8, backgroundColor: T.inputBg, borderRadius: 4, width: "100%", overflow: "hidden", marginTop: 8 },
-  gaugeBar: { height: "100%", borderRadius: 4 },
-  fraudDesc: { fontSize: 12, color: T.text3, marginTop: 8 },
+  // Bento Row
+  bentoRow: { flexDirection: "row", gap: 12 },
+  bentoBox: {
+    flex: 1, backgroundColor: "#FFFFFF", borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: "#E2E8F0",
+  },
+  bentoHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  bentoLabel: { fontSize: 10, fontWeight: "700", color: "#64748B", letterSpacing: 0.5 },
+  bentoIconWrap: {
+    width: 28, height: 28, borderRadius: 6, backgroundColor: "#F8FAFC",
+    borderWidth: 1, borderColor: "#E2E8F0", alignItems: "center", justifyContent: "center",
+  },
+  bentoValue: { fontSize: 24, fontWeight: "700", color: "#0F172A", marginTop: 8, marginBottom: 2 },
+  bentoSub: { fontSize: 11, color: "#64748B", fontWeight: "500" },
 
-  // Metrics Grid
-  bentoRow: { flexDirection: "row", gap: 16 },
-  bentoBox: { flex: 1, backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  metricValue: { fontSize: 28, fontWeight: "800", color: T.text1, letterSpacing: -1, marginTop: 8, marginBottom: 2 },
-  metricLabel: { fontSize: 12, fontWeight: "600", color: T.text3 },
-  metricIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  // Section Card
+  sectionCard: {
+    backgroundColor: "#FFFFFF", borderRadius: 16, padding: 18,
+    borderWidth: 1, borderColor: "#E2E8F0",
+  },
+  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  sectionTitle: { fontSize: 14, fontWeight: "700", color: "#0F172A", marginBottom: 12 },
+  riskBadge: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0",
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
+  },
+  riskBadgeText: { fontSize: 10, fontWeight: "700" },
 
-  // Metadata Card
-  metaCard: { backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  metaTitle: { fontSize: 14, fontWeight: "700", color: T.text2, marginBottom: 16 },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8 },
-  metaTextWrap: { flex: 1 },
-  metaLabel: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase" },
-  metaValue: { fontSize: 14, fontWeight: "700", color: T.text1 },
+  // Ledger Grid
+  ledgerGrid: {
+    backgroundColor: "#F8FAFC", borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0",
+    overflow: "hidden",
+  },
+  ledgerRow: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#E2E8F0",
+  },
+  ledgerLabel: { fontSize: 12, color: "#64748B", fontWeight: "500" },
+  ledgerValue: { fontSize: 13, fontWeight: "600", color: "#0F172A" },
+  ledgerValueMono: { fontSize: 13, fontWeight: "700", color: "#0F172A", fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
 
-  // Quick Action Hub
-  actionHub: { backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  actionTitle: { fontSize: 14, fontWeight: "700", color: T.text2, marginBottom: 16 },
-  actionButtons: { flexDirection: "row", gap: 12, flexWrap: "wrap" },
-  actionBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, borderWidth: 1, minWidth: 100, justifyContent: "center" },
-  actionBtnText: { fontSize: 14, fontWeight: "700" },
+  // Affiliations
+  assocRow: {
+    flexDirection: "row", alignItems: "center", gap: 12, padding: 12,
+    backgroundColor: "#F8FAFC", borderRadius: 12, marginBottom: 8,
+    borderWidth: 1, borderColor: "#E2E8F0",
+  },
+  assocIcon: {
+    width: 36, height: 36, borderRadius: 8, backgroundColor: "#FFFFFF",
+    borderWidth: 1, borderColor: "#E2E8F0", alignItems: "center", justifyContent: "center",
+  },
+  assocName: { fontSize: 14, fontWeight: "700", color: "#0F172A" },
+  assocRole: { fontSize: 11, color: "#64748B", marginTop: 1 },
+  assocBadge: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E2E8F0",
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+  },
+  assocBadgeText: { fontSize: 9, fontWeight: "700", color: "#0F172A" },
 
-  // Associations Bento
-  bentoCard: { backgroundColor: T.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  cardTitle: { fontSize: 15, fontWeight: "800", color: T.text1, marginBottom: 16, letterSpacing: -0.3 },
-  associationRow: { flexDirection: "row", alignItems: "center", gap: 16, padding: 12, backgroundColor: T.bg, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: T.border },
-  assocIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  assocLabel: { fontSize: 11, fontWeight: "600", color: T.text3, textTransform: "uppercase" },
-  assocValue: { fontSize: 14, fontWeight: "700", color: T.text1 },
+  // Audit List
+  auditList: { gap: 0 },
+  auditItem: { flexDirection: "row", gap: 10, paddingVertical: 10 },
+  auditItemBorder: { borderTopWidth: 1, borderTopColor: "#E2E8F0" },
+  auditIconWrap: {
+    width: 24, height: 24, borderRadius: 6, backgroundColor: "#F8FAFC",
+    borderWidth: 1, borderColor: "#E2E8F0", alignItems: "center", justifyContent: "center",
+    marginTop: 2,
+  },
+  auditMetaRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 2 },
+  auditActor: { fontSize: 12, fontWeight: "700", color: "#0F172A" },
+  auditDate: { fontSize: 11, color: "#64748B" },
+  auditAction: { fontSize: 12, color: "#475569", lineHeight: 16 },
+  emptyAudit: { paddingVertical: 16, alignItems: "center" },
+  emptyAuditText: { fontSize: 12, color: "#64748B", fontStyle: "italic" },
 
-  // Timeline Security Audit Trail
-  timelineContainer: { gap: 16, position: "relative", paddingLeft: 8 },
-  timelineLine: { position: "absolute", left: 19, top: 10, bottom: 10, width: 2, backgroundColor: T.border },
-  timelineNode: { flexDirection: "row", gap: 16 },
-  timelineDot: { width: 24, height: 24, borderRadius: 12, backgroundColor: T.surface, borderWidth: 2, borderColor: T.border, alignItems: "center", justifyContent: "center", zIndex: 10 },
-  timelineContent: { flex: 1, backgroundColor: T.bg, borderRadius: 16, padding: 12, borderWidth: 1, borderColor: T.border },
-  logMeta: { fontSize: 11, fontWeight: "600", color: T.text3, marginBottom: 4 },
-  logAction: { fontSize: 13, fontWeight: "700", color: T.text1 },
-  noneText: { fontSize: 14, color: T.text3, fontStyle: "italic" },
+  // Enforcement Actions Card
+  actionCard: {
+    backgroundColor: "#FFFFFF", borderRadius: 16, padding: 18,
+    borderWidth: 1, borderColor: "#E2E8F0",
+  },
+  actionGrid: { gap: 10 },
+  primaryActionBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: "#0F172A", paddingVertical: 13, borderRadius: 12,
+  },
+  primaryActionText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  secondaryActionBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0",
+    paddingVertical: 13, borderRadius: 12,
+  },
+  secondaryActionText: { color: "#0F172A", fontSize: 14, fontWeight: "700" },
+  warningActionBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0",
+    paddingVertical: 13, borderRadius: 12,
+  },
+  warningActionText: { color: "#0F172A", fontSize: 14, fontWeight: "700" },
+  dangerActionBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#FCA5A5",
+    paddingVertical: 13, borderRadius: 12,
+  },
+  dangerActionText: { color: "#DC2626", fontSize: 14, fontWeight: "700" },
 
-  // Modal styling
-  modalOverlay: { flex: 1, backgroundColor: "rgba(10,25,47,0.5)", justifyContent: "center", padding: 20 },
-  modalContainer: { backgroundColor: T.surface, borderRadius: 24, padding: 24, ...CARD_SHADOW },
-  modalTitle: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 8, letterSpacing: -0.5 },
-  modalDesc: { fontSize: 14, color: T.text2, marginBottom: 20, lineHeight: 20 },
-  modalInput: { backgroundColor: T.bg, borderRadius: 16, padding: 16, fontSize: 15, color: T.text1, height: 100, textAlignVertical: "top", marginBottom: 20, borderWidth: 1, borderColor: T.border },
-  modalActions: { flexDirection: "row", gap: 12 },
-  modalBtnSecondary: { flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: T.bg, alignItems: "center", borderWidth: 1, borderColor: T.border },
-  modalBtnSecondaryText: { fontSize: 15, fontWeight: "700", color: T.text2 },
-  modalBtnPrimary: { flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: T.warning, alignItems: "center" },
-  modalBtnPrimaryText: { fontSize: 15, fontWeight: "700", color: "#fff" },
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: "rgba(15, 23, 42, 0.7)", justifyContent: "center", padding: 20 },
+  modalContainer: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 24, borderWidth: 1, borderColor: "#E2E8F0" },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A", marginBottom: 6 },
+  modalDesc: { fontSize: 13, color: "#64748B", marginBottom: 16, lineHeight: 18 },
+  modalInput: {
+    backgroundColor: "#F8FAFC", borderRadius: 12, padding: 14, fontSize: 14,
+    color: "#0F172A", height: 90, textAlignVertical: "top", marginBottom: 18,
+    borderWidth: 1, borderColor: "#E2E8F0",
+  },
+  modalActions: { flexDirection: "row", gap: 10 },
+  modalBtnSecondary: { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: "#F8FAFC", alignItems: "center", borderWidth: 1, borderColor: "#E2E8F0" },
+  modalBtnSecondaryText: { fontSize: 14, fontWeight: "700", color: "#475569" },
+  modalBtnPrimary: { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: "#0F172A", alignItems: "center" },
+  modalBtnPrimaryText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
 });
