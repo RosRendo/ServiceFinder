@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPin,
@@ -147,30 +147,41 @@ interface ServiceFinderOsCardProps {
 
 export function ServiceFinderOsCard({ lang }: ServiceFinderOsCardProps) {
   const [startIndex, setStartIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const reducedMotionRef = useRef(false);
 
   // Auto-advance loop: shifts upward one booking every 2.8 seconds
   useEffect(() => {
+    reducedMotionRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }, []);
+
+  useEffect(() => {
     const timer = setInterval(() => {
+      if (reducedMotionRef.current || isPaused || document.hidden) return;
       setStartIndex((prev) => (prev + 1) % ALL_BOOKINGS.length);
     }, 2800);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [isPaused]);
 
-  // 3 visible cards in the vertical cascade:
-  // Slot 0 (Top): faded slightly (opacity: 0.45, scale: 0.96)
-  // Slot 1 (Middle): 100% CLEAR spotlight card (opacity: 1, scale: 1, elevated shadow)
-  // Slot 2 (Bottom): faded slightly (opacity: 0.45, scale: 0.96)
+  // 2 visible cards in the vertical cascade:
+  // Slot 1: CLEAR spotlight card (opacity: 1, scale: 1, elevated shadow)
+  // Slot 2 (Behind/Below): faded slightly (opacity: 0.45, scale: 0.96)
   const visibleBookings = [
-    { ...ALL_BOOKINGS[(startIndex) % ALL_BOOKINGS.length], slot: 0 },
-    { ...ALL_BOOKINGS[(startIndex + 1) % ALL_BOOKINGS.length], slot: 1 },
-    { ...ALL_BOOKINGS[(startIndex + 2) % ALL_BOOKINGS.length], slot: 2 },
+    { ...ALL_BOOKINGS[startIndex % ALL_BOOKINGS.length], slot: 1 },
+    { ...ALL_BOOKINGS[(startIndex + 1) % ALL_BOOKINGS.length], slot: 2 },
   ];
 
   return (
-    <div className="relative w-full max-w-lg mx-auto py-2 select-none">
+    <div
+      className="relative w-full max-w-lg mx-auto py-6 select-none"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onFocus={() => setIsPaused(true)}
+      onBlur={() => setIsPaused(false)}
+    >
       {/* Subtle Vertical Overflow Gradient Mask */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <AnimatePresence mode="popLayout" initial={false}>
           {visibleBookings.map((booking) => {
             const isCenterSpotlight = booking.slot === 1;
@@ -213,7 +224,7 @@ export function ServiceFinderOsCard({ lang }: ServiceFinderOsCardProps) {
                       ${booking.amountUsd.toFixed(2)}
                     </span>
                     <span
-                      className={`inline-flex items-center gap-0.5 text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                      className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full border leading-snug ${
                         booking.status === "settled"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                           : "bg-blue-50 text-blue-700 border-blue-200"
@@ -229,14 +240,14 @@ export function ServiceFinderOsCard({ lang }: ServiceFinderOsCardProps) {
                   <span className="font-semibold text-slate-800 truncate">
                     {lang === "kh" ? booking.serviceTitleKh : booking.serviceTitleEn}
                   </span>
-                  <span className="flex items-center gap-0.5 text-slate-400 shrink-0 text-[11px]">
+                  <span className="flex items-center gap-0.5 text-slate-600 dark:text-slate-300 shrink-0 text-[11px]">
                     <MapPin className="h-3 w-3 text-slate-400" />
                     <span>{lang === "kh" ? booking.locationKh : booking.locationEn}</span>
                   </span>
                 </div>
 
                 {/* Row 3: Assigned Pro & Real-Time Arrival / Settlement Status */}
-                <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-300">
                   <div className="flex items-center gap-1.5">
                     <img
                       src={booking.technicianAvatar}
@@ -251,7 +262,7 @@ export function ServiceFinderOsCard({ lang }: ServiceFinderOsCardProps) {
                     </span>
                   </div>
 
-                  <div className="text-[10.5px]">
+                  <div className="text-[11px] leading-snug">
                     {booking.status === "settled" ? (
                       <span className="text-emerald-700 font-semibold flex items-center gap-0.5">
                         <CheckCheck className="h-3.5 w-3.5 text-emerald-600" />

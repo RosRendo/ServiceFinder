@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 
@@ -21,7 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { landingDictionary } from "@/lib/landing-dictionary";
-import { TRADE_IMAGES, BEFORE_AFTER_SHOWCASE } from "@/lib/visual-assets";
+import { BEFORE_AFTER_SHOWCASE } from "@/lib/visual-assets";
 import { BeforeAfterScrubber } from "@/components/landing/BeforeAfterScrubber";
 import { FadeInView, StaggerContainer, StaggerItem } from "@/components/landing/FadeInView";
 import { motion } from "framer-motion";
@@ -68,12 +67,10 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
           ? "មកដល់ក្នុង ១២ នាទី • ជាងមានអាជ្ញាប័ណ្ណ"
           : "12m avg arrival • Licensed Pro",
       icon: Wind,
-      iconBg: "bg-blue-50 border-blue-200 text-blue-600",
+      iconBg: "bg-zinc-100 border-zinc-200 text-zinc-900 group-hover:bg-zinc-950 group-hover:text-white transition-colors",
       startingPrice: 15,
       providerCount: 142,
       popular: true,
-      image: TRADE_IMAGES.ac.imageUrl,
-      badge: lang === "kh" ? "ជាងជំនាញមានអាជ្ញាប័ណ្ណ" : "Licensed HVAC Crew",
     },
     {
       id: "electrical",
@@ -92,12 +89,10 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
           ? "ជាងភ្លើងកម្រិតជាន់ខ្ពស់ • ធានាគុណភាព"
           : "Certified Electrician • 15m ETA",
       icon: Zap,
-      iconBg: "bg-amber-50 border-amber-200 text-amber-600",
+      iconBg: "bg-zinc-100 border-zinc-200 text-zinc-900 group-hover:bg-zinc-950 group-hover:text-white transition-colors",
       startingPrice: 18,
       providerCount: 96,
       popular: true,
-      image: TRADE_IMAGES.electrical.imageUrl,
-      badge: lang === "kh" ? "ជាងអគ្គិសនីបញ្ជាក់គុណភាព" : "Certified Electricians",
     },
     {
       id: "plumbing",
@@ -116,12 +111,10 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
           ? "ឧបករណ៍រកកន្លែងលេចធ្លាយទំនើប"
           : "Leak Detection Tools • Fast Fix",
       icon: Droplet,
-      iconBg: "bg-cyan-50 border-cyan-200 text-cyan-600",
+      iconBg: "bg-zinc-100 border-zinc-200 text-zinc-900 group-hover:bg-zinc-950 group-hover:text-white transition-colors",
       startingPrice: 15,
       providerCount: 114,
       popular: false,
-      image: TRADE_IMAGES.plumbing.imageUrl,
-      badge: lang === "kh" ? "ជាងទុយោទឹកជំនាញ" : "Master Plumbers",
     },
     {
       id: "cleaning",
@@ -140,12 +133,10 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
           ? "បុគ្គលិកត្រួតពិនិត្យប្រវត្តិរូប ១០០%"
           : "Police Cleared Crew • 5-Star",
       icon: Sparkles,
-      iconBg: "bg-emerald-50 border-emerald-200 text-emerald-600",
+      iconBg: "bg-zinc-100 border-zinc-200 text-zinc-900 group-hover:bg-zinc-950 group-hover:text-white transition-colors",
       startingPrice: 25,
       providerCount: 218,
       popular: true,
-      image: TRADE_IMAGES.cleaning.imageUrl,
-      badge: lang === "kh" ? "បុគ្គលិកត្រួតពិនិត្យប្រវត្តិរូប" : "Police Cleared Staff",
     },
     {
       id: "handyman",
@@ -164,12 +155,10 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
           ? "ជាងចម្រុះមុខងាររហ័ស"
           : "Multi-Trade Toolkit • On-Demand",
       icon: Wrench,
-      iconBg: "bg-indigo-50 border-indigo-200 text-indigo-600",
+      iconBg: "bg-zinc-100 border-zinc-200 text-zinc-900 group-hover:bg-zinc-950 group-hover:text-white transition-colors",
       startingPrice: 20,
       providerCount: 88,
       popular: false,
-      image: TRADE_IMAGES.handyman.imageUrl,
-      badge: lang === "kh" ? "ជាងជួសជុលចម្រុះមុខងារ" : "Multi-Trade Pros",
     },
     {
       id: "solar",
@@ -188,14 +177,20 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
           ? "អ្នកជំនាញថាមពលស្អាត"
           : "Clean Energy Pros • Warranty",
       icon: Sun,
-      iconBg: "bg-orange-50 border-orange-200 text-orange-600",
+      iconBg: "bg-zinc-100 border-zinc-200 text-zinc-900 group-hover:bg-zinc-950 group-hover:text-white transition-colors",
       startingPrice: 50,
       providerCount: 42,
       popular: false,
-      image: TRADE_IMAGES.solar.imageUrl,
-      badge: lang === "kh" ? "អ្នកជំនាញថាមពលស្អាត" : "Clean Energy Pros",
     },
   ];
+
+  const featuredSlugs = ["air-conditioning", "cleaning"];
+  const featuredCategories = featuredSlugs
+    .map((slug) => categories.find((cat) => cat.slug === slug))
+    .filter((cat): cat is (typeof categories)[number] => Boolean(cat));
+  const compactCategories = categories.filter(
+    (cat) => !featuredSlugs.includes(cat.slug)
+  );
 
   return (
     <section id="services" className="py-20 bg-slate-50 border-t border-slate-200">
@@ -227,6 +222,7 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label={dict.exploreServices}
               placeholder={
                 lang === "kh"
                   ? "ស្វែងរកសេវាកម្ម (ឧទាហរណ៍៖ ម៉ាស៊ីនត្រជាក់ ភ្លើង ទុយោទឹក សម្អាត)..."
@@ -236,7 +232,7 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
             />
             <Button
               type="submit"
-              className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl shrink-0 cursor-pointer"
+              className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl shrink-0 cursor-pointer"
             >
               <span>{lang === "kh" ? "ស្វែងរក" : "Search"}</span>
             </Button>
@@ -266,7 +262,8 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
                     key={item.id}
                     type="button"
                     onClick={() => setActiveBeforeAfterId(item.id)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                    aria-pressed={activeBeforeAfterId === item.id}
+                    className={`rounded-lg px-3 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
                       activeBeforeAfterId === item.id
                         ? "bg-slate-900 text-white shadow-xs"
                         : "border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
@@ -308,9 +305,9 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
           </div>
         </FadeInView>
 
-        {/* High-Resolution Visual Trade Cards Grid */}
-        <StaggerContainer className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" staggerDelay={0.08}>
-          {categories.map((cat) => {
+        {/* Featured Popular Trade Cards (Price-Forward Hero Row) */}
+        <StaggerContainer className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6" staggerDelay={0.08}>
+          {featuredCategories.map((cat) => {
             const Icon = cat.icon;
             return (
               <StaggerItem key={cat.id} className="flex">
@@ -321,56 +318,111 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
                 >
                   <Link
                     href={`/services?category=${cat.slug}`}
-                    className="group relative rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:shadow-xl hover:border-slate-300 transition-all flex flex-col justify-between w-full select-none"
+                    className="group relative rounded-2xl border border-slate-200 bg-white p-6 shadow-xs hover:shadow-xl hover:border-slate-300 transition-all flex flex-col justify-between w-full select-none md:min-h-[220px]"
                   >
-                    {/* Top Row: Icon Plate + Popular Badge + Verified Pro Count */}
                     <div>
                       <div className="flex items-start justify-between">
-                        <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center transition-transform group-hover:scale-105 duration-200 ${cat.iconBg}`}>
-                          <Icon className="h-6 w-6 stroke-[2]" />
+                        <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center transition-transform group-hover:scale-105 duration-200 ${cat.iconBg}`}>
+                          <Icon className="h-7 w-7 stroke-[2]" />
                         </div>
 
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2">
                           {cat.popular && (
-                            <span className="rounded-full bg-amber-50 border border-amber-200 text-amber-800 px-2 py-0.5 text-[9.5px] font-bold">
+                            <span className="rounded-full bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-0.5 text-[11px] font-bold leading-snug">
                               {lang === "kh" ? "ពេញនិយម" : "Popular"}
                             </span>
                           )}
-                          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10.5px] font-semibold text-slate-600">
+                          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600">
                             {cat.providerCount} {dict.verifiedPros}
                           </span>
                         </div>
                       </div>
 
-                      {/* Middle: Title & Scope */}
                       <div className="mt-4 space-y-1">
-                        <h3 className="font-heading text-base sm:text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                        <h3 className="font-heading text-lg sm:text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
                           {cat.name}
                         </h3>
-                        <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                        <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
                           {cat.scope}
                         </p>
                       </div>
 
-                      {/* Live Telemetry / Proximity Status Strip */}
                       <div className="mt-3.5 flex items-center gap-2 text-[11px] font-medium text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                         <span className="truncate">{cat.highlight}</span>
                       </div>
                     </div>
 
-                    {/* Bottom Row: Transparent Fixed Price + Book Trigger */}
-                    <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between">
+                    <div className="mt-5 pt-4 border-t border-slate-100 flex items-end justify-between">
                       <div>
-                        <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-wider">
+                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block">
                           {dict.startingFrom}
                         </span>
-                        <span className="font-heading text-lg font-black text-slate-900">
+                        <span className="font-heading text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                           ${cat.startingPrice}.00
                         </span>
                       </div>
 
-                      <div className="inline-flex items-center gap-1.5 bg-slate-900 group-hover:bg-blue-600 text-white rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs group-hover:translate-x-0.5">
+                      <div className="inline-flex items-center gap-1.5 bg-slate-900 group-hover:bg-blue-600 text-white rounded-xl px-4 py-2.5 text-sm font-bold transition-all shadow-xs group-hover:translate-x-0.5">
+                        <span>{lang === "kh" ? "កក់ឥឡូវនេះ" : "Book Pro"}</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              </StaggerItem>
+            );
+          })}
+        </StaggerContainer>
+
+        {/* Compact Trade Cards Grid */}
+        <StaggerContainer className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4" staggerDelay={0.08}>
+          {compactCategories.map((cat) => {
+            const Icon = cat.icon;
+            return (
+              <StaggerItem key={cat.id} className="flex">
+                <motion.div
+                  whileHover={{ y: -4 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="w-full flex"
+                >
+                  <Link
+                    href={`/services?category=${cat.slug}`}
+                    className="group relative rounded-xl border border-slate-200 bg-white p-4 shadow-xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between w-full select-none"
+                  >
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200 ${cat.iconBg}`}>
+                          <Icon className="h-5 w-5 stroke-[2]" />
+                        </div>
+                        <h3 className="font-heading text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                          {cat.name}
+                        </h3>
+                        {cat.popular && (
+                          <span className="ml-auto shrink-0 rounded-full bg-amber-50 border border-amber-200 text-amber-800 px-2 py-0.5 text-[10.5px] font-bold leading-snug">
+                            {lang === "kh" ? "ពេញនិយម" : "Popular"}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-2 text-xs text-slate-500 font-medium leading-snug">
+                        {cat.scope}
+                      </p>
+                      <span className="mt-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10.5px] font-semibold text-slate-600">
+                        {cat.providerCount} {dict.verifiedPros}
+                      </span>
+                    </div>
+
+                    <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                          {dict.startingFrom}
+                        </span>
+                        <span className="font-heading text-base font-black text-slate-900">
+                          ${cat.startingPrice}.00
+                        </span>
+                      </div>
+
+                      <div className="inline-flex items-center gap-1 bg-slate-900 group-hover:bg-blue-600 text-white rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all shadow-xs group-hover:translate-x-0.5">
                         <span>{lang === "kh" ? "កក់ឥឡូវនេះ" : "Book Pro"}</span>
                         <ArrowRight className="h-3 w-3" />
                       </div>
@@ -389,14 +441,12 @@ export function CategoryExplorer({ lang }: CategoryExplorerProps) {
             whileTap={{ scale: 0.98 }}
             className="inline-block"
           >
-            <Link href="/services">
-              <Button
-                variant="outline"
-                className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50 font-bold text-xs uppercase tracking-wider px-6 py-2.5 rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer"
-              >
-                <span>{dict.viewAllCta}</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
+            <Link
+              href="/services"
+              className="inline-flex items-center gap-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs px-6 py-2.5 rounded-xl shadow-xs cursor-pointer"
+            >
+              <span>{dict.viewAllCta}</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </motion.div>
         </FadeInView>

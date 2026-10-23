@@ -4,28 +4,52 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPin,
-  Calendar,
-  Clock,
   QrCode,
-  CheckCircle2,
   Check,
-  Star,
   Wind,
   Droplets,
   Zap,
   Sparkle,
+  Sparkles,
+  Snowflake,
+  Wrench,
   ArrowRight,
   ShieldCheck,
   Navigation,
   RotateCcw,
-  Play,
-  Smartphone,
   Home,
+  MousePointerClick,
 } from "lucide-react";
+import { PhoneFrame } from "@/components/landing/PhoneFrame";
+
+const TIME_SLOTS = [
+  {
+    id: "today-1430",
+    labelEn: "Today, 2:30 PM",
+    labelKh: "ថ្ងៃនេះ ម៉ោង ២:៣០ រសៀល",
+  },
+  {
+    id: "today-1600",
+    labelEn: "Today, 4:00 PM",
+    labelKh: "ថ្ងៃនេះ ម៉ោង ៤:០០ រសៀល",
+  },
+  {
+    id: "today-1730",
+    labelEn: "Today, 5:30 PM",
+    labelKh: "ថ្ងៃនេះ ម៉ោង ៥:៣០ ល្ងាច",
+  },
+  {
+    id: "tomorrow-0900",
+    labelEn: "Tomorrow 9 AM",
+    labelKh: "ថ្ងៃស្អែក ម៉ោង ៩ ព្រឹក",
+  },
+];
 
 interface InteractivePhoneDemoProps {
   lang: "kh" | "en";
-  videoUrl?: string; // When user provides video later, this drops right in!
+  videoUrl?: string;
+  activeStep?: number;
+  onStepChange?: (step: number) => void;
   className?: string;
 }
 
@@ -34,11 +58,18 @@ type DemoStep = 0 | 1 | 2 | 3 | 4;
 export function InteractivePhoneDemo({
   lang,
   videoUrl,
+  activeStep,
+  onStepChange,
   className = "",
 }: InteractivePhoneDemoProps) {
-  const [step, setStep] = useState<DemoStep>(1);
+  const [internalStep, setInternalStep] = useState<DemoStep>(1);
+  const step = (activeStep ?? internalStep) as DemoStep;
+  const setStep = (target: DemoStep) => {
+    setInternalStep(target);
+    onStepChange?.(target);
+  };
   const [selectedService, setSelectedService] = useState<"ac" | "electric" | "plumbing" | "clean">("ac");
-  const [selectedTime, setSelectedTime] = useState<string>("2:30 PM");
+  const [selectedTime, setSelectedTime] = useState<string>("today-1430");
 
   const services = {
     ac: {
@@ -71,72 +102,22 @@ export function InteractivePhoneDemo({
     },
   };
 
-  const stepsMeta = [
-    { num: 0, labelEn: "Welcome Hero", labelKh: "ទំព័រដើម" },
-    { num: 1, labelEn: "Pick Service", labelKh: "ជ្រើសសេវា" },
-    { num: 2, labelEn: "Schedule", labelKh: "កាលវិភាគ" },
-    { num: 3, labelEn: "Live Match", labelKh: "ផ្គូផ្គងជាង" },
-    { num: 4, labelEn: "Bakong KHQR", labelKh: "ទូទាត់ KHQR" },
-  ];
-
-  const getStepBadgeClass = (active: boolean) => {
-    return active ? "bg-blue-600 text-white" : "bg-slate-100 text-blue-950";
-  };
-
   return (
     <div className={`flex flex-col items-center select-none ${className}`}>
-      {/* Interactive Step Switcher Pills Above Phone */}
-      {!videoUrl && (
-        <div className="flex items-center gap-1 sm:gap-2 mb-4 bg-slate-100 p-1 rounded-full border border-slate-200/80 shadow-2xs">
-          {stepsMeta.map((s) => (
-            <button
-              key={s.num}
-              type="button"
-              onClick={() => setStep(s.num as DemoStep)}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
-                step === s.num
-                  ? "bg-white text-blue-600 shadow-xs border border-slate-200/60"
-                  : "bg-transparent text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] ${getStepBadgeClass(step === s.num)}`}>
-                {s.num}
-              </span>
-              <span>{lang === "kh" ? s.labelKh : s.labelEn}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* The Realistic Smartphone Chassis */}
-      <div className="relative w-[280px] sm:w-[305px] h-[570px] rounded-[44px] bg-slate-950 p-2.5 sm:p-3 shadow-2xl shadow-slate-900/30 border-[3px] border-slate-700/80 ring-1 ring-white/10 flex flex-col justify-between overflow-hidden">
-        {/* Hardware Reflection & Side Volume Accents */}
-        <div className="absolute top-24 -left-1.5 w-1 h-8 rounded-l bg-slate-700 pointer-events-none" />
-        <div className="absolute top-36 -left-1.5 w-1 h-8 rounded-l bg-slate-700 pointer-events-none" />
-        <div className="absolute top-28 -right-1.5 w-1 h-12 rounded-r bg-slate-700 pointer-events-none" />
-
-        {/* Dynamic Island */}
-        <div className="relative z-30 mx-auto h-4 w-22 rounded-full bg-black mb-1 flex items-center justify-between px-2.5 shadow-xs">
-          <div className="w-2 h-2 rounded-full bg-slate-900/90 border border-slate-800" />
-          <div className="w-1.5 h-1.5 rounded-full bg-blue-900/60" />
-        </div>
-
-        {/* Screen Bezel / Container */}
-        <div className="relative w-full h-[515px] rounded-[34px] bg-white overflow-hidden flex flex-col justify-between text-slate-900">
-          {/* If videoUrl is provided, render video player; otherwise render the interactive demo */}
-          {videoUrl ? (
-            <div className="relative w-full h-full bg-black flex items-center justify-center">
-              <video
-                src={videoUrl}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : (
-            <div className="flex flex-col h-full justify-between p-3.5 pt-2">
+      <PhoneFrame>
+        {videoUrl ? (
+          <div className="relative w-full h-full bg-black flex items-center justify-center">
+            <video
+              src={videoUrl}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col h-full justify-between p-3.5 pt-2">
               <AnimatePresence initial={false}>
                 {/* ──────────────── STEP 0: WELCOME HERO (VISUAL ONBOARDING) ──────────────── */}
                 {step === 0 && (
@@ -172,7 +153,7 @@ export function InteractivePhoneDemo({
                         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                         className="absolute top-1 left-0 bg-white border border-slate-200/80 rounded-xl px-2.5 py-1.5 shadow-xs flex items-center gap-1.5 z-10"
                       >
-                        <span className="text-xs">🧹</span>
+                        <Sparkles className="h-3 w-3 text-purple-500" />
                         <span className="text-[10px] font-bold text-slate-900">{lang === "kh" ? "សម្អាត" : "Cleaning"}</span>
                       </motion.div>
 
@@ -182,7 +163,7 @@ export function InteractivePhoneDemo({
                         transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
                         className="absolute top-2 right-0 bg-white border border-slate-200/80 rounded-xl px-2.5 py-1.5 shadow-xs flex items-center gap-1.5 z-10"
                       >
-                        <span className="text-xs">❄️</span>
+                        <Snowflake className="h-3 w-3 text-blue-500" />
                         <span className="text-[10px] font-bold text-slate-900">{lang === "kh" ? "ម៉ាស៊ីនត្រជាក់" : "AC Repair"}</span>
                       </motion.div>
 
@@ -208,7 +189,7 @@ export function InteractivePhoneDemo({
                         transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
                         className="absolute bottom-2 left-1 bg-white border border-slate-200/80 rounded-xl px-2.5 py-1.5 shadow-xs flex items-center gap-1.5 z-10"
                       >
-                        <span className="text-xs">⚡</span>
+                        <Zap className="h-3 w-3 text-amber-500" />
                         <span className="text-[10px] font-bold text-slate-900">{lang === "kh" ? "ភ្លើង" : "Electrical"}</span>
                       </motion.div>
 
@@ -218,7 +199,9 @@ export function InteractivePhoneDemo({
                         transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
                         className="absolute bottom-0 right-0 bg-white border border-slate-200/80 rounded-xl px-2.5 py-1.5 shadow-xs flex items-center gap-1.5 z-10"
                       >
-                        <span className="text-xs">👨‍🔧</span>
+                        <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs">
+                          <Wrench className="h-3 w-3 text-slate-700" />
+                        </span>
                         <div>
                           <span className="text-[10px] font-bold text-slate-900 block leading-none">Dara C.</span>
                           <span className="text-[8.5px] text-emerald-600 font-semibold">{lang === "kh" ? "កំពុងមកដល់" : "12m ETA"}</span>
@@ -264,7 +247,7 @@ export function InteractivePhoneDemo({
                         <ArrowRight className="h-3 w-3" />
                       </button>
                       <div className="text-center mt-1">
-                        <span className="text-[9.5px] text-slate-400">
+                        <span className="text-[9.5px] text-slate-600 dark:text-slate-300">
                           {lang === "kh" ? "មានគណនីរួចហើយ? " : "Already have an account? "}
                         </span>
                         <span className="text-[9.5px] font-bold text-slate-700 underline cursor-pointer">
@@ -294,8 +277,9 @@ export function InteractivePhoneDemo({
                           </div>
                           <span className="text-[11px] font-bold text-slate-900">ServiceFinder</span>
                         </div>
-                        <span className="text-[9px] bg-slate-100 text-slate-600 font-semibold px-1.5 py-0.5 rounded-full">
-                          📍 Phnom Penh
+                        <span className="text-[9px] bg-slate-100 text-slate-600 font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                          <MapPin className="h-2.5 w-2.5 text-rose-500" />
+                          Phnom Penh
                         </span>
                       </div>
 
@@ -334,7 +318,9 @@ export function InteractivePhoneDemo({
                                   <span className="text-[11px] font-bold text-slate-900 block leading-tight">
                                     {lang === "kh" ? s.nameKh : s.nameEn}
                                   </span>
-                                  <span className="text-[9px] text-slate-400">Verified Pro</span>
+                                  <span className="text-[9px] text-slate-600 dark:text-slate-300">
+                                    {lang === "kh" ? "ជំនាញដែលបានផ្ទៀងផ្ទាត់" : "Verified Pro"}
+                                  </span>
                                 </div>
                               </div>
                               <span className="font-mono text-xs font-bold text-slate-900">{s.price}</span>
@@ -379,7 +365,7 @@ export function InteractivePhoneDemo({
 
                       {/* Location Box */}
                       <div className="mt-3 p-2.5 rounded-xl border border-slate-200 bg-slate-50 space-y-1">
-                        <span className="text-[9.5px] uppercase font-bold text-slate-400">
+                        <span className="text-[9.5px] uppercase font-bold text-slate-600 dark:text-slate-300">
                           {lang === "kh" ? "ទីតាំងរបស់អ្នក" : "Your Location"}
                         </span>
                         <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-900">
@@ -390,24 +376,24 @@ export function InteractivePhoneDemo({
 
                       {/* Time Slot Picker */}
                       <div className="mt-3 space-y-1.5">
-                        <span className="text-[9.5px] uppercase font-bold text-slate-400">
+                        <span className="text-[9.5px] uppercase font-bold text-slate-600 dark:text-slate-300">
                           {lang === "kh" ? "ជ្រើសរើសម៉ោង" : "Select Arrival Time"}
                         </span>
                         <div className="grid grid-cols-2 gap-1.5">
-                          {["Today, 2:30 PM", "Today, 4:00 PM", "Today, 5:30 PM", "Tomorrow 9 AM"].map((time) => {
-                            const isTimeSelected = selectedTime === time;
+                          {TIME_SLOTS.map((slot) => {
+                            const isTimeSelected = selectedTime === slot.id;
                             return (
                               <button
-                                key={time}
+                                key={slot.id}
                                 type="button"
-                                onClick={() => setSelectedTime(time)}
+                                onClick={() => setSelectedTime(slot.id)}
                                 className={`p-2 rounded-lg text-[10px] font-bold border transition-all text-center cursor-pointer ${
                                   isTimeSelected
                                     ? "bg-blue-600 text-white border-blue-600 shadow-xs"
                                     : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                                 }`}
                               >
-                                {time}
+                                {lang === "kh" ? slot.labelKh : slot.labelEn}
                               </button>
                             );
                           })}
@@ -417,7 +403,11 @@ export function InteractivePhoneDemo({
                       {/* Guarantee Pill */}
                       <div className="mt-4 p-2 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-[10px] text-emerald-800">
                         <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
-                        <span>Fixed price guaranteed. Escrow protected.</span>
+                        <span>
+                          {lang === "kh"
+                            ? "តម្លៃកំណត់ជាមុន។ ប្រាក់កាន់កាប់សុវត្ថិភាព"
+                            : "Fixed price guaranteed. Escrow protected."}
+                        </span>
                       </div>
                     </div>
 
@@ -428,7 +418,7 @@ export function InteractivePhoneDemo({
                         onClick={() => setStep(1)}
                         className="w-1/3 border border-slate-200 text-slate-600 rounded-xl py-2 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
                       >
-                        Back
+                        {lang === "kh" ? "ត្រឡប់" : "Back"}
                       </button>
                       <button
                         type="button"
@@ -463,7 +453,9 @@ export function InteractivePhoneDemo({
                       </div>
 
                       <span className="inline-block text-[9.5px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                        Pro Matched in 14s
+                        {lang === "kh"
+                          ? "ផ្គូរផ្គងជំនាញរួចរាល់ក្នុង 14s"
+                          : "Pro Matched in 14s"}
                       </span>
 
                       <h4 className="text-xs font-bold text-slate-900 mt-2">
@@ -476,6 +468,10 @@ export function InteractivePhoneDemo({
                           <img
                             src="https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=120&q=80"
                             alt="Pro"
+                            width={96}
+                            height={96}
+                            loading="lazy"
+                            decoding="async"
                             className="w-9 h-9 rounded-full object-cover border border-slate-200"
                           />
                           <div>
@@ -488,8 +484,14 @@ export function InteractivePhoneDemo({
                         </div>
 
                         <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[10px]">
-                          <span className="text-slate-500">Arrival ETA:</span>
-                          <span className="font-bold text-blue-600">12 mins away (Toul Kork)</span>
+                          <span className="text-slate-500">
+                            {lang === "kh" ? "ម៉ោងដំណើរមកដល់៖" : "Arrival ETA:"}
+                          </span>
+                          <span className="font-bold text-blue-600">
+                            {lang === "kh"
+                              ? "មានចម្ងាយ ១២ នាទី (ទួលគោក)"
+                              : "12 mins away (Toul Kork)"}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -529,7 +531,7 @@ export function InteractivePhoneDemo({
                         <h4 className="text-xs font-bold text-slate-900">
                           {lang === "kh" ? "ទូទាត់ជោគជ័យភ្លាមៗ" : "Instant Escrow Lock"}
                         </h4>
-                        <p className="text-[9px] text-slate-400">
+                        <p className="text-[9px] text-slate-600 dark:text-slate-300">
                           Ref: NBC-SF-8421 • Any Cambodian Bank
                         </p>
                       </div>
@@ -561,17 +563,13 @@ export function InteractivePhoneDemo({
                 )}
               </AnimatePresence>
             </div>
-          )}
-        </div>
+        )}
+      </PhoneFrame>
 
-        {/* Bottom Home Indicator Bar */}
-        <div className="mx-auto h-1 w-24 rounded-full bg-slate-500 mt-1.5" />
-      </div>
-
-      {/* Helpful Subtitle */}
       {!videoUrl && (
         <span className="text-[10px] text-slate-400 mt-2 font-medium flex items-center gap-1">
-          <span>👆 Click directly on the phone or steps above to test</span>
+          <MousePointerClick className="h-3 w-3" />
+          <span>Click directly on the phone to test</span>
         </span>
       )}
     </div>

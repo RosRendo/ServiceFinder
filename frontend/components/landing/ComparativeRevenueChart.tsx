@@ -33,6 +33,10 @@ export function ComparativeRevenueChart({
     ((serviceFinderRevenue - traditionalRevenue) / Math.max(traditionalRevenue, 1)) * 100
   );
 
+  const maxRevenue = Math.max(traditionalRevenue, serviceFinderRevenue);
+  const traditionalHeight = Math.max((traditionalRevenue / maxRevenue) * 100, 4);
+  const serviceFinderHeight = Math.max((serviceFinderRevenue / maxRevenue) * 100, 4);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -62,7 +66,15 @@ export function ComparativeRevenueChart({
       </div>
 
       {/* Visual Comparative Bars Display */}
-      <div className="grid grid-cols-2 gap-4 sm:gap-6 items-end h-56 pt-4 pb-2 px-2">
+      <div
+        role="img"
+        aria-label={
+          lang === "kh"
+            ? `ដៃគូដោយស្វ័យប្រវត្តិរកចំណូល $${serviceFinderRevenue.toLocaleString()} ធៀបនឹង $${traditionalRevenue.toLocaleString()} ដោយខ្លួនឯង`
+            : `Partners earn $${serviceFinderRevenue.toLocaleString()} vs $${traditionalRevenue.toLocaleString()} independently`
+        }
+        className="grid grid-cols-2 gap-4 sm:gap-6 items-end h-56 pt-4 pb-2 px-2"
+      >
         {/* Bar 1: Traditional Operations */}
         <div className="flex flex-col items-center h-full justify-end group">
           <motion.div
@@ -75,7 +87,7 @@ export function ComparativeRevenueChart({
           </motion.div>
           <motion.div
             initial={{ height: "0%" }}
-            whileInView={{ height: "60%" }}
+            whileInView={{ height: `${traditionalHeight}%` }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: [0.21, 0.47, 0.32, 0.98] }}
             className="w-full max-w-[90px] rounded-t-xl bg-slate-200 border-x border-t border-slate-300 transition-colors group-hover:bg-slate-300"
@@ -102,7 +114,7 @@ export function ComparativeRevenueChart({
           </motion.div>
           <motion.div
             initial={{ height: "0%" }}
-            whileInView={{ height: "95%" }}
+            whileInView={{ height: `${serviceFinderHeight}%` }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, ease: [0.21, 0.47, 0.32, 0.98], delay: 0.1 }}
             className="w-full max-w-[90px] rounded-t-xl bg-slate-900 border-x border-t border-slate-900 shadow-sm"

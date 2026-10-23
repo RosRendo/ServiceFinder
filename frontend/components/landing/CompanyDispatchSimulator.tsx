@@ -112,6 +112,7 @@ export function CompanyDispatchSimulator({ lang }: CompanyDispatchSimulatorProps
           <span className="text-[11px] font-bold text-slate-700 ml-1">
             ServiceFinder OS • Dispatch Kanban
           </span>
+          <span className="rounded border border-slate-200 bg-slate-100 px-1 text-[8px] font-bold text-slate-500 uppercase">Demo</span>
         </div>
 
         <div className="flex items-center gap-2 text-[10px] font-semibold text-slate-500">
@@ -171,7 +172,7 @@ export function CompanyDispatchSimulator({ lang }: CompanyDispatchSimulatorProps
                   type="button"
                   onClick={handleAutoAssign}
                   disabled={isAssigning}
-                  className="w-full mt-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md py-1 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-xs"
+                  className="w-full mt-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md py-2 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-xs"
                 >
                   <Zap className="h-2.5 w-2.5 text-amber-300" />
                   <span>{isAssigning ? "Matching Pro..." : "Auto-Assign ➔"}</span>
@@ -243,12 +244,12 @@ export function CompanyDispatchSimulator({ lang }: CompanyDispatchSimulatorProps
       </div>
 
       {/* 4. Reset & Action Strip */}
-      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-300">
         <span>Click "Auto-Assign" to test 1-click dispatch</span>
         <button
           type="button"
           onClick={handleReset}
-          className="text-slate-500 hover:text-slate-900 font-semibold flex items-center gap-1 cursor-pointer"
+          className="text-slate-600 dark:text-slate-300 hover:text-slate-900 font-semibold flex items-center gap-1 cursor-pointer"
         >
           <RotateCcw className="h-3 w-3" />
           <span>Reset Board</span>

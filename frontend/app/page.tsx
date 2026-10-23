@@ -14,6 +14,7 @@ import { ComparisonTable } from "@/components/landing/ComparisonTable";
 import { TrustSecurityGuarantee } from "@/components/landing/TrustSecurityGuarantee";
 import { SocialProofStats } from "@/components/landing/SocialProofStats";
 import { FaqSection } from "@/components/landing/FaqSection";
+import { FinalCtaBand } from "@/components/landing/FinalCtaBand";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { AppDownloadModal } from "@/components/landing/AppDownloadModal";
 
@@ -36,6 +37,10 @@ export default function LandingPage() {
       // Fallback silently if storage unavailable
     }
   }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = lang === "kh" ? "km" : "en";
+  }, [lang]);
 
   const handleLanguageChange = (newLang: "kh" | "en") => {
     setLang(newLang);
@@ -67,35 +72,41 @@ export default function LandingPage() {
       />
 
       <main>
-        {/* 2. Hero Section: Dual Value Proposition & Operating System Showcase */}
+        {/* 2. Hero Section: Consumer-First Value Prop & Operating System Showcase */}
         <HeroSection
           lang={lang}
           onOpenAppDownload={() => setIsAppDownloadOpen(true)}
         />
 
-        {/* 2.5. Dedicated Dual-Track Sponsor & Ecosystem Alliances Marquee Carousel */}
-        <PartnershipCarousel lang={lang} />
-
-        {/* 3. Consumer Service Category Discovery */}
+        {/* 3. Consumer Service Category Discovery (id="services") */}
         <CategoryExplorer lang={lang} />
 
-        {/* 4. Interactive Partner Growth & ROI Calculator (B2B MVP) */}
-        <PartnerRoiCalculator lang={lang} />
-
-        {/* 5. 3-Way Ecosystem Interactive Tour (Customer, Company, Staff) */}
-        <EcosystemTour lang={lang} />
-
-        {/* 6. Operational Superiority Comparison Table */}
-        <ComparisonTable lang={lang} />
-
-        {/* 8. Trust, Security & Ministry Verification Guarantees */}
+        {/* 4. Trust, Security & Ministry Verification Guarantees (id="trust") */}
         <TrustSecurityGuarantee lang={lang} />
 
-        {/* 9. Social Proof & Verified Cambodian Partner Case Studies */}
+        {/* 5. 3-Way Ecosystem Interactive Tour (id="ecosystem") */}
+        <EcosystemTour lang={lang} />
+
+        {/* 6. Social Proof & Verified Cambodian Partner Case Studies */}
         <SocialProofStats lang={lang} />
 
-        {/* 10. Operational FAQs & Objection Handling */}
+        {/* 7. Business Track: ROI Calculator + Comparison Table (id="for-business") */}
+        <section id="for-business" className="scroll-mt-16">
+          <PartnerRoiCalculator lang={lang} />
+          <ComparisonTable lang={lang} />
+        </section>
+
+        {/* 8. Dedicated Dual-Track Sponsor & Ecosystem Alliances Marquee Carousel (Pre-Footer Band) */}
+        <PartnershipCarousel lang={lang} />
+
+        {/* 9. Operational FAQs & Objection Handling (id="faqs") */}
         <FaqSection lang={lang} />
+
+        {/* 10. Final Conversion Band: Consumer + Company Tracks */}
+        <FinalCtaBand
+          lang={lang}
+          onOpenAppDownload={() => setIsAppDownloadOpen(true)}
+        />
       </main>
 
       {/* 11. Localized Footer */}

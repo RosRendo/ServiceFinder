@@ -26,7 +26,7 @@ describe("LandingPage Orchestrator", () => {
     expect(screen.getAllByText("ServiceFinder").length).toBeGreaterThan(0);
 
     // Verify Khmer Hero text
-    expect(screen.getByText("ពង្រីកចំណូលអាជីវកម្មសេវាកម្ម")).toBeDefined();
+    expect(screen.getByText(/ជ្រើសរើសជំនាញ/)).toBeDefined();
 
     // Verify Bakong KHQR presence
     expect(screen.getAllByText(/Bakong KHQR/i).length).toBeGreaterThan(0);
@@ -40,8 +40,8 @@ describe("LandingPage Orchestrator", () => {
     fireEvent.click(langBtn);
 
     // Verify English Hero text
-    expect(screen.getByText("Scale Your Service Business")).toBeDefined();
-    expect(screen.getByText("With One Intelligent OS")).toBeDefined();
+    expect(screen.getByText("Book a trusted Pro.")).toBeDefined();
+    expect(screen.getByText("Fixed price, escrow-protected.")).toBeDefined();
 
     // Verify English ROI calculator section
     expect(screen.getByText("How Much Revenue Can Your Team Generate?")).toBeDefined();

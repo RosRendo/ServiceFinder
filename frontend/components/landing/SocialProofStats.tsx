@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Star, Building2, MapPin } from "lucide-react";
+import { Star, Building2, MapPin, House } from "lucide-react";
 import { landingDictionary } from "@/lib/landing-dictionary";
 
 interface SocialProofStatsProps {
@@ -23,9 +23,9 @@ export function SocialProofStats({ lang }: SocialProofStatsProps) {
       sub: lang === "kh" ? "ក្រុមហ៊ុនចុះបញ្ជីស្របច្បាប់" : "Ministry-Registered Companies",
     },
     {
-      value: "28 min",
-      label: dict.statAvgArrival,
-      sub: lang === "kh" ? "ល្បឿនជាងទៅដល់ជាក់ស្តែង" : "Average Staff Response Time",
+      value: "24/7",
+      label: dict.statDispatch247,
+      sub: lang === "kh" ? "ប្រព័ន្ធចាត់ចែងស្វ័យប្រវត្តិ" : "Automated Dispatch System",
     },
     {
       value: "99.4%",
@@ -33,6 +33,17 @@ export function SocialProofStats({ lang }: SocialProofStatsProps) {
       sub: lang === "kh" ? "ផ្អែកលើការវាយតម្លៃអតិថិជន" : "Verified 5-Star Reviews",
     },
   ];
+
+  const homeowner = {
+    name: lang === "kh" ? "សុខ ដារា" : "Sok Dara",
+    role: lang === "kh" ? "ម្ចាស់ផ្ទះ" : "Homeowner",
+    location: "Borey Peng Huoth, Phnom Penh",
+    quote:
+      lang === "kh"
+        ? "ជាងត្រូវបានផ្ទៀងផ្ទាត់ តម្លៃកំណត់នៅក្នុងកម្មវិធីត្រូវនឹងពេលទូទាត់ជាក់ស្តែង ហើយ Bakong KHQR រក្សាប្រាក់កក់របស់ខ្ញុំសុវត្ថិភាពរហូតដល់ការជួសជុលបានបញ្ចប់។"
+        : "The verified Pro arrived on time, the fixed price in the app matched what I paid exactly, and Bakong KHQR escrow held my deposit safely until the repair was finished.",
+    label: lang === "kh" ? "អតិថិជន" : "Customer",
+  };
 
   const testimonials = [
     {
@@ -91,7 +102,7 @@ export function SocialProofStats({ lang }: SocialProofStatsProps) {
               <div className="text-xs font-bold text-slate-800 mt-2">
                 {item.label}
               </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">
+              <div className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">
                 {item.sub}
               </div>
             </motion.div>
@@ -118,8 +129,43 @@ export function SocialProofStats({ lang }: SocialProofStatsProps) {
           </p>
         </motion.div>
 
-        {/* Realistic Cambodian Partner Testimonial Cards */}
+        {/* Homeowner (Customer First) + Owner Testimonials */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4 }}
+            whileHover={{ y: -4 }}
+            className="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 shadow-xs flex flex-col justify-between hover:border-slate-400 hover:shadow-md transition-all cursor-default md:col-span-3"
+          >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1 text-slate-900">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-4 w-4 fill-slate-900 text-slate-900" />
+                ))}
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 text-white px-2.5 py-0.5 text-[10px] font-bold">
+                <House className="h-3 w-3" />
+                {homeowner.label}
+              </span>
+            </div>
+
+            <p className="text-sm text-slate-700 leading-relaxed italic">
+              "{homeowner.quote}"
+            </p>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-slate-200">
+            <h4 className="text-xs font-bold text-slate-900">{homeowner.name}</h4>
+            <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">{homeowner.role}</p>
+            <p className="text-[10px] text-slate-600 dark:text-slate-300 flex items-center gap-1 mt-0.5">
+              <MapPin className="h-3 w-3 text-slate-400" /> {homeowner.location}
+            </p>
+          </div>
+        </motion.div>
+
           {testimonials.map((t, idx) => (
             <motion.div
               key={idx}
@@ -149,14 +195,19 @@ export function SocialProofStats({ lang }: SocialProofStatsProps) {
 
               <div className="mt-6 pt-4 border-t border-slate-100">
                 <h4 className="text-xs font-bold text-slate-900">{t.name}</h4>
-                <p className="text-[11px] text-slate-500 font-medium">{t.role}</p>
-                <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">{t.role}</p>
+                <p className="text-[10px] text-slate-600 dark:text-slate-300 flex items-center gap-1 mt-0.5">
                   <MapPin className="h-3 w-3 text-slate-400" /> {t.location}
                 </p>
               </div>
             </motion.div>
           ))}
         </div>
+        <p className="text-muted-foreground text-[11px] mt-4 text-center">
+          {lang === "kh"
+            ? "ចំណូលនិងតួលេខទាំងនេះជាការបង្ហាញគំរូប៉ុណ្ណោះ"
+            : "Illustrative figures based on platform projections"}
+        </p>
       </div>
     </section>
   );

@@ -1,7 +1,19 @@
 "use client";
 
+import { Fragment } from "react";
 import { motion } from "framer-motion";
-import { ShieldCheck, Lock, Headphones, UserCheck, Check, Award, BadgeCheck } from "lucide-react";
+import {
+  ShieldCheck,
+  Headphones,
+  UserCheck,
+  QrCode,
+  Wallet,
+  Camera,
+  Banknote,
+  ArrowRight,
+  Award,
+  Check,
+} from "lucide-react";
 import { landingDictionary } from "@/lib/landing-dictionary";
 
 interface TrustSecurityGuaranteeProps {
@@ -10,39 +22,67 @@ interface TrustSecurityGuaranteeProps {
 
 export function TrustSecurityGuarantee({ lang }: TrustSecurityGuaranteeProps) {
   const dict = landingDictionary[lang].trust;
+  const hero = landingDictionary[lang].hero;
 
-  const pillars = [
+  const credentialBadges = [
     {
-      id: "license",
-      title: dict.verifiedLicense,
-      description: dict.verifiedLicenseDesc,
+      id: "moc",
       icon: ShieldCheck,
-      badge: lang === "kh" ? "ក្រសួងពាណិជ្ជកម្ម" : "Ministry Verified",
-      sealNumber: "MOC-REG #0049281",
+      label: lang === "kh" ? "ចុះបញ្ជីនៅក្រសួងពាណិជ្ជកម្ម" : "Registered company (MoC)",
     },
     {
-      id: "escrow",
-      title: dict.escrowProtection,
-      description: dict.escrowProtectionDesc,
-      icon: Lock,
-      badge: lang === "kh" ? "សុវត្ថិភាព ១០០%" : "100% Escrow Vault",
-      sealNumber: "ENCRYPTED DEPOSIT",
+      id: "bakong",
+      icon: QrCode,
+      label: hero.trustBakongKhqr,
+    },
+    {
+      id: "background",
+      icon: UserCheck,
+      label: lang === "kh" ? "ពិនិត្យប្រវត្តិរូប" : "Background-checked Pros",
+    },
+  ];
+
+  const escrowFlow = [
+    {
+      id: "pay",
+      icon: QrCode,
+      label: lang === "kh" ? "អតិថិជនបង់ប្រាក់តាម KHQR" : "Customer pays (KHQR)",
+    },
+    {
+      id: "hold",
+      icon: Wallet,
+      label: lang === "kh" ? "ប្រាក់កាន់កាប់ជាមួយ Escrow" : "Funds held in escrow",
+    },
+    {
+      id: "verify",
+      icon: Camera,
+      label: lang === "kh" ? "ការងារបញ្ចប់ ពិនិត្យរូបភាព" : "Job completed, photos verified",
+    },
+    {
+      id: "release",
+      icon: Banknote,
+      label: lang === "kh" ? "ទូទាត់ប្រាក់ជូនជាង" : "Payout released",
+    },
+  ];
+
+  const guaranteeRows = [
+    {
+      id: "license",
+      icon: ShieldCheck,
+      title: dict.verifiedLicense,
+      description: dict.verifiedLicenseDesc,
     },
     {
       id: "mediation",
+      icon: Headphones,
       title: dict.disputeMediation,
       description: dict.disputeMediationDesc,
-      icon: Headphones,
-      badge: lang === "kh" ? "ដោះស្រាយ ២៤/៧" : "24/7 Mediation",
-      sealNumber: "SLA GUARANTEED",
     },
     {
       id: "technicians",
+      icon: UserCheck,
       title: dict.certifiedTechnicians,
       description: dict.certifiedTechniciansDesc,
-      icon: UserCheck,
-      badge: lang === "kh" ? "ពិនិត្យប្រវត្តិរូប" : "Police Clearance",
-      sealNumber: "BIOMETRIC VERIFIED",
     },
   ];
 
@@ -68,53 +108,97 @@ export function TrustSecurityGuarantee({ lang }: TrustSecurityGuaranteeProps) {
           </p>
         </motion.div>
 
-        {/* Graphical Seal Emblem Cards Grid with Staggered Motion */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {pillars.map((pillar, idx) => {
-            const Icon = pillar.icon;
-            return (
-              <motion.div
-                key={pillar.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: idx * 0.1 }}
-                whileHover={{ y: -4 }}
-                className="group relative rounded-2xl border border-slate-200 bg-white p-6 shadow-xs hover:shadow-md hover:border-slate-400 transition-all flex flex-col justify-between overflow-hidden cursor-default"
-              >
-                {/* Top Subtle Stripe */}
-                <div className="absolute top-0 inset-x-0 h-1 bg-slate-900 transition-transform duration-300 group-hover:scale-x-105" />
-
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 shadow-xs group-hover:bg-slate-100 transition-colors">
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    {/* Graphical Seal Pill */}
-                    <div className="flex items-center gap-1 rounded-md bg-slate-50 text-slate-700 px-2.5 py-1 border border-slate-200 text-[10px] font-mono font-bold">
-                      <BadgeCheck className="h-3.5 w-3.5 text-slate-900" />
-                      <span>{pillar.badge}</span>
-                    </div>
-                  </div>
-
-                  <h3 className="font-heading text-base font-bold text-slate-900 leading-snug">
-                    {pillar.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                    {pillar.description}
-                  </p>
-                </div>
-
-                <div className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono text-slate-400">
-                  <span className="font-semibold text-slate-500">{pillar.sealNumber}</span>
-                  <span className="text-slate-900 font-bold flex items-center gap-1 font-sans">
-                    <Check className="h-3 w-3" /> Certified
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mt-12 space-y-6"
+        >
+          <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+            {credentialBadges.map((credential) => {
+              const Icon = credential.icon;
+              return (
+                <div
+                  key={credential.id}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5"
+                >
+                  <Icon className="h-4 w-4 text-slate-700" />
+                  <span className="text-xs font-semibold text-slate-800">
+                    {credential.label}
                   </span>
+                  <Check className="h-3.5 w-3.5 text-slate-500" />
                 </div>
-              </motion.div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs">
+            <div className="text-center space-y-2">
+              <h3 className="font-heading text-lg sm:text-xl font-bold text-slate-900">
+                {dict.escrowProtection}
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl mx-auto">
+                {dict.escrowDesc}
+              </p>
+            </div>
+
+            <div className="mt-8 flex flex-col md:flex-row md:items-stretch">
+              {escrowFlow.map((step, idx) => {
+                const Icon = step.icon;
+                return (
+                  <Fragment key={step.id}>
+                    {idx > 0 ? (
+                      <div
+                        className="flex justify-center py-2 md:py-0 md:px-1 md:self-center"
+                        aria-hidden="true"
+                      >
+                        <ArrowRight className="h-4 w-4 rotate-90 md:rotate-0 text-slate-300" />
+                      </div>
+                    ) : null}
+                    <div className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 flex flex-col items-start gap-3">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="h-10 w-10 rounded-full border border-slate-200 bg-white flex items-center justify-center">
+                          <Icon className="h-5 w-5 text-slate-800" />
+                        </div>
+                        <span className="text-[10px] font-mono font-bold text-slate-400">
+                          {String(idx + 1).padStart(2, "0")}
+                        </span>
+                      </div>
+                      <p className="text-sm font-bold text-slate-900 leading-snug">
+                        {step.label}
+                      </p>
+                    </div>
+                  </Fragment>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white divide-y divide-slate-100 shadow-xs">
+            {guaranteeRows.map((row) => {
+              const Icon = row.icon;
+              return (
+                <div
+                  key={row.id}
+                  className="flex items-start gap-4 p-4 sm:p-5"
+                >
+                  <div className="shrink-0 h-10 w-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center">
+                    <Icon className="h-5 w-5 text-slate-800" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 leading-snug">
+                      {row.title}
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      {row.description}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
       </div>
     </section>
   );

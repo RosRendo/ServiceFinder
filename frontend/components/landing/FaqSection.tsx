@@ -10,12 +10,13 @@ interface FaqSectionProps {
 }
 
 export function FaqSection({ lang }: FaqSectionProps) {
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [openFaq, setOpenFaq] = useState<string | null>("faq-1");
   const [activeTab, setActiveTab] = useState<"all" | "partner" | "customer">("all");
   const dict = landingDictionary[lang].faq;
 
   const faqs = [
     {
+      id: "faq-1",
       category: "partner",
       q: {
         kh: "តើប្រាក់ទូទាត់របស់អតិថិជននឹងផ្ទេរចូលគណនីធនាគាររបស់ក្រុមហ៊ុនខ្ញុំដោយរបៀបណា?",
@@ -27,6 +28,7 @@ export function FaqSection({ lang }: FaqSectionProps) {
       },
     },
     {
+      id: "faq-2",
       category: "partner",
       q: {
         kh: "តើមានកម្រៃសេវាដំឡើងដំបូង ឬកិច្ចសន្យាចងភ្ជាប់រយៈពេលយូរដែរឬទេ?",
@@ -38,6 +40,7 @@ export function FaqSection({ lang }: FaqSectionProps) {
       },
     },
     {
+      id: "faq-3",
       category: "customer",
       q: {
         kh: "តើប្រព័ន្ធធានាសុវត្ថិភាព Escrow ការពារអតិថិជនយ៉ាងដូចម្តេច?",
@@ -49,6 +52,7 @@ export function FaqSection({ lang }: FaqSectionProps) {
       },
     },
     {
+      id: "faq-4",
       category: "partner",
       q: {
         kh: "តើខ្ញុំអាចកំណត់ប្រភេទសេវាកម្ម និងកាលវិភាគការងាររបស់ជាងដោយខ្លួនឯងបានទេ?",
@@ -60,6 +64,7 @@ export function FaqSection({ lang }: FaqSectionProps) {
       },
     },
     {
+      id: "faq-5",
       category: "customer",
       q: {
         kh: "តើជាងបច្ចេកទេសនៅលើ ServiceFinder មានការធានាគុណភាពដែរឬទេ?",
@@ -71,6 +76,7 @@ export function FaqSection({ lang }: FaqSectionProps) {
       },
     },
     {
+      id: "faq-6",
       category: "partner",
       q: {
         kh: "តើត្រូវចំណាយពេលប៉ុន្មានដើម្បីចាប់ផ្តើមប្រើប្រាស់ ServiceFinder?",
@@ -116,6 +122,7 @@ export function FaqSection({ lang }: FaqSectionProps) {
           <button
             type="button"
             onClick={() => setActiveTab("all")}
+            aria-pressed={activeTab === "all"}
             className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === "all"
                 ? "bg-slate-900 text-white shadow-xs"
@@ -127,6 +134,7 @@ export function FaqSection({ lang }: FaqSectionProps) {
           <button
             type="button"
             onClick={() => setActiveTab("partner")}
+            aria-pressed={activeTab === "partner"}
             className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === "partner"
                 ? "bg-slate-900 text-white shadow-xs"
@@ -138,6 +146,7 @@ export function FaqSection({ lang }: FaqSectionProps) {
           <button
             type="button"
             onClick={() => setActiveTab("customer")}
+            aria-pressed={activeTab === "customer"}
             className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === "customer"
                 ? "bg-slate-900 text-white shadow-xs"
@@ -151,10 +160,10 @@ export function FaqSection({ lang }: FaqSectionProps) {
         {/* Accordion List with Smooth Expand Animation */}
         <div className="mt-10 space-y-3">
           {filteredFaqs.map((faq, index) => {
-            const isOpen = openFaq === index;
+            const isOpen = openFaq === faq.id;
             return (
               <motion.div
-                key={index}
+                key={faq.id}
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -163,7 +172,7 @@ export function FaqSection({ lang }: FaqSectionProps) {
               >
                 <button
                   type="button"
-                  onClick={() => setOpenFaq(isOpen ? null : index)}
+                  onClick={() => setOpenFaq(isOpen ? null : faq.id)}
                   className="w-full flex items-center justify-between p-5 text-left transition-colors hover:bg-slate-50/60 cursor-pointer"
                   aria-expanded={isOpen}
                 >

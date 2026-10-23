@@ -15,14 +15,14 @@ const outfit = Outfit({
 
 const suwannaphum = Suwannaphum({
   variable: "--font-suwannaphum",
-  weight: ["100", "300", "400", "700", "900"],
+  weight: ["400", "700"],
   subsets: ["khmer"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://servicefinder.example';
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-  ),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "ServiceFinder Business — Manage Your Service Company",
     template: "%s | ServiceFinder Business",
@@ -89,27 +89,27 @@ const jsonLd = {
   "@graph": [
     {
       "@type": "WebSite",
-      "@id": `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sparkle-find.vercel.app'}/#website`,
-      "url": process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sparkle-find.vercel.app',
-      "name": "SparkleFind",
+      "@id": `${SITE_URL}/#website`,
+      "url": SITE_URL,
+      "name": "ServiceFinder",
       "description": "Discover, compare, and book trusted local service professionals near you.",
       "potentialAction": {
         "@type": "SearchAction",
         "target": {
           "@type": "EntryPoint",
-          "urlTemplate": `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sparkle-find.vercel.app'}/explore?search={search_term_string}`,
+          "urlTemplate": `${SITE_URL}/explore?search={search_term_string}`,
         },
         "query-input": "required name=search_term_string",
       },
     },
     {
       "@type": "Organization",
-      "@id": `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sparkle-find.vercel.app'}/#organization`,
-      "name": "SparkleFind",
-      "url": process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sparkle-find.vercel.app',
+      "@id": `${SITE_URL}/#organization`,
+      "name": "ServiceFinder",
+      "url": SITE_URL,
       "logo": {
         "@type": "ImageObject",
-        "url": `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sparkle-find.vercel.app'}/og-image.png`,
+        "url": `${SITE_URL}/og-image.png`,
       },
       "sameAs": [],
     },

@@ -3,13 +3,11 @@ import { render, screen, act } from "@testing-library/react";
 import { ServiceFinderOsCard } from "@/components/landing/ServiceFinderOsCard";
 
 describe("ServiceFinderOsCard Component", () => {
-  it("renders 3 visible stacked booking cards with 2nd card clear and 1st/3rd faded", () => {
+  it("renders 2 visible stacked booking cards with 1st clear and 2nd faded", () => {
     render(<ServiceFinderOsCard lang="en" />);
 
-    // Renders initial 3 stacked bookings
     expect(screen.getByText("SF-8421")).toBeDefined();
     expect(screen.getByText("SF-8422")).toBeDefined();
-    expect(screen.getByText("SF-8423")).toBeDefined();
     expect(screen.getAllByText("Vireak S.").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Rithy P.").length).toBeGreaterThan(0);
   });
@@ -18,7 +16,7 @@ describe("ServiceFinderOsCard Component", () => {
     vi.useFakeTimers();
     render(<ServiceFinderOsCard lang="en" />);
 
-    // Initial check: SF-8421, SF-8422, SF-8423
+    // Initial check: SF-8421, SF-8422
     expect(screen.getByText("SF-8421")).toBeDefined();
 
     // Advance timer past 1 cycle (2800ms)
@@ -26,8 +24,8 @@ describe("ServiceFinderOsCard Component", () => {
       vi.advanceTimersByTime(3000);
     });
 
-    // Now the stack shifts: SF-8422 becomes top, SF-8423 becomes middle, SF-8424 enters as bottom
-    expect(screen.getByText("SF-8424")).toBeDefined();
+    // Now the stack shifts: SF-8422 becomes spotlight, SF-8423 enters behind
+    expect(screen.getByText("SF-8423")).toBeDefined();
 
     vi.useRealTimers();
   });

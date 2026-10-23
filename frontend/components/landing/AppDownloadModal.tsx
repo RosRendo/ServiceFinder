@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { X, Smartphone, QrCode, Download, Apple, CheckCircle2, ShieldCheck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { X, Smartphone, Download, Apple, CheckCircle2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface AppDownloadModalProps {
@@ -12,12 +12,42 @@ interface AppDownloadModalProps {
 
 export function AppDownloadModal({ isOpen, onClose, lang }: AppDownloadModalProps) {
   const [activeTab, setActiveTab] = useState<"customer" | "staff">("customer");
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused.current?.focus();
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 sm:p-8">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={
+          lang === "kh" ? "ទាញយកកម្មវិធីទូរស័ព្ទ ServiceFinder" : "Get the ServiceFinder Mobile App"
+        }
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 sm:p-8 focus:outline-none"
+      >
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -84,13 +114,15 @@ export function AppDownloadModal({ isOpen, onClose, lang }: AppDownloadModalProp
                     : "Direct APK installation or Google Play Store preview."}
                 </p>
               </div>
-              <a
-                href="/downloads/servicefinder-customer.apk"
-                className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
+              <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                className="inline-flex items-center gap-1 rounded-lg bg-slate-900/40 px-3 py-1.5 text-xs font-semibold text-white cursor-not-allowed"
               >
                 <Download className="h-3.5 w-3.5" />
-                <span>APK</span>
-              </a>
+                <span>{lang === "kh" ? "ឆាប់ៗនឹងមកដល់" : "Coming soon"}</span>
+              </button>
             </div>
           </div>
 

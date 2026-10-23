@@ -5,15 +5,14 @@ import { ShieldCheck, QrCode, MapPin, Mail, Phone } from "lucide-react";
 import { landingDictionary } from "@/lib/landing-dictionary";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
-interface LandingFooterProps {
-  lang: "kh" | "en";
-}
-
 export function LandingFooter({ lang }: { lang: "kh" | "en" }) {
   const dict = landingDictionary[lang].footer;
 
   return (
     <footer className="border-t border-slate-800 bg-slate-950 text-slate-400">
+      <h2 className="sr-only">
+        {lang === "kh" ? "ព័ត៌មានបន្ថែម" : "Site Information"}
+      </h2>
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Brand Info & Local Trust */}
@@ -34,7 +33,7 @@ export function LandingFooter({ lang }: { lang: "kh" | "en" }) {
                 <span className="font-medium">
                   {lang === "kh"
                     ? "ចុះបញ្ជីពាណិជ្ជកម្មស្របច្បាប់នៅកម្ពុជា"
-                    : "Officially Registered with Ministry of Commerce"}
+                    : "Registered company in Cambodia"}
                 </span>
               </div>
             </div>
@@ -47,7 +46,7 @@ export function LandingFooter({ lang }: { lang: "kh" | "en" }) {
 
           {/* Company Links */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+            <h4 className="text-xs font-bold text-white">
               {dict.companyCol}
             </h4>
             <ul className="space-y-2 text-xs">
@@ -76,7 +75,7 @@ export function LandingFooter({ lang }: { lang: "kh" | "en" }) {
 
           {/* Popular Trades */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+            <h4 className="text-xs font-bold text-white">
               {dict.servicesCol}
             </h4>
             <ul className="space-y-2 text-xs">
@@ -110,7 +109,7 @@ export function LandingFooter({ lang }: { lang: "kh" | "en" }) {
 
           {/* Legal & Trust */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+            <h4 className="text-xs font-bold text-white">
               {dict.legalCol}
             </h4>
             <ul className="space-y-2 text-xs">

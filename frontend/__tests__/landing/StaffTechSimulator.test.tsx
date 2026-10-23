@@ -32,12 +32,10 @@ describe("StaffTechSimulator Component", () => {
     expect(screen.getByText("+$35.00")).toBeDefined();
   });
 
-  it("switches steps when step indicator pills are clicked", () => {
-    render(<StaffTechSimulator lang="en" />);
-
-    const payoutPill = screen.getByText("3. Payout");
-    fireEvent.click(payoutPill);
+  it("switches to the controlled step when activeStep is provided", () => {
+    render(<StaffTechSimulator lang="en" activeStep={3} />);
 
     expect(screen.getByText("Job Completed & Settled")).toBeDefined();
+    expect(screen.getByText("+$35.00")).toBeDefined();
   });
 });

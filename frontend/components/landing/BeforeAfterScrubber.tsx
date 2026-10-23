@@ -114,7 +114,30 @@ export function BeforeAfterScrubber({
         style={{ left: `${sliderPosition}%` }}
       >
         {/* Floating Dual-Chevron Knob */}
-        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-800 shadow-lg border border-slate-200 transition-transform active:scale-95">
+        <div
+          tabIndex={0}
+          role="slider"
+          aria-label="Compare before and after"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(sliderPosition)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") {
+              e.preventDefault();
+              setSliderPosition((prev) => Math.max(0, prev - 5));
+            } else if (e.key === "ArrowRight") {
+              e.preventDefault();
+              setSliderPosition((prev) => Math.min(100, prev + 5));
+            } else if (e.key === "Home") {
+              e.preventDefault();
+              setSliderPosition(0);
+            } else if (e.key === "End") {
+              e.preventDefault();
+              setSliderPosition(100);
+            }
+          }}
+          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-800 shadow-lg border border-slate-200 transition-transform active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+        >
           <ChevronsLeftRight className="h-4 w-4" />
         </div>
       </div>

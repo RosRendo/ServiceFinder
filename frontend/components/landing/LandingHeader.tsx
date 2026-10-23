@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Globe, Menu, X, ArrowRight, ShieldCheck, Download, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Globe, Menu, X, ArrowRight, Download } from "lucide-react";
 import { landingDictionary } from "@/lib/landing-dictionary";
 
 import { BrandLogo } from "@/components/brand/BrandLogo";
@@ -21,13 +20,26 @@ export function LandingHeader({
 }: LandingHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dict = landingDictionary[lang].nav;
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const wasOpenRef = useRef(false);
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      wasOpenRef.current = true;
+      closeBtnRef.current?.focus();
+    } else if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      hamburgerRef.current?.focus();
+    }
+  }, [mobileMenuOpen]);
 
   const toggleLanguage = () => {
     onLanguageChange(lang === "kh" ? "en" : "kh");
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md transition-all">
+    <header className="sticky top-0 z-50 w-full border-b border-zinc-200/80 bg-white/80 backdrop-blur-md transition-all">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand Logo */}
         <BrandLogo variant="full" size="md" href="/" />
@@ -35,32 +47,32 @@ export function LandingHeader({
         {/* Desktop Navigation Links */}
         <nav className="hidden md:flex items-center gap-6">
           <a
-            href="#for-business"
-            className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-          >
-            {dict.forBusinesses}
-          </a>
-          <a
             href="#services"
-            className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+            className="text-sm font-semibold text-zinc-600 hover:text-zinc-950 transition-colors"
           >
             {dict.services}
           </a>
           <a
-            href="#ecosystem"
-            className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-          >
-            {dict.howItWorks}
-          </a>
-          <a
             href="#trust"
-            className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+            className="text-sm font-semibold text-zinc-600 hover:text-zinc-950 transition-colors"
           >
             {dict.trust}
           </a>
           <a
+            href="#ecosystem"
+            className="text-sm font-semibold text-zinc-600 hover:text-zinc-950 transition-colors"
+          >
+            {dict.howItWorks}
+          </a>
+          <a
+            href="#for-business"
+            className="text-sm font-semibold text-zinc-600 hover:text-zinc-950 transition-colors"
+          >
+            {dict.forBusinesses}
+          </a>
+          <a
             href="#faqs"
-            className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+            className="text-sm font-semibold text-zinc-600 hover:text-zinc-950 transition-colors"
           >
             {dict.faqs}
           </a>
@@ -72,7 +84,7 @@ export function LandingHeader({
           <button
             onClick={toggleLanguage}
             type="button"
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300 hover:border-slate-300 transition-all cursor-pointer"
             aria-label="Switch language"
           >
             <Globe className="h-3.5 w-3.5 text-slate-500" />
@@ -98,14 +110,12 @@ export function LandingHeader({
           </Link>
 
           {/* Partner Registration Primary CTA */}
-          <Link href="/auth/register?role=company_admin&ref=landing_header">
-            <Button
-              size="sm"
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg shadow-sm transition-all flex items-center gap-1 cursor-pointer"
-            >
-              <span>{dict.partnerRegister}</span>
-              <ArrowRight className="h-3.5 w-3.5 ml-0.5" />
-            </Button>
+          <Link
+            href="/auth/register?role=company_admin&ref=landing_header"
+            className="inline-flex items-center gap-1 bg-zinc-950 hover:bg-zinc-800 text-white font-medium text-xs px-4 py-2 rounded-full shadow-xs active:scale-95 shadow-sm transition-all cursor-pointer"
+          >
+            <span>{dict.partnerRegister}</span>
+            <ArrowRight className="h-3.5 w-3.5 ml-0.5" />
           </Link>
         </div>
 
@@ -114,39 +124,71 @@ export function LandingHeader({
           <button
             onClick={toggleLanguage}
             type="button"
-            className="flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700"
+            className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700"
           >
             <Globe className="h-3 w-3 text-slate-500" />
             <span>{lang === "kh" ? "EN" : "KH"}</span>
           </button>
           <button
+            ref={hamburgerRef}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             type="button"
-            className="p-1.5 text-slate-600 hover:text-slate-900"
+            className="p-1.5 text-zinc-600 hover:text-zinc-950"
             aria-label="Toggle mobile menu"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-nav"
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
       </div>
 
+      {/* Mobile Drawer Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 -z-10 md:hidden"
+          aria-hidden="true"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 bg-white px-4 py-5 shadow-lg">
-          <div className="flex flex-col gap-3">
-            <a
-              href="#for-business"
+        <div
+          id="mobile-nav"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile navigation"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setMobileMenuOpen(false);
+          }}
+          className="md:hidden border-t border-slate-200 bg-white px-4 py-5 shadow-lg"
+        >
+          <div className="flex justify-end mb-1">
+            <button
+              ref={closeBtnRef}
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-semibold text-slate-800 py-2 border-b border-slate-100"
+              type="button"
+              aria-label="Close menu"
+              className="p-2 text-zinc-600 hover:text-zinc-950"
             >
-              {dict.forBusinesses}
-            </a>
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="flex flex-col gap-3">
             <a
               href="#services"
               onClick={() => setMobileMenuOpen(false)}
               className="text-sm font-semibold text-slate-800 py-2 border-b border-slate-100"
             >
               {dict.services}
+            </a>
+            <a
+              href="#trust"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-semibold text-slate-800 py-2 border-b border-slate-100"
+            >
+              {dict.trust}
             </a>
             <a
               href="#ecosystem"
@@ -156,11 +198,11 @@ export function LandingHeader({
               {dict.howItWorks}
             </a>
             <a
-              href="#trust"
+              href="#for-business"
               onClick={() => setMobileMenuOpen(false)}
               className="text-sm font-semibold text-slate-800 py-2 border-b border-slate-100"
             >
-              {dict.trust}
+              {dict.forBusinesses}
             </a>
             <a
               href="#faqs"
@@ -190,7 +232,7 @@ export function LandingHeader({
                 </Link>
                 <Link
                   href="/auth/register?role=company_admin&ref=landing_header_mobile"
-                  className="flex-1 text-center py-2 text-sm font-bold uppercase tracking-wider text-white bg-slate-900 rounded-lg shadow-sm"
+                  className="flex-1 text-center py-2 text-sm font-bold text-white bg-slate-900 rounded-lg shadow-sm"
                 >
                   {dict.partnerRegister}
                 </Link>

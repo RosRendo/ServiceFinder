@@ -21,12 +21,25 @@ describe("InteractivePhoneDemo Component", () => {
     expect(screen.getByText("Dispatch Pro")).toBeDefined();
   });
 
-  it("switches steps when step indicator pills are clicked", () => {
-    render(<InteractivePhoneDemo lang="en" />);
+  it("reports internal step changes via onStepChange", () => {
+    let reported: number | undefined;
+    render(
+      <InteractivePhoneDemo
+        lang="en"
+        onStepChange={(s) => {
+          reported = s;
+        }}
+      />
+    );
 
-    // Click step 3 pill: Live Match
-    const matchPill = screen.getByText("Live Match");
-    fireEvent.click(matchPill);
+    fireEvent.click(screen.getByText("Continue to Schedule"));
+
+    expect(screen.getByText("Schedule & Address")).toBeDefined();
+    expect(reported).toBe(2);
+  });
+
+  it("renders the controlled step when activeStep is provided", () => {
+    render(<InteractivePhoneDemo lang="en" activeStep={3} />);
 
     expect(screen.getByText("Certified Pro Assigned!")).toBeDefined();
     expect(screen.getByText("Vireak Sokha")).toBeDefined();

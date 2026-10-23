@@ -10,15 +10,17 @@ import {
   ShieldCheck,
   Navigation,
   RotateCcw,
-  Sparkle,
   Phone,
   Camera,
-  Wallet,
   Zap,
+  MousePointerClick,
 } from "lucide-react";
+import { PhoneFrame } from "@/components/landing/PhoneFrame";
 
 interface StaffTechSimulatorProps {
   lang: "kh" | "en";
+  activeStep?: number;
+  onStepChange?: (step: number) => void;
   className?: string;
 }
 
@@ -26,9 +28,16 @@ type TechStep = 1 | 2 | 3;
 
 export function StaffTechSimulator({
   lang,
+  activeStep,
+  onStepChange,
   className = "",
 }: StaffTechSimulatorProps) {
-  const [step, setStep] = useState<TechStep>(1);
+  const [internalStep, setInternalStep] = useState<TechStep>(1);
+  const step = (activeStep ?? internalStep) as TechStep;
+  const setStep = (target: TechStep) => {
+    setInternalStep(target);
+    onStepChange?.(target);
+  };
   const [checklist, setChecklist] = useState({
     inspection: true,
     cleaning: true,
@@ -39,57 +48,10 @@ export function StaffTechSimulator({
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const stepsMeta = [
-    { num: 1, labelEn: "1. Push Alert", labelKh: "១. ការងារថ្មី" },
-    { num: 2, labelEn: "2. Checklist", labelKh: "២. បញ្ជីត្រួតពិនិត្យ" },
-    { num: 3, labelEn: "3. Payout", labelKh: "៣. បើកប្រាក់ចំណូល" },
-  ];
-
   return (
     <div className={`flex flex-col items-center select-none ${className}`}>
-      {/* Step Switcher Pills */}
-      <div className="flex items-center gap-1 sm:gap-2 mb-4 bg-slate-100 p-1 rounded-full border border-slate-200/80 shadow-2xs">
-        {stepsMeta.map((s) => (
-          <button
-            key={s.num}
-            type="button"
-            onClick={() => setStep(s.num as TechStep)}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
-              step === s.num
-                ? "bg-white text-emerald-700 shadow-xs border border-slate-200/60"
-                : "bg-transparent text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <span
-              className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
-                step === s.num
-                  ? "bg-emerald-600 text-white"
-                  : "bg-slate-200 text-slate-700"
-              }`}
-            >
-              {s.num}
-            </span>
-            <span>{lang === "kh" ? s.labelKh : s.labelEn}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Smartphone Chassis */}
-      <div className="relative w-[280px] sm:w-[305px] h-[570px] rounded-[44px] bg-slate-950 p-2.5 sm:p-3 shadow-2xl shadow-slate-900/30 border-[3px] border-slate-700/80 ring-1 ring-white/10 flex flex-col justify-between overflow-hidden">
-        {/* Hardware Side Buttons */}
-        <div className="absolute top-24 -left-1.5 w-1 h-8 rounded-l bg-slate-700 pointer-events-none" />
-        <div className="absolute top-36 -left-1.5 w-1 h-8 rounded-l bg-slate-700 pointer-events-none" />
-        <div className="absolute top-28 -right-1.5 w-1 h-12 rounded-r bg-slate-700 pointer-events-none" />
-
-        {/* Dynamic Island */}
-        <div className="relative z-30 mx-auto h-4 w-22 rounded-full bg-black mb-1 flex items-center justify-between px-2.5 shadow-xs">
-          <div className="w-2 h-2 rounded-full bg-slate-900/90 border border-slate-800" />
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-900/60" />
-        </div>
-
-        {/* Screen Bezel */}
-        <div className="relative w-full h-[515px] rounded-[34px] bg-white overflow-hidden flex flex-col justify-between text-slate-900">
-          <div className="flex flex-col h-full justify-between p-3.5 pt-2">
+      <PhoneFrame accentClass="bg-emerald-900/60">
+        <div className="flex flex-col h-full justify-between p-3.5 pt-2">
             <AnimatePresence initial={false}>
               {/* ──────────────── STEP 1: WORK ORDER ALERT ──────────────── */}
               {step === 1 && (
@@ -375,16 +337,12 @@ export function StaffTechSimulator({
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
         </div>
+      </PhoneFrame>
 
-        {/* Bottom Home Indicator */}
-        <div className="mx-auto h-1 w-24 rounded-full bg-slate-500 mt-1.5" />
-      </div>
-
-      {/* Helpful Subtitle */}
       <span className="text-[10px] text-slate-400 mt-2 font-medium flex items-center gap-1">
-        <span>👆 Tap buttons directly on the phone or pills above</span>
+        <MousePointerClick className="h-3 w-3" />
+        <span>Tap buttons directly on the phone to test</span>
       </span>
     </div>
   );

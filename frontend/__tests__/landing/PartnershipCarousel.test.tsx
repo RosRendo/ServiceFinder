@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { PartnershipCarousel } from "@/components/landing/PartnershipCarousel";
 
 describe("PartnershipCarousel Component", () => {
@@ -10,15 +10,15 @@ describe("PartnershipCarousel Component", () => {
     expect(screen.getByText("Strategic Partners & Ecosystem Alliances")).toBeDefined();
     expect(screen.getByText("Trusted by Leading Financial Rails, Developers & Trade Brands")).toBeDefined();
 
-    // Trust Metrics
-    expect(screen.getByText("NBC Bakong KHQR National Standard")).toBeDefined();
-    expect(screen.getByText("250+ Licensed & Vetted Enterprises")).toBeDefined();
+    // Row labels (reused as static band group headings)
+    expect(screen.getByText("National Financial Infrastructure & Commercial Banking Rails")).toBeDefined();
+    expect(screen.getByText("Premier Property Developers & Industrial Equipment Leaders")).toBeDefined();
 
-    // Partners present in marquee
-    expect(screen.getAllByText("NBC Bakong KHQR").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("ABA Bank Enterprise").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Borey Peng Huoth Group").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Daikin Air Conditioning").length).toBeGreaterThan(0);
+    // Partners present exactly once in the static logo band (no marquee duplicates)
+    expect(screen.getAllByText("NBC Bakong KHQR")).toHaveLength(1);
+    expect(screen.getAllByText("ABA Bank Enterprise")).toHaveLength(1);
+    expect(screen.getAllByText("Borey Peng Huoth Group")).toHaveLength(1);
+    expect(screen.getAllByText("Daikin Air Conditioning")).toHaveLength(1);
   });
 
   it("renders in Khmer localization", () => {
@@ -26,16 +26,16 @@ describe("PartnershipCarousel Component", () => {
 
     expect(screen.getByText("ដៃគូសហការ និងបណ្តាញអេកូឡូស៊ី")).toBeDefined();
     expect(screen.getByText("ទំនុកចិត្តពីស្ថាប័នហិរញ្ញវត្ថុ បុរី និងម៉ាកឧបករណ៍ឈានមុខគេ")).toBeDefined();
-    expect(screen.getByText("ប្រព័ន្ធទូទាត់ជាតិ NBC Bakong KHQR")).toBeDefined();
+    expect(screen.getByText("NBC Bakong KHQR")).toBeDefined();
   });
 
-  it("filters partners when category buttons are clicked", () => {
+  it("renders a static logo band without filter pills or marquee", () => {
     render(<PartnershipCarousel lang="en" />);
 
-    const financeFilter = screen.getByText("Banking & KHQR Rails");
-    fireEvent.click(financeFilter);
+    expect(screen.queryByText("Banking & KHQR Rails")).toBeNull();
+    expect(screen.queryByText("Property Developers & Boreys")).toBeNull();
+    expect(screen.queryByText("Equipment & HVAC Brands")).toBeNull();
 
-    // Filter button exists and can be clicked
-    expect(financeFilter).toBeDefined();
+    expect(screen.getByText("Become an Enterprise Partner")).toBeDefined();
   });
 });

@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Users, TrendingUp, DollarSign, CalendarCheck, Clock, ArrowRight, Sparkles, CheckCircle2, BarChart3 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { TrendingUp, CalendarCheck, Clock, ArrowRight, CheckCircle2 } from "lucide-react";
 import { landingDictionary } from "@/lib/landing-dictionary";
 import { ComparativeRevenueChart } from "@/components/landing/ComparativeRevenueChart";
 import { FadeInView } from "@/components/landing/FadeInView";
@@ -57,7 +56,7 @@ export function PartnerRoiCalculator({ lang, initialTeamSize = 5 }: PartnerRoiCa
   const result = computePartnerRoi({ teamSize });
 
   return (
-    <section id="for-business" className="py-20 bg-slate-50 border-t border-slate-200">
+    <section className="py-20 bg-slate-50 border-t border-slate-200">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <FadeInView className="text-center max-w-3xl mx-auto space-y-3">
@@ -97,7 +96,7 @@ export function PartnerRoiCalculator({ lang, initialTeamSize = 5 }: PartnerRoiCa
                   onChange={(e) => setTeamSize(parseInt(e.target.value, 10))}
                   className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900 focus:outline-none"
                 />
-                <div className="flex justify-between text-[11px] text-slate-400 mt-1 font-medium">
+                <div className="flex justify-between text-[11px] text-slate-600 dark:text-slate-300 mt-1 font-medium">
                   <span>1 {dict.techniciansCount}</span>
                   <span>25</span>
                   <span>50 {dict.techniciansCount}</span>
@@ -142,18 +141,16 @@ export function PartnerRoiCalculator({ lang, initialTeamSize = 5 }: PartnerRoiCa
             </div>
 
             <div className="mt-8 pt-4 border-t border-slate-100">
-              <Link href={`/auth/register?role=company_admin&ref=landing_calculator&teamSize=${teamSize}`}>
-                <motion.div
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-lg shadow-sm flex items-center justify-center gap-2 cursor-pointer">
-                    <span>{dict.ctaButton}</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
+              <Link
+                href={`/auth/register?role=company_admin&ref=landing_calculator&teamSize=${teamSize}`}
+                className="w-full inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-lg shadow-sm cursor-pointer"
+              >
+                <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} className="flex items-center justify-center gap-2">
+                  <span>{dict.ctaButton}</span>
+                  <ArrowRight className="h-4 w-4" />
                 </motion.div>
               </Link>
-              <p className="text-[10px] text-slate-400 text-center mt-2">
+              <p className="text-[10px] text-slate-600 dark:text-slate-300 text-center mt-2">
                 {dict.disclaimer}
               </p>
             </div>

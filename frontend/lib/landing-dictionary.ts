@@ -13,8 +13,11 @@ export interface LandingDictionary {
   };
   hero: {
     badge: string;
+    homeTitleLine1: string;
+    homeTitleLine2: string;
     titleLine1: string;
     titleLine2: string;
+    forCompaniesLead: string;
     description: string;
     ctaPartner: string;
     ctaBookService: string;
@@ -106,6 +109,7 @@ export interface LandingDictionary {
     f5Title: string;
     f5Sf: string;
     f5Trad: string;
+    proofChip: string;
   };
   socialProof: {
     sectionBadge: string;
@@ -113,7 +117,7 @@ export interface LandingDictionary {
     subtitle: string;
     statCompletedJobs: string;
     statVerifiedProviders: string;
-    statAvgArrival: string;
+    statDispatch247: string;
     statSatisfactionRate: string;
   };
   faq: {
@@ -146,6 +150,14 @@ export interface LandingDictionary {
     statBoreys: string;
     statEscrow: string;
     ctaPartner: string;
+  };
+  finalCta: {
+    heading: string;
+    consumerTitle: string;
+    consumerSubtitle: string;
+    learnMore: string;
+    companyTitle: string;
+    companySubtitle: string;
   };
   footer: {
     brandTagline: string;
@@ -187,8 +199,11 @@ export const landingDictionary: Record<'kh' | 'en', LandingDictionary> = {
     },
     hero: {
       badge: "ប្រព័ន្ធប្រតិបត្តិការអាជីវកម្មសេវាកម្មកម្ពុជា",
+      homeTitleLine1: "ជ្រើសរើសជំនាញដែលអ្នកជឿជាក់បាន។",
+      homeTitleLine2: "តម្លៃកំណត់និងប្រាក់ធានាសុវត្ថិភាព។",
       titleLine1: "ពង្រីកចំណូលអាជីវកម្មសេវាកម្ម",
       titleLine2: "តាមរយៈប្រព័ន្ធស្វ័យប្រវត្តិតែមួយ",
+      forCompaniesLead: "សម្រាប់ក្រុមហ៊ុន៖",
       description: "ServiceFinder ជួយក្រុមហ៊ុនសេវាកម្ម (ម៉ាស៊ីនត្រជាក់ ទឹកភ្លើង សម្អាត ជួសជុល) ក្នុងការចាត់ចែងបុគ្គលិកបច្ចេកទេសក្នុង ៣ ចុច ទទួលការកក់ពីអតិថិជន និងទូទាត់ប្រាក់ភ្លាមៗតាម Bakong KHQR។ គ្មានកិច្ចសន្យាចងភ្ជាប់ គ្មានថ្លៃសេវាបង់មុន។",
       ctaPartner: "ចាប់ផ្តើមចុះឈ្មោះជាដៃគូឥតគិតថ្លៃ",
       ctaBookService: "កក់សេវាកម្មជួសជុលផ្ទះ",
@@ -278,14 +293,15 @@ export const landingDictionary: Record<'kh' | 'en', LandingDictionary> = {
       f5Title: "ការវិភាគចំណូល និងរបាយការណ៍",
       f5Sf: "របាយការណ៍ហិរញ្ញវត្ថុ និងប្រាក់ចំណេញស្វ័យប្រវត្តិ",
       f5Trad: "កត់ត្រាក្នុងក្រដាស ឬ Excel យឺត និងងាយភាន់ច្រឡំ",
+      proofChip: "ភស្តុតាងជាក់ស្តែង",
     },
     socialProof: {
       sectionBadge: "ស្ថិតិ និងការពេញចិត្ត",
       title: "ជឿទុកចិត្តដោយក្រុមហ៊ុនសេវាកម្មជាង ៥០០+",
-      subtitle: "តួលេខជាក់ស្តែងដែលបង្ហាញពីទំនុកចិត្ត និងការរីកចម្រើនរបស់ដៃគូយើង។",
+      subtitle: "តួលេខគំរូបង្ហាញពីសេដ្ឋកិច្ចដៃគូ និងការរីកចម្រើនរបស់បណ្តាញសេវាកម្មកម្ពុជាយើង។",
       statCompletedJobs: "ការងារជួសជុលបានបញ្ចប់",
       statVerifiedProviders: "ក្រុមហ៊ុន និងជាងជំនាញ",
-      statAvgArrival: "រយៈពេលជាមធ្យមជាងទៅដល់",
+      statDispatch247: "ការចាត់ចែងសេវាកម្ម ២៤/៧",
       statSatisfactionRate: "អត្រាពេញចិត្តពីអតិថិជន",
     },
     faq: {
@@ -310,7 +326,7 @@ export const landingDictionary: Record<'kh' | 'en', LandingDictionary> = {
     partnerships: {
       sectionBadge: "ដៃគូសហការ និងបណ្តាញអេកូឡូស៊ី",
       title: "ទំនុកចិត្តពីស្ថាប័នហិរញ្ញវត្ថុ បុរី និងម៉ាកឧបករណ៍ឈានមុខគេ",
-      subtitle: "ការរួមបញ្ចូលគ្នារវាងបណ្តាញទូទាត់ជាតិ NBC Bakong ក្រុមហ៊ុនអភិវឌ្ឍន៍បុរី និងក្រុមហ៊ុនផ្គត់ផ្គង់ឧបករណ៍ស្តង់ដារលំដាប់ពិភពលោក។",
+      subtitle: "បណ្តាញទូទាត់ជាតិ បុរីឈានមុខគេ និងម៉ាកឧបករណ៍លំដាប់ពិភពលោក។",
       financialRailsTrack: "បណ្តាញទូទាត់ និងធនាគារពាណិជ្ជកម្មផ្លូវការ",
       developersTrack: "ក្រុមហ៊ុនអភិវឌ្ឍន៍បុរី និងម៉ាកឧបករណ៍បច្ចេកទេស",
       statBakong: "ប្រព័ន្ធទូទាត់ជាតិ NBC Bakong KHQR",
@@ -318,6 +334,14 @@ export const landingDictionary: Record<'kh' | 'en', LandingDictionary> = {
       statBoreys: "៤៥+ បុរី និងអគារពាណិជ្ជកម្មដៃគូ",
       statEscrow: "១០០% ការការពារប្រាក់កក់ដោយ Escrow",
       ctaPartner: "ក្លាយជាដៃគូសហការស្ថាប័ន",
+    },
+    finalCta: {
+      heading: "រួចរាល់ពេលណាដែលអ្នករួចរាល់",
+      consumerTitle: "កក់សេវាកម្មដំបូងរបស់អ្នក",
+      consumerSubtitle: "តម្លៃកំណត់ ប្រាក់ធានាសុវត្ថិភាព និងជាងដែលបានផ្ទៀងផ្ទាត់",
+      learnMore: "មើលបន្ថែម",
+      companyTitle: "ចុះឈ្មោះក្រុមហ៊ុនអ្នកក្នុងរយៈពេលត្រឹម ២ នាទី",
+      companySubtitle: "ចាប់ផ្តើមចុះឈ្មោះជាដៃគូឥតគិតថ្លៃ",
     },
     footer: {
       brandTagline: "ប្រព័ន្ធប្រតិបត្តិការទំនើបបំផុតសម្រាប់ក្រុមហ៊ុនសេវាកម្មនៅកម្ពុជា។",
@@ -357,8 +381,11 @@ export const landingDictionary: Record<'kh' | 'en', LandingDictionary> = {
     },
     hero: {
       badge: "Cambodia's Enterprise Service Operating System",
+      homeTitleLine1: "Book a trusted Pro.",
+      homeTitleLine2: "Fixed price, escrow-protected.",
       titleLine1: "Scale Your Service Business",
       titleLine2: "With One Intelligent OS",
+      forCompaniesLead: "For companies:",
       description: "ServiceFinder equips HVAC, plumbing, electrical, and cleaning companies with 3-click dispatching, guaranteed customer pipelines, and instant Bakong KHQR payouts. Zero setup fees, zero lock-in contracts.",
       ctaPartner: "Start Free Company Onboarding",
       ctaBookService: "Book a Home Service",
@@ -448,14 +475,15 @@ export const landingDictionary: Record<'kh' | 'en', LandingDictionary> = {
       f5Title: "Financial Reporting",
       f5Sf: "Automated real-time P&L and tax summaries",
       f5Trad: "Manual messy spreadsheets prone to errors",
+      proofChip: "Live Proof",
     },
     socialProof: {
       sectionBadge: "Marketplace Metrics",
       title: "Trusted by 500+ Verified Service Providers",
-      subtitle: "Real numbers demonstrating the growth and dependability of our Cambodia service network.",
+      subtitle: "Figures illustrative of partner economics across our Cambodia service network.",
       statCompletedJobs: "Completed Work Orders",
       statVerifiedProviders: "Verified Trade Providers",
-      statAvgArrival: "Average Arrival Time",
+      statDispatch247: "24/7 Dispatch Availability",
       statSatisfactionRate: "Customer Satisfaction",
     },
     faq: {
@@ -480,7 +508,7 @@ export const landingDictionary: Record<'kh' | 'en', LandingDictionary> = {
     partnerships: {
       sectionBadge: "Strategic Partners & Ecosystem Alliances",
       title: "Trusted by Leading Financial Rails, Developers & Trade Brands",
-      subtitle: "Seamlessly integrated across national payment rails, premier residential communities, and global trade equipment manufacturers.",
+      subtitle: "National payment rails, premier residential communities, and global equipment brands.",
       financialRailsTrack: "National Financial Infrastructure & Commercial Banking Rails",
       developersTrack: "Premier Property Developers & Industrial Equipment Leaders",
       statBakong: "NBC Bakong KHQR National Standard",
@@ -488,6 +516,14 @@ export const landingDictionary: Record<'kh' | 'en', LandingDictionary> = {
       statBoreys: "45+ Integrated Boreys & Communities",
       statEscrow: "100% Escrow Protection Guaranteed",
       ctaPartner: "Become an Enterprise Partner",
+    },
+    finalCta: {
+      heading: "Ready when you are.",
+      consumerTitle: "Book your first service",
+      consumerSubtitle: "Fixed price, escrow-protected, verified Pros",
+      learnMore: "Learn more",
+      companyTitle: "Onboard your company in 2 minutes",
+      companySubtitle: "Start Free Company Onboarding",
     },
     footer: {
       brandTagline: "The modern operating system for field service companies in Cambodia.",
