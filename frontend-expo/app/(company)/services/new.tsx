@@ -57,8 +57,10 @@ export default function AddService() {
   }, []);
 
   const handleSave = async () => {
-    if (!form.name || !form.basePrice || !form.durationMin || !form.serviceTypeId) {
-      Alert.alert("Missing Fields", "Name, Price, Duration, and Service Type are required.");
+    const basePriceNum = parseFloat(form.basePrice);
+    const durationMinNum = parseInt(form.durationMin, 10);
+    if (!form.name || isNaN(basePriceNum) || isNaN(durationMinNum) || !form.serviceTypeId) {
+      Alert.alert("Missing Fields", "Name, valid Price, valid Duration, and Service Type are required.");
       return;
     }
     setLoading(true);
@@ -75,16 +77,20 @@ export default function AddService() {
         serviceTypeId: form.serviceTypeId,
         name: form.name,
         description: form.description,
-        basePrice: parseFloat(form.basePrice),
-        durationMin: parseInt(form.durationMin, 10),
-        isActive: true
+        basePrice: basePriceNum,
+        durationMin: durationMinNum,
+        durationMax: durationMinNum
       });
 
       Alert.alert("Success", "Service added successfully!", [
         { text: "Awesome", onPress: () => router.back() }
       ]);
-    } catch (error) {
-      Alert.alert("Error", "Could not create service. Please check your connection.");
+    } catch (error: any) {
+      const rawMsg = error?.response?.data?.message;
+      const serverMsg = Array.isArray(rawMsg)
+        ? rawMsg.join("\n")
+        : rawMsg || error?.response?.data?.error;
+      Alert.alert("Error", serverMsg ?? "Could not create service. Please check your connection.");
     } finally {
       setLoading(false);
     }

@@ -2,7 +2,7 @@
  * Admin Users List — Premium Light Bento Redesign
  */
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, StyleSheet, Platform, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, StyleSheet, Platform, ScrollView, Modal, Alert, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -32,6 +32,12 @@ export default function Users() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
+
+  // Add User modal state
+  const [addUserVisible, setAddUserVisible] = useState(false);
+  const [addUserSaving, setAddUserSaving] = useState(false);
+  const [addUserFields, setAddUserFields] = useState({ fullName: "", email: "", phone: "", password: "", role: "customer" });
+  const roleChoices = ["customer", "staff", "company_admin", "admin"];
 
   // t() is stable per language change; filters stay declarative and translate at render time.
   const filterIds = ["all", "customer", "staff", "company_admin", "admin"] as const;
@@ -64,6 +70,33 @@ export default function Users() {
     const timer = setTimeout(() => fetchUsers(), 400);
     return () => clearTimeout(timer);
   }, [activeFilter, searchQuery, fetchUsers]);
+
+  const handleCreateUser = async () => {
+    const f = addUserFields;
+    if (!f.fullName.trim() || !f.email.trim() || !f.password.trim()) {
+      Alert.alert("Missing Fields", "Full name, email and password are required.");
+      return;
+    }
+    setAddUserSaving(true);
+    try {
+      await api.post("/api/users", {
+        fullName: f.fullName.trim(),
+        email: f.email.trim(),
+        phone: f.phone.trim() || undefined,
+        password: f.password.trim(),
+        role: f.role,
+      });
+      setAddUserVisible(false);
+      setAddUserFields({ fullName: "", email: "", phone: "", password: "", role: "customer" });
+      Alert.alert("User Created", `${f.fullName.trim()} was created with the ${f.role} role.`);
+      fetchUsers();
+    } catch (err: any) {
+      const rawMsg = err?.response?.data?.message;
+      Alert.alert("Error", Array.isArray(rawMsg) ? rawMsg.join("\n") : rawMsg || "Could not create user.");
+    } finally {
+      setAddUserSaving(false);
+    }
+  };
 
   const getRoleConfig = (role: string) => {
     switch (role) {
@@ -99,6 +132,7 @@ export default function Users() {
           style={s.addBtn}
           accessibilityRole="button"
           accessibilityLabel={t('common.addUser')}
+          onPress={() => setAddUserVisible(true)}
         >
           <MaterialCommunityIcons name="plus" size={20} color="#fff" />
         </TouchableOpacity>
@@ -230,6 +264,76 @@ export default function Users() {
           />
         )}
       </View>
+
+      {/* Add User Modal */}
+      <Modal visible={addUserVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setAddUserVisible(false)}>
+        <KeyboardAvoidingView style={{ flex: 1, backgroundColor: "#F8FAFC" }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#E2E8F0" }}>
+              <TouchableOpacity onPress={() => setAddUserVisible(false)}>
+                <Text style={{ fontSize: 15, color: "#64748B", fontWeight: "600" }}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={{ fontSize: 17, fontWeight: "800", color: "#0F172A" }}>Add User</Text>
+              <View style={{ width: 52 }} />
+            </View>
+
+            <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+              {[
+                { key: "fullName" as const, label: "Full Name *", placeholder: "e.g. Sok Dara", autoCap: "words" as const, secure: false },
+                { key: "email" as const, label: "Email *", placeholder: "name@example.com", autoCap: "none" as const, secure: false },
+                { key: "password" as const, label: "Password *", placeholder: "Set an initial password", autoCap: "none" as const, secure: true },
+                { key: "phone" as const, label: "Phone (optional)", placeholder: "+855…", autoCap: "none" as const, secure: false },
+              ].map((field) => (
+                <View key={field.key} style={{ marginBottom: 16 }}>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: "#475569", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.4 }}>{field.label}</Text>
+                  <TextInput
+                    style={{ backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 10, paddingHorizontal: 14, height: 46, fontSize: 15, color: "#0F172A" }}
+                    value={addUserFields[field.key]}
+                    onChangeText={(v) => setAddUserFields((prev) => ({ ...prev, [field.key]: v }))}
+                    placeholder={field.placeholder}
+                    autoCapitalize={field.autoCap}
+                    secureTextEntry={field.secure}
+                    keyboardType={field.key === "phone" ? "phone-pad" : field.key === "email" ? "email-address" : "default"}
+                  />
+                </View>
+              ))}
+
+              <Text style={{ fontSize: 12, fontWeight: "700", color: "#475569", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.4 }}>Role</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 28 }}>
+                {roleChoices.map((r) => (
+                  <TouchableOpacity
+                    key={r}
+                    onPress={() => setAddUserFields((prev) => ({ ...prev, role: r }))}
+                    style={{
+                      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1,
+                      borderColor: addUserFields.role === r ? "#0F172A" : "#E2E8F0",
+                      backgroundColor: addUserFields.role === r ? "#0F172A" : "#FFFFFF",
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: addUserFields.role === r }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: addUserFields.role === r ? "#FFFFFF" : "#475569" }}>{r}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TouchableOpacity
+                style={{ backgroundColor: "#0F172A", borderRadius: 12, paddingVertical: 15, alignItems: "center", justifyContent: "center" }}
+                onPress={handleCreateUser}
+                disabled={addUserSaving}
+                accessibilityRole="button"
+                accessibilityLabel="Create user"
+              >
+                {addUserSaving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>Create User</Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }

@@ -140,14 +140,9 @@ export default function ProfileScreen() {
 
   const supportItems: MenuItem[] = [
     {
-      id: 6, icon: "help-circle-outline", title: t('profile.helpSupport'),
-      subtitle: t('profile.helpSupportSub'),
-      onPress: () => Alert.alert("Support", "Contact us at support@servicefinder.app"),
-    },
-    {
       id: 7, icon: "star-outline", title: t('profile.rateApp'),
       subtitle: t('profile.rateAppSub'),
-      onPress: () => Alert.alert("Rate Us", "Thanks for your support!"),
+      onPress: () => router.push("/(customer)/reviews" as any),
     },
     {
       id: 8, icon: "logout", title: t('profile.logOut'),

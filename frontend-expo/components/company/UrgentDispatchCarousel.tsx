@@ -163,7 +163,9 @@ export default function UrgentDispatchCarousel({
               <View style={styles.payoutBadge}>
                 <Text style={styles.payoutLabel}>Net Payout</Text>
                 <Text style={styles.payoutValue}>
-                  ${Number(booking.payoutAmount || 0).toFixed(2)}
+                  {booking.payoutAmount != null
+                    ? `$${Number(booking.payoutAmount).toFixed(2)}`
+                    : "Est. on settle"}
                 </Text>
               </View>
             </View>

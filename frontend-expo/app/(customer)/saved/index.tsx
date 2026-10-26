@@ -141,7 +141,7 @@ export default function SavedScreen() {
                     <View style={s.serviceCard}>
                       <View style={s.serviceImageWrap}>
                         {entry.item.image ? (
-                          <Image source={{ uri: entry.item.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                          <Image source={{ uri: entry.item.image }} style={StyleSheet.absoluteFill} contentFit="cover" />
                         ) : (
                           <MaterialIcons name="home-repair-service" size={32} color={T.text3} />
                         )}
@@ -179,7 +179,7 @@ export default function SavedScreen() {
                     <View style={s.companyCard}>
                       <View style={s.companyLogoWrap}>
                         {entry.item.logoUrl ? (
-                          <Image source={{ uri: entry.item.logoUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                          <Image source={{ uri: entry.item.logoUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
                         ) : (
                           <Text style={s.companyInitial}>{entry.item.name.charAt(0)}</Text>
                         )}

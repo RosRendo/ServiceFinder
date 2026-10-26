@@ -58,6 +58,15 @@ export default function OperationsHub() {
       console.error("Failed to fetch settings:", error);
       // Non-blocking fallback
     }
+    try {
+      const meRes = await api.get("/api/auth/me");
+      const meData = meRes.data?.data?.user ?? meRes.data?.user ?? meRes.data?.data ?? meRes.data;
+      if (meData?.mfaEnabled !== undefined) {
+        setTwoFactor(!!meData.mfaEnabled);
+      }
+    } catch {
+      // MFA state unknown — leave switch off rather than guessing
+    }
   };
 
   useEffect(() => {
@@ -291,8 +300,15 @@ export default function OperationsHub() {
               <Switch
                 value={twoFactor}
                 onValueChange={(val) => {
-                  if (val) setMfaModalVisible(true);
-                  else setTwoFactor(false);
+                  if (!twoFactor) {
+                    setMfaModalVisible(true);
+                  } else {
+                    Alert.alert(
+                      "2FA Active",
+                      "Two-factor authentication is protecting this account. Disable requires contacting support.",
+                      [{ text: "OK", style: "cancel" }]
+                    );
+                  }
                 }}
                 trackColor={{ false: "#E2E8F0", true: "#0F172A" }}
                 thumbColor="#FFFFFF"

@@ -141,7 +141,7 @@ export default function AuditLogs() {
           <Text style={s.footerText}>
             <Text style={s.footerTextBold}>{item.entityType || item.targetType || "Target"}</Text> #{item.entityId || "N/A"}
           </Text>
-          <Text style={s.footerText}>IP: {item.ipAddress || "127.0.0.1"}</Text>
+          <Text style={s.footerText}>{item.ipAddress ? `IP: ${item.ipAddress}` : "IP not recorded"}</Text>
         </View>
       </View>
     );

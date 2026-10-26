@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, FlatList, TouchableOpacity, ActivityIndicator,
-  RefreshControl, StyleSheet, Alert, Platform, ScrollView, Image
+  RefreshControl, StyleSheet, Alert, Platform, ScrollView, Modal, TextInput, KeyboardAvoidingView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSidebarStore } from "@/store/sidebarStore";
+import Toast from "react-native-toast-message";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
 import ErrorState from "@/components/common/ErrorState";
@@ -26,6 +27,9 @@ export default function AdminPayoutsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<PayoutStatus | "all">("all");
+  const [rejectTarget, setRejectTarget] = useState<any>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectReasonError, setRejectReasonError] = useState("");
 
   const fetchPayouts = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -82,8 +86,13 @@ export default function AdminPayoutsScreen() {
             await api.post(`/api/admin/payouts/${id}/approve`);
             Alert.alert("Success", "Company payout successfully marked as completed.");
             setPayouts(prev => prev.map(p => p.id === id ? { ...p, status: "completed" } : p));
-          } catch {
-            Alert.alert("Error", "Failed to process payout.");
+          } catch (err: any) {
+            const serverMsg = err?.response?.data?.message || "Failed to process payout.";
+            Toast.show({
+              type: "error",
+              text1: "Disburse Failed",
+              text2: typeof serverMsg === "string" ? serverMsg : "Disbursement failed.",
+            });
           } finally {
             setProcessingId(null);
           }
@@ -93,25 +102,36 @@ export default function AdminPayoutsScreen() {
   };
 
   const handleReject = (id: string) => {
-    Alert.alert("Reject Payout", "Are you sure you want to reject this payout and refund the amount back to the company available balance?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Reject & Refund",
-        style: "destructive",
-        onPress: async () => {
-          setProcessingId(id);
-          try {
-            await api.post(`/api/admin/payouts/${id}/reject`, { reason: "Admin rejected" });
-            Alert.alert("Success", "Payout rejected. Balance refunded to company.");
-            setPayouts(prev => prev.map(p => p.id === id ? { ...p, status: "rejected" } : p));
-          } catch {
-            Alert.alert("Error", "Failed to reject payout.");
-          } finally {
-            setProcessingId(null);
-          }
-        }
-      }
-    ]);
+    const payout = payouts.find(p => p.id === id);
+    setRejectReason("");
+    setRejectReasonError("");
+    setRejectTarget(payout || { id });
+  };
+
+  const confirmReject = async () => {
+    if (!rejectTarget) return;
+    if (!rejectReason.trim()) {
+      setRejectReasonError("A rejection reason is required.");
+      return;
+    }
+    setProcessingId(rejectTarget.id);
+    try {
+      const res = await api.post(`/api/admin/payouts/${rejectTarget.id}/reject`, {
+        reason: rejectReason.trim(),
+      });
+      Alert.alert("Success", res.data?.message || "Payout rejected and refunded to company balance.");
+      setPayouts(prev => prev.map(p => p.id === rejectTarget.id ? { ...p, status: "rejected" } : p));
+      setRejectTarget(null);
+    } catch (err: any) {
+      const serverMsg = err?.response?.data?.message || "Failed to reject payout.";
+      Toast.show({
+        type: "error",
+        text1: "Reject Failed",
+        text2: typeof serverMsg === "string" ? serverMsg : "Rejection failed.",
+      });
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const filteredPayouts = payouts.filter(p => {
@@ -260,6 +280,43 @@ export default function AdminPayoutsScreen() {
         />
       )}
 
+      {/* Reject Reason Modal */}
+      <Modal visible={!!rejectTarget} transparent animationType="fade">
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={s.modalOverlay}>
+          <View style={s.modalContainer}>
+            <MaterialCommunityIcons name="bank-remove" size={32} color="#DC2626" />
+            <Text style={s.modalTitle}>Reject Payout</Text>
+            <Text style={s.modalDesc}>
+              Reject the ${Number(rejectTarget?.amount || 0).toFixed(2)} payout to {rejectTarget?.companyName || "the company"} and refund the amount to its available balance. State the reason sent to the server:
+            </Text>
+            <TextInput
+              style={[s.reasonInput, rejectReasonError ? s.reasonInputError : null]}
+              placeholder="Rejection reason (required)"
+              placeholderTextColor="#94A3B8"
+              value={rejectReason}
+              onChangeText={(t) => {
+                setRejectReason(t);
+                if (rejectReasonError) setRejectReasonError("");
+              }}
+              multiline
+              textAlignVertical="top"
+            />
+            {rejectReasonError ? <Text style={s.reasonErrorText}>{rejectReasonError}</Text> : null}
+            <View style={s.modalActions}>
+              <TouchableOpacity style={s.modalBtnSecondary} onPress={() => setRejectTarget(null)} disabled={!!processingId}>
+                <Text style={s.modalBtnSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.modalBtnPrimary, !!processingId && { opacity: 0.7 }]}
+                onPress={confirmReject}
+                disabled={!!processingId}
+              >
+                <Text style={s.modalBtnPrimaryText}>{processingId ? "Rejecting…" : "Reject & Refund"}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -315,4 +372,17 @@ const s = StyleSheet.create({
   rejectBtnText: { color: "#DC2626", fontWeight: "700", fontSize: 13 },
   processBtn: { flex: 2, backgroundColor: "#0F172A", borderRadius: 12, paddingVertical: 11, alignItems: "center" },
   processBtnText: { color: "#FFFFFF", fontWeight: "700", fontSize: 13 },
+
+  modalOverlay: { flex: 1, backgroundColor: "rgba(15, 23, 42, 0.7)", justifyContent: "center", alignItems: "center", padding: 24 },
+  modalContainer: { width: "100%", maxWidth: 400, backgroundColor: "#FFFFFF", borderRadius: 20, padding: 24, alignItems: "center", borderWidth: 1, borderColor: "#E2E8F0" },
+  modalTitle: { fontSize: 17, fontWeight: "800", color: "#0F172A", marginTop: 10 },
+  modalDesc: { fontSize: 13, color: "#64748B", textAlign: "center", lineHeight: 18, marginTop: 6, marginBottom: 16 },
+  reasonInput: { width: "100%", minHeight: 70, maxHeight: 110, backgroundColor: "#F8FAFC", borderRadius: 10, borderWidth: 1.5, borderColor: "#E2E8F0", padding: 10, fontSize: 13, color: "#0F172A", marginBottom: 6 },
+  reasonInputError: { borderColor: "#DC2626" },
+  reasonErrorText: { fontSize: 11, fontWeight: "600", color: "#DC2626", alignSelf: "flex-start", marginBottom: 6 },
+  modalActions: { flexDirection: "row", gap: 12, width: "100%" },
+  modalBtnSecondary: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" },
+  modalBtnSecondaryText: { fontSize: 13, fontWeight: "700", color: "#64748B" },
+  modalBtnPrimary: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: "#DC2626" },
+  modalBtnPrimaryText: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
 });

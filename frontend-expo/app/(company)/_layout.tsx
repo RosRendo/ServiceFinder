@@ -27,9 +27,6 @@ export default function CompanyLayout() {
 
         {/* ── Payouts & Payments ────────────────────── */}
         <Stack.Screen name="payments" />
-        <Stack.Screen name="payouts/request" />
-        <Stack.Screen name="payouts/history" />
-        <Stack.Screen name="payouts/bank-account" />
 
         {/* ── Profile & Settings ────────────────────── */}
         <Stack.Screen name="edit-profile" />

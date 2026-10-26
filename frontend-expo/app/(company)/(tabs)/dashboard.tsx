@@ -65,7 +65,7 @@ export default function CompanyDashboard() {
           serviceName: b.service?.name || b.serviceName || "Home Service",
           bookingDate: b.bookingDate,
           startTime: b.startTime,
-          payoutAmount: Number(b.companyEarnings ?? b.totalPrice ?? 0),
+          payoutAmount: b.companyEarnings != null ? Number(b.companyEarnings) : null,
           serviceAddress: b.serviceAddress || "Address on dispatch",
           isInstant: isUrgent,
           deadlineMinutes: isUrgent ? 15 : 45,
@@ -81,8 +81,8 @@ export default function CompanyDashboard() {
       setStaffList(Array.isArray(rawStaff) ? rawStaff.map((m: any) => ({
         id: String(m.id || m.userId),
         name: m.fullName || m.name || m.user?.name || "Technician",
-        status: m.isAvailable ? "ONLINE" : m.activeJobsCount > 0 ? "ON_JOB" : "OFFLINE",
-        activeJobCount: m.activeJobsCount || m.activeJobCount || 0,
+        status: m.status === "inactive" || m.status === "offline" ? "OFFLINE" : m.isAvailable === false ? "ON_JOB" : "ONLINE",
+        activeJobCount: m.status !== "inactive" && m.isAvailable === false ? 1 : 0,
         phone: m.phone || m.user?.phone || "",
       })) : []);
       setHasError(false);
@@ -133,7 +133,7 @@ export default function CompanyDashboard() {
         onlineCrewCount={staffList.filter((s) => s.status === "ONLINE").length}
         inProgressJobsCount={inProgressCount}
         todayCompletedCount={todayCompletedCount}
-        slaComplianceRate={metrics?.completionRate || 98}
+        slaComplianceRate={metrics?.completionRate ?? null}
         onMenuPress={() => setCompanyOpen(true)}
       />
 
@@ -169,7 +169,7 @@ export default function CompanyDashboard() {
               availableBalance={metrics?.availableBalance || 0}
               escrowBalance={metrics?.escrowBalance || 0}
               unremittedCrewCash={metrics?.unremittedCash || 0}
-              todayNetRevenue={metrics?.todayRevenue || (metrics?.revenue ? metrics.revenue * 0.15 : 0)}
+              todayNetRevenue={metrics?.todayRevenue ?? null}
               onWithdrawPress={() => router.push("/(company)/payments" as any)}
               onAuditCashPress={() => router.push("/(company)/(tabs)/finance" as any)}
             />

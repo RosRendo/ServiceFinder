@@ -20,7 +20,7 @@ export default function Register() {
   const router = useRouter();
   const { t } = useTranslation();
   const register = useAuthStore((s) => s.register);
-  const { promptGoogleAsync, promptFacebookAsync, isGoogleReady, isFacebookReady } = useSocialAuth();
+  const { promptGoogleAsync, promptFacebookAsync, promptAppleAsync, isGoogleReady, isFacebookReady, isAppleReady } = useSocialAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -29,8 +29,8 @@ export default function Register() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const emailRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
+  const emailRef = useRef<any>(null);
+  const passwordRef = useRef<any>(null);
 
   const handleRegister = async () => {
     Keyboard.dismiss();
@@ -50,17 +50,11 @@ export default function Register() {
 
   const handleSocialLogin = async (provider: "google" | "facebook" | "apple") => {
     if (provider === "apple") {
-      setIsLoading(true);
-      setError("");
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        await useAuthStore.getState().login("customer1@demo.com", "password123");
-        router.replace("/(customer)/(tabs)/home");
-      } catch (err: any) {
-        setError("Failed to simulate Apple Sign-In.");
-      } finally {
-        setIsLoading(false);
+      if (!isAppleReady) {
+        Alert.alert("Apple Sign-In Unavailable", "Apple Sign-In is only available on iOS.");
+        return;
       }
+      await promptAppleAsync();
     } else if (provider === "google") {
       if (isGoogleReady) await promptGoogleAsync();
       else Alert.alert("Google Login Unavailable", "Please add your Google Client IDs to the .env file.");

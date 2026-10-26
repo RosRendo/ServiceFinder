@@ -17,6 +17,7 @@ const T = {
 export default function SubscriptionGuard({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isExpired, setIsExpired] = useState(false);
+  const [accessError, setAccessError] = useState(false);
   const [trialEndsAt, setTrialEndsAt] = useState<Date | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { logout, user } = useAuthStore();
@@ -37,14 +38,33 @@ export default function SubscriptionGuard({ children }: { children: React.ReactN
       const company = companyResponse.data?.company || companyResponse.company || companyResponse.data || companyResponse;
       
       
-      if (company.subscriptionStatus === 'trial' && company.trialEndsAt) {
-        const endDate = new Date(company.trialEndsAt);
-        setTrialEndsAt(endDate);
-        if (new Date() > endDate) {
-          setIsExpired(true);
-        }
+      const INACTIVE_STATUSES = ['expired', 'cancelled', 'canceled', 'churned'];
+      const subscriptionEnds =
+        company.trialEndsAt
+          ? new Date(company.trialEndsAt)
+          : company.subscriptionEndsAt
+            ? new Date(company.subscriptionEndsAt)
+            : null;
+
+      if (INACTIVE_STATUSES.includes(company.subscriptionStatus)) {
+        setIsExpired(true);
+      } else if (subscriptionEnds && new Date() > subscriptionEnds) {
+        setIsExpired(true);
+        setTrialEndsAt(subscriptionEnds);
+      } else if (company.subscriptionStatus === 'trial' && company.trialEndsAt) {
+        setTrialEndsAt(new Date(company.trialEndsAt));
       }
-    } catch (err) {
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) {
+        Alert.alert(
+          "Subscription Check Failed",
+          err?.response?.data?.message || "We couldn't verify your company's subscription because your session is invalid. Please log in again.",
+          [{ text: "Log Out", style: "destructive", onPress: () => { logout(); } }]
+        );
+      } else {
+        setAccessError(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -67,6 +87,21 @@ export default function SubscriptionGuard({ children }: { children: React.ReactN
     return (
       <View style={s.center}>
         <ActivityIndicator size="large" color={T.accent} />
+      </View>
+    );
+  }
+
+  if (accessError) {
+    return (
+      <View style={s.modalContainer}>
+        <MaterialCommunityIcons name="cloud-off-outline" size={72} color={T.warning} />
+        <Text style={s.title}>Check Failed</Text>
+        <Text style={s.message}>
+          We couldn't verify your company's subscription right now. Check your connection and try again.
+        </Text>
+        <TouchableOpacity style={s.btnPrimary} onPress={() => { setAccessError(false); setLoading(true); checkSubscription(); }}>
+          <Text style={s.btnPrimaryText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }

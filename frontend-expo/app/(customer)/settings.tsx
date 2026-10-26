@@ -113,7 +113,7 @@ export default function CustomerSettings() {
             <MaterialCommunityIcons name="chevron-right" size={24} color={T.text3} />
           </TouchableOpacity>
           <View style={s.divider} />
-          <TouchableOpacity style={s.row} activeOpacity={0.7} onPress={() => Alert.alert("Privacy", "Please visit our website to read the full Privacy Policy.")}>
+          <TouchableOpacity style={s.row} activeOpacity={0.7} onPress={() => router.push("/legal/privacy" as any)}>
             <Text style={s.rowText}>Privacy Policy</Text>
             <MaterialCommunityIcons name="chevron-right" size={24} color={T.text3} />
           </TouchableOpacity>

@@ -141,7 +141,7 @@ export default function CompanyDisputesScreen() {
         <View style={s.cardFooter}>
           <View style={s.escrowTag}>
             <MaterialCommunityIcons name="shield-lock-outline" size={14} color="#D97706" />
-            <Text style={s.escrowText}>Escrow Held Pending Resolution</Text>
+            <Text style={s.escrowText}>Dispute open — escrow status pending</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={18} color="#94A3B8" />
         </View>

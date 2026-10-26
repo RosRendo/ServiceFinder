@@ -190,10 +190,13 @@ export default function BookingDetailsScreen() {
   };
 
   const handleCallStaff = () => {
-    const rawPhone = (booking?.assignedStaff as any)?.user?.phone || 
-      (booking?.assignedStaff as any)?.phone || 
-      (booking?.company as any)?.phone || 
-      "+85512345678";
+    const rawPhone = (booking?.assignedStaff as any)?.user?.phone ||
+      (booking?.assignedStaff as any)?.phone ||
+      (booking?.company as any)?.phone;
+    if (!rawPhone) {
+      Alert.alert("Unable to Call", "No phone number available for this booking yet.");
+      return;
+    }
     const cleanPhone = rawPhone.replace(/[^\d+]/g, '');
     Linking.openURL(`tel:${cleanPhone}`).catch(() => {
       Alert.alert("Unable to Call", `Could not launch native phone dialer for ${cleanPhone}`);
@@ -338,9 +341,9 @@ export default function BookingDetailsScreen() {
         <View style={s.heroCard}>
           <View style={s.heroImgWrapper}>
             {heroImg ? (
-              <Image source={{ uri: heroImg }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+              <Image source={{ uri: heroImg }} style={StyleSheet.absoluteFill} contentFit="cover" />
             ) : (
-              <View style={[StyleSheet.absoluteFillObject, { alignItems: "center", justifyContent: "center", backgroundColor: T.accentLight }]}>
+              <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", backgroundColor: T.accentLight }]}>
                 <MaterialCommunityIcons name="toolbox-outline" size={32} color={T.accentMid} />
               </View>
             )}
@@ -460,16 +463,16 @@ export default function BookingDetailsScreen() {
             {/* Track Staff Banner if in_progress */}
             {(booking.status === "confirmed" || booking.status === "in_progress") && (
               <View style={s.progressBox}>
-                {booking.status === "in_progress" && (booking.progressPercent != null || true) && (
+                {booking.status === "in_progress" && (
                   <View style={{ marginBottom: 16 }}>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
                       <Text style={{ fontSize: 13, color: T.text2, fontWeight: "600" }}>Job Progress</Text>
                       <Text style={{ fontSize: 13, fontWeight: "800", color: T.accent }}>
-                        {booking.progressPercent ?? 45}%
+                        {booking.progressPercent ?? Math.round((getStepIndex(booking.status?.toLowerCase() || "") / 3) * 100)}%
                       </Text>
                     </View>
                     <View style={{ height: 6, backgroundColor: T.border, borderRadius: 3, overflow: "hidden" }}>
-                      <View style={{ height: "100%", backgroundColor: T.accent, width: `${booking.progressPercent ?? 45}%` }} />
+                      <View style={{ height: "100%", backgroundColor: T.accent, width: `${booking.progressPercent ?? Math.round((getStepIndex(booking.status?.toLowerCase() || "") / 3) * 100)}%` }} />
                     </View>
                   </View>
                 )}

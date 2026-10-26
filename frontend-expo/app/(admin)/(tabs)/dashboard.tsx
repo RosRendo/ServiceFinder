@@ -125,7 +125,7 @@ export default function AdminDashboard() {
             <SlaAlertMatrix
               pendingVerificationsCount={metrics?.pendingCompanies || 0}
               activeDisputesCount={metrics?.activeDisputes || 0}
-              pendingPayoutsCount={metrics?.payoutRequests || 0}
+              pendingPayoutsCount={typeof metrics?.payoutRequests === "number" ? metrics.payoutRequests : null}
               onNavigateQueue={() => router.push('/(admin)/(tabs)/queue' as any)}
               onNavigateDisputes={() => router.push('/(admin)/(tabs)/issues' as any)}
               onNavigatePayouts={() => router.push('/(admin)/payouts' as any)}

@@ -8,11 +8,14 @@ import * as ImagePicker from "expo-image-picker";
 import * as ExpoLocation from "expo-location";
 import MapView, { Marker, Polyline, AnimatedRegion } from "react-native-maps";
 import { MAP_PROVIDER } from "@/utils/mapHelper";
+
 import Reanimated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withDelay, Easing } from "react-native-reanimated";
 import { api } from "@/store/authStore";
 import SwipeToComplete from "@/components/SwipeToComplete";
 import SuccessOverlay from "@/components/SuccessOverlay";
 import { io, Socket } from "socket.io-client";
+
+const AnimatedMarker = (Marker as any).Animated || Marker;
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3000';
 
@@ -438,7 +441,7 @@ export default function JobExecutionScreen() {
       <MapView
         provider={MAP_PROVIDER}
         ref={mapRef}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         onPanDrag={() => setAutoFollow(false)}
         initialRegion={
           jobData?.latitude && jobData?.longitude
@@ -465,13 +468,13 @@ export default function JobExecutionScreen() {
         
         {/* Staff Marker (Smooth Animated Pulsing Driver Marker) */}
         {staffLocation && (
-          <Marker.Animated
+          <AnimatedMarker
             coordinate={staffCoordAnim as any}
             title="You"
             description="Your current location"
           >
             <PulsingMarker color={T.secondary} delay={500} icon={<MaterialCommunityIcons name="navigation" size={16} color="#fff" />} />
-          </Marker.Animated>
+          </AnimatedMarker>
         )}
 
         {/* Tracking Line (Driving Route or straight fallback) */}

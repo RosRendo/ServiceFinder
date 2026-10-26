@@ -1,13 +1,16 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../store/authStore';
+import api from '../../../utils/api';
 
 export default function MeScreen() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const [alerting, setAlerting] = useState(false);
+  const companyId = (user as any)?.staffProfile?.companyId || (user as any)?.companyId;
   const T = {
     bg: '#F8FAFC',
     surface: '#FFFFFF',
@@ -81,15 +84,15 @@ export default function MeScreen() {
           <TouchableOpacity 
             style={s.rowItem} 
             onPress={() => {
-              Alert.alert(
-                "Contact Dispatch",
-                "Start a chat with your company admin or call the dispatch team.",
-                [
-                  { text: "Start Chat", onPress: () => router.push('/(staff)/messages/new' as any) },
-                  { text: "Call Dispatch", onPress: () => Alert.alert("Dialing", "Dialing dispatch hotline: +1 (555) 019-2834...") },
-                  { text: "Cancel", style: "cancel" }
-                ]
-              );
+              if (companyId) {
+                router.push({ pathname: '/(staff)/messages/new', params: { companyId: String(companyId) } } as any);
+              } else {
+                Alert.alert(
+                  "Contact Dispatch",
+                  "No linked company found on your profile yet. Ask your company admin for a profile update, or create a support ticket from Report Emergency below.",
+                  [{ text: "OK", style: "cancel" }]
+                );
+              }
             }}
           >
             <MaterialCommunityIcons name="headphones" size={22} color={T.text2} />
@@ -102,15 +105,31 @@ export default function MeScreen() {
             onPress={() => {
               Alert.alert(
                 "Report Emergency",
-                "Do you want to alert your dispatcher or call local emergency services?",
+                "Call emergency services or send an urgent alert to your dispatch desk?",
                 [
                   { text: "Cancel", style: "cancel" },
-                  { text: "Call 911", style: "destructive", onPress: () => Alert.alert("Calling Emergency", "Dialing emergency services...") },
                   { 
-                    text: "Alert Dispatcher", 
-                    onPress: () => {
-                      Alert.alert("Alert Sent", "An emergency alert has been sent to your company dispatch desk. Stay safe.");
-                    } 
+                    text: "Call Emergency 911", 
+                    style: "destructive", 
+                    onPress: () => { Linking.openURL('tel:911').catch(() => Alert.alert("Error", "Could not open the dialer.")); } 
+                  },
+                  { 
+                    text: alerting ? "Sending…" : "Alert Dispatcher", 
+                    onPress: async () => {
+                      setAlerting(true);
+                      try {
+                        await api.post('/api/support/tickets', {
+                          subject: `EMERGENCY ALERT — ${user?.name || 'staff'}`,
+                          message: `Emergency alert raised from the staff app. Please check on the staff member immediately.`,
+                        });
+                        Alert.alert("Alert Sent", "An emergency ticket was created. Dispatch will follow up. Stay safe.");
+                      } catch (e: any) {
+                        const msg = e?.response?.data?.message ?? "Could not reach the server.";
+                        Alert.alert("Not Sent", Array.isArray(msg) ? msg.join(", ") : msg);
+                      } finally {
+                        setAlerting(false);
+                      }
+                    }
                   }
                 ]
               );

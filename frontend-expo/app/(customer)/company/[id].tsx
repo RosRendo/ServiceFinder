@@ -57,12 +57,31 @@ export default function CompanyDetailScreen() {
   const TABS = [t('companyProfile.tabs.services', 'Services'), t('companyProfile.tabs.reviews', 'Reviews'), t('companyProfile.tabs.about', 'About')];
 
   const [company, setCompany] = useState<any>(null);
+  const [companyReviews, setCompanyReviews] = useState<any[]>([]);
+  const [totalReviews, setTotalReviews] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  const loadCompanyReviews = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await api.get(`/api/reviews/company/${id}`, { params: { page: 1, limit: 10 } });
+      let payload = res.data;
+      if (payload && payload.success) payload = payload.data;
+      let reviewList: any[] = [];
+      if (Array.isArray(payload)) reviewList = payload;
+      else if (Array.isArray(payload?.data)) reviewList = payload.data;
+      else if (Array.isArray(payload?.reviews)) reviewList = payload.reviews;
+      setCompanyReviews(reviewList);
+      setTotalReviews(payload?.total ?? payload?.meta?.total ?? reviewList.length);
+    } catch (e: any) {
+      setCompanyReviews([]);
+    }
+  }, [id]);
 
   const loadCompany = useCallback(async () => {
     if (!id) return;
@@ -71,6 +90,7 @@ export default function CompanyDetailScreen() {
       const res = await api.get(`/api/companies/${id}`);
       const data = res?.data?.data || res?.data;
       setCompany(data);
+      loadCompanyReviews();
 
       if (!isGuest) {
         try {
@@ -87,7 +107,7 @@ export default function CompanyDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [id, loadCompanyReviews]);
 
   useEffect(() => {
     loadCompany();
@@ -152,12 +172,16 @@ export default function CompanyDetailScreen() {
   const heroImage = company.coverImageUrl;
   const logoImage = company.logoUrl;
   const rating = company.ratingSummary?.averageRating ? Number(company.ratingSummary.averageRating).toFixed(1) : "New";
-  const reviewCount = company.ratingSummary?.totalReviews || 0;
+  const reviewCount = totalReviews || company.ratingSummary?.totalReviews || 0;
   const completedJobs = company.completedJobs || 0;
   const isInsured = company.isInsured || false;
   const completionRate = company.completionRate !== undefined ? Number(company.completionRate).toFixed(0) : 100;
   const services = company.services ?? [];
   const lowestPrice = services.length > 0 ? Math.min(...services.map((s: any) => Number(s.basePrice))) : null;
+  const ratingCounts = [5, 4, 3, 2, 1].map((r) => ({
+    star: r,
+    count: companyReviews.filter((rev: any) => Math.round(rev.companyRating ?? rev.rating ?? 0) === r).length,
+  }));
 
   return (
     <View style={s.root}>
@@ -207,9 +231,9 @@ export default function CompanyDetailScreen() {
             }]
           }]}>
             {heroImage ? (
-              <Image source={{ uri: heroImage }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+              <Image source={{ uri: heroImage }} style={StyleSheet.absoluteFill} contentFit="cover" />
             ) : (
-              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#0B132B', overflow: 'hidden' }]}>
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0B132B', overflow: 'hidden' }]}>
                 {/* Decorative ambient lighting elements */}
                 <View style={{ position: 'absolute', top: -50, right: -50, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(59, 130, 246, 0.18)' }} />
                 <View style={{ position: 'absolute', bottom: -30, left: -30, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(16, 185, 129, 0.12)' }} />
@@ -352,40 +376,49 @@ export default function CompanyDetailScreen() {
           {/* REVIEWS TAB */}
           {activeTab === TABS[1] && (
             <View style={s.tabSection}>
-              <View style={s.reviewsSummaryCard}>
-                <View style={s.reviewsSummaryLeft}>
-                  <Text style={s.ratingMassive}>{rating}</Text>
-                  <View style={s.starsRow}>
-                    {[1, 2, 3, 4, 5].map(i => <MaterialIcons key={i} name="star" size={14} color={T.gold} />)}
-                  </View>
-                  <Text style={s.reviewCountLabel}>Based on {reviewCount} reviews</Text>
-                </View>
-                <View style={s.reviewsSummaryRight}>
-                  {[5, 4, 3, 2, 1].map((r) => (
-                    <View key={r} style={s.barRow}>
-                      <Text style={s.barLabel}>{r}</Text>
-                      <View style={s.barTrack}>
-                        <View style={[s.barFill, { width: `${r === 5 ? 80 : r === 4 ? 15 : r === 3 ? 4 : 1}%` }]} />
-                      </View>
+              {reviewCount > 0 && (
+                <View style={s.reviewsSummaryCard}>
+                  <View style={s.reviewsSummaryLeft}>
+                    <Text style={s.ratingMassive}>{rating}</Text>
+                    <View style={s.starsRow}>
+                      {[1, 2, 3, 4, 5].map(i => <MaterialIcons key={i} name="star" size={14} color={T.gold} />)}
                     </View>
-                  ))}
+                    <Text style={s.reviewCountLabel}>Based on {reviewCount} reviews</Text>
+                  </View>
+                  <View style={s.reviewsSummaryRight}>
+                    {ratingCounts.map(({ star, count }) => (
+                      <View key={star} style={s.barRow}>
+                        <Text style={s.barLabel}>{star}</Text>
+                        <View style={s.barTrack}>
+                          <View style={[s.barFill, { width: reviewCount > 0 ? `${Math.round((count / reviewCount) * 100)}%` : '0%' }]} />
+                        </View>
+                      </View>
+                    ))}
+                  </View>
                 </View>
-              </View>
+              )}
 
-              {reviewCount > 0 ? (
-                <View style={s.reviewCard}>
-                  <View style={s.reviewHeader}>
-                    <InitialsAvatar name="John D." size={40} radius={14} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.reviewName}>John D. <Text style={{ fontSize: 11, color: T.success, fontWeight: "600" }}>(Verified)</Text></Text>
-                      <View style={{ flexDirection: 'row', marginTop: 2 }}>
-                        {[...Array(5)].map((_, i) => <MaterialIcons key={i} name="star" size={12} color={T.gold} />)}
+              {companyReviews.length > 0 ? (
+                companyReviews.map((review: any) => {
+                  const stars = Math.round(review.companyRating ?? review.rating ?? 0);
+                  return (
+                    <View key={review.id} style={[s.reviewCard, { marginBottom: 14 }]}>
+                      <View style={s.reviewHeader}>
+                        <InitialsAvatar name={review.customer?.fullName || "Customer"} size={40} radius={14} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.reviewName} numberOfLines={1}>{review.customer?.fullName || "Customer"} <Text style={{ fontSize: 11, color: T.success, fontWeight: "600" }}>(Verified)</Text></Text>
+                          <View style={{ flexDirection: 'row', marginTop: 2 }}>
+                            {[...Array(5)].map((_, i) => <MaterialIcons key={i} name={i < stars ? "star" : "star-outline"} size={12} color={T.gold} />)}
+                          </View>
+                        </View>
+                        <Text style={s.reviewDate}>{new Date(review.createdAt).toLocaleDateString()}</Text>
                       </View>
+                      {review.companyComment && (
+                        <Text style={s.reviewBody}>{review.companyComment}</Text>
+                      )}
                     </View>
-                    <Text style={s.reviewDate}>2 weeks ago</Text>
-                  </View>
-                  <Text style={s.reviewBody}>"Absolutely fantastic service. They arrived exactly on time, were extremely professional, and finished the job perfectly. Highly recommend!"</Text>
-                </View>
+                  );
+                })
               ) : (
                 <View style={s.emptyState}>
                   <Text style={s.emptyIcon}>⭐</Text>
@@ -417,10 +450,12 @@ export default function CompanyDetailScreen() {
               </Text>
 
               <View style={s.infoList}>
-                <View style={s.infoRow}>
-                  <View style={s.iconCircle}><MaterialIcons name="event" size={18} color={T.primary} /></View>
-                  <Text style={s.infoText}>Established in {company.establishedYear || "2015"}</Text>
-                </View>
+                {company.establishedYear && (
+                  <View style={s.infoRow}>
+                    <View style={s.iconCircle}><MaterialIcons name="event" size={18} color={T.primary} /></View>
+                    <Text style={s.infoText}>Established in {company.establishedYear}</Text>
+                  </View>
+                )}
                 <View style={s.infoRow}>
                   <View style={s.iconCircle}><MaterialIcons name="location-on" size={18} color={T.primary} /></View>
                   <Text style={s.infoText}>{company.address ? `${company.address}, ${company.city}` : company.city}</Text>
@@ -436,11 +471,15 @@ export default function CompanyDetailScreen() {
               <View style={s.divider} />
 
               {/* Location/Map placeholder */}
-              <Text style={s.aboutTitle}>Service Coverage Area</Text>
-              <View style={s.mapPlaceholder}>
-                <MaterialIcons name="map" size={28} color={T.primary} style={{ marginBottom: 4 }} />
-                <Text style={s.mapText}>Serves up to 25 miles from {company.city}</Text>
-              </View>
+              {company.coverageRadiusKm ? (
+                <>
+                  <Text style={s.aboutTitle}>Service Coverage Area</Text>
+                  <View style={s.mapPlaceholder}>
+                    <MaterialIcons name="map" size={28} color={T.primary} style={{ marginBottom: 4 }} />
+                    <Text style={s.mapText}>Serves up to {company.coverageRadiusKm} km from {company.city}</Text>
+                  </View>
+                </>
+              ) : null}
 
             </View>
           )}
@@ -481,7 +520,7 @@ const s = StyleSheet.create({
 
   // Hero Area
   heroContainer: { height: 240, backgroundColor: T.primary },
-  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10, 25, 47, 0.15)' },
+  heroOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(10, 25, 47, 0.15)' },
 
   // Overlapping Identity Box
   headerInfoBox: { paddingHorizontal: 24, flexDirection: 'row', alignItems: 'flex-end', gap: 16, marginTop: -36 },

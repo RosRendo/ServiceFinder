@@ -78,37 +78,26 @@ export default function SystemMonitoringScreen() {
           name: "API Gateway & Server",
           status: healthRes.status === "fulfilled" ? "operational" : "degraded",
           latency: apiLatency,
-          uptime: 99.98,
         },
         {
           name: "PostgreSQL Database",
           status: isDbUp ? "operational" : (healthRes.status === "fulfilled" ? "down" : "degraded"),
-          latency: Math.max(12, Math.round(apiLatency * 0.4)),
-          uptime: 99.95,
         },
         {
           name: "Node.js Memory & Heap",
           status: isMemoryUp ? "operational" : "degraded",
-          latency: 4,
-          uptime: 99.99,
         },
         {
           name: "Storage & Volume",
           status: isDiskUp ? "operational" : "degraded",
-          latency: 8,
-          uptime: 99.90,
         },
         {
           name: "Booking & Dispatch Engine",
           status: isBookingsUp ? "operational" : "degraded",
-          latency: Math.max(25, Math.round(apiLatency * 0.7)),
-          uptime: 99.92,
         },
         {
           name: "Analytics & Metrics Engine",
           status: isAnalyticsUp ? "operational" : "degraded",
-          latency: Math.max(30, Math.round(apiLatency * 0.9)),
-          uptime: 99.88,
         },
       ]);
 

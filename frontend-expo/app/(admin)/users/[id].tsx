@@ -75,7 +75,7 @@ export default function UserDetail() {
           reviews: obj._count?.reviews || 0,
         },
         auditLogs: obj.auditLogs || [],
-        fraudScore: obj.fraudScore ?? (id === '2' ? 92 : Math.floor(Math.random() * 20)),
+        fraudScore: typeof obj.fraudScore === 'number' ? obj.fraudScore : undefined,
       });
     } catch (err) {
       console.error("Failed to fetch user:", err);
@@ -99,16 +99,8 @@ export default function UserDetail() {
     setSuspendModalVisible(false);
     try {
       await api.patch(`/api/users/${id}/status`, { status: "suspended", reason: suspendReason.trim() });
-      setUser((prev) => prev ? {
-        ...prev,
-        status: "suspended",
-        auditLogs: [{
-          id: Math.random().toString(),
-          action: `STATUS_CHANGE_SUSPENDED - Reason: ${suspendReason.trim()}`,
-          createdAt: new Date().toISOString(),
-          user: { fullName: "You (Admin)" }
-        }, ...(prev.auditLogs || [])]
-      } : prev);
+      setUser((prev) => prev ? { ...prev, status: "suspended" } : prev);
+      fetchUser();
       setSuspendReason("");
     } catch {
       Alert.alert("Error", "Could not suspend this user.");
@@ -121,16 +113,8 @@ export default function UserDetail() {
     setActionLoading(true);
     try {
       await api.patch(`/api/users/${id}/status`, { status: newStatus, reason: "Restored by Admin" });
-      setUser((prev) => prev ? {
-        ...prev,
-        status: newStatus,
-        auditLogs: [{
-          id: Math.random().toString(),
-          action: `STATUS_CHANGE_ACTIVE - Reason: Restored by Admin`,
-          createdAt: new Date().toISOString(),
-          user: { fullName: "You (Admin)" }
-        }, ...(prev.auditLogs || [])]
-      } : prev);
+      setUser((prev) => prev ? { ...prev, status: newStatus } : prev);
+      fetchUser();
     } catch {
       Alert.alert("Error", `Could not update status to ${newStatus}.`);
     } finally {
@@ -299,24 +283,26 @@ export default function UserDetail() {
         <View style={s.sectionCard}>
           <View style={s.sectionHeader}>
             <Text style={s.sectionTitle}>Account Risk & Compliance Profile</Text>
-            <View style={s.riskBadge}>
-              <View style={[s.statusDot, { backgroundColor: fraudConfig.color }]} />
-              <Text style={[s.riskBadgeText, { color: fraudConfig.color }]}>{fraudConfig.label.toUpperCase()}</Text>
-            </View>
+            {typeof user.fraudScore === 'number' && (
+              <View style={s.riskBadge}>
+                <View style={[s.statusDot, { backgroundColor: fraudConfig.color }]} />
+                <Text style={[s.riskBadgeText, { color: fraudConfig.color }]}>{fraudConfig.label.toUpperCase()}</Text>
+              </View>
+            )}
           </View>
           <View style={s.ledgerGrid}>
-            <View style={s.ledgerRow}>
+            <View style={[s.ledgerRow, typeof user.fraudScore !== 'number' && { borderBottomWidth: 0 }]}>
               <Text style={s.ledgerLabel}>Risk Factor Index</Text>
-              <Text style={s.ledgerValue}>{user.fraudScore ?? 0}% Benchmark</Text>
+              <Text style={s.ledgerValue}>
+                {typeof user.fraudScore === 'number' ? `${user.fraudScore}% Benchmark` : "No risk data"}
+              </Text>
             </View>
-            <View style={s.ledgerRow}>
-              <Text style={s.ledgerLabel}>Platform Standing</Text>
-              <Text style={s.ledgerValue}>{user.status === 'active' ? 'Good Standing' : 'Account Restricted'}</Text>
-            </View>
-            <View style={[s.ledgerRow, { borderBottomWidth: 0 }]}>
-              <Text style={s.ledgerLabel}>Telemetry Advisory</Text>
-              <Text style={s.ledgerValue}>{fraudConfig.desc}</Text>
-            </View>
+            {typeof user.fraudScore === 'number' && (
+              <View style={[s.ledgerRow, { borderBottomWidth: 0 }]}>
+                <Text style={s.ledgerLabel}>Telemetry Advisory</Text>
+                <Text style={s.ledgerValue}>{fraudConfig.desc}</Text>
+              </View>
+            )}
           </View>
         </View>
 

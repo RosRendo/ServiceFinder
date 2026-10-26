@@ -142,23 +142,23 @@ export default function IssuesTab() {
               <View style={s.emptyIconCircle}>
                 <MaterialCommunityIcons name="shield-check-outline" size={36} color="#0F172A" />
               </View>
-              <Text style={s.emptyTitle}>Escrow Clear</Text>
+              <Text style={s.emptyTitle}>No Active Disputes</Text>
               <Text style={s.emptyDesc}>No active disputes require mediation in this category.</Text>
             </View>
           )}
           renderItem={({ item }: any) => {
             const status = getStatusConfig(item.status);
-            const escrowAmount = Number(
-              item.booking?.totalPrice || item.amount || 45.0
-            ).toFixed(2);
+            const bookingAmount = item.booking?.totalPrice ?? item.amount;
+            const escrowAmount = bookingAmount != null ? Number(bookingAmount).toFixed(2) : null;
 
-            // Compute SLA response deadline (48 hours from created)
+            // Case age (time since opened)
             const createdTime = new Date(item.createdAt).getTime();
             const elapsedHours = Math.max(0, (Date.now() - createdTime) / 3600000);
-            const remainingHours = Math.max(0, 48 - elapsedHours);
-            const isBreached = remainingHours === 0;
-            const isUrgent = remainingHours > 0 && remainingHours <= 12;
-            const slaDotColor = isBreached ? "#DC2626" : isUrgent ? "#D97706" : "#059669";
+            const ageLabel = elapsedHours >= 48
+              ? `${Math.round(elapsedHours / 24)}d open`
+              : `${Math.round(elapsedHours)}h open`;
+            const isUrgent = elapsedHours >= 72;
+            const slaDotColor = isUrgent ? "#D97706" : "#64748B";
 
             return (
               <TouchableOpacity
@@ -166,19 +166,19 @@ export default function IssuesTab() {
                 style={[s.itemCard, CARD_SHADOW]}
                 activeOpacity={0.85}
               >
-                {/* SLA Timeline Tag Header */}
+                {/* Case Age Header */}
                 <View style={s.slaRow}>
                   <View style={s.slaBadge}>
                     <View style={[s.statusDotSmall, { backgroundColor: slaDotColor }]} />
-                    <Text style={s.slaBadgeText}>
-                      {isBreached ? "SLA Overdue" : `${Math.round(remainingHours)}h SLA Window`}
-                    </Text>
+                    <Text style={s.slaBadgeText}>{ageLabel}</Text>
                   </View>
 
-                  <View style={s.escrowPill}>
-                    <MaterialCommunityIcons name="lock" size={11} color="#0F172A" />
-                    <Text style={s.escrowPillText}>${escrowAmount} ESCROW HOLD</Text>
-                  </View>
+                  {escrowAmount !== null && (
+                    <View style={s.escrowPill}>
+                      <MaterialCommunityIcons name="lock" size={11} color="#0F172A" />
+                      <Text style={s.escrowPillText}>${escrowAmount} DISPUTED BOOKING</Text>
+                    </View>
+                  )}
                 </View>
 
                 {/* Case Header */}

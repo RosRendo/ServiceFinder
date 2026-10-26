@@ -50,8 +50,8 @@ export default function Login() {
   // Resend cooldown (seconds) — mirrors the backend's 60s OTP cooldown.
   const [resendCountdown, setResendCountdown] = useState(0);
 
-  const otpRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
+  const otpRef = useRef<any>(null);
+  const passwordRef = useRef<any>(null);
 
   useEffect(() => {
     if (resendCountdown <= 0) return;

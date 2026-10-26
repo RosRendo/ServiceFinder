@@ -22,7 +22,7 @@ const CARD_SHADOW = Platform.select({
 interface Conversation {
   id: string;
   updatedAt: string;
-  otherUser: { id: string; fullName: string; avatar?: string } | null;
+  otherUser: { id: string; fullName: string; avatar?: string; workingStatus?: string; lastSeen?: string | null } | null;
   lastMessage: { content: string; createdAt: string; isMe: boolean } | null;
   unreadCount?: number;
 }
@@ -155,8 +155,10 @@ export default function MessagesScreen() {
                   {/* Avatar */}
                   <View style={s.avatar}>
                     <Text style={s.avatarText}>{initials}</Text>
-                    {/* Online indicator */}
-                    <View style={s.onlineDot} />
+                    {(c.otherUser?.workingStatus === "online" || c.otherUser?.workingStatus === "on_job") && (
+                      /* Online indicator */
+                      <View style={s.onlineDot} />
+                    )}
                   </View>
 
                   {/* Content */}

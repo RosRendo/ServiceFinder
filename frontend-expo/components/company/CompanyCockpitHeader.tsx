@@ -13,7 +13,7 @@ interface CompanyCockpitHeaderProps {
   onlineCrewCount?: number;
   inProgressJobsCount?: number;
   todayCompletedCount?: number;
-  slaComplianceRate?: number;
+  slaComplianceRate?: number | null;
   onMenuPress: () => void;
   onNotificationPress?: () => void;
   onToggleShift?: (isOnline: boolean) => void;
@@ -25,7 +25,7 @@ export default function CompanyCockpitHeader({
   onlineCrewCount = 0,
   inProgressJobsCount = 0,
   todayCompletedCount = 0,
-  slaComplianceRate = 98,
+  slaComplianceRate = null,
   onMenuPress,
   onToggleShift,
 }: CompanyCockpitHeaderProps) {
@@ -120,8 +120,8 @@ export default function CompanyCockpitHeader({
 
         <View style={styles.statCapsule}>
           <View style={styles.statDotPurple} />
-          <Text style={styles.statNumber}>{slaComplianceRate}%</Text>
-          <Text style={styles.statLabel}>SLA Health</Text>
+          <Text style={styles.statNumber}>{slaComplianceRate != null ? `${slaComplianceRate}%` : "—"}</Text>
+          <Text style={styles.statLabel}>{slaComplianceRate != null ? "SLA Health" : "SLA (no data)"}</Text>
         </View>
       </View>
     </View>

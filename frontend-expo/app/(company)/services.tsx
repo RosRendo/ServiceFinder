@@ -3,13 +3,14 @@
  */
 import React, { useState, useCallback } from "react";
 import {
-  ScrollView, Text, View, TouchableOpacity,
+  ScrollView, Text, View, TouchableOpacity, Alert,
   ActivityIndicator, RefreshControl, StyleSheet, Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import { api } from "@/store/authStore";
+import ErrorState from "@/components/common/ErrorState";
 import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
@@ -24,31 +25,41 @@ export default function Services() {
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const loadServices = useCallback(async (isRefresh = false) => {
     if (isRefresh) { setRefreshing(true); } else { setLoading(true); }
     try {
-      const companyRes = await api.get("/api/companies/my-company");
-      const companyId = companyRes.data?.data?.id ?? companyRes.data?.id;
-
-      if (!companyId) {
-        setServices([]);
-        return;
-      }
-
-      const servicesRes = await api.get(`/api/services/company/${companyId}`);
+      const servicesRes = await api.get("/api/companies/my-company/services");
       let data = servicesRes.data;
       if (data && data.success) data = data.data;
       if (data && data.data) data = data.data;
       
       setServices(Array.isArray(data) ? data : []);
+      setHasError(false);
     } catch (error) {
       console.error("Failed to load services", error);
+      setHasError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
+
+  const toggleService = useCallback(async (service: any) => {
+    if (togglingId) return;
+    setTogglingId(String(service.id));
+    try {
+      await api.put(`/api/companies/my-company/services/${service.id}`, { isActive: !service.isActive });
+      setServices((prev) => prev.map((s) => (s.id === service.id ? { ...s, isActive: !s.isActive } : s)));
+    } catch (error: any) {
+      const rawMsg = error?.response?.data?.message;
+      Alert.alert("Error", Array.isArray(rawMsg) ? rawMsg.join("\n") : rawMsg || "Could not update service status.");
+    } finally {
+      setTogglingId(null);
+    }
+  }, [togglingId]);
 
   useFocusEffect(useCallback(() => { loadServices(); }, [loadServices]));
 
@@ -86,6 +97,8 @@ export default function Services() {
             <ActivityIndicator size="large" color="#0284C7" />
             <Text style={s.loadingText}>Loading catalog offerings...</Text>
           </View>
+        ) : hasError ? (
+          <ErrorState onRetry={() => loadServices(true)} />
         ) : services.length > 0 ? (
           <View style={s.list}>
             {services.map((service) => (
@@ -99,10 +112,19 @@ export default function Services() {
                   </View>
                   <View style={s.cardHeadInfo}>
                     <Text style={s.cardTitle} numberOfLines={1}>{service.name}</Text>
-                    <View style={s.statusPill}>
-                      <View style={s.statusDot} />
-                      <Text style={s.statusPillText}>Active Listing</Text>
-                    </View>
+                    <TouchableOpacity
+                      style={[s.statusPill, service.isActive === false && { backgroundColor: "#FEF3C7" }]}
+                      onPress={() => toggleService(service)}
+                      disabled={togglingId === String(service.id)}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${service.isActive === false ? "Reactivate" : "Pause"} ${service.name}`}
+                    >
+                      <View style={[s.statusDot, service.isActive === false && { backgroundColor: "#D97706" }]} />
+                      <Text style={[s.statusPillText, service.isActive === false && { color: "#B45309" }]}>
+                        {togglingId === String(service.id) ? "Updating…" : service.isActive === false ? "Paused — tap to reactivate" : "Active — tap to pause"}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                   <Text style={s.priceTag}>
                     ${Number(service.price || 0).toFixed(2)}

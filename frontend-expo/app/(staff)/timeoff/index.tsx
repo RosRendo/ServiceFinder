@@ -42,7 +42,7 @@ interface TimeOffRequest {
 
 const STATUS_CONFIG: Record<StatusType, { label: string; color: string; bg: string; icon: string }> = {
   pending:  { label: "Pending",  color: T.yellowText, bg: T.yellowBg, icon: "clock-outline" },
-  approved: { label: "Approved", color: T.greenText,  bg: T.greenBg,  icon: "check-circle-outline" },
+  approved: { label: "Blocked",   color: T.textMuted,   bg: "#F1F5F9",  icon: "block-helper" },
   rejected: { label: "Rejected", color: T.redText,    bg: T.redBg,    icon: "close-circle-outline" },
 };
 
@@ -53,14 +53,12 @@ export default function TimeOffScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   // Form
-  const [leaveType, setLeaveType] = useState<LeaveType>("vacation");
   const [startDateObj, setStartDateObj] = useState(new Date());
   const [endDateObj, setEndDateObj] = useState(new Date());
   const [isStartDateSelected, setIsStartDateSelected] = useState(false);
   const [isEndDateSelected, setIsEndDateSelected] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
-  const [reason, setReason] = useState("");
 
   const formatDate = (date: Date) => {
     return date.toISOString().split("T")[0];
@@ -78,11 +76,11 @@ export default function TimeOffScreen() {
       
       const mapped: TimeOffRequest[] = offSlots.map((s: any) => ({
         id: s.id.toString(),
-        type: "vacation",
+        type: "vacation" as LeaveType,
         startDate: s.date.split("T")[0],
         endDate: s.date.split("T")[0],
-        status: "approved",
-        reason: "Blocked Availability",
+        status: "approved" as StatusType,
+        reason: "Availability blocked",
       }));
       setRequests(mapped);
     } catch (error) {
@@ -91,8 +89,8 @@ export default function TimeOffScreen() {
   };
 
   const handleRequest = async () => {
-    if (!reason || !isStartDateSelected || !isEndDateSelected) {
-      Alert.alert("Missing Fields", "Please select dates and provide a reason for the request.");
+    if (!isStartDateSelected || !isEndDateSelected) {
+      Alert.alert("Missing Fields", "Please select both dates for the block.");
       return;
     }
     setSubmitting(true);
@@ -111,10 +109,11 @@ export default function TimeOffScreen() {
       const slotsToCreate = [];
       let current = new Date(start);
       while (current <= end) {
+        const isoDate = current.toISOString().split("T")[0];
         slotsToCreate.push({
-          date: current.toISOString().split("T")[0],
-          startTime: "00:00:00",
-          endTime: "23:59:59",
+          date: isoDate,
+          startTime: `${isoDate}T00:00:00.000Z`,
+          endTime: `${isoDate}T23:59:59.000Z`,
           isAvailable: false
         });
         current.setDate(current.getDate() + 1);
@@ -123,7 +122,7 @@ export default function TimeOffScreen() {
       await api.put('/api/staff/availability', { slots: slotsToCreate });
       
       setShowForm(false);
-      setStartDateObj(new Date()); setEndDateObj(new Date()); setReason("");
+      setStartDateObj(new Date()); setEndDateObj(new Date());
       setIsStartDateSelected(false); setIsEndDateSelected(false);
       Alert.alert("Time Off Recorded", "Your time off has been successfully blocked out.");
       fetchTimeOff();
@@ -141,24 +140,24 @@ export default function TimeOffScreen() {
     return (
       <View key={item.id} style={s.requestCard}>
         <View style={s.requestHeader}>
-          <View style={s.requestTitleWrap}>
-            <View style={s.requestIconBox}>
-              <MaterialCommunityIcons 
-                name={item.type === "vacation" ? "palm-tree" : item.type === "sick" ? "pill" : "account-clock"} 
-                size={20} color={T.accent} 
-              />
+            <View style={s.requestTitleWrap}>
+              <View style={s.requestIconBox}>
+                <MaterialCommunityIcons 
+                  name="calendar-remove" 
+                  size={20} 
+                  color={T.accent} 
+                />
+              </View>
+              <View>
+                <Text style={s.requestType}>Availability Block</Text>
+                <Text style={s.requestDates}>{item.startDate} to {item.endDate}</Text>
+              </View>
             </View>
-            <View>
-              <Text style={s.requestType}>{item.type} Leave</Text>
-              <Text style={s.requestDates}>{item.startDate} to {item.endDate}</Text>
-            </View>
-          </View>
           <View style={[s.statusBadge, { backgroundColor: cfg.bg }]}>
             <MaterialCommunityIcons name={cfg.icon as any} size={12} color={cfg.color} />
             <Text style={[s.statusText, { color: cfg.color }]}>{cfg.label}</Text>
           </View>
         </View>
-        <Text style={s.requestReason}>"{item.reason}"</Text>
       </View>
     );
   };
@@ -184,42 +183,25 @@ export default function TimeOffScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
-        {/* Balances */}
+        {/* Honest policy note */}
         {!showForm && (
           <View style={s.balancesRow}>
-            {[
-              { label: "Vacation", days: 12, icon: "palm-tree" },
-              { label: "Sick Leave", days: 5, icon: "pill" },
-            ].map(b => (
-              <View key={b.label} style={s.balanceCard}>
-                <View style={s.balanceHeader}>
-                  <MaterialCommunityIcons name={b.icon as any} size={20} color="#0F172A" />
-                  <Text style={s.balanceLabel}>{b.label}</Text>
-                </View>
-                <Text style={s.balanceValue}>{b.days} <Text style={s.balanceValueSub}>days left</Text></Text>
+            <View style={[s.balanceCard, { flex: 1 }]}>
+              <View style={s.balanceHeader}>
+                <MaterialCommunityIcons name="information-outline" size={20} color="#64748B" />
+                <Text style={s.balanceLabel}>How this works</Text>
               </View>
-            ))}
+              <Text style={{ fontSize: 13, color: "#475569", lineHeight: 19 }}>
+                Company leave policies aren&apos;t configured yet. Requests here block your availability calendar — no leave balance is tracked.
+              </Text>
+            </View>
           </View>
         )}
 
         {/* Request Form */}
         {showForm && (
           <View style={s.formCard}>
-            <Text style={s.formTitle}>Request Time Off</Text>
-            
-            <Text style={s.fieldLabel}>Leave Type</Text>
-            <View style={s.typeRow}>
-              {(["vacation", "sick", "personal"] as LeaveType[]).map(t => (
-                <TouchableOpacity
-                  key={t}
-                  onPress={() => setLeaveType(t)}
-                  style={[s.typeBtn, leaveType === t && s.typeBtnSelected]}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[s.typeBtnText, leaveType === t && s.typeBtnTextSelected]}>{t}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <Text style={s.formTitle}>Block Availability</Text>
 
             <View style={s.datesRow}>
               <View style={s.dateCol}>
@@ -277,19 +259,6 @@ export default function TimeOffScreen() {
                   />
                 )}
               </View>
-            </View>
-
-            <View style={s.reasonRow}>
-              <Text style={s.fieldLabel}>Reason / Notes</Text>
-              <TextInput
-                style={[s.input, s.inputArea]}
-                placeholder="Brief reason for time off..."
-                placeholderTextColor={T.textMuted}
-                multiline
-                textAlignVertical="top"
-                value={reason}
-                onChangeText={setReason}
-              />
             </View>
 
             <TouchableOpacity

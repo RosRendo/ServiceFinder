@@ -26,6 +26,7 @@ import FadeIn from "@/components/FadeIn";
 import ScaleButton from "@/components/ScaleButton";
 import { Theme } from "@/constants/theme";
 import * as Location from "expo-location";
+import { SearchDiscoverySvg } from "@/components/svg";
 import {
   AirconCategorySvg,
   PlumbingCategorySvg,
@@ -370,11 +371,12 @@ export default function Home() {
       return sponsoredCompanies.map((co) => ({
         id: co.id,
         title: co.name,
-        subtitle: co.description || "Top-rated verified provider in Phnom Penh",
-        image: co.coverImageUrl || co.logoUrl || "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=600&auto=format&fit=crop",
+        subtitle: co.description || "Verified provider on ServiceFinder",
+        image: co.coverImageUrl || co.logoUrl,
         badge: "VERIFIED ELITE",
-        rating: co.ratingSummary?.averageRating ? Number(co.ratingSummary.averageRating).toFixed(1) : "4.9",
-        reviews: co.ratingSummary?.totalReviews || "120+",
+        hasRating: !!co.ratingSummary?.averageRating,
+        rating: co.ratingSummary?.averageRating ? Number(co.ratingSummary.averageRating).toFixed(1) : null,
+        reviews: co.ratingSummary?.totalReviews ?? 0,
         route: `/(customer)/company/${co.id}`,
       }));
     }
@@ -383,40 +385,20 @@ export default function Home() {
       return topCompanies.slice(0, 3).map((co) => ({
         id: co.id,
         title: co.name,
-        subtitle: co.description || "Top-rated verified provider in Phnom Penh",
-        image: co.coverImageUrl || co.logoUrl || "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=600&auto=format&fit=crop",
+        subtitle: co.description || "Verified provider on ServiceFinder",
+        image: co.coverImageUrl || co.logoUrl,
         badge: "FEATURED PARTNER",
-        rating: co.ratingSummary?.averageRating ? Number(co.ratingSummary.averageRating).toFixed(1) : "4.9",
-        reviews: co.ratingSummary?.totalReviews || "85+",
+        hasRating: !!co.ratingSummary?.averageRating,
+        rating: co.ratingSummary?.averageRating ? Number(co.ratingSummary.averageRating).toFixed(1) : null,
+        reviews: co.ratingSummary?.totalReviews ?? 0,
         route: `/(customer)/company/${co.id}`,
       }));
     }
 
-    return [
-      {
-        id: "mock-1",
-        title: "Sparkle Cleaning Co.",
-        subtitle: "Deep cleaning & certified sanitized housekeeping.",
-        image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=600&auto=format&fit=crop",
-        badge: "VERIFIED ELITE",
-        rating: "4.9",
-        reviews: "320+",
-        route: "/(customer)/(tabs)/explore",
-      },
-      {
-        id: "mock-2",
-        title: "Elite Aircon Solutions",
-        subtitle: "24/7 HVAC repairs, gas refill & deep chemical wash.",
-        image: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?q=80&w=600&auto=format&fit=crop",
-        badge: "EXPRESS DISPATCH",
-        rating: "5.0",
-        reviews: "210+",
-        route: "/(customer)/(tabs)/explore",
-      },
-    ];
+    return [] as { id: any; title: any; subtitle: any; image: any; badge: string; hasRating: boolean; rating: string | null; reviews: number; route: string }[];
   }, [sponsoredCompanies, topCompanies]);
 
-  const spotlightRef = useRef<ScrollView>(null);
+  const spotlightRef = useRef<any>(null);
   const [spotlightIndex, setSpotlightIndex] = useState(0);
 
   useEffect(() => {
@@ -558,7 +540,9 @@ export default function Home() {
                           </Text>
                         </View>
                         <Text style={s.activeEtaValue}>
-                          {activeBooking.status === 'in_progress' ? '12 MINS' : 'LIVE'}
+                          {activeBooking.status === 'in_progress'
+                            ? ((activeBooking as any).etaMinutes != null ? `${(activeBooking as any).etaMinutes} MINS` : 'Fast dispatch')
+                            : 'LIVE'}
                         </Text>
                       </View>
 
@@ -616,7 +600,7 @@ export default function Home() {
                           <View style={s.catItem}>
                             <View style={[s.catPlate, { backgroundColor: theme.bg, borderColor: theme.border }]}>
                               {cat.useImageAsBadge && cat.imageUrl ? (
-                                <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                                <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
                               ) : (
                                 <CategoryMarkRenderer name={cat.name} size={48} />
                               )}
@@ -632,6 +616,16 @@ export default function Home() {
             </View>
 
             {/* ─── SECTION 5: SPOTLIGHT PARTNER (Clean Branded Showcase) ── */}
+            {!activeBooking && !isLoading && spotlightItems.length === 0 && (
+              <View style={{ marginTop: 28, paddingHorizontal: 24 }}>
+                <View style={s.spotlightEmpty}>
+                  <SearchDiscoverySvg size={80} />
+                  <Text style={s.spotlightEmptyTitle}>No featured providers yet</Text>
+                  <Text style={s.spotlightEmptySub}>Explore the full catalog to find verified providers near you.</Text>
+                </View>
+              </View>
+            )}
+
             {!activeBooking && spotlightItems.length > 0 && (
               <View style={{ marginTop: 28 }}>
                 <View style={s.sectionHeader}>
@@ -666,31 +660,33 @@ export default function Home() {
                             <MaterialIcons name="verified" size={12} color="#2563EB" />
                             <Text style={s.spotlightBadgeText}>{item.badge}</Text>
                           </View>
-                          <View style={s.spotlightResponsePill}>
-                            <View style={s.onlineDotSmall} />
-                            <Text style={s.spotlightResponseText}>&lt; 5m response</Text>
-                          </View>
                         </View>
 
                         <View style={s.spotlightBodyRow}>
-                          <Image
-                            source={{ uri: item.image }}
-                            style={s.spotlightImage}
-                            contentFit="cover"
-                          />
+                          {item.image ? (
+                            <Image
+                              source={{ uri: item.image }}
+                              style={s.spotlightImage}
+                              contentFit="cover"
+                            />
+                          ) : (
+                            <MaterialCommunityIcons name="storefront-outline" size={40} color="#2563EB" style={[s.spotlightImage, { textAlignVertical: "center", textAlign: "center" }]} />
+                          )}
                           <View style={{ flex: 1, marginLeft: 14, justifyContent: "center" }}>
                             <Text style={s.spotlightTitle} numberOfLines={1}>{item.title}</Text>
                             <Text style={s.spotlightSubtitle} numberOfLines={2}>{item.subtitle}</Text>
-                            <View style={s.spotlightRatingRow}>
-                              <MaterialIcons name="star" size={13} color="#F59E0B" />
-                              <Text style={s.spotlightRatingText}>{item.rating}</Text>
-                              <Text style={s.spotlightReviewsText}>({item.reviews} completed)</Text>
-                            </View>
+                            {item.hasRating && (
+                              <View style={s.spotlightRatingRow}>
+                                <MaterialIcons name="star" size={13} color="#F59E0B" />
+                                <Text style={s.spotlightRatingText}>{item.rating}</Text>
+                                <Text style={s.spotlightReviewsText}>({item.reviews} completed)</Text>
+                              </View>
+                            )}
                           </View>
                         </View>
 
                         <View style={s.spotlightFooterRow}>
-                          <Text style={s.spotlightFooterHint}>Bakong KHQR escrow protected</Text>
+                          <Text style={s.spotlightFooterHint}>KHQR payments supported</Text>
                           <View style={s.spotlightActionBtn}>
                             <Text style={s.spotlightActionText}>View Profile</Text>
                             <MaterialIcons name="chevron-right" size={14} color="#0A192F" />
@@ -758,7 +754,7 @@ export default function Home() {
                             {/* Visual Media Header */}
                             <View style={[s.tactileMediaBox, { backgroundColor: theme.bg }]}>
                               {st.image ? (
-                                <Image source={{ uri: st.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                                <Image source={{ uri: st.image }} style={StyleSheet.absoluteFill} contentFit="cover" />
                               ) : (
                                 <View style={s.tactileGlyphWrap}>
                                   <MaterialCommunityIcons name={theme.icon as any} size={32} color={theme.accent} />
@@ -835,7 +831,7 @@ export default function Home() {
                     {/* Thumbnail */}
                     <View style={[s.recThumbBox, { backgroundColor: theme.bg, borderColor: theme.border }]}>
                       {st.image ? (
-                        <Image source={{ uri: st.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                        <Image source={{ uri: st.image }} style={StyleSheet.absoluteFill} contentFit="cover" />
                       ) : (
                         <MaterialCommunityIcons name={theme.icon as any} size={28} color={theme.accent} />
                       )}
@@ -912,9 +908,11 @@ export default function Home() {
                             <View style={s.eliteRatingRow}>
                               <MaterialIcons name="star" size={12} color="#F59E0B" />
                               <Text style={s.eliteRatingNum}>
-                                {company.ratingSummary?.averageRating ? Number(company.ratingSummary.averageRating).toFixed(1) : "4.9"}
+                                {company.ratingSummary?.averageRating ? Number(company.ratingSummary.averageRating).toFixed(1) : "New"}
                               </Text>
-                              <Text style={s.eliteRatingCount}>({company.ratingSummary?.totalReviews || '1.2k'})</Text>
+                              {!!company.ratingSummary?.totalReviews && (
+                                <Text style={s.eliteRatingCount}>({company.ratingSummary.totalReviews})</Text>
+                              )}
                             </View>
                           </View>
                         </View>
@@ -1358,25 +1356,27 @@ const s = StyleSheet.create({
     color: "#1E40AF",
     letterSpacing: 0.5,
   },
-  spotlightResponsePill: {
-    flexDirection: "row",
+  spotlightEmpty: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingVertical: 28,
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 100,
+    ...CARD_SHADOW,
   },
-  onlineDotSmall: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: "#10B981",
+  spotlightEmptyTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginTop: 12,
   },
-  spotlightResponseText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#065F46",
+  spotlightEmptySub: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 4,
+    textAlign: "center",
+    paddingHorizontal: 24,
   },
   spotlightBodyRow: {
     flexDirection: "row",

@@ -139,15 +139,16 @@ export default function StaffDetail() {
   const avatar = staff.avatar || staff.user?.avatar;
   const isOnline = staff.status === "active";
   const isAvailable = staff.isAvailable !== false;
-  const rating = Number(staff.averageRating || staff.rating || 5.0);
+  const rating = staff.averageRating != null ? Number(staff.averageRating) : null;
   const completedJobs = Number(staff.completedJobsCount || staff.jobsCompleted || staff.completedJobs || 0);
-  const completionRate = staff.completionRate != null ? `${staff.completionRate}%` : "98%";
-  const acceptanceRate = staff.acceptanceRate != null ? `${staff.acceptanceRate}%` : "95%";
-  const totalRevenue = Number(staff.totalRevenue || staff.revenue || (completedJobs * 65));
+  const completionRate = staff.completionRate != null ? `${staff.completionRate}%` : "—";
+  const acceptanceRate = staff.acceptanceRate != null ? `${staff.acceptanceRate}%` : "—";
+  const totalRevenue = Number(staff.generatedRevenue || staff.totalRevenue || staff.revenue || 0);
   const unremittedCash = Number(staff.walletBalance || staff.pendingPayout || 0);
 
-  const assignedBookings: any[] = staff.assignedBookings || [];
-  const reviews: any[] = staff.reviews || [];
+  const assignedBookings: any[] = staff.recentBookings || staff.assignedBookings || [];
+  const reviews: any[] = staff.recentReviews || staff.reviews || [];
+  const compliance: any[] = Array.isArray(staff.compliance) ? staff.compliance.filter(Boolean) : [];
 
   return (
     <SafeAreaView style={s.root} edges={["top", "left", "right"]}>
@@ -187,7 +188,7 @@ export default function StaffDetail() {
                 <Text style={s.heroName} numberOfLines={1}>{fullName}</Text>
                 <View style={s.ratingBadge}>
                   <MaterialCommunityIcons name="star" size={11} color="#F59E0B" />
-                  <Text style={s.ratingBadgeText}>{rating.toFixed(1)}</Text>
+                  <Text style={s.ratingBadgeText}>{rating != null ? rating.toFixed(1) : "—"}</Text>
                 </View>
               </View>
 
@@ -274,10 +275,10 @@ export default function StaffDetail() {
 
           <View style={[s.metricCard, CARD_SHADOW]}>
             <View style={s.metricIconBox}>
-              <MaterialCommunityIcons name="clock-outline" size={18} color="#475569" />
+              <MaterialCommunityIcons name="close-circle-outline" size={18} color="#475569" />
             </View>
-            <Text style={s.metricValue}>{completedJobs * 2}h</Text>
-            <Text style={s.metricLabel}>Field Hours</Text>
+            <Text style={s.metricValue}>{staff.cancellationRate != null ? `${staff.cancellationRate}%` : "—"}</Text>
+            <Text style={s.metricLabel}>Cancellation</Text>
           </View>
         </View>
 
@@ -303,7 +304,7 @@ export default function StaffDetail() {
               <MaterialCommunityIcons name="map-marker-outline" size={16} color="#64748B" />
               <View style={{ flex: 1 }}>
                 <Text style={s.infoItemLabel}>LOCATION BASE</Text>
-                <Text style={s.infoItemVal}>{staff.currentLocation || "HQ Operations Center"}</Text>
+                 <Text style={s.infoItemVal}>{staff.currentLocation || "—"}</Text>
               </View>
             </View>
           </View>
@@ -312,20 +313,27 @@ export default function StaffDetail() {
         {/* Verified Compliance Credentials */}
         <View style={[s.sectionCard, CARD_SHADOW]}>
           <Text style={s.sectionTitle}>Verification & Compliance</Text>
-          <View style={s.complianceList}>
-            <View style={s.complianceItem}>
-              <MaterialCommunityIcons name="check-circle" size={15} color="#059669" />
-              <Text style={s.complianceText}>Government Identity Document Verified</Text>
+          {compliance.length === 0 ? (
+            <Text style={{ fontSize: 12, fontWeight: "500", color: "#94A3B8" }}>No compliance records</Text>
+          ) : (
+            <View style={s.complianceList}>
+              {compliance.map((item: any, i: number) => {
+                const label = typeof item === "string" ? item : item?.name || item?.label || item?.type || "Record";
+                const status = item?.status;
+                const isVerified = status === "verified" || status === "approved";
+                return (
+                  <View key={item?.id ?? i} style={s.complianceItem}>
+                    <MaterialCommunityIcons
+                      name={isVerified ? "check-circle" : "information-outline"}
+                      size={15}
+                      color={isVerified ? "#059669" : "#64748B"}
+                    />
+                    <Text style={s.complianceText}>{label}</Text>
+                  </View>
+                );
+              })}
             </View>
-            <View style={s.complianceItem}>
-              <MaterialCommunityIcons name="check-circle" size={15} color="#059669" />
-              <Text style={s.complianceText}>Background Check Cleared</Text>
-            </View>
-            <View style={s.complianceItem}>
-              <MaterialCommunityIcons name="check-circle" size={15} color="#059669" />
-              <Text style={s.complianceText}>Subcontractor Service Agreement Active</Text>
-            </View>
-          </View>
+          )}
         </View>
 
         {/* Recent Work Orders */}
@@ -335,8 +343,8 @@ export default function StaffDetail() {
             <View style={s.bookingList}>
               {assignedBookings.slice(0, 5).map((booking: any) => {
                 const bId = booking.id;
-                const svcName = booking.service?.name || "Service Booking";
-                const custName = booking.customer?.fullName || "Customer";
+                const svcName = booking.serviceName || booking.service?.name || "Service Booking";
+                const custName = booking.customerName || booking.customer?.fullName || "Customer";
                 const isDone = booking.status === "completed";
                 return (
                   <TouchableOpacity
@@ -369,19 +377,21 @@ export default function StaffDetail() {
               {reviews.slice(0, 3).map((r: any, idx: number) => (
                 <View key={r.id || idx} style={[s.reviewItem, idx < reviews.length - 1 && s.reviewBorder]}>
                   <View style={s.reviewTop}>
-                    <Text style={s.reviewCust}>{r.customer?.fullName || "Verified Customer"}</Text>
+                    <Text style={s.reviewCust}>{r.customerName || r.customer?.fullName || "Customer"}</Text>
                     <View style={s.reviewStars}>
                       {[1, 2, 3, 4, 5].map((star) => (
                         <MaterialCommunityIcons
                           key={star}
-                          name={star <= Math.round(Number(r.staffRating || 5)) ? "star" : "star-outline"}
+                          name={star <= Math.round(Number(r.rating ?? r.staffRating ?? 0)) ? "star" : "star-outline"}
                           size={11}
                           color="#F59E0B"
                         />
                       ))}
                     </View>
                   </View>
-                  <Text style={s.reviewComment}>{r.comment || "Service delivered punctually with high professional quality."}</Text>
+                  {r.comment ? (
+                    <Text style={s.reviewComment}>{r.comment}</Text>
+                  ) : null}
                 </View>
               ))}
             </View>

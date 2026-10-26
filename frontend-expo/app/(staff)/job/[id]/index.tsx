@@ -118,7 +118,7 @@ export default function JobDetailScreen() {
     try {
       const res = await api.post("/api/conversations", { 
         type: 'job',
-        bookingId: id.toString()
+        bookingId: id ? id.toString() : ''
       });
       const responseData = res.data?.data || res.data;
       const conversation = responseData?.data || responseData;

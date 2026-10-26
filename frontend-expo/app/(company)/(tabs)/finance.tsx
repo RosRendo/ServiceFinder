@@ -131,18 +131,13 @@ export default function B2BFinanceTab() {
                   maxLimit={100}
                   onSettlePress={unremitted > 0 ? () => {
                     Alert.alert(
-                      "Confirm Cash Settlement",
-                      `Mark $${unremitted.toFixed(2)} cash as collected from ${name}?`,
+                      "Cash Settlement",
                       [
-                        { text: "Cancel", style: "cancel" },
-                        {
-                          text: "Confirm Settlement",
-                          onPress: () => {
-                            Alert.alert("Settled", `Cash remittance from ${name} logged.`);
-                            setStaffCashList(prev => prev.map(m => m.id === member.id ? { ...m, walletBalance: 0 } : m));
-                          }
-                        }
-                      ]
+                        `Unremitted cash from ${name}: $${unremitted.toFixed(2)}.`,
+                        "",
+                        "Automated cash settlement isn't processed in-app yet. This meter only tracks remitted vs. unremitted cash from wallet activity — nothing is settled or transferred by tapping here.",
+                      ].join("\n"),
+                      [{ text: "Got it", style: "cancel" }]
                     );
                   } : undefined}
                 />

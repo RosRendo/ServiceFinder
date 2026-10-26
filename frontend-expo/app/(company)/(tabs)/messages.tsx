@@ -158,7 +158,6 @@ export default function Messages() {
                 >
                   <View style={s.avatarWrap}>
                     <Avatar name={conv.otherUser?.fullName ?? "?"} size={52} />
-                    <View style={s.onlineDot} />
                   </View>
 
                   <View style={s.convBody}>
@@ -218,7 +217,6 @@ const s = StyleSheet.create({
     marginBottom: 10, borderWidth: 1, borderColor: T.border,
   },
   avatarWrap: { position: "relative" },
-  onlineDot: { position: "absolute", bottom: 2, right: 2, width: 12, height: 12, borderRadius: 6, backgroundColor: T.success, borderWidth: 2, borderColor: T.surface },
 
   convBody: { flex: 1 },
   convTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },

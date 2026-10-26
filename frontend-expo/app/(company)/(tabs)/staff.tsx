@@ -233,7 +233,7 @@ export default function Staff() {
           <MapView
             ref={mapRef}
             provider={MAP_PROVIDER}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             onMapReady={() => setIsMapReady(true)}
             initialRegion={{
               latitude: BASE_LAT,
@@ -258,7 +258,7 @@ export default function Staff() {
             })}
           </MapView>
         ) : (
-          <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#E2E8F0' }]}>
+          <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#E2E8F0' }]}>
              <MaterialCommunityIcons name="map-marker-off" size={48} color="#94A3B8" />
              <Text style={{ marginTop: 8, color: "#64748B", fontWeight: '600' }}>Map unavailable on Web</Text>
           </View>
@@ -334,7 +334,7 @@ export default function Staff() {
                     name: member.fullName || member.user?.fullName || "Staff",
                     avatarUrl: member.user?.avatar || member.avatar,
                     status: member.status === 'active' ? 'ONLINE' : member.status === 'busy' ? 'ON_JOB' : 'OFFLINE',
-                    distanceKm: member.distanceKm || (1.2 + ((Number(member.id) || index) % 4) * 0.7),
+                    distanceKm: (typeof member.distanceKm === 'number' ? member.distanceKm : undefined),
                     currentWorkload: member.activeJobsCount || (member.status === 'busy' ? 1 : 0),
                     rating: Number(member.averageRating || 5.0),
                     phone,

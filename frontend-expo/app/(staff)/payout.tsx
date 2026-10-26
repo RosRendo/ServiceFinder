@@ -152,7 +152,7 @@ export default function PayoutScreen() {
             transactions.map((t: any, idx: number) => {
               const d = new Date(t.createdAt);
               const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-              const isCredit = t.type === 'CREDIT';
+              const isCredit = (t.type || '').toLowerCase() === 'credit';
               
               return (
                 <View key={t.id || idx} style={s.txRow}>

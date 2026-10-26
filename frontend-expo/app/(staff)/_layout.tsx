@@ -1,10 +1,22 @@
-import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { Stack, useRouter } from 'expo-router';
 import StaffSidebar from '@/components/StaffSidebar';
 import { useSidebarStore } from '@/store/sidebarStore';
+import { useAuthStore } from '@/store/authStore';
 
 export default function StaffLayout() {
   const { isStaffOpen, setStaffOpen } = useSidebarStore();
-  
+  const { user, isGuest } = useAuthStore();
+  const router = useRouter();
+
+  const isStaff = user?.role?.toLowerCase() === 'staff';
+
+  useEffect(() => {
+    if (!isStaff && !isGuest) {
+      router.replace('/');
+    }
+  }, [isStaff, isGuest, router]);
+
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>
@@ -26,11 +38,9 @@ export default function StaffLayout() {
         <Stack.Screen name="edit-profile" />
         <Stack.Screen name="change-password" />
         <Stack.Screen name="settings" />
-        <Stack.Screen name="profile/index" />
 
         {/* ── Work Tools ────────────────────────────── */}
         <Stack.Screen name="availability/index" />
-        <Stack.Screen name="measurement/index" />
         <Stack.Screen name="timeoff/index" />
         <Stack.Screen name="performance/index" />
 

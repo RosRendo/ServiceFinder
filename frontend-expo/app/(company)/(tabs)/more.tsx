@@ -42,8 +42,8 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
       { id: 103, title: "Dispatch Staff",       subtitle: "Move jobs to available workers", icon: "truck-fast-outline",    action: "route", route: "/(company)/(tabs)/staff" },
       { id: 104, title: "Staff Availability",   subtitle: "Who is online right now",        icon: "account-clock-outline", action: "route", route: "/(company)/(tabs)/staff" },
       { id: 105, title: "Coverage",             subtitle: "Geofence / service radius",      icon: "map-marker-radius",     action: "route", route: "/(company)/coverage" },
-      { id: 106, title: "Attendance",           subtitle: "Clock-in / Clock-out tracking",  icon: "fingerprint",           action: "route", route: "/(company)/(tabs)/staff" },
-      { id: 107, title: "Schedules",            subtitle: "Shift planning",                 icon: "calendar-month-outline",action: "route", route: "/(company)/settings" },
+      { id: 106, title: "Attendance",           subtitle: "Clock-in / Clock-out tracking",  icon: "fingerprint",           action: "soon" },
+      { id: 107, title: "Schedules",            subtitle: "Shift planning",                 icon: "calendar-month-outline",action: "soon" },
       { id: 108, title: "Available Jobs",        subtitle: "Claim open pool bookings",       icon: "hand-pointing-right",   action: "route", route: "/(company)/available-jobs" },
     ],
   },
@@ -76,7 +76,7 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
   {
     title: "Business (How is it configured?)",
     items: [
-      { id: 501, title: "Branches",             subtitle: "Multi-location management",      icon: "storefront-outline",    action: "route", route: "/(company)/settings" },
+      { id: 501, title: "Branches",             subtitle: "Multi-location management — coming soon", icon: "storefront-outline", action: "soon" },
       { id: 502, title: "Subscription",         subtitle: "Platform fees/plans",            icon: "star-circle-outline",   action: "route", route: "/(company)/subscription" },
       { id: 503, title: "Company Profile",      subtitle: "Logos, tax info, HQ",            icon: "domain",                action: "route", route: "/(company)/settings" },
     ],
@@ -124,6 +124,8 @@ export default function MoreScreen() {
       router.push(item.route as any);
     } else if (item.action === "mfa") {
       setMfaModalVisible(true);
+    } else if (item.action === "soon") {
+      Alert.alert("Coming Soon", `${item.subtitle || item.title} isn't available in the app yet.`);
     } else {
       Alert.alert(item.title, item.subtitle);
     }
@@ -161,36 +163,40 @@ export default function MoreScreen() {
               <View style={s.groupCard}>
                 {group.items.map((item, idx) => (
                   <React.Fragment key={item.id}>
-                    <TouchableOpacity
-                      onPress={() => handlePress(item)}
-                      style={s.menuRow}
-                      activeOpacity={0.75}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${item.title}. ${item.subtitle}`}
-                    >
-                      <View style={[
-                        s.menuIconBox,
-                        (!isVerified && item.route && PREMIUM_ROUTES.has(item.route)) && { backgroundColor: "#FEF3C7" }
-                      ]}>
-                        <MaterialCommunityIcons
-                          name={(!isVerified && item.route && PREMIUM_ROUTES.has(item.route)) ? "lock-outline" as any : item.icon as any}
-                          size={22}
-                          color={(!isVerified && item.route && PREMIUM_ROUTES.has(item.route)) ? "#92400E" : T.accentMid}
-                        />
-                      </View>
-                      <View style={s.menuTextBlock}>
-                        <Text style={[
-                          s.menuTitle,
-                          (!isVerified && item.route && PREMIUM_ROUTES.has(item.route)) && { color: T.text2 }
-                        ]}>{item.title}</Text>
-                        <Text style={s.menuSubtitle}>
-                          {(!isVerified && item.route && PREMIUM_ROUTES.has(item.route))
+                  <TouchableOpacity
+                    onPress={() => handlePress(item)}
+                    style={s.menuRow}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${item.title}. ${item.subtitle}`}
+                  >
+                    <View style={[
+                      s.menuIconBox,
+                      item.action === "soon" && { backgroundColor: "#F1F5F9" },
+                      (!isVerified && item.route && PREMIUM_ROUTES.has(item.route)) && { backgroundColor: "#FEF3C7" }
+                    ]}>
+                      <MaterialCommunityIcons
+                        name={item.action === "soon" ? "hourglass-empty" as any : (!isVerified && item.route && PREMIUM_ROUTES.has(item.route)) ? "lock-outline" as any : item.icon as any}
+                        size={22}
+                        color={item.action === "soon" ? T.text3 : (!isVerified && item.route && PREMIUM_ROUTES.has(item.route)) ? "#92400E" : T.accentMid}
+                      />
+                    </View>
+                    <View style={s.menuTextBlock}>
+                      <Text style={[
+                        s.menuTitle,
+                        item.action === "soon" && { color: T.text2 },
+                        (!isVerified && item.route && PREMIUM_ROUTES.has(item.route)) && { color: T.text2 }
+                      ]}>{item.title}</Text>
+                      <Text style={s.menuSubtitle}>
+                        {item.action === "soon"
+                          ? "Coming soon"
+                          : (!isVerified && item.route && PREMIUM_ROUTES.has(item.route))
                             ? "Verification required"
                             : item.subtitle}
-                        </Text>
-                      </View>
-                      <MaterialCommunityIcons name="chevron-right" size={20} color={T.text3} />
-                    </TouchableOpacity>
+                      </Text>
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={20} color={T.text3} />
+                  </TouchableOpacity>
                     {idx < group.items.length - 1 && <View style={s.rowDivider} />}
                   </React.Fragment>
                 ))}

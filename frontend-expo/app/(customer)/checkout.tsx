@@ -61,7 +61,6 @@ export default function CheckoutScreen() {
   const [pollingActive, setPollingActive] = useState<boolean>(false);
   const [khqrString, setKhqrString] = useState<string | null>(null);
   const [khqrAmount, setKhqrAmount] = useState<string>("0.00");
-  const [abaHtml, setAbaHtml] = useState<string | null>(null);
   const [abaDeeplink, setAbaDeeplink] = useState<string | null>(null);
 
   // Inline Guest Auth Drawer State
@@ -151,22 +150,6 @@ export default function CheckoutScreen() {
     }
     return () => clearInterval(interval);
   }, [khqrString, pollingActive, booking?.id]);
-
-  const handleQuickDemoLogin = async () => {
-    setAuthLoading(true);
-    setAuthError(null);
-    try {
-      await useAuthStore.getState().login("customer@servicefinder.com", "password123");
-      setShowAuthDrawer(false);
-      setTimeout(() => {
-        handleCreateAndPay();
-      }, 350);
-    } catch (e: any) {
-      setAuthError(e?.response?.data?.message || "Demo login failed");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
 
   const handlePasswordLogin = async () => {
     if (!authEmail.trim() || !authPassword.trim()) {
@@ -365,6 +348,7 @@ export default function CheckoutScreen() {
           // Fallback to QR display for web/unsupported
           setKhqrString(abaData.qrString);
           setKhqrAmount(abaData.amount);
+          setAbaDeeplink(abaData.abapay_deeplink || null);
         }
         
         if (!bookingId) {
@@ -377,16 +361,6 @@ export default function CheckoutScreen() {
       setPayError((result as any)?.message || "Payment initiation failed");
     }
     setIsProcessing(false);
-  };
-  const onAbaNavStateChange = (navState: any) => {
-    const baseUrl = navState.url.split('?')[0];
-    if (baseUrl.endsWith("aba-success") || baseUrl.endsWith("success")) {
-      setAbaHtml(null);
-      setShowSuccess(true);
-    } else if (baseUrl.endsWith("aba-cancel") || baseUrl.endsWith("cancel") || baseUrl.endsWith("fail")) {
-      setAbaHtml(null);
-      setPayError("Payment was cancelled or failed.");
-    }
   };
 
   if (loading) {
@@ -480,7 +454,7 @@ export default function CheckoutScreen() {
               <MapView
                 ref={pickerMapRef}
                 provider={MAP_PROVIDER}
-                style={StyleSheet.absoluteFillObject}
+                style={StyleSheet.absoluteFill}
                 initialRegion={{ latitude: pinLat, longitude: pinLng, latitudeDelta: 0.01, longitudeDelta: 0.01 }}
                 onPress={(e: MapPressEvent) => {
                   const { latitude, longitude } = e.nativeEvent.coordinate;
@@ -721,27 +695,6 @@ export default function CheckoutScreen() {
         </ScaleButton>
       </View>
 
-      {/* ABA WEBVIEW */}
-      <Modal visible={!!abaHtml} transparent={false} animationType="slide">
-        <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
-          <View style={s.header}>
-            <TouchableOpacity onPress={() => setAbaHtml(null)} style={s.backBtn}>
-              <MaterialIcons name="close" size={24} color={T.text1} />
-            </TouchableOpacity>
-            <Text style={s.headerTitle}>ABA PayWay</Text>
-            <View style={{ width: 44 }} />
-          </View>
-          {abaHtml && (
-            <WebView
-              originWhitelist={['*']}
-              source={{ html: abaHtml }}
-              onNavigationStateChange={onAbaNavStateChange}
-              style={{ flex: 1 }}
-            />
-          )}
-        </SafeAreaView>
-      </Modal>
-
       {/* KHQR / ABA MODAL */}
       <Modal visible={!!khqrString} transparent={true} animationType="fade">
         <View style={s.khqrOverlay}>
@@ -818,18 +771,6 @@ export default function CheckoutScreen() {
               <TouchableOpacity onPress={() => setShowAuthDrawer(false)} style={s.authCloseBtn}>
                 <MaterialIcons name="close" size={22} color={T.text2} />
               </TouchableOpacity>
-            </View>
-
-            {/* Quick Demo Login CTA */}
-            <TouchableOpacity style={s.demoLoginBtn} onPress={handleQuickDemoLogin} disabled={authLoading}>
-              <MaterialIcons name="flash-on" size={20} color="#fff" />
-              <Text style={s.demoLoginBtnText}>Instant Demo Sign In (1-Tap)</Text>
-            </TouchableOpacity>
-
-            <View style={s.authDividerRow}>
-              <View style={s.authDivider} />
-              <Text style={s.authDividerText}>or sign in with</Text>
-              <View style={s.authDivider} />
             </View>
 
             {/* Mode Switcher: Email / Phone */}
@@ -942,7 +883,7 @@ const s = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '800', color: T.text1 },
   
   mapCard: { height: 160, borderRadius: 24, overflow: 'hidden', marginBottom: 24, ...CARD_SHADOW },
-  map: { ...StyleSheet.absoluteFillObject },
+  map: { ...StyleSheet.absoluteFill },
   mapOverlay: { position: 'absolute', bottom: 16, left: 16, right: 16, backgroundColor: T.surface, padding: 12, borderRadius: 16, ...CARD_SHADOW },
   addressRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconBox: { width: 36, height: 36, borderRadius: 18, backgroundColor: T.accent, alignItems: 'center', justifyContent: 'center' },
@@ -1009,11 +950,6 @@ const s = StyleSheet.create({
   authDrawerTitle: { fontSize: 18, fontWeight: '800', color: T.text1 },
   authDrawerSubtitle: { fontSize: 13, color: T.text2, marginTop: 2 },
   authCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: T.bg, alignItems: 'center', justifyContent: 'center' },
-  demoLoginBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#059669', borderRadius: 14, paddingVertical: 14, marginBottom: 16 },
-  demoLoginBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  authDividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  authDivider: { flex: 1, height: 1, backgroundColor: T.border },
-  authDividerText: { fontSize: 12, color: T.text3, fontWeight: '600' },
   authTabs: { flexDirection: 'row', backgroundColor: T.bg, borderRadius: 12, padding: 4 },
   authTab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
   authTabActive: { backgroundColor: T.surface, ...CARD_SHADOW },

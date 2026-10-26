@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
 import { api } from "@/store/authStore";
+import ErrorState from "@/components/common/ErrorState";
 import InitialsAvatar from "@/components/common/InitialsAvatar";
 import { Theme } from "@/constants/theme";
 
@@ -20,13 +21,6 @@ const CARD_SHADOW = Platform.select({
   ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },
   android: { elevation: 3 },
 });
-
-type Period = "week" | "month" | "quarter";
-const PERIODS: { id: Period; label: string }[] = [
-  { id: "week", label: "7 Days" },
-  { id: "month", label: "30 Days" },
-  { id: "quarter", label: "90 Days" },
-];
 
 function BarChart({ data, labels, color = "#38BDF8" }: { data: number[]; labels: string[]; color?: string }) {
   const max = Math.max(...data, 1);
@@ -58,17 +52,17 @@ function BarChart({ data, labels, color = "#38BDF8" }: { data: number[]; labels:
 
 export default function CompanyAnalyticsScreen() {
   const router = useRouter();
-  const [period, setPeriod] = useState<Period>("month");
   const [metrics, setMetrics] = useState<any>(null);
   const [revenueData, setRevenueData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) { setRefreshing(true); } else { setLoading(true); }
     try {
       const [metricsRes, revRes] = await Promise.allSettled([
-        api.get("/api/companies/my-company/metrics", { params: { period } }),
+        api.get("/api/companies/my-company/metrics"),
         api.get("/api/companies/my-company/revenue"),
       ]);
 
@@ -80,40 +74,45 @@ export default function CompanyAnalyticsScreen() {
         const rd = revRes.value.data;
         setRevenueData(rd?.data ?? rd ?? null);
       }
+      if (metricsRes.status === "rejected" && revRes.status === "rejected") {
+        setHasError(true);
+      } else {
+        setHasError(false);
+      }
     } catch (e) {
-      console.error("Failed to load company analytics", e);
+      setHasError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [period]);
+  }, []);
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   const fmt = (n: number) =>
     `$${(n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const totalGross = metrics?.revenue ?? metrics?.totalRevenue ?? revenueData?.breakdown?.gross ?? 0;
-  const platformFee = revenueData?.breakdown?.platformFee ?? (totalGross * 0.1);
-  const staffPayout = revenueData?.breakdown?.staffPayout ?? (totalGross * 0.55);
-  const netProfit = revenueData?.breakdown?.profit ?? (totalGross - platformFee - staffPayout);
+  const totalGross = revenueData?.breakdown?.gross ?? metrics?.revenue ?? 0;
+  const platformFee = revenueData?.breakdown?.platformFee;
+  const staffPayout = revenueData?.breakdown?.staffPayout;
+  const netProfit = revenueData?.breakdown?.net;
 
-  const rawRevTrend: number[] = metrics?.revenueByDay ?? metrics?.weeklyRevenue ?? [0, 0, 0, 0, 0, 0, 0];
-  const rawBookTrend: number[] = metrics?.bookingsByDay ?? metrics?.weeklyBookings ?? [0, 0, 0, 0, 0, 0, 0];
+  const revenueGrowth = metrics?.revenueGrowth;
+  const completedJobsCount = Array.isArray(metrics?.statusDistribution)
+    ? metrics.statusDistribution.find((x: any) => x?.name === "Completed")?.value ?? 0
+    : 0;
+  const completionRate = metrics?.completionRate;
+  const averageRating = metrics?.averageRating;
+  const activeCrew = revenueData?.staffData?.length ?? metrics?.topStaff?.length ?? null;
 
-  const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const WEEK_LABELS = ["W1", "W2", "W3", "W4"];
-  const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-  const getLabels = (len: number) => {
-    if (len === 7) return DAY_LABELS;
-    if (len === 4) return WEEK_LABELS;
-    if (len === 12) return MONTH_LABELS;
-    return new Array(len).fill(0).map((_, i) => String(i + 1));
-  };
-
-  const staffLeaderboard: any[] = revenueData?.staffData || [];
-  const topServices: any[] = metrics?.topServices || metrics?.serviceBreakdown || [];
+  const revTrend = Array.isArray(revenueData?.trendData)
+    ? revenueData.trendData.map((t: any) => ({ label: t.day?.slice(0, 3) ?? "", value: Number(t.gross || 0) }))
+    : [];
+  const bookTrend = Array.isArray(revenueData?.trendData)
+    ? revenueData.trendData.map((t: any) => ({ label: t.day?.slice(0, 3) ?? "", value: Number(t.bookings || 0) }))
+    : [];
+  const topServices: any[] = Array.isArray(revenueData?.serviceData) ? revenueData.serviceData.slice(0, 5) : [];
+  const staffLeaderboard: any[] = Array.isArray(revenueData?.staffData) ? revenueData.staffData.slice(0, 5) : [];
 
   return (
     <SafeAreaView style={s.root} edges={["top", "left", "right"]}>
@@ -136,28 +135,14 @@ export default function CompanyAnalyticsScreen() {
           <ActivityIndicator size="large" color="#0284C7" />
           <Text style={s.loadingText}>Compiling business metrics...</Text>
         </View>
+      ) : hasError && !metrics && !revenueData ? (
+        <ErrorState onRetry={() => { setLoading(true); loadData(); }} />
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} tintColor="#0284C7" />}
           contentContainerStyle={s.scrollContent}
         >
-          {/* Period Filter Tabs */}
-          <View style={s.periodRow}>
-            {PERIODS.map((p) => {
-              const active = period === p.id;
-              return (
-                <TouchableOpacity
-                  key={p.id}
-                  onPress={() => setPeriod(p.id)}
-                  style={[s.periodBtn, active && s.periodBtnActive]}
-                >
-                  <Text style={[s.periodText, active && s.periodTextActive]}>{p.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
           {/* Obsidian Hero Revenue Card */}
           <View style={[s.heroCard, CARD_SHADOW]}>
             <View style={s.heroTopRow}>
@@ -165,16 +150,18 @@ export default function CompanyAnalyticsScreen() {
                 <Text style={s.heroLabel}>GROSS REVENUE</Text>
                 <Text style={s.heroValue}>{fmt(totalGross)}</Text>
               </View>
-              <View style={s.growthBadge}>
-                <MaterialCommunityIcons
-                  name={(metrics?.revenueGrowth ?? 12) >= 0 ? "trending-up" : "trending-down"}
-                  size={14}
-                  color="#34D399"
-                />
-                <Text style={s.growthBadgeText}>
-                  +{(metrics?.revenueGrowth ?? 12.4).toFixed(1)}%
-                </Text>
-              </View>
+              {revenueGrowth != null && (
+                <View style={s.growthBadge}>
+                  <MaterialCommunityIcons
+                    name={Number(revenueGrowth) >= 0 ? "trending-up" : "trending-down"}
+                    size={14}
+                    color="#34D399"
+                  />
+                  <Text style={s.growthBadgeText}>
+                    {Number(revenueGrowth) >= 0 ? "+" : ""}{Number(revenueGrowth).toFixed(1)}%
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* P&L Margin Ribbon */}
@@ -184,15 +171,15 @@ export default function CompanyAnalyticsScreen() {
             <View style={s.pnlGrid}>
               <View style={s.pnlCol}>
                 <Text style={s.pnlColLabel}>Platform Fee</Text>
-                <Text style={[s.pnlColValue, { color: "#F87171" }]}>-{fmt(platformFee)}</Text>
+                <Text style={[s.pnlColValue, { color: "#F87171" }]}>-{platformFee != null ? fmt(platformFee) : "—"}</Text>
               </View>
               <View style={s.pnlCol}>
                 <Text style={s.pnlColLabel}>Crew Payout</Text>
-                <Text style={[s.pnlColValue, { color: "#FBBF24" }]}>-{fmt(staffPayout)}</Text>
+                <Text style={[s.pnlColValue, { color: "#FBBF24" }]}>-{staffPayout != null ? fmt(staffPayout) : "—"}</Text>
               </View>
               <View style={s.pnlCol}>
-                <Text style={s.pnlColLabel}>Net Profit</Text>
-                <Text style={[s.pnlColValue, { color: "#34D399", fontWeight: "900" }]}>{fmt(netProfit)}</Text>
+                <Text style={s.pnlColLabel}>Net Revenue</Text>
+                <Text style={[s.pnlColValue, { color: "#34D399", fontWeight: "900" }]}>{netProfit != null ? fmt(netProfit) : "—"}</Text>
               </View>
             </View>
           </View>
@@ -203,7 +190,7 @@ export default function CompanyAnalyticsScreen() {
               <View style={[s.kpiIconWrap, { backgroundColor: "#E0F2FE" }]}>
                 <MaterialCommunityIcons name="calendar-check" size={20} color="#0284C7" />
               </View>
-              <Text style={s.kpiVal}>{metrics?.completedJobs ?? metrics?.totalBookings ?? 0}</Text>
+              <Text style={s.kpiVal}>{completedJobsCount}</Text>
               <Text style={s.kpiLbl}>Completed Jobs</Text>
             </View>
 
@@ -211,7 +198,7 @@ export default function CompanyAnalyticsScreen() {
               <View style={[s.kpiIconWrap, { backgroundColor: "#DCFCE7" }]}>
                 <MaterialCommunityIcons name="check-decagram" size={20} color="#16A34A" />
               </View>
-              <Text style={s.kpiVal}>{metrics?.completionRate ?? 96}%</Text>
+              <Text style={s.kpiVal}>{completionRate != null ? `${completionRate}%` : "—"}</Text>
               <Text style={s.kpiLbl}>Completion Rate</Text>
             </View>
 
@@ -219,7 +206,7 @@ export default function CompanyAnalyticsScreen() {
               <View style={[s.kpiIconWrap, { backgroundColor: "#FEF3C7" }]}>
                 <MaterialCommunityIcons name="star" size={20} color="#D97706" />
               </View>
-              <Text style={s.kpiVal}>{metrics?.averageRating ? `${Number(metrics.averageRating).toFixed(1)}★` : "4.9★"}</Text>
+              <Text style={s.kpiVal}>{averageRating ? `${Number(averageRating).toFixed(1)}★` : "—"}</Text>
               <Text style={s.kpiLbl}>Customer Rating</Text>
             </View>
 
@@ -227,7 +214,7 @@ export default function CompanyAnalyticsScreen() {
               <View style={[s.kpiIconWrap, { backgroundColor: "#F3E8FF" }]}>
                 <MaterialCommunityIcons name="account-group" size={20} color="#9333EA" />
               </View>
-              <Text style={s.kpiVal}>{staffLeaderboard.length || 6}</Text>
+              <Text style={s.kpiVal}>{activeCrew ?? "—"}</Text>
               <Text style={s.kpiLbl}>Active Crew</Text>
             </View>
           </View>
@@ -284,8 +271,8 @@ export default function CompanyAnalyticsScreen() {
               </View>
             </View>
             <BarChart
-              data={rawRevTrend.length ? rawRevTrend : [0]}
-              labels={getLabels(rawRevTrend.length)}
+              data={revTrend.length ? revTrend.map((t: any) => t.value) : [0]}
+              labels={revTrend.length ? revTrend.map((t: any) => t.label) : [""]}
               color="#0284C7"
             />
           </View>
@@ -303,8 +290,8 @@ export default function CompanyAnalyticsScreen() {
               </View>
             </View>
             <BarChart
-              data={rawBookTrend.length ? rawBookTrend : [0]}
-              labels={getLabels(rawBookTrend.length)}
+              data={bookTrend.length ? bookTrend.map((t: any) => t.value) : [0]}
+              labels={bookTrend.length ? bookTrend.map((t: any) => t.label) : [""]}
               color="#10B981"
             />
           </View>
@@ -322,7 +309,7 @@ export default function CompanyAnalyticsScreen() {
               <View style={s.serviceList}>
                 {topServices.slice(0, 5).map((svc: any, i: number) => {
                   const sName = svc.name || svc.serviceName || "Service";
-                  const sRev = svc.revenue ?? svc.totalRevenue ?? (svc.value ? svc.value * 85 : 0);
+                  const sRev = svc.revenue ?? svc.totalRevenue ?? 0;
                   return (
                     <View key={svc.id ?? i} style={[s.serviceRow, i < topServices.length - 1 && s.rowBorder]}>
                       <View style={s.serviceRank}>

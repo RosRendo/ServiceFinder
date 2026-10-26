@@ -93,12 +93,20 @@ export default function Settings() {
 
   const handleSave = async () => {
     if (!companyId) return;
+    if (establishedYear && !/^\d{4}$/.test(establishedYear.trim())) {
+      Alert.alert("Invalid Year", "Established year must be a 4-digit year (e.g. 2018).");
+      return;
+    }
+    if (!email.trim()) {
+      Alert.alert("Invalid Email", "Company email cannot be empty.");
+      return;
+    }
     setSaving(true);
     try {
-      await api.put(`/api/companies/${companyId}`, {
+      await api.put(`/api/companies/my-company`, {
         name,
         description,
-        establishedYear: establishedYear ? parseInt(establishedYear, 10) : null,
+        establishedYear: establishedYear.trim() ? establishedYear.trim() : undefined,
         email,
         phone,
         registrationNumber,
@@ -106,10 +114,15 @@ export default function Settings() {
         city,
         verificationDocumentUrl
       });
+      const res = await api.get(`/api/companies/my-company`);
+      const data = res.data?.data ?? res.data;
+      if (data?.id) setCompanyId(String(data.id));
       Alert.alert("Success", "Company profile updated successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update profile", error);
-      Alert.alert("Error", "Could not update company profile.");
+      const rawMsg = error?.response?.data?.message;
+      const serverMsg = Array.isArray(rawMsg) ? rawMsg.join("\n") : rawMsg;
+      Alert.alert("Error", serverMsg ?? "Could not update company profile.");
     } finally {
       setSaving(false);
     }

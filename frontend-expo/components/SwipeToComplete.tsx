@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { View, Text, StyleSheet, Animated, PanResponder, LayoutChangeEvent, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, Animated, PanResponder, LayoutChangeEvent, TouchableOpacity, AccessibilityInfo } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface Props {
@@ -30,6 +30,31 @@ export default function SwipeToComplete({
   const [, setWidthState] = useState(320);
   const pan = useRef(new Animated.Value(0)).current;
   const [completed, setCompleted] = useState(false);
+  const lastTapRef = useRef(0);
+  const lastCompleteRef = useRef(0);
+  const completedRef = useRef(false);
+
+  const fireComplete = () => {
+    if (completedRef.current) return;
+    if (Date.now() - lastCompleteRef.current < 3000) return;
+    completedRef.current = true;
+    lastCompleteRef.current = Date.now();
+    const maxDrag = getMaxDrag();
+    setCompleted(true);
+    AccessibilityInfo.announceForAccessibility("Confirmed");
+    Animated.timing(pan, {
+      toValue: maxDrag,
+      duration: 120,
+      useNativeDriver: false,
+    }).start(() => {
+      onComplete();
+      setTimeout(() => {
+        completedRef.current = false;
+        setCompleted(false);
+        pan.setValue(0);
+      }, 1200);
+    });
+  };
 
   const getMaxDrag = () => {
     return Math.max(1, containerWidthRef.current - THUMB_SIZE - PADDING * 2);
@@ -50,29 +75,32 @@ export default function SwipeToComplete({
         // Drag started
       },
       onPanResponderMove: (_, gestureState) => {
-        if (completed) return;
+        if (completedRef.current) return;
         const maxDrag = getMaxDrag();
         const newX = Math.max(0, Math.min(gestureState.dx, maxDrag));
         pan.setValue(newX);
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (completed) return;
+        if (completedRef.current) return;
         const maxDrag = getMaxDrag();
 
         // If dragged more than 60% of the bar, complete the action
         if (gestureState.dx > maxDrag * 0.6) {
-          setCompleted(true);
-          Animated.timing(pan, {
-            toValue: maxDrag,
-            duration: 120,
+          fireComplete();
+        } else if (Math.abs(gestureState.dx) < 5) {
+          // Accessible tap fallback: double-tap within 500ms confirms
+          const now = Date.now();
+          if (now - lastTapRef.current < 500) {
+            lastTapRef.current = 0;
+            fireComplete();
+          } else {
+            lastTapRef.current = now;
+          }
+          Animated.spring(pan, {
+            toValue: 0,
             useNativeDriver: false,
-          }).start(() => {
-            onComplete();
-            setTimeout(() => {
-              setCompleted(false);
-              pan.setValue(0);
-            }, 1200);
-          });
+            bounciness: 8,
+          }).start();
         } else {
           // Snap back smoothly
           Animated.spring(pan, {
@@ -83,7 +111,7 @@ export default function SwipeToComplete({
         }
       },
       onPanResponderTerminate: () => {
-        if (!completed) {
+        if (!completedRef.current) {
           Animated.spring(pan, {
             toValue: 0,
             useNativeDriver: false,
@@ -106,6 +134,9 @@ export default function SwipeToComplete({
       style={[s.container, { backgroundColor: trackColor }]} 
       onLayout={handleLayout}
       {...panResponder.panHandlers}
+      accessibilityRole="button"
+      accessibilityLabel={completed ? "Confirmed" : text}
+      accessibilityHint="Swipe right to the end or double-tap to confirm"
     >
       <Text style={[s.text, { color: textColor }]} pointerEvents="none">
         {completed ? "Confirmed! ✓" : text}

@@ -3,11 +3,14 @@ import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } fr
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { api } from "@/store/authStore";
 
 interface Photo {
   uri: string;
   type: "before" | "after" | "general";
   uploading?: boolean;
+  error?: boolean;
+  uploadedUrl?: string;
 }
 
 interface PhotoCaptureProps {
@@ -20,6 +23,11 @@ export function PhotoCapture({ jobId, onPhotosChange, maxPhotos = 10 }: PhotoCap
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [photoType, setPhotoType] = useState<"before" | "after" | "general">("general");
 
+  const emit = (updated: Photo[]) => {
+    setPhotos(updated);
+    onPhotosChange?.(updated);
+  };
+
   const requestPermissions = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
@@ -27,6 +35,47 @@ export function PhotoCapture({ jobId, onPhotosChange, maxPhotos = 10 }: PhotoCap
       return false;
     }
     return true;
+  };
+
+  const uploadPhoto = async (uri: string): Promise<string | null> => {
+    const formData = new FormData();
+    const filename = uri.split("/").pop() || `job-${jobId}.jpg`;
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : "image";
+
+    formData.append("file", { uri, name: filename, type } as any);
+
+    const res = await api.post("/api/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data?.url || res.data?.data?.url || null;
+  };
+
+  const addPhoto = async (uri: string) => {
+    emit([...photos, { uri, type: photoType, uploading: true }]);
+    try {
+      const uploadedUrl = await uploadPhoto(uri);
+      if (!uploadedUrl) throw new Error("No URL returned");
+      emit(
+        photos
+          .map((p) => (p.uri === uri ? { ...p, uploading: false, error: false, uploadedUrl } : p))
+      );
+    } catch (e: any) {
+      emit(photos.map((p) => (p.uri === uri ? { ...p, uploading: false, error: true } : p)));
+    }
+  };
+
+  const retryPhoto = async (uri: string) => {
+    emit(photos.map((p) => (p.uri === uri ? { ...p, uploading: true, error: false } : p)));
+    try {
+      const uploadedUrl = await uploadPhoto(uri);
+      if (!uploadedUrl) throw new Error("No URL returned");
+      emit(
+        photos.map((p) => (p.uri === uri ? { ...p, uploading: false, error: false, uploadedUrl } : p))
+      );
+    } catch {
+      emit(photos.map((p) => (p.uri === uri ? { ...p, uploading: false, error: true } : p)));
+    }
   };
 
   const takePhoto = async () => {
@@ -69,20 +118,6 @@ export function PhotoCapture({ jobId, onPhotosChange, maxPhotos = 10 }: PhotoCap
     }
   };
 
-  const addPhoto = (uri: string) => {
-    const newPhoto: Photo = { uri, type: photoType, uploading: true };
-    const updated = [...photos, newPhoto];
-    setPhotos(updated);
-    onPhotosChange?.(updated);
-
-    // Simulate upload — replace with real API call
-    setTimeout(() => {
-      setPhotos((prev) =>
-        prev.map((p) => (p.uri === uri ? { ...p, uploading: false } : p))
-      );
-    }, 1500);
-  };
-
   const removePhoto = (uri: string) => {
     Alert.alert("Remove Photo", "Are you sure you want to remove this photo?", [
       { text: "Cancel", style: "cancel" },
@@ -90,9 +125,7 @@ export function PhotoCapture({ jobId, onPhotosChange, maxPhotos = 10 }: PhotoCap
         text: "Remove",
         style: "destructive",
         onPress: () => {
-          const updated = photos.filter((p) => p.uri !== uri);
-          setPhotos(updated);
-          onPhotosChange?.(updated);
+          emit(photos.filter((p) => p.uri !== uri));
         },
       },
     ]);
@@ -141,17 +174,27 @@ export function PhotoCapture({ jobId, onPhotosChange, maxPhotos = 10 }: PhotoCap
           {photos.map((photo, idx) => (
             <View key={idx} className="relative w-[31%] aspect-square rounded-xl overflow-hidden bg-surface-container">
               <Image source={{ uri: photo.uri }} className="w-full h-full" contentFit="cover" />
-              
+
               {/* Type badge */}
               <View className="absolute top-1 left-1 bg-black/60 px-2 py-0.5 rounded-full">
                 <Text className="text-white text-[10px] font-bold capitalize">{photo.type}</Text>
               </View>
 
-              {/* Upload indicator */}
+              {/* Upload state */}
               {photo.uploading ? (
                 <View className="absolute inset-0 bg-black/50 items-center justify-center">
                   <ActivityIndicator size="small" color="white" />
                 </View>
+              ) : photo.error ? (
+                <TouchableOpacity
+                  className="absolute inset-0 bg-red-900/70 items-center justify-center"
+                  onPress={() => retryPhoto(photo.uri)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retry photo upload"
+                >
+                  <MaterialCommunityIcons name="cloud-alert" size={22} color="white" />
+                  <Text className="text-white text-[9px] font-bold mt-1">Tap to retry</Text>
+                </TouchableOpacity>
               ) : (
                 <TouchableOpacity
                   className="absolute top-1 right-1 bg-black/60 rounded-full p-1"
@@ -176,7 +219,7 @@ export function PhotoCapture({ jobId, onPhotosChange, maxPhotos = 10 }: PhotoCap
       )}
 
       <Text className="text-xs text-on-surface-variant mt-3 text-center">
-        {photos.length}/{maxPhotos} photos · Tap photo to remove
+        {photos.length}/{maxPhotos} photos{photos.some((p) => p.error) ? " · Some uploads failed — tap to retry" : photos.some((p) => p.uploading) ? " · Uploading…" : ""}
       </Text>
     </View>
   );

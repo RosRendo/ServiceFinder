@@ -697,7 +697,7 @@ export default function MasterMapViewScreen() {
             <MapView
               ref={mapViewRef}
               provider={MAP_PROVIDER}
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
               showsUserLocation={true}
               initialRegion={{
                 latitude: userLoc.latitude,
@@ -1481,7 +1481,7 @@ const s = StyleSheet.create({
   summaryText: { fontSize: 13, color: T.text1, fontWeight: "600" },
 
   // Radar in Stage 4
-  radarContainer: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
+  radarContainer: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center" },
   radarCircle: { width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(99, 102, 241, 0.2)", borderWidth: 2, borderColor: T.accent },
   radarCenterDot: { position: "absolute", width: 44, height: 44, borderRadius: 22, backgroundColor: "#FFF", alignItems: "center", justifyContent: "center", elevation: 5 },
   radarText: { fontSize: 13, color: T.accent, fontWeight: "700" },

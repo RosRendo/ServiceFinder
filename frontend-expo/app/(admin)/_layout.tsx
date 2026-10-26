@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useSidebarStore } from '@/store/sidebarStore';
@@ -6,7 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 
 export default function AdminLayout() {
   const { isAdminOpen, setAdminOpen } = useSidebarStore();
-  const { user, isGuest } = useAuthStore();
+  const { user } = useAuthStore();
   const router = useRouter();
 
   // Defense-in-depth: the root layout only mounts this group for admins, but a
@@ -14,10 +15,18 @@ export default function AdminLayout() {
   const isAdmin = user?.role?.toLowerCase() === 'admin';
 
   useEffect(() => {
-    if (!isAdmin && !isGuest) {
+    if (!isAdmin) {
       router.replace('/');
     }
-  }, [isAdmin, isGuest, router]);
+  }, [isAdmin, router]);
+
+  if (!isAdmin) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFC' }}>
+        <ActivityIndicator size="large" color="#0F172A" />
+      </View>
+    );
+  }
 
   return (
     <>

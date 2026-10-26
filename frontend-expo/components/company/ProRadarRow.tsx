@@ -10,7 +10,7 @@ export interface ProRadarStaff {
   name: string;
   avatarUrl?: string;
   status: ProAvailabilityStatus;
-  distanceKm: number;
+  distanceKm?: number;
   currentWorkload: number;
   rating: number;
   phone: string;
@@ -94,13 +94,15 @@ export const ProRadarRow: React.FC<ProRadarRowProps> = ({
               </Text>
             </View>
 
-            {/* Distance Chip */}
-            <View style={styles.miniChip}>
-              <MaterialCommunityIcons name="map-marker-distance" size={11} color="#64748B" />
-              <Text style={styles.miniChipText}>
-                {staff.distanceKm.toFixed(1)} km
-              </Text>
-            </View>
+            {/* Distance Chip (only when live location data exists) */}
+            {typeof staff.distanceKm === 'number' && (
+              <View style={styles.miniChip}>
+                <MaterialCommunityIcons name="map-marker-distance" size={11} color="#64748B" />
+                <Text style={styles.miniChipText}>
+                  {staff.distanceKm.toFixed(1)} km
+                </Text>
+              </View>
+            )}
 
             {/* Workload */}
             <View style={styles.miniChip}>

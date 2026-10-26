@@ -102,17 +102,35 @@ export default function CoverageAreas() {
 
   const handleSave = async () => {
     if (!companyId) return;
+
+    const latNum = latitude.trim() === "" ? undefined : parseFloat(latitude);
+    const lngNum = longitude.trim() === "" ? undefined : parseFloat(longitude);
+
+    if (latitude.trim() !== "" && (isNaN(latNum as number))) {
+      Alert.alert("Invalid Latitude", "Latitude must be a valid number.");
+      return;
+    }
+    if (longitude.trim() !== "" && (isNaN(lngNum as number))) {
+      Alert.alert("Invalid Longitude", "Longitude must be a valid number.");
+      return;
+    }
+
     setSaving(true);
     try {
-      await api.put(`/api/companies/${companyId}`, {
-        city, address,
-        latitude: latitude ? String(latitude) : undefined,
-        longitude: longitude ? String(longitude) : undefined,
+      await api.put(`/api/companies/my-company`, {
+        city,
+        address,
+        latitude: latNum,
+        longitude: lngNum,
         coverageRadiusKm: Number(coverageRadiusKm),
       });
       Alert.alert("Saved!", "Coverage area updated successfully.");
-    } catch {
-      Alert.alert("Error", "Could not update coverage area.");
+    } catch (error: any) {
+      const rawMsg = error?.response?.data?.message;
+      const serverMsg = Array.isArray(rawMsg)
+        ? rawMsg.join("\n")
+        : rawMsg || error?.response?.data?.error;
+      Alert.alert("Error", serverMsg ?? "Could not update coverage area.");
     } finally {
       setSaving(false);
     }

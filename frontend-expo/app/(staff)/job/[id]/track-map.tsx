@@ -30,7 +30,7 @@ export default function StaffTrackMapScreen() {
       serviceName?: string;
     }>();
 
-  const webviewRef = useRef<WebView>(null);
+  const webviewRef = useRef<any>(null);
   const watchRef   = useRef<ExpoLocation.LocationSubscription | null>(null);
   const pushTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 

@@ -41,7 +41,7 @@ interface ServiceResult {
   durationMin?: number;
   image?: string;
   companyId: string;
-  company: { id: string; name: string; city?: string; rating?: number; verified?: boolean };
+  company: { id: string; name: string; city?: string; rating?: number; verified?: boolean; ratingSummary?: { averageRating?: number | string; totalReviews?: number } };
   serviceType?: { name: string; category?: { name: string } };
 }
 
@@ -55,7 +55,16 @@ interface CompanyResult {
   reviewCount?: number;
   verified?: boolean;
   verificationStatus?: string;
+  ratingSummary?: { averageRating?: number | string; totalReviews?: number };
 }
+
+const getRating = (item?: { rating?: number; ratingSummary?: { averageRating?: number | string } } | null): number | undefined => {
+  if (!item) return undefined;
+  if (typeof item.rating === "number") return item.rating;
+  const avg = item.ratingSummary?.averageRating;
+  if (avg != null && Number(avg) > 0) return Number(avg);
+  return undefined;
+};
 
 const extractArray = (data: any): any[] => {
   if (!data) return [];
@@ -155,7 +164,7 @@ export default function SearchScreen() {
   const [minRating, setMinRating] = useState<number>(0);
   const [sortBy, setSortBy] = useState<"relevance" | "price_asc" | "price_desc">("relevance");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<any>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -205,7 +214,11 @@ export default function SearchScreen() {
   };
 
   const filteredServices = services
-    .filter(s => (s.company?.rating || 0) >= minRating)
+    .filter(s => {
+      if (minRating === 0) return true;
+      const r = s.company ? getRating(s.company) : undefined;
+      return r == null || r >= minRating;
+    })
     .sort((a, b) => {
       if (sortBy === "price_asc") return a.basePrice - b.basePrice;
       if (sortBy === "price_desc") return b.basePrice - a.basePrice;
@@ -213,7 +226,11 @@ export default function SearchScreen() {
     });
 
   const filteredCompanies = companies
-    .filter(c => (c.rating || 0) >= minRating);
+    .filter(c => {
+      if (minRating === 0) return true;
+      const r = getRating(c);
+      return r == null || r >= minRating;
+    });
 
   const totalResults = filteredServices.length + filteredCompanies.length;
   const showNoResults = !loading && query.length > 0 && totalResults === 0;
@@ -386,7 +403,7 @@ export default function SearchScreen() {
                   <View style={s.resultRow}>
                     <View style={s.resultImgBox}>
                       {sItem.image ? (
-                        <Image source={{ uri: sItem.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                        <Image source={{ uri: sItem.image }} style={StyleSheet.absoluteFill} contentFit="cover" />
                       ) : (
                         <MaterialIcons name="home-repair-service" size={24} color={T.accentMid} />
                       )}
@@ -398,7 +415,7 @@ export default function SearchScreen() {
                         <View style={s.resultMetaLeft}>
                           <MaterialIcons name="star" size={13} color={T.gold} />
                           <Text style={s.resultRating}>
-                            {(sItem.company?.rating ?? 0) > 0 ? (sItem.company.rating!).toFixed(1) : "New"}
+                            {getRating(sItem.company) ? getRating(sItem.company)!.toFixed(1) : "New"}
                           </Text>
                           {sItem.durationMin && <Text style={s.resultDuration}> · {sItem.durationMin}min</Text>}
                         </View>
@@ -428,7 +445,7 @@ export default function SearchScreen() {
                     <View style={s.resultImgBox}>
                       <Image 
                         source={{ uri: cItem.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${cItem.name}` }} 
-                        style={StyleSheet.absoluteFillObject} 
+                        style={StyleSheet.absoluteFill} 
                         contentFit="cover" 
                       />
                     </View>
@@ -446,7 +463,7 @@ export default function SearchScreen() {
                         <View style={s.resultMetaLeft}>
                           <MaterialIcons name="star" size={13} color={T.gold} />
                           <Text style={s.resultRating}>
-                            {(cItem.rating ?? 0) > 0 ? Number(cItem.rating).toFixed(1) : "New"}
+                            {getRating(cItem) ? getRating(cItem)!.toFixed(1) : "New"}
                           </Text>
                         </View>
                         <MaterialIcons name="chevron-right" size={20} color={T.text3} />

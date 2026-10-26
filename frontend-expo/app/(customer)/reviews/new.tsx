@@ -12,12 +12,14 @@ const T = Theme.colors;
 
 export default function NewReviewScreen() {
   const router = useRouter();
-  const { bookingId, companyId, staffId } = useLocalSearchParams<{
+  const { bookingId, staffId } = useLocalSearchParams<{
     bookingId?: string; companyId?: string; staffId?: string;
   }>();
 
   const [rating, setRating] = useState(0);
+  const [staffRating, setStaffRating] = useState(0);
   const [comment, setComment] = useState("");
+  const [staffComment, setStaffComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -27,10 +29,10 @@ export default function NewReviewScreen() {
     try {
       await api.post("/api/reviews", {
         bookingId,
-        companyId,
-        staffId: staffId ?? undefined,
-        rating,
-        comment: comment.trim() || undefined,
+        companyRating: rating,
+        companyComment: comment.trim() || undefined,
+        staffRating: staffId && staffRating > 0 ? staffRating : undefined,
+        staffComment: staffId && staffComment.trim() ? staffComment.trim() : undefined,
       });
       Alert.alert("Thank you!", "Your review has been submitted.", [
         { text: "Done", onPress: () => router.back() },
@@ -66,6 +68,23 @@ export default function NewReviewScreen() {
           ))}
         </View>
 
+        {staffId && (
+          <>
+            <Text style={s.prompt}>How was your professional?</Text>
+            <View style={s.starsRow}>
+              {[1, 2, 3, 4, 5].map(star => (
+                <TouchableOpacity key={star} onPress={() => setStaffRating(star)} style={s.starBtn}>
+                  <MaterialCommunityIcons
+                    name={star <= staffRating ? "star" : "star-outline"}
+                    size={44}
+                    color={star <= staffRating ? T.gold : "#D1D5DB"}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
+
         <Text style={s.inputLabel}>Your comment (optional)</Text>
         <TextInput
           style={s.input}
@@ -76,6 +95,21 @@ export default function NewReviewScreen() {
           value={comment}
           onChangeText={setComment}
         />
+
+        {staffId && (
+          <>
+            <Text style={s.inputLabel}>Comment for your professional (optional)</Text>
+            <TextInput
+              style={s.input}
+              placeholder="Share details about the professional..."
+              placeholderTextColor={T.text3}
+              multiline
+              numberOfLines={5}
+              value={staffComment}
+              onChangeText={setStaffComment}
+            />
+          </>
+        )}
 
         <TouchableOpacity 
           onPress={handleSubmit} 

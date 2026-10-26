@@ -1,8 +1,7 @@
 import { create } from "zustand";
 import { io, Socket } from "socket.io-client";
+import { SOCKET_URL } from "@/lib/apiConfig";
 import { api, useAuthStore } from "./authStore";
-// Import constants if available, else hardcode for local dev
-const SOCKET_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
 
 export interface ChatMessage {
   id: string;

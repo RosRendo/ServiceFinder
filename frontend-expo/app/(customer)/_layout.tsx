@@ -3,16 +3,24 @@ import { useAuthStore } from '@/store/authStore';
 import { useEffect } from 'react';
 
 export default function CustomerLayout() {
-  const { user } = useAuthStore();
+  const { user, isGuest } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
 
+  const isCustomer = user?.role?.toLowerCase() === 'customer' || (isGuest && !user);
+
   useEffect(() => {
+    // Defense-in-depth: root layout guards this group, but a deep link could
+    // still land here — bounce staff/company/admin accounts out.
+    if (!isCustomer) {
+      router.replace('/');
+      return;
+    }
     // If the user's name is the default generated one, force them to complete profile.
     if (user?.fullName === "New User" && segments[1] !== 'complete-profile') {
       router.replace('/(customer)/complete-profile');
     }
-  }, [user, segments]);
+  }, [user, isGuest, segments]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

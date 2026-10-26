@@ -1,15 +1,16 @@
 /**
  * Company Marketing & Coupons Screen (Mobile)
  */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
-  ActivityIndicator, TextInput, Modal, Alert
+  ActivityIndicator
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { api } from "@/store/authStore";
+import ErrorState from "@/components/common/ErrorState";
 import { Theme } from "@/constants/theme";
 
 const T = Theme.colors;
@@ -24,12 +25,7 @@ export default function MarketingScreen() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-
-  // Form State
-  const [code, setCode] = useState("");
-  const [discount, setDiscount] = useState("");
-  const [expiry, setExpiry] = useState("");
+  const [hasError, setHasError] = useState(false);
 
   const fetchCampaigns = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -51,8 +47,9 @@ export default function MarketingScreen() {
         conversions: c.conversions || 0,
       }));
       setCampaigns(mapped);
+      setHasError(false);
     } catch (error: any) {
-      console.error("Failed to fetch campaigns", error);
+      setHasError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -62,33 +59,6 @@ export default function MarketingScreen() {
   useEffect(() => {
     fetchCampaigns();
   }, [fetchCampaigns]);
-
-  const handleCreate = () => {
-    if (!code.trim() || !discount.trim()) {
-      return Alert.alert("Error", "Please enter a code and a discount.");
-    }
-    
-    // Simulate creation (Backend POST does not exist yet)
-    const newPromo = {
-      id: Date.now().toString(),
-      name: "New Promo",
-      discount: discount.includes('%') ? discount : `${discount}% OFF`,
-      code: code.toUpperCase(),
-      uses: 0,
-      maxUses: null,
-      expires: expiry || "Never",
-      status: "active",
-      revenue: 0,
-      conversions: 0,
-    };
-
-    setCampaigns([newPromo, ...campaigns]);
-    setModalVisible(false);
-    setCode("");
-    setDiscount("");
-    setExpiry("");
-    Alert.alert("Success", "Coupon created successfully!");
-  };
 
   const renderTip = ({ item }: { item: typeof TIPS[0] }) => (
     <View style={s.tipCard}>
@@ -140,15 +110,15 @@ export default function MarketingScreen() {
           <MaterialCommunityIcons name="arrow-left" size={24} color={T.text1} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Marketing</Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={s.addBtn}>
-          <MaterialCommunityIcons name="plus" size={24} color={T.accent} />
-        </TouchableOpacity>
+        <View style={{ width: 28 }} />
       </View>
 
       {loading && !refreshing ? (
         <View style={s.centerBox}>
           <ActivityIndicator size="large" color={T.accent} />
         </View>
+      ) : hasError && campaigns.length === 0 ? (
+        <ErrorState onRetry={() => { setLoading(true); fetchCampaigns(); }} />
       ) : (
         <FlatList
           data={campaigns}
@@ -160,6 +130,12 @@ export default function MarketingScreen() {
           onRefresh={() => fetchCampaigns(true)}
           ListHeaderComponent={
             <View style={{ marginBottom: 24 }}>
+              <View style={s.comingSoonCard}>
+                <MaterialCommunityIcons name="ticket-percent-outline" size={20} color={T.text3} />
+                <Text style={s.comingSoonText}>
+                  Coupons coming soon — creation is not available yet. Existing campaigns are shown below.
+                </Text>
+              </View>
               <Text style={s.sectionTitle}>Marketing Tips</Text>
               <FlatList
                 horizontal
@@ -176,58 +152,11 @@ export default function MarketingScreen() {
             <View style={s.emptyBox}>
               <MaterialCommunityIcons name="ticket-percent-outline" size={48} color={T.text3} />
               <Text style={s.emptyTitle}>No Coupons</Text>
-              <Text style={s.emptySub}>Tap the + icon to run a flash sale</Text>
+              <Text style={s.emptySub}>Coupons coming soon — creation is not available yet</Text>
             </View>
           }
         />
       )}
-
-      <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
-        <View style={s.modalRoot}>
-          <View style={s.modalHeader}>
-            <Text style={s.modalTitle}>New Flash Coupon</Text>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <MaterialCommunityIcons name="close" size={24} color={T.text2} />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={s.modalContent}>
-            <Text style={s.label}>Promo Code</Text>
-            <TextInput 
-              style={s.input}
-              placeholder="e.g. FLASH20"
-              placeholderTextColor={T.text3}
-              value={code}
-              onChangeText={setCode}
-              autoCapitalize="characters"
-            />
-
-            <Text style={s.label}>Discount (e.g. 20%)</Text>
-            <TextInput 
-              style={s.input}
-              placeholder="e.g. 20"
-              placeholderTextColor={T.text3}
-              keyboardType="default"
-              value={discount}
-              onChangeText={setDiscount}
-            />
-
-            <Text style={s.label}>Expiry Date (Optional)</Text>
-            <TextInput 
-              style={s.input}
-              placeholder="MM/DD/YYYY"
-              placeholderTextColor={T.text3}
-              keyboardType="numbers-and-punctuation"
-              value={expiry}
-              onChangeText={setExpiry}
-            />
-
-            <TouchableOpacity style={s.submitBtn} onPress={handleCreate}>
-              <Text style={s.submitBtnText}>Create Coupon</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -245,6 +174,12 @@ const s = StyleSheet.create({
   
   listContent: { padding: 16, paddingBottom: 40, gap: 12 },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: T.text1, marginBottom: 8 },
+  comingSoonCard: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: T.surface, borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: T.border, marginBottom: 16,
+  },
+  comingSoonText: { flex: 1, fontSize: 13, color: T.text3, fontWeight: "500", lineHeight: 18 },
   
   tipCard: {
     backgroundColor: T.surface,
@@ -291,31 +226,4 @@ const s = StyleSheet.create({
   emptyBox: { alignItems: "center", justifyContent: "center", paddingVertical: 60, paddingHorizontal: 32 },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: T.text2, marginTop: 16, marginBottom: 4 },
   emptySub: { fontSize: 14, color: T.text3, textAlign: "center" },
-
-  modalRoot: { flex: 1, backgroundColor: T.bg },
-  modalHeader: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    padding: 20, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border
-  },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: T.text1 },
-  modalContent: { padding: 20 },
-  
-  label: { fontSize: 13, fontWeight: "600", color: T.text2, marginBottom: 6, marginTop: 16 },
-  input: {
-    backgroundColor: T.surface,
-    borderWidth: 1, borderColor: T.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: T.text1,
-  },
-  
-  submitBtn: {
-    backgroundColor: T.accent,
-    paddingVertical: 16, borderRadius: 8,
-    alignItems: "center", justifyContent: "center",
-    marginTop: 32,
-  },
-  submitBtnText: { color: "#FFF", fontSize: 16, fontWeight: "700" },
 });

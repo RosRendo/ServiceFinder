@@ -90,7 +90,7 @@ export default function AdminSupportTicketsScreen() {
       await api.patch(`/api/support/tickets/${ticketId}`, { status: "in_progress" });
       await fetchTickets();
     } catch {
-      Alert.alert("Error", "Failed to assign ticket.");
+      Alert.alert("Error", "Failed to claim ticket.");
     } finally {
       setActionLoading(null);
     }
@@ -226,7 +226,7 @@ export default function AdminSupportTicketsScreen() {
               {isActioning ? (
                 <ActivityIndicator size="small" color="#0F172A" />
               ) : (
-                <Text style={s.actionBtnText}>Assign Ticket to Me</Text>
+                <Text style={s.actionBtnText}>Claim Ticket</Text>
               )}
             </TouchableOpacity>
           </View>

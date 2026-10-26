@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import Toast from "react-native-toast-message";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
 import ErrorState from "@/components/common/ErrorState";
@@ -39,6 +40,10 @@ export default function CompanyDetail() {
   const [hasError, setHasError] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [rejectSheetVisible, setRejectSheetVisible] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectReasonError, setRejectReasonError] = useState("");
+  const [rejectError, setRejectError] = useState("");
 
   const fetchCompany = async () => {
     try {
@@ -60,21 +65,66 @@ export default function CompanyDetail() {
   }, [id]);
 
   const handleUpdateStatus = async (status: "verified" | "rejected") => {
+    if (status === "verified") {
+      Alert.alert(
+        "Verify Business",
+        `Approve ${company?.name || "this company"}? This marks the business as verified.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Approve",
+            onPress: () => submitStatus("verified"),
+          },
+        ]
+      );
+      return;
+    }
+    setRejectReason("");
+    setRejectReasonError("");
+    setRejectError("");
+    setRejectSheetVisible(true);
+  };
+
+  const submitStatus = async (status: "verified" | "rejected", reason?: string) => {
     setIsUpdating(true);
     try {
       if (status === "verified") {
         await api.post(`/api/admin/companies/${id}/verify`);
+        setRejectSheetVisible(false);
+        Toast.show({ type: "success", text1: "Company Verified", text2: `${company?.name || "The company"} is now approved.` });
+        router.back();
       } else {
-        await api.post(`/api/admin/companies/${id}/reject`, { reason: "Admin rejected" });
+        const res = await api.post(`/api/admin/companies/${id}/reject`, { reason: reason!.trim() });
+        setRejectSheetVisible(false);
+        Toast.show({
+          type: "success",
+          text1: "Company Rejected",
+          text2: res.data?.message || `${company?.name || "The company"} was rejected.`,
+        });
+        router.back();
       }
-      Alert.alert("Success", `Company has been ${status}`);
-      router.back();
     } catch (error: any) {
-      console.error("Failed to update status:", error);
-      Alert.alert("Error", error.response?.data?.message || "Failed to update company status");
+      const serverMsg = error.response?.data?.message || `Failed to update company status`;
+      if (status === "rejected") {
+        setRejectError(typeof serverMsg === "string" ? serverMsg : "Rejection failed.");
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Approve Failed",
+          text2: typeof serverMsg === "string" ? serverMsg : "Approval failed.",
+        });
+      }
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const confirmReject = () => {
+    if (!rejectReason.trim()) {
+      setRejectReasonError("A rejection reason is required.");
+      return;
+    }
+    submitStatus("rejected", rejectReason.trim());
   };
 
   const getStatusBadge = (status: string) => {

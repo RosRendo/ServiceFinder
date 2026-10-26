@@ -172,11 +172,17 @@ export default function ServiceDetailScreen() {
             })
           }]
         }]}>
-          <Image 
-            source={{ uri: service.image || "https://picsum.photos/800/600" }} 
-            style={s.heroImage} 
-            contentFit="cover" 
-          />
+          {service.image ? (
+            <Image
+              source={{ uri: service.image }}
+              style={s.heroImage}
+              contentFit="cover"
+            />
+          ) : (
+            <View style={[s.heroImage, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1F5F9' }]}>
+              <MaterialCommunityIcons name="image-outline" size={44} color={T.text3} />
+            </View>
+          )}
         </Animated.View>
 
         {/* 1 & 2. WHAT AM I BUYING & HOW MUCH? */}
@@ -349,22 +355,15 @@ export default function ServiceDetailScreen() {
                             {prov.facts?.rating || 'New'} ({prov.facts?.jobsCompleted || 0})
                           </Text>
                         </View>
-                        
-                        {/* Response Time chip */}
-                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FDF4', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.5, borderColor: '#BBF7D0' }}>
-                          <MaterialCommunityIcons name="clock-fast" size={12} color="#16A34A" />
-                          <Text style={{ fontSize: 10, fontWeight: '700', color: '#15803D', marginLeft: 2 }}>
-                            {prov.facts?.responseTimeMin || 15}m response
-                          </Text>
-                        </View>
 
-                        {/* Distance chip (Mocked based on ID so it is deterministic and realistic) */}
-                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#EFF6FF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.5, borderColor: '#BFDBFE' }}>
-                          <MaterialIcons name="location-on" size={12} color="#3B82F6" />
-                          <Text style={{ fontSize: 10, fontWeight: '700', color: '#1D4ED8', marginLeft: 2 }}>
-                            {(1.0 + (Number(prov.company.id.toString()) % 8) * 0.4).toFixed(1)} km
-                          </Text>
-                        </View>
+                        {prov.facts?.responseTimeMin != null && (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FDF4', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.5, borderColor: '#BBF7D0' }}>
+                            <MaterialCommunityIcons name="clock-fast" size={12} color="#16A34A" />
+                            <Text style={{ fontSize: 10, fontWeight: '700', color: '#15803D', marginLeft: 2 }}>
+                              {prov.facts.responseTimeMin}m response
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     </View>
                     <View style={{ alignItems: 'flex-end', justifyContent: 'center', minWidth: 60 }}>
@@ -458,7 +457,7 @@ const s = StyleSheet.create({
   
   // Hero
   heroContainer: { marginHorizontal: 20, marginTop: 8, height: 220, borderRadius: 16, overflow: 'hidden', backgroundColor: T.surface },
-  heroImage: { ...StyleSheet.absoluteFillObject },
+  heroImage: { ...StyleSheet.absoluteFill },
   
   // Info Section
   infoSection: { padding: 24, paddingTop: 20 },

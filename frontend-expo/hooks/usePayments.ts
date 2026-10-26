@@ -15,8 +15,7 @@ export function usePayments() {
 
       const res = await api.post("/api/payments/complete", {
         bookingId,
-        paymentMethod,
-        amount: 0, // Backend should calculate exact amount based on booking
+        method: paymentMethod,
       });
 
       return { success: true, data: res.data };

@@ -203,10 +203,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
       const token = await SecureStore.getItemAsync('authToken');
       if (!token) {
-        set({ user: null, isLoading: false });
+        set({ user: null, isLoading: false, token: null });
         return;
       }
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      set({ token });
       const response = await api.get('/api/auth/me');
       let userData = response.data?.data?.user ?? response.data?.data ?? response.data;
       
@@ -229,7 +230,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (error?.response?.status === 401) {
         await SecureStore.deleteItemAsync('authToken');
         delete api.defaults.headers.common['Authorization'];
-        set({ user: null, isLoading: false, isGuest: false });
+        set({ user: null, isLoading: false, isGuest: false, token: null });
       } else {
         set({ isLoading: false });
       }
@@ -251,7 +252,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (accessToken) await SecureStore.setItemAsync('authToken', accessToken);
       if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
       if (accessToken) api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-      
+
       // Fallback: If backend didn't attach staffProfile, fetch it via /api/users/:id
       if (user?.role === 'staff' && !user.staffProfile && user.id) {
         try {
@@ -265,8 +266,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
           console.error("Failed to fetch staff profile fallback:", e);
         }
       }
-      
-      set({ user, isGuest: false });
+
+      set({ user, isGuest: false, token: accessToken ?? null });
     } catch (error) {
       throw error;
     }
@@ -283,7 +284,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
       if (accessToken) api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
       
-      set({ user, isGuest: false });
+      set({ user, isGuest: false, token: accessToken ?? null });
     } catch (error) {
       throw error;
     }
@@ -314,7 +315,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         }
       }
       
-      set({ user, isGuest: false });
+      set({ user, isGuest: false, token: accessToken ?? null });
     } catch (error) {
       throw error;
     }
@@ -330,7 +331,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (accessToken) await SecureStore.setItemAsync('authToken', accessToken);
       if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
       if (accessToken) api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-      set({ user, isGuest: false });
+      set({ user, isGuest: false, token: accessToken ?? null });
     } catch (error) {
       throw error;
     }
@@ -346,7 +347,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (accessToken) await SecureStore.setItemAsync('authToken', accessToken);
       if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
       if (accessToken) api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-      set({ user, isGuest: false });
+      set({ user, isGuest: false, token: accessToken ?? null });
     } catch (error) {
       throw error;
     }
@@ -362,7 +363,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (accessToken) await SecureStore.setItemAsync('authToken', accessToken);
       if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
       if (accessToken) api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-      set({ user, isGuest: false });
+      set({ user, isGuest: false, token: accessToken ?? null });
     } catch (error) {
       throw error;
     }
@@ -378,7 +379,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (accessToken) await SecureStore.setItemAsync('authToken', accessToken);
       if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
       if (accessToken) api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-      set({ user, isGuest: false });
+      set({ user, isGuest: false, token: accessToken ?? null });
     } catch (error) {
       throw error;
     }
@@ -393,7 +394,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     await SecureStore.deleteItemAsync('authToken');
     await SecureStore.deleteItemAsync('refreshToken');
     delete api.defaults.headers.common['Authorization'];
-    set({ user: null, isGuest: true });
+    set({ user: null, isGuest: true, token: null });
   },
 
   deleteAccount: async () => {
@@ -406,6 +407,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
     await SecureStore.deleteItemAsync('authToken');
     await SecureStore.deleteItemAsync('refreshToken');
     delete api.defaults.headers.common['Authorization'];
-    set({ user: null, isGuest: false });
+    set({ user: null, isGuest: false, token: null });
   },
 }));

@@ -4,11 +4,12 @@
 import React, { useState, useEffect } from "react";
 import {
   View, Text, FlatList, TouchableOpacity, ActivityIndicator,
-  RefreshControl, Alert, StyleSheet,
+  RefreshControl, Alert, StyleSheet, Modal, TextInput, Platform, KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import Toast from "react-native-toast-message";
 import api from "@/utils/api";
 import ErrorState from "@/components/common/ErrorState";
 
@@ -34,6 +35,10 @@ export default function ModerationQueue() {
   const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<ModerationStatus>("pending");
+  const [banTarget, setBanTarget] = useState<FlaggedItem | null>(null);
+  const [banReason, setBanReason] = useState("");
+  const [banReasonError, setBanReasonError] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchQueue = async (isRefresh = false) => {
     if (isRefresh) { setRefreshing(true); } else { setLoading(true); }
@@ -55,26 +60,66 @@ export default function ModerationQueue() {
     fetchQueue();
   }, [filter]);
 
+  const applyAction = async (id: string, action: "resolve" | "dismiss" | "ban", reason?: string) => {
+    setActionLoading(true);
+    try {
+      const res = await api.post(`/api/admin/moderation/${id}/action`, {
+        action,
+        ...(reason ? { reason } : {}),
+      });
+      Toast.show({
+        type: "success",
+        text1: action === "ban" ? "Ban Processed" : action === "resolve" ? "Logged Only" : "Report Dismissed",
+        text2:
+          res.data?.message ||
+          (action === "resolve"
+            ? "Removal recorded in the moderation log. Content was not deleted by this action."
+            : undefined),
+      });
+      setBanTarget(null);
+      setBanReason("");
+      fetchQueue();
+    } catch (err: any) {
+      const serverMsg =
+        err?.response?.data?.message || "Failed to apply moderation action.";
+      Toast.show({
+        type: "error",
+        text1: "Action Failed",
+        text2: typeof serverMsg === "string" ? serverMsg : "Moderation action failed.",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleAction = (id: string, action: "resolve" | "dismiss" | "ban") => {
+    if (action === "ban") {
+      setBanReason("");
+      setBanReasonError("");
+      setBanTarget(items.find(item => item.id === id) || null);
+      return;
+    }
     Alert.alert(
       `Confirm Action`,
-      `Are you sure you want to ${action === "resolve" ? "remove this content" : action === "ban" ? "permanently ban this user" : "dismiss this report"}?`,
+      `Are you sure you want to ${action === "resolve" ? "log the removal of this content" : "dismiss this report"}?`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Confirm",
-          style: action === "ban" ? "destructive" : "default",
-          onPress: async () => {
-            try {
-              await api.post(`/api/admin/moderation/${id}/action`, { action });
-              setItems(prev => prev.filter(item => item.id !== id));
-            } catch {
-              Alert.alert("Error", "Failed to apply moderation action.");
-            }
-          }
+          onPress: () => applyAction(id, action),
         }
       ]
     );
+  };
+
+  const confirmBan = () => {
+    if (!banTarget) return;
+    if (!banReason.trim()) {
+      setBanReasonError("A reason is required to ban a user.");
+      return;
+    }
+    setBanReasonError("");
+    applyAction(banTarget.id, "ban", banReason.trim());
   };
 
   const getTypeIcon = (type: ModerationType) => {
@@ -120,7 +165,7 @@ export default function ModerationQueue() {
             onPress={() => handleAction(item.id, "resolve")}
             style={s.resolveBtn}
           >
-            <Text style={s.resolveText}>Remove Content</Text>
+            <Text style={s.resolveText}>Log Removal</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleAction(item.id, "ban")}
@@ -206,6 +251,49 @@ export default function ModerationQueue() {
           }
         />
       )}
+      {/* Ban Confirmation Modal */}
+      <Modal visible={!!banTarget} transparent animationType="fade">
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={s.modalOverlay}>
+          <View style={s.modalContainer}>
+            <MaterialCommunityIcons name="shield-alert" size={32} color="#DC2626" />
+            <Text style={s.modalTitle}>Ban User</Text>
+            <Text style={s.modalDesc}>
+              {banTarget?.type === "profile"
+                ? `This will suspend the user behind ${banTarget?.targetName}. Non-user targets are only logged.`
+                : `${banTarget?.targetName ?? "This target"} is not a user account — the action will be recorded in the log only.`}
+            </Text>
+            <TextInput
+              style={[s.banReasonInput, banReasonError ? s.banReasonInputError : null]}
+              placeholder="Ban reason (required)"
+              placeholderTextColor="#94A3B8"
+              value={banReason}
+              onChangeText={(t) => {
+                setBanReason(t);
+                if (banReasonError) setBanReasonError("");
+              }}
+              multiline
+              textAlignVertical="top"
+            />
+            {banReasonError ? <Text style={s.banReasonErrorText}>{banReasonError}</Text> : null}
+            <View style={s.modalActions}>
+              <TouchableOpacity
+                style={s.modalBtnSecondary}
+                onPress={() => setBanTarget(null)}
+                disabled={actionLoading}
+              >
+                <Text style={s.modalBtnSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.modalBtnPrimary, actionLoading && { opacity: 0.7 }]}
+                onPress={confirmBan}
+                disabled={actionLoading}
+              >
+                <Text style={s.modalBtnPrimaryText}>{actionLoading ? "Applying…" : "Ban"}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -298,4 +386,17 @@ const s = StyleSheet.create({
   emptyState: { alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 24 },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: "#0F172A", marginTop: 12 },
   emptyDesc: { fontSize: 13, color: "#64748B", textAlign: "center", marginTop: 6, lineHeight: 18 },
+
+  modalOverlay: { flex: 1, backgroundColor: "rgba(15, 23, 42, 0.7)", justifyContent: "center", alignItems: "center", padding: 24 },
+  modalContainer: { width: "100%", maxWidth: 400, backgroundColor: "#FFFFFF", borderRadius: 20, padding: 24, alignItems: "center", borderWidth: 1, borderColor: "#E2E8F0" },
+  modalTitle: { fontSize: 17, fontWeight: "800", color: "#0F172A", marginTop: 10 },
+  modalDesc: { fontSize: 13, color: "#64748B", textAlign: "center", lineHeight: 18, marginTop: 6, marginBottom: 16 },
+  banReasonInput: { width: "100%", minHeight: 70, maxHeight: 110, backgroundColor: "#F8FAFC", borderRadius: 10, borderWidth: 1.5, borderColor: "#E2E8F0", padding: 10, fontSize: 13, color: "#0F172A", marginBottom: 6 },
+  banReasonInputError: { borderColor: "#DC2626" },
+  banReasonErrorText: { fontSize: 11, fontWeight: "600", color: "#DC2626", alignSelf: "flex-start", marginBottom: 6 },
+  modalActions: { flexDirection: "row", gap: 12, width: "100%" },
+  modalBtnSecondary: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" },
+  modalBtnSecondaryText: { fontSize: 13, fontWeight: "700", color: "#64748B" },
+  modalBtnPrimary: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: "#DC2626" },
+  modalBtnPrimaryText: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
 });

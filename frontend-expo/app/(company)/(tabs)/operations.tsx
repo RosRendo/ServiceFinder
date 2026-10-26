@@ -71,8 +71,10 @@ export default function Operations() {
         setBookings(data?.bookings || []);
       }
       if (instantRes.status === "fulfilled") {
-        const iData = instantRes.value.data;
-        setInstantRequests(Array.isArray(iData) ? iData : []);
+        const iRaw = instantRes.value.data;
+        const iData = iRaw?.data ?? iRaw;
+        const list = Array.isArray(iData) ? iData : iData?.requests;
+        setInstantRequests(Array.isArray(list) ? list : []);
       }
       setHasError(false);
     } catch {

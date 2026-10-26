@@ -13,7 +13,7 @@ const CARD_SHADOW = Platform.select({
 export interface SlaAlertMatrixProps {
   pendingVerificationsCount: number;
   activeDisputesCount: number;
-  pendingPayoutsCount: number;
+  pendingPayoutsCount: number | null;
   onNavigateQueue: () => void;
   onNavigateDisputes: () => void;
   onNavigatePayouts: () => void;
@@ -27,8 +27,10 @@ export default function SlaAlertMatrix({
   onNavigateDisputes,
   onNavigatePayouts,
 }: SlaAlertMatrixProps) {
+  const payoutsTracked = pendingPayoutsCount != null;
+  const payoutsValue = pendingPayoutsCount ?? 0;
   const totalActionable =
-    pendingVerificationsCount + activeDisputesCount + pendingPayoutsCount;
+    pendingVerificationsCount + activeDisputesCount + (payoutsTracked ? payoutsValue : 0);
 
   return (
     <View style={s.container}>
@@ -119,13 +121,17 @@ export default function SlaAlertMatrix({
               <MaterialCommunityIcons name="bank-transfer-out" size={18} color="#0F172A" />
             </View>
             <View style={s.countPill}>
-              {pendingPayoutsCount > 0 && <View style={[s.statusDot, { backgroundColor: "#334155" }]} />}
-              <Text style={s.countText}>{pendingPayoutsCount}</Text>
+              {payoutsTracked && payoutsValue > 0 && <View style={[s.statusDot, { backgroundColor: "#334155" }]} />}
+              <Text style={s.countText}>{payoutsTracked ? payoutsValue : "—"}</Text>
             </View>
           </View>
           <Text style={s.cardTitle}>Payout Settlement</Text>
           <Text style={s.cardSubtitle}>
-            {pendingPayoutsCount > 0 ? "Batches queued for disbursement" : "All settlements clear"}
+            {payoutsTracked
+              ? payoutsValue > 0
+                ? "Batches queued for disbursement"
+                : "All settlements clear"
+              : "Data not instrumented yet"}
           </Text>
           <View style={s.actionRow}>
             <Text style={s.actionText}>Disburse Funds</Text>

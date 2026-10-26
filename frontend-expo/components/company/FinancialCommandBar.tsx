@@ -6,7 +6,7 @@ interface FinancialCommandBarProps {
   availableBalance: number;
   escrowBalance: number;
   unremittedCrewCash?: number;
-  todayNetRevenue?: number;
+  todayNetRevenue?: number | null;
   cashRemittanceLimit?: number;
   onWithdrawPress: () => void;
   onAuditCashPress: () => void;
@@ -16,7 +16,7 @@ export default function FinancialCommandBar({
   availableBalance = 0,
   escrowBalance = 0,
   unremittedCrewCash = 0,
-  todayNetRevenue = 0,
+  todayNetRevenue = null,
   cashRemittanceLimit = 100,
   onWithdrawPress,
   onAuditCashPress,
@@ -132,9 +132,11 @@ export default function FinancialCommandBar({
             <Text style={styles.metricLabel}>Today Net</Text>
           </View>
           <Text style={[styles.metricValue, { color: "#059669" }]}>
-            ${todayNetRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {todayNetRevenue != null
+              ? `$${todayNetRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : "—"}
           </Text>
-          <Text style={styles.metricSub}>Realized earnings</Text>
+          <Text style={styles.metricSub}>{todayNetRevenue != null ? "Realized earnings" : "Not instrumented yet"}</Text>
         </View>
       </View>
     </View>

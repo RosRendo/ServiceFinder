@@ -167,9 +167,9 @@ export default function CompanyDisputeDetailScreen() {
         <View style={s.escrowBanner}>
           <MaterialCommunityIcons name="shield-lock-outline" size={20} color="#D97706" />
           <View style={{ flex: 1 }}>
-            <Text style={s.escrowBannerTitle}>Custodial Escrow Withheld</Text>
+            <Text style={s.escrowBannerTitle}>Dispute Open</Text>
             <Text style={s.escrowBannerDesc}>
-              Funds for this booking are safeguarded in platform custody until administrative mediation is formally finalized.
+              This booking's payment status is managed by platform support during mediation. Final escrow outcome will be confirmed on resolution.
             </Text>
           </View>
         </View>

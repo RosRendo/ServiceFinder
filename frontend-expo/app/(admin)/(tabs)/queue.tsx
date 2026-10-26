@@ -11,12 +11,16 @@ import {
   StyleSheet,
   Platform,
   Modal,
+  TextInput,
+  KeyboardAvoidingView,
   Image as RNImage,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
+import Toast from "react-native-toast-message";
 import api from "@/utils/api";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { FlashList as ShopifyFlashList } from "@shopify/flash-list";
@@ -45,6 +49,10 @@ export default function Queue() {
   const [hasError, setHasError] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [expandedCompanyId, setExpandedCompanyId] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<any>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectReasonError, setRejectReasonError] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchQueue = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -70,28 +78,78 @@ export default function Queue() {
   );
 
   const handleApprove = useCallback(
-    async (companyId: string) => {
-      try {
-        await api.post(`/api/admin/companies/${companyId}/verify`);
-        fetchQueue();
-      } catch (error) {
-        console.error("Approve failed:", error);
-      }
+    async (companyId: string, companyName?: string) => {
+      Alert.alert(
+        "Verify Business",
+        `Approve ${companyName || "this company"}? This marks the business as verified.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Approve",
+            style: "default",
+            onPress: async () => {
+              setActionLoading(true);
+              try {
+                await api.post(`/api/admin/companies/${companyId}/verify`);
+                Toast.show({ type: "success", text1: "Company Verified", text2: `${companyName || "The company"} is now approved.` });
+                fetchQueue();
+              } catch (error: any) {
+                const serverMsg = error?.response?.data?.message || "Approve failed.";
+                Toast.show({
+                  type: "error",
+                  text1: "Approve Failed",
+                  text2: typeof serverMsg === "string" ? serverMsg : "Approval failed.",
+                });
+              } finally {
+                setActionLoading(false);
+              }
+            },
+          },
+        ]
+      );
     },
     [fetchQueue]
   );
 
-  const handleReject = useCallback(
-    async (companyId: string) => {
-      try {
-        await api.post(`/api/admin/companies/${companyId}/reject`, { reason: "Admin rejected" });
-        fetchQueue();
-      } catch (error) {
-        console.error("Reject failed:", error);
-      }
+  const openReject = useCallback(
+    (companyId: string) => {
+      const company = companies.find((c) => c.id === companyId);
+      setRejectReason("");
+      setRejectReasonError("");
+      setRejectTarget(company || { id: companyId });
     },
-    [fetchQueue]
+    [companies]
   );
+
+  const confirmReject = useCallback(async () => {
+    if (!rejectTarget) return;
+    if (!rejectReason.trim()) {
+      setRejectReasonError("A rejection reason is required.");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const res = await api.post(`/api/admin/companies/${rejectTarget.id}/reject`, {
+        reason: rejectReason.trim(),
+      });
+      Toast.show({
+        type: "success",
+        text1: "Company Rejected",
+        text2: res.data?.message || `${rejectTarget.name || "The company"} was rejected.`,
+      });
+      setRejectTarget(null);
+      fetchQueue();
+    } catch (error: any) {
+      const serverMsg = error?.response?.data?.message || "Reject failed.";
+      Toast.show({
+        type: "error",
+        text1: "Reject Failed",
+        text2: typeof serverMsg === "string" ? serverMsg : "Rejection failed.",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  }, [rejectTarget, rejectReason, fetchQueue]);
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -317,8 +375,8 @@ export default function Queue() {
                                 ? "REJECTED"
                                 : "PENDING",
                           }}
-                          onVerify={(id) => handleApprove(id)}
-                          onReject={(id) => handleReject(id)}
+                          onVerify={(id) => handleApprove(id, company.name)}
+                          onReject={(id) => openReject(id)}
                           onPreview={(url) => setPreviewDocUrl(url)}
                         />
                       </View>
@@ -331,16 +389,18 @@ export default function Queue() {
                   <View style={s.actionRow}>
                     <TouchableOpacity
                       style={[s.actionBtn, s.rejectBtn]}
-                      onPress={() => handleReject(company.id)}
+                      onPress={() => openReject(company.id)}
                       activeOpacity={0.8}
+                      disabled={actionLoading}
                     >
                       <MaterialCommunityIcons name="close" size={15} color="#DC2626" />
                       <Text style={s.rejectText}>Reject</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[s.actionBtn, s.approveBtn]}
-                      onPress={() => handleApprove(company.id)}
+                      onPress={() => handleApprove(company.id, company.name)}
                       activeOpacity={0.8}
+                      disabled={actionLoading}
                     >
                       <MaterialCommunityIcons name="check" size={15} color="#FFFFFF" />
                       <Text style={s.approveText}>Verify Business</Text>
@@ -370,6 +430,49 @@ export default function Queue() {
             </View>
           </SafeAreaView>
         </View>
+      </Modal>
+
+      {/* Reject Reason Modal */}
+      <Modal visible={!!rejectTarget} transparent animationType="fade" onRequestClose={() => setRejectTarget(null)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={s.rejectModalOverlay}>
+          <View style={s.rejectModalContainer}>
+            <MaterialCommunityIcons name="close-circle-outline" size={32} color="#DC2626" />
+            <Text style={s.rejectModalTitle}>Reject Application</Text>
+            <Text style={s.rejectModalDesc}>
+              Reject the verification of {rejectTarget?.name || "this company"}. The reason you enter is
+              sent to the server and shown to the applicant.
+            </Text>
+            <TextInput
+              style={[s.rejectReasonInput, rejectReasonError ? s.rejectReasonInputError : null]}
+              placeholder="Rejection reason (required)"
+              placeholderTextColor="#94A3B8"
+              value={rejectReason}
+              onChangeText={(t) => {
+                setRejectReason(t);
+                if (rejectReasonError) setRejectReasonError("");
+              }}
+              multiline
+              textAlignVertical="top"
+            />
+            {rejectReasonError ? <Text style={s.rejectReasonErrorText}>{rejectReasonError}</Text> : null}
+            <View style={s.rejectModalActions}>
+              <TouchableOpacity
+                style={s.rejectModalBtnSecondary}
+                onPress={() => setRejectTarget(null)}
+                disabled={actionLoading}
+              >
+                <Text style={s.rejectModalBtnSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.rejectModalBtnPrimary, actionLoading && { opacity: 0.7 }]}
+                onPress={confirmReject}
+                disabled={actionLoading}
+              >
+                <Text style={s.rejectModalBtnPrimaryText}>{actionLoading ? "Rejecting…" : "Reject"}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -585,4 +688,17 @@ const s = StyleSheet.create({
   modalCloseBtn: { padding: 4 },
   modalBody: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
   modalImage: { width: "100%", height: "100%" },
+
+  rejectModalOverlay: { flex: 1, backgroundColor: "rgba(15, 23, 42, 0.7)", justifyContent: "center", alignItems: "center", padding: 24 },
+  rejectModalContainer: { width: "100%", maxWidth: 400, backgroundColor: "#FFFFFF", borderRadius: 20, padding: 24, alignItems: "center", borderWidth: 1, borderColor: "#E2E8F0" },
+  rejectModalTitle: { fontSize: 17, fontWeight: "800", color: "#0F172A", marginTop: 10 },
+  rejectModalDesc: { fontSize: 13, color: "#64748B", textAlign: "center", lineHeight: 18, marginTop: 6, marginBottom: 16 },
+  rejectReasonInput: { width: "100%", minHeight: 70, maxHeight: 110, backgroundColor: "#F8FAFC", borderRadius: 10, borderWidth: 1.5, borderColor: "#E2E8F0", padding: 10, fontSize: 13, color: "#0F172A", marginBottom: 6 },
+  rejectReasonInputError: { borderColor: "#DC2626" },
+  rejectReasonErrorText: { fontSize: 11, fontWeight: "600", color: "#DC2626", alignSelf: "flex-start", marginBottom: 6 },
+  rejectModalActions: { flexDirection: "row", gap: 12, width: "100%" },
+  rejectModalBtnSecondary: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" },
+  rejectModalBtnSecondaryText: { fontSize: 13, fontWeight: "700", color: "#64748B" },
+  rejectModalBtnPrimary: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: "#DC2626" },
+  rejectModalBtnPrimaryText: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
 });

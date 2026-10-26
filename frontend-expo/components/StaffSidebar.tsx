@@ -84,7 +84,11 @@ export default function StaffSidebar({ isOpen, onClose }: StaffSidebarProps) {
 
   const navigate = (route: string) => {
     onClose();
-    setTimeout(() => router.push(route as any), 50);
+    const companyId = (user as any)?.staffProfile?.companyId || (user as any)?.companyId;
+    const finalRoute = route === "/(staff)/messages/new" && companyId
+      ? { pathname: "/(staff)/messages/new", params: { companyId: String(companyId) } }
+      : route;
+    setTimeout(() => router.push(finalRoute as any), 50);
   };
 
   const normalizeRoute = (r: string) => {

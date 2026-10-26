@@ -15,6 +15,7 @@ import { api, useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 import { Theme } from "@/constants/theme";
 import { GuestCTA } from "@/components/common/GuestCTA";
+import ErrorState from "@/components/common/ErrorState";
 import { EmptyActivitySvg } from "@/components/svg";
 
 // ─── Design Tokens ───────────────────────────────────────────
@@ -38,6 +39,7 @@ interface Booking {
   notes?: string;
   service?: { id: string; name: string; image?: string; durationMin?: number; serviceType?: any };
   company?: { id: string; name: string; logoUrl?: string };
+  assignedStaff?: { id: string; user?: { fullName?: string } | null } | null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -179,9 +181,9 @@ function BookingCard({ booking, onCancel, index }: { booking: Booking; onCancel:
           <View style={s.cardTop}>
             <View style={s.cardImgBox}>
               {heroImg ? (
-                <Image source={{ uri: heroImg }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                <Image source={{ uri: heroImg }} style={StyleSheet.absoluteFill} contentFit="cover" />
               ) : (
-                <View style={[StyleSheet.absoluteFillObject, { alignItems: "center", justifyContent: "center", backgroundColor: T.accentLight }]}>
+                <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", backgroundColor: T.accentLight }]}>
                   <MaterialCommunityIcons name="toolbox-outline" size={28} color={T.accentMid} />
                 </View>
               )}
@@ -198,7 +200,7 @@ function BookingCard({ booking, onCancel, index }: { booking: Booking; onCancel:
               </View>
 
               <Text style={{ fontSize: 12, color: T.accent, fontWeight: "700" }}>
-                {(booking as any).assignedStaff?.user?.fullName ? `Staff: ${(booking as any).assignedStaff.user.fullName}` : "Staff Assigned (Nearby)"}
+                {booking.assignedStaff?.user?.fullName ? `Staff: ${booking.assignedStaff.user.fullName}` : "Staff assigned"}
               </Text>
             </View>
           </View>
@@ -302,9 +304,11 @@ export default function ActivityScreen() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past" | "cancelled">("upcoming");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadBookings = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const res = await api.get("/api/bookings", { params: { limit: 50 } });
       const all: Booking[] = extractArray(res.data);
@@ -316,6 +320,7 @@ export default function ActivityScreen() {
       setBookings(filtered);
     } catch (e: any) {
       console.warn("[Activity] load error:", e?.message || e);
+      setError(e.formattedMessage || e?.response?.data?.message || e?.message || "Could not load bookings.");
       setBookings([]);
     } finally {
       setIsLoading(false);
@@ -403,6 +408,8 @@ export default function ActivityScreen() {
           <View style={{ gap: 20 }}>
             {[...Array(3)].map((_, i) => <SkeletonCard key={i} index={i} />)}
           </View>
+        ) : error ? (
+          <ErrorState message={error} onRetry={loadBookings} />
         ) : bookings.length === 0 ? (
           /* Empty State */
           <Animated.View style={s.emptyState}>
@@ -444,7 +451,7 @@ export default function ActivityScreen() {
                 <Text style={s.supportTitle}>Need assistance?</Text>
                 <Text style={s.supportBody}>Chat directly with support agents 24/7</Text>
               </View>
-              <TouchableOpacity style={s.supportBtn}>
+              <TouchableOpacity style={s.supportBtn} onPress={() => router.push("/(customer)/messages" as any)}>
                 <Text style={s.supportBtnText}>Chat</Text>
               </TouchableOpacity>
             </View>

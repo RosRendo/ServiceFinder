@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
 import { io, Socket } from 'socket.io-client';
 import { API_URL, SOCKET_URL } from '../../../lib/apiConfig';
+import { processOfflineQueue as syncOfflineQueue, getOfflineQueue } from '../../../services/staffOfflineQueue';
 
 const { width } = Dimensions.get('window');
 
@@ -67,27 +68,12 @@ export default function TodayScreen() {
   }, [isOffline, offlineQueue]);
 
   const processOfflineQueue = async () => {
-    const queue = [...offlineQueue];
-    for (const task of queue) {
-      try {
-        if (task.type === 'start') {
-          await api.patch(`/api/bookings/${task.bookingId}/start`);
-        } else if (task.type === 'complete') {
-          await api.patch(`/api/bookings/${task.bookingId}/complete`, { proofOfWorkPhoto: task.photo });
-        } else if (task.type === 'status') {
-          if (task.status === 'pending') {
-            await api.patch(`/api/bookings/${task.bookingId}/reject`);
-          } else {
-            await api.patch(`/api/bookings/${task.bookingId}/status`, { status: task.status });
-          }
-        } else if (task.type === 'progress') {
-          await api.patch(`/api/bookings/${task.bookingId}/progress`, { progressPercent: task.progressPercent, checklist: task.checklist });
-        }
-        setOfflineQueue(prev => prev.filter(t => t.id !== task.id));
-      } catch (err) {
-        console.warn("Failed to process queued offline task:", err);
-        break; // Retry on next cycle
-      }
+    try {
+      await syncOfflineQueue(api);
+      const remaining = await getOfflineQueue();
+      setOfflineQueue(remaining);
+    } catch (err) {
+      console.warn('Offline queue sync failed:', err);
     }
   };
 
@@ -434,13 +420,13 @@ export default function TodayScreen() {
     setState('TRAVELING');
   };
 
-  // Live GPS broadcast when in TRAVELING mode
+  // Live GPS broadcast when in TRAVELING mode — real device location only
   useEffect(() => {
-    if (state !== 'TRAVELING' || !activeBooking?.id || routeCoords.length === 0) return;
+    if (state !== 'TRAVELING' || !activeBooking?.id) return;
 
     let socket: any = null;
-    let idx = 0;
-    const total = routeCoords.length;
+    let watchSub: Location.LocationSubscription | null = null;
+    let lastPushAt = 0;
 
     try {
       socket = io(SOCKET_URL || API_URL, { transports: ['websocket'] });
@@ -449,40 +435,42 @@ export default function TodayScreen() {
       });
     } catch (e) {}
 
-    const interval = setInterval(() => {
-      idx++;
-      if (idx < total) {
-        const currentCoord = routeCoords[idx];
-        setLocation({ coords: currentCoord } as any);
-
-        // Broadcast to WebSocket room for customer live map
-        if (socket) {
-          socket.emit('staff_location_update', {
-            bookingId: String(activeBooking.id),
-            latitude: currentCoord.latitude,
-            longitude: currentCoord.longitude,
-          });
-        }
-      } else {
-        // Reached destination
-        (async () => {
-          try {
-            await api.patch(`/api/bookings/${activeBooking.id}/status`, { status: 'arrived' });
-          } catch (e) {}
-          setState('ARRIVED');
-        })();
-        clearInterval(interval);
-      }
-    }, 1200);
+    (async () => {
+      try {
+        const { status: granted } = await Location.requestForegroundPermissionsAsync();
+        if (granted !== 'granted') return;
+        watchSub = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.Balanced, timeInterval: 10000, distanceInterval: 20 },
+          async (pos) => {
+            setLocation(pos);
+            // Broadcast real position to customer live map (throttled)
+            if (socket && Date.now() - lastPushAt > 10000) {
+              lastPushAt = Date.now();
+              socket.emit('staff_location_update', {
+                bookingId: String(activeBooking.id),
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+              });
+              try {
+                await api.patch(`/api/location/${activeBooking.id}`, {
+                  latitude: pos.coords.latitude,
+                  longitude: pos.coords.longitude,
+                });
+              } catch (e) {}
+            }
+          }
+        );
+      } catch (e) {}
+    })();
 
     return () => {
-      clearInterval(interval);
+      watchSub?.remove();
       if (socket) {
         socket.emit('leave_booking', String(activeBooking.id));
         socket.disconnect();
       }
     };
-  }, [state, activeBooking?.id, routeCoords]);
+  }, [state, activeBooking?.id]);
 
   const handleDecline = async () => {
     if (!activeBooking?.id) return;
@@ -818,7 +806,7 @@ export default function TodayScreen() {
         <MapView
           provider={MAP_PROVIDER}
           ref={mapRef}
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
           showsUserLocation={true}
           showsMyLocationButton={false}
           customMapStyle={mapStyle}

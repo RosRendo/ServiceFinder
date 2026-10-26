@@ -83,22 +83,28 @@ export default function DisputeDetailScreen() {
       await api.put(`/api/admin/disputes/${id}/resolve`, {
         decision: mappedDecision,
         refundAmount: refundAmount,
-        notes: note,
       });
 
       setResolutionSheetVisible(false);
       Alert.alert(
-        "Dispute Settled",
-        `Resolution [${resolution}] recorded successfully. Escrow funds disbursed.`,
+        "Resolution Recorded",
+        `Decision [${mappedDecision}] with refund $${refundAmount.toFixed(2)} was saved.`,
         [{ text: "OK", onPress: () => router.back() }]
       );
     } catch (err: any) {
       console.error("Resolution submit failed:", err);
-      Alert.alert(
-        "Settlement Completed",
-        "Dispute status updated. Escrow allocation executed.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+      const serverMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "The resolution could not be saved. Nothing was changed.";
+      Alert.alert("Resolution Failed", serverMsg, [
+        { text: "Keep Editing", style: "cancel" },
+        {
+          text: "Retry",
+          onPress: () =>
+            handleSubmitResolution(resolution, note),
+        },
+      ]);
     } finally {
       setSubmittingResolution(false);
     }
@@ -240,33 +246,45 @@ export default function DisputeDetailScreen() {
           </Text>
         </View>
 
-        {/* Evidence & Case Timeline */}
+        {/* Response Thread (real dispute fields only) */}
         <View style={[s.card, CARD_SHADOW]}>
-          <Text style={s.sectionTitle}>COMMUNICATIONS & EVIDENCE TIMELINE</Text>
-          {dispute?.messages && dispute.messages.length > 0 ? (
-            dispute.messages.map((msg: any, idx: number) => {
-              const isCust = msg.sender === "customer";
-              return (
-                <View
-                  key={idx}
-                  style={[s.msgBubble, isCust ? s.msgCustomer : s.msgProvider]}
-                >
-                  <View style={s.msgHeader}>
-                    <Text style={s.msgSender}>{isCust ? "Customer Claim" : "Provider Defense"}</Text>
-                    <Text style={s.msgTime}>
-                      {new Date(msg.time || Date.now()).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </Text>
-                  </View>
-                  <Text style={s.msgText}>{msg.text}</Text>
-                </View>
-              );
-            })
+          <Text style={s.sectionTitle}>RESPONSE THREAD</Text>
+          <View style={[s.msgBubble, s.msgCustomer]}>
+            <View style={s.msgHeader}>
+              <Text style={s.msgSender}>Customer Claim</Text>
+              <Text style={s.msgTime}>
+                {new Date(dispute?.createdAt).toLocaleDateString([], {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </Text>
+            </View>
+            <Text style={s.msgText}>
+              {dispute?.description || "No statement entered."}
+            </Text>
+          </View>
+          {dispute?.companyResponse ? (
+            <View style={[s.msgBubble, s.msgProvider]}>
+              <View style={s.msgHeader}>
+                <Text style={s.msgSender}>Provider Response</Text>
+              </View>
+              <Text style={s.msgText}>{dispute.companyResponse}</Text>
+            </View>
           ) : (
-            <Text style={s.noMessagesText}>No party counter-statements recorded yet.</Text>
+            <Text style={s.noMessagesText}>
+              No provider response submitted yet.
+            </Text>
           )}
+          {dispute?.adminDecision ? (
+            <View style={[s.msgBubble, s.msgProvider]}>
+              <View style={s.msgHeader}>
+                <Text style={s.msgSender}>Admin Decision</Text>
+              </View>
+              <Text style={s.msgText}>
+                {dispute.adminDecision.replace(/_/g, " ")}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={{ height: 120 }} />

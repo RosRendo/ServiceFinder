@@ -381,7 +381,7 @@ export default function CategoryScreen() {
                           })()}
                           <View style={s.catBadge}>
                             {activeCategory?.useImageAsBadge && activeCategory?.imageUrl ? (
-                              <Image source={{ uri: activeCategory.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                              <Image source={{ uri: activeCategory.imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
                             ) : (
                               <MaterialCommunityIcons name={(activeCategory?.icon as any) || getCategoryIcon(activeCategory?.name || '')} size={18} color="#fff" />
                             )}
@@ -449,7 +449,7 @@ export default function CategoryScreen() {
                     />
                     <View style={s.catBadgeMini}>
                       {activeCategory?.useImageAsBadge && activeCategory?.imageUrl ? (
-                        <Image source={{ uri: activeCategory.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                        <Image source={{ uri: activeCategory.imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
                       ) : (
                         <MaterialCommunityIcons name={(activeCategory?.icon as any) || getCategoryIcon(activeCategory?.name || '')} size={13} color="#fff" />
                       )}

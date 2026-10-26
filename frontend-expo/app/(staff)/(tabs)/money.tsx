@@ -31,6 +31,8 @@ export default function MoneyScreen() {
   const [perf, setPerf] = useState<any>(null);
   const [completedTrips, setCompletedTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [timeframe, setTimeframe] = useState<'today' | 'week'>('today');
 
   useFocusEffect(
@@ -47,15 +49,20 @@ export default function MoneyScreen() {
             setPerf(perfRes.data.performance || perfRes.data.data);
             const trips = tripsRes.data.bookings || tripsRes.data.data?.bookings || tripsRes.data.data || [];
             setCompletedTrips(Array.isArray(trips) ? trips : []);
+            setLoadError(false);
           }
         } catch (err) {
-          console.warn("Failed to load staff performance/trips", err);
+          if (isActive) {
+            setLoadError(true);
+            setPerf(null);
+            setCompletedTrips([]);
+          }
         } finally {
           if (isActive) setLoading(false);
         }
       })();
       return () => { isActive = false; };
-    }, [])
+    }, [reloadKey])
   );
 
   if (loading) {
@@ -66,24 +73,37 @@ export default function MoneyScreen() {
     );
   }
 
-  const p = perf || {};
-  const todayEarn = p.todayEarnings || 0;
-  const weeklyEarn = p.weeklyEarnings || 0;
-  const todayJobs = p.todayCompleted || 0;
-  const weeklyJobs = p.weeklyCompleted || 0;
-  const avgRating = typeof p.avgRating === 'number' ? p.avgRating : 5.0;
-  const compRate = typeof p.completionRate === 'number' ? p.completionRate : 100;
-  const acceptanceRate = typeof p.responseRate === 'number' ? p.responseRate : 100;
+  const p = loadError ? {} : (perf || {});
+  const hasPerf = !!perf && !loadError;
+  const todayEarn = typeof p.todayEarnings === 'number' ? p.todayEarnings : null;
+  const weeklyEarn = typeof p.weeklyEarnings === 'number' ? p.weeklyEarnings : null;
+  const todayJobs = typeof p.todayCompleted === 'number' ? p.todayCompleted : null;
+  const weeklyJobs = typeof p.weeklyCompleted === 'number' ? p.weeklyCompleted : null;
+  const avgRating = typeof p.avgRating === 'number' ? p.avgRating : null;
+  const compRate = typeof p.completionRate === 'number' ? p.completionRate : null;
+  const acceptanceRate = typeof p.responseRate === 'number' ? p.responseRate : null;
+
+  const money = (v: number | null) => (v === null ? '—' : `$${v.toFixed(2)}`);
+  const num = (v: number | null) => (v === null ? '—' : String(v));
+
+  const formatHours = (min: number) =>
+    min >= 60 ? `${Math.floor(min / 60)}h ${min % 60}m` : `${min}m`;
+  const todayOnlineTime = typeof p.todayOnlineTime === 'number'
+    ? formatHours(p.todayOnlineTime)
+    : typeof p.weeklyOnlineTime === 'number' && timeframe === 'week'
+      ? formatHours(p.weeklyOnlineTime)
+      : '—';
 
   // Real 7-Day Weekly Chart from API
-  const defaultDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({
-    day,
-    amount: 0,
-    isToday: false
-  }));
-  const daysData = (Array.isArray(p.weeklyChart) && p.weeklyChart.length > 0) 
-    ? p.weeklyChart 
-    : defaultDays;
+  const daysData = (Array.isArray(p.weeklyChart) && p.weeklyChart.length > 0)
+    ? p.weeklyChart
+    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({
+        day,
+        amount: 0,
+        isToday: false
+      }));
+  const chartTotal = daysData.reduce((sum: number, d: any) => sum + (typeof d.amount === 'number' ? d.amount : 0), 0);
+  const avgPerDay = hasPerf && chartTotal > 0 ? chartTotal / daysData.length : null;
   const maxBarVal = Math.max(...daysData.map((d: any) => d.amount), 1);
 
   return (
@@ -120,24 +140,43 @@ export default function MoneyScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* API Error State */}
+        {loadError && (
+          <View style={s.errorCard}>
+            <MaterialCommunityIcons name="cloud-off-outline" size={28} color={T.danger} />
+            <Text style={s.errorTitle}>Couldn't load your earnings</Text>
+            <Text style={s.errorText}>We couldn't reach the server. Your earnings will show as — until the data loads.</Text>
+            <TouchableOpacity
+              style={s.retryBtn}
+              onPress={() => { setReloadKey(k => k + 1); }}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading earnings"
+            >
+              <MaterialCommunityIcons name="refresh" size={16} color="#FFFFFF" />
+              <Text style={s.retryText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Main Uber-style Earnings Hero Card */}
         <View style={s.heroCard}>
           <Text style={s.heroLabel}>
             {timeframe === 'today' ? "TODAY'S NET EARNINGS" : "THIS WEEK'S NET EARNINGS"}
           </Text>
           <Text style={s.heroAmount}>
-            ${timeframe === 'today' ? todayEarn.toFixed(2) : weeklyEarn.toFixed(2)}
+            {timeframe === 'today' ? money(todayEarn) : money(weeklyEarn)}
           </Text>
 
           {/* Quick Metrics Bar */}
           <View style={s.heroMetricsRow}>
             <View style={s.heroMetricItem}>
-              <Text style={s.heroMetricValue}>{timeframe === 'today' ? todayJobs : weeklyJobs}</Text>
+              <Text style={s.heroMetricValue}>{timeframe === 'today' ? num(todayJobs) : num(weeklyJobs)}</Text>
               <Text style={s.heroMetricLabel}>Completed Trips</Text>
             </View>
             <View style={s.heroMetricDivider} />
             <View style={s.heroMetricItem}>
-              <Text style={s.heroMetricValue}>{timeframe === 'today' ? '3h 45m' : '22h 10m'}</Text>
+              <Text style={s.heroMetricValue}>{todayOnlineTime}</Text>
               <Text style={s.heroMetricLabel}>Online Time</Text>
             </View>
           </View>
@@ -159,7 +198,7 @@ export default function MoneyScreen() {
         {/* 7-Day Weekly Breakdown Bar Chart */}
         <View style={s.sectionHeader}>
           <Text style={s.sectionTitle}>Weekly Activity</Text>
-          <Text style={s.sectionMeta}>Avg. $78 / day</Text>
+          <Text style={s.sectionMeta}>{avgPerDay !== null ? `Avg. $${avgPerDay.toFixed(0)} / day` : 'No data yet'}</Text>
         </View>
         
         <View style={s.chartCard}>
@@ -346,6 +385,42 @@ const s = StyleSheet.create({
   },
 
   /* Hero Card */
+  errorCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    padding: 20,
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 20,
+  },
+  errorTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#DC2626',
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    marginTop: 6,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   heroCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,

@@ -20,11 +20,16 @@ const CARD_SHADOW = Platform.select({
 
 interface Review {
   id: string;
-  rating: number;
-  comment: string | null;
+  companyRating: number;
+  companyComment: string | null;
+  staffRating?: number | null;
+  staffComment?: string | null;
   createdAt: string;
-  company?: { name: string };
-  service?: { name: string };
+  booking?: {
+    company?: { name: string };
+    service?: { name: string };
+  };
+  staff?: { user?: { fullName: string } } | null;
 }
 
 export default function MyReviewsScreen() {
@@ -36,8 +41,9 @@ export default function MyReviewsScreen() {
     try {
       const res = await api.get("/api/reviews/me");
       const data = res.data?.data ?? res.data;
-      setReviews(Array.isArray(data) ? data : []);
+      setReviews(Array.isArray(data) ? data : data?.reviews ?? []);
     } catch (e: any) {
+      setReviews([]);
     } finally {
       setLoading(false);
     }
@@ -48,8 +54,9 @@ export default function MyReviewsScreen() {
   }, [loadReviews]);
 
   const renderItem = ({ item }: { item: Review }) => {
-    const targetName = item.company?.name || item.service?.name || "Service Provider";
-    
+    const targetName = item.booking?.company?.name || item.booking?.service?.name || "Service Provider";
+    const staffName = item.staff?.user?.fullName;
+
     return (
       <View style={s.card}>
         <View style={s.cardHeader}>
@@ -58,17 +65,33 @@ export default function MyReviewsScreen() {
         </View>
         <View style={s.starsRow}>
           {[1, 2, 3, 4, 5].map(s => (
-            <MaterialCommunityIcons 
-              key={s} 
-              name={s <= item.rating ? "star" : "star-outline"} 
-              size={16} 
-              color={s <= item.rating ? T.gold : "#D1D5DB"} 
+            <MaterialCommunityIcons
+              key={s}
+              name={s <= item.companyRating ? "star" : "star-outline"}
+              size={16}
+              color={s <= item.companyRating ? T.gold : "#D1D5DB"}
             />
           ))}
         </View>
-        {item.comment ? (
-          <Text style={s.commentText}>{item.comment}</Text>
+        {item.companyComment ? (
+          <Text style={s.commentText}>{item.companyComment}</Text>
         ) : null}
+        {staffName && (
+          <View style={s.staffSection}>
+            <Text style={s.staffLabel}>{staffName}</Text>
+            <View style={s.starsRow}>
+              {[1, 2, 3, 4, 5].map(s => (
+                <MaterialCommunityIcons
+                  key={s}
+                  name={(item.staffRating ?? 0) >= s ? "star" : "star-outline"}
+                  size={14}
+                  color={(item.staffRating ?? 0) >= s ? T.gold : "#D1D5DB"}
+                />
+              ))}
+            </View>
+            {item.staffComment ? <Text style={s.commentText}>{item.staffComment}</Text> : null}
+          </View>
+        )}
       </View>
     );
   };
@@ -133,6 +156,10 @@ const s = StyleSheet.create({
   dateText: { fontSize: 12, color: T.text3, marginLeft: 8 },
   starsRow: { flexDirection: "row", gap: 2, marginBottom: 12 },
   commentText: { fontSize: 14, color: T.text2, lineHeight: 20 },
+  staffSection: {
+    marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: T.border,
+  },
+  staffLabel: { fontSize: 13, fontWeight: "700", color: T.text1, marginBottom: 6 },
   emptyState: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
   emptyTitle: { fontSize: 20, fontWeight: "800", color: T.text1, marginBottom: 8 },
   emptyDesc: { fontSize: 15, color: T.text3, textAlign: "center", lineHeight: 22 },

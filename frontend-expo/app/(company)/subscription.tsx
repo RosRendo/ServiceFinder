@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import api from "@/utils/api";
 import { Theme } from "@/constants/theme";
 
@@ -80,6 +81,7 @@ const PLANS: Plan[] = [
 
 export default function SubscriptionScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [currentPlan, setCurrentPlan] = useState<string>("starter");
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -119,12 +121,12 @@ export default function SubscriptionScreen() {
       return;
     }
     Alert.alert(
-      `Upgrade to ${plan.name}`,
-      `You will be charged $${plan.price}/month. Continue?`,
+      t("companySystem.planActivationTitle", { plan: plan.name }),
+      t("companySystem.planActivationNotice"),
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Upgrade",
+          text: "I understand",
           onPress: async () => {
             setUpgrading(plan.id);
             try {
@@ -287,7 +289,7 @@ export default function SubscriptionScreen() {
                         plan.highlighted && s.upgradeBtnTextHighlighted,
                       ]}
                     >
-                      {plan.price === 0 ? "Downgrade" : `Upgrade to ${plan.name}`}
+                      {plan.price === 0 ? "Downgrade" : t("companySystem.activatePlanNoCharge")}
                     </Text>
                   )}
                 </TouchableOpacity>

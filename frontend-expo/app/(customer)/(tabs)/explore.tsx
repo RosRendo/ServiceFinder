@@ -200,7 +200,7 @@ function CompanyCard({ company, onPress }: { company: ExploreCompany; onPress: (
           return (
             <View style={{ position: "absolute", top: 8, left: 8, backgroundColor: T.accent, width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 1, borderColor: "#FFFFFF", shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, elevation: 3 }}>
               {cat?.useImageAsBadge && cat?.imageUrl ? (
-                <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
               ) : (
                 <MaterialCommunityIcons name={(cat?.icon as any) || getCategoryIcon(cat?.name || primaryCat)} size={18} color="#fff" />
               )}
@@ -259,7 +259,7 @@ function ServiceRow({ service, onPress }: { service: ExploreService; onPress: ()
           {service.image || service.serviceType?.imageUrl || service.serviceType?.category?.imageUrl || service.company?.logoUrl ? (
             <Image 
               source={{ uri: service.image || service.serviceType?.imageUrl || service.serviceType?.category?.imageUrl || service.company?.logoUrl }} 
-              style={StyleSheet.absoluteFillObject} 
+              style={StyleSheet.absoluteFill} 
               contentFit="cover" 
             />
           ) : (
@@ -271,7 +271,7 @@ function ServiceRow({ service, onPress }: { service: ExploreService; onPress: ()
             return (
               <View style={{ position: "absolute", bottom: 4, right: 4, backgroundColor: T.accent, width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 0.75, borderColor: "#FFFFFF", shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 3, elevation: 2 }}>
                 {cat?.useImageAsBadge && cat?.imageUrl ? (
-                  <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                  <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
                 ) : (
                   <MaterialCommunityIcons name={(cat?.icon as any) || getCategoryIcon(cat?.name || catName)} size={13} color="#fff" />
                 )}
@@ -334,7 +334,7 @@ function NearbyRow({ company, onPress }: { company: ExploreCompany; onPress: () 
         <View style={s.nearbyLogo}>
           <Image
             source={{ uri: company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}` }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             contentFit="cover"
           />
           {(() => {
@@ -343,7 +343,7 @@ function NearbyRow({ company, onPress }: { company: ExploreCompany; onPress: () 
             return (
               <View style={{ position: "absolute", bottom: 4, right: 4, backgroundColor: T.accent, width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 0.75, borderColor: "#FFFFFF", shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 3, elevation: 2 }}>
                 {cat?.useImageAsBadge && cat?.imageUrl ? (
-                  <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                  <Image source={{ uri: cat.imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
                 ) : (
                   <MaterialCommunityIcons name={(cat?.icon as any) || getCategoryIcon(cat?.name || primaryCat)} size={13} color="#fff" />
                 )}
@@ -383,7 +383,7 @@ function NearbyRow({ company, onPress }: { company: ExploreCompany; onPress: () 
 export default function Explore() {
   const router = useRouter();
   const { t } = useTranslation();
-  const searchRef = useRef<TextInput>(null);
+  const searchRef = useRef<any>(null);
   const [searchInput, setSearchInput] = useState("");
 
   const {
