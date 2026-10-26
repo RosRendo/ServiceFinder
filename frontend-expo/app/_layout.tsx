@@ -33,6 +33,7 @@ LogBox.ignoreLogs([
   'defaultProps will be removed',
   'expo-notifications: Android Push notifications',
   '`expo-notifications` functionality is not fully supported in Expo Go',
+  'ImageBackground is deprecated',
 ]);
 
 const originalConsoleError = console.error;
@@ -145,6 +146,9 @@ function App() {
       apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY || "phc_placeholder_key_replace_me"}
       options={{
         host: process.env.EXPO_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
+      }}
+      autocapture={{
+        captureScreens: false,
       }}
     >
       <RootLayout />
