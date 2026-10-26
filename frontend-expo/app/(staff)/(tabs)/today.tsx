@@ -141,7 +141,7 @@ export default function TodayScreen() {
 
         socket = io(SOCKET_URL || API_URL, { transports: ['websocket'] });
         if (activeBooking?.id) {
-          socket.emit('join_booking', String(activeBooking.id));
+          socket?.emit?.('join_booking', String(activeBooking.id));
         }
 
         sub = await Location.watchPositionAsync(
@@ -163,7 +163,7 @@ export default function TodayScreen() {
 
             // Stream real device GPS when traveling
             if (state === 'TRAVELING' && activeBooking?.id && socket) {
-              socket.emit('staff_location_update', {
+              socket?.emit?.('staff_location_update', {
                 bookingId: String(activeBooking.id),
                 latitude: coords.latitude,
                 longitude: coords.longitude,
@@ -179,8 +179,8 @@ export default function TodayScreen() {
     return () => {
       sub?.remove();
       if (socket) {
-        if (activeBooking?.id) socket.emit('leave_booking', String(activeBooking.id));
-        socket.disconnect();
+        if (activeBooking?.id) socket?.emit?.('leave_booking', String(activeBooking.id));
+        socket.disconnect?.();
       }
     };
   }, [state, activeBooking?.id]);
@@ -431,7 +431,7 @@ export default function TodayScreen() {
     try {
       socket = io(SOCKET_URL || API_URL, { transports: ['websocket'] });
       socket.on('connect', () => {
-        socket.emit('join_booking', String(activeBooking.id));
+        socket?.emit?.('join_booking', String(activeBooking.id));
       });
     } catch (e) {}
 
@@ -446,7 +446,7 @@ export default function TodayScreen() {
             // Broadcast real position to customer live map (throttled)
             if (socket && Date.now() - lastPushAt > 10000) {
               lastPushAt = Date.now();
-              socket.emit('staff_location_update', {
+              socket?.emit?.('staff_location_update', {
                 bookingId: String(activeBooking.id),
                 latitude: pos.coords.latitude,
                 longitude: pos.coords.longitude,
@@ -466,8 +466,8 @@ export default function TodayScreen() {
     return () => {
       watchSub?.remove();
       if (socket) {
-        socket.emit('leave_booking', String(activeBooking.id));
-        socket.disconnect();
+        socket?.emit?.('leave_booking', String(activeBooking.id));
+        socket.disconnect?.();
       }
     };
   }, [state, activeBooking?.id]);

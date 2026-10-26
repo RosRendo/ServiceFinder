@@ -170,7 +170,7 @@ export default function JobExecutionScreen() {
 
             // Emit to WebSocket
             if (socket && socket.connected) {
-              socket.emit("staff_location_update", {
+              socket?.emit?.("staff_location_update", {
                 bookingId: id,
                 latitude: lat,
                 longitude: lng
@@ -187,8 +187,8 @@ export default function JobExecutionScreen() {
       active = false;
       watchRef.current?.remove();
       if (socket) {
-        socket.emit("leave_booking", id);
-        socket.disconnect();
+        socket?.emit?.("leave_booking", id);
+        socket.disconnect?.();
       }
     };
   }, [id]);

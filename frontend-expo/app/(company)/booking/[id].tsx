@@ -92,8 +92,8 @@ export default function BookingDetails() {
     return () => {
       isActive = false;
       if (socket) {
-        socket.emit("leave_booking", String(booking.id));
-        socket.disconnect();
+        socket?.emit?.("leave_booking", String(booking.id));
+        socket.disconnect?.();
       }
     };
   }, [booking?.status, booking?.id]);

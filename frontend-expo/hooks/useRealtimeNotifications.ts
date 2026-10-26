@@ -127,7 +127,7 @@ export function useRealtimeNotifications() {
       socket.on('connect', () => {
         setConnected(true);
         // Join user-specific room
-        socket.emit('join', { userId: user.id, role: user.role });
+        socket?.emit?.('join', { userId: user.id, role: user.role });
       });
 
       socket.on('disconnect', () => setConnected(false));

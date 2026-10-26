@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { View, Text, TouchableOpacity, Animated, StyleSheet, Platform } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -21,6 +21,7 @@ const TABS = [
 ];
 
 function FloatingTabBar({ state, descriptors, navigation, t }: any) {
+  const router = useRouter();
   const scales = useRef(TABS.map((_, i) => new Animated.Value(i === 0 ? 1 : 0.88))).current;
 
   useEffect(() => {
@@ -43,9 +44,15 @@ function FloatingTabBar({ state, descriptors, navigation, t }: any) {
           const isFocused = state.index === state.routes.findIndex((r: any) => r.name === tab.name);
 
           const onPress = () => {
-            const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+            const event = navigation?.emit
+              ? navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true })
+              : null;
+            if (!isFocused && (!event || !event.defaultPrevented)) {
+              if (navigation?.navigate) {
+                navigation.navigate(route.name);
+              } else {
+                router.push(`/(customer)/(tabs)/${route.name}` as any);
+              }
             }
           };
 

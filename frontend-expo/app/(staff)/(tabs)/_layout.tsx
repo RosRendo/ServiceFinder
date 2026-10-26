@@ -3,7 +3,7 @@
  * Clean iOS-style tab bar that floats above content with a pill indicator
  */
 import React, { useRef, useEffect } from 'react';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { View, Text, TouchableOpacity, Animated, StyleSheet, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from "react-i18next";
@@ -23,6 +23,7 @@ const TABS = [
 ];
 
 function FloatingTabBar({ state, descriptors, navigation }: any) {
+  const router = useRouter();
   // One animated value per tab for the scale spring
   const scales = useRef(TABS.map((_, i) => new Animated.Value(i === 0 ? 1 : 0.88))).current;
 
@@ -46,9 +47,15 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
           const isFocused = state.index === index;
 
           const onPress = () => {
-            const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+            const event = navigation?.emit
+              ? navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true })
+              : null;
+            if (!isFocused && (!event || !event.defaultPrevented)) {
+              if (navigation?.navigate) {
+                navigation.navigate(route.name);
+              } else {
+                router.push(`/(staff)/(tabs)/${route.name}` as any);
+              }
             }
           };
 

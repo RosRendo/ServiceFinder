@@ -162,7 +162,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ isLoading: true, error: null, activeConversationId: conversationId });
       const { socket } = get();
       if (socket) {
-        socket.emit("join_conversation", conversationId);
+        socket?.emit?.("join_conversation", conversationId);
       }
       const res = await api.get(`/api/conversations/${conversationId}/messages?_t=${Date.now()}`);
 

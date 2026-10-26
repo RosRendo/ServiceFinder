@@ -394,8 +394,8 @@ export default function MasterMapViewScreen() {
 
     return () => {
       if (socket) {
-        socket.emit("leave_instant_request", { requestId: activeRequestId });
-        socket.disconnect();
+        socket?.emit?.("leave_instant_request", { requestId: activeRequestId });
+        socket.disconnect?.();
       }
       timers.forEach(clearTimeout);
     };
@@ -460,8 +460,8 @@ export default function MasterMapViewScreen() {
 
     return () => {
       if (socket) {
-        socket.emit("leave_booking", String(activeBookingId));
-        socket.disconnect();
+        socket?.emit?.("leave_booking", String(activeBookingId));
+        socket.disconnect?.();
       }
       clearInterval(pollTimer);
     };
