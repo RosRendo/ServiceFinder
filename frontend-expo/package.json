@@ -84,7 +84,7 @@
     "react-native-worklets": "0.13.0",
     "rn-swipe-button": "^3.0.1",
     "socket.io-client": "^4.8.3",
-    "zustand": "^5.0.12"
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.4",
