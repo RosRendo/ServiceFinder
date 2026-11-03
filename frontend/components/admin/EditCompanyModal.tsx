@@ -183,13 +183,13 @@ export function EditCompanyModal({ open, onClose, company, onSuccess }: EditComp
             <TabsList className="bg-transparent h-12 p-0 w-full justify-start gap-6">
               <TabsTrigger 
                 value="general" 
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-violet-600 data-[state=active]:text-foreground text-muted-foreground font-bold tracking-wide uppercase text-[11px] rounded-none px-0 h-12"
+                className="data-[state=active]:bg-accent data-[state=active]:text-foreground text-muted-foreground font-bold tracking-wide uppercase text-[11px] rounded-lg px-3 h-9"
               >
                 General Info
               </TabsTrigger>
               <TabsTrigger 
                 value="services" 
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-violet-600 data-[state=active]:text-foreground text-muted-foreground font-bold tracking-wide uppercase text-[11px] rounded-none px-0 h-12"
+                className="data-[state=active]:bg-accent data-[state=active]:text-foreground text-muted-foreground font-bold tracking-wide uppercase text-[11px] rounded-lg px-3 h-9"
               >
                 Services Menu
               </TabsTrigger>

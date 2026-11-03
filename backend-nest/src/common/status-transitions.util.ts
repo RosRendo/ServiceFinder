@@ -1,3 +1,8 @@
+import {
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
+
 export const VALID_TRANSITIONS: Record<string, string[]> = {
   pending: ['assigned', 'confirmed', 'arrived', 'in_progress', 'cancelled'],
   assigned: [
@@ -15,6 +20,10 @@ export const VALID_TRANSITIONS: Record<string, string[]> = {
   completed: [],
   cancelled: [],
 };
+
+export const ALL_VALID_TARGET_STATUSES: string[] = Array.from(
+  new Set(Object.values(VALID_TRANSITIONS).flat()),
+);
 
 export function canTransitionTo(
   currentStatus: string,
@@ -36,9 +45,12 @@ export function validateTransition(
 ): void {
   if (!canTransitionTo(currentStatus, newStatus)) {
     const valid = getValidTransitions(currentStatus);
-    throw new Error(
+    const message =
       `Invalid status transition from "${currentStatus}" to "${newStatus}". ` +
-        `Valid transitions: ${valid.length > 0 ? valid.join(', ') : 'none (terminal state)'}`,
-    );
+      `Valid transitions: ${valid.length > 0 ? valid.join(', ') : 'none (terminal state)'}`;
+    if (!VALID_TRANSITIONS[currentStatus]) {
+      throw new BadRequestException(message);
+    }
+    throw new ConflictException(message);
   }
 }

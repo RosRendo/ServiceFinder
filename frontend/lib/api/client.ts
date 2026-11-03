@@ -1,6 +1,16 @@
 import axios from "axios";
 
-const baseURL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/api$/, "") + "/api";
+const getApiBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/api$/, "") + "/api";
+  }
+  if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
+    return "https://servicefinder.dashboardkiller.online/api";
+  }
+  return "http://localhost:8011/api";
+};
+
+const baseURL = getApiBaseUrl();
 
 const apiClient = axios.create({
   baseURL,

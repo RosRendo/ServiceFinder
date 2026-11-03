@@ -192,6 +192,9 @@ export class DisputesService {
           status: 'resolved',
           resolvedAt: new Date(),
           updatedAt: new Date(),
+          description: dto.notes
+            ? `${dispute.description}\n\n--- Resolution note (admin) ---\n${dto.notes}`
+            : dispute.description,
         },
       });
 

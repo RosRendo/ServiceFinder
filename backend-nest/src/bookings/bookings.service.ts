@@ -651,7 +651,7 @@ export class BookingsService {
           where: {
             id: bookingId,
             assignedStaffId: null, // Atomic check: only claim if currently unassigned
-            status: 'pending', // Atomic check: only claim if currently pending
+            status: { in: ['pending', 'confirmed'] }, // 'confirmed' covers auto-matched instant jobs
           },
           data: { assignedStaffId: staff.id, status: 'confirmed' },
           include: {
@@ -665,7 +665,7 @@ export class BookingsService {
         await tx.bookingStatusLog.create({
           data: {
             bookingId,
-            oldStatus: 'pending',
+            oldStatus: booking.status,
             newStatus: 'confirmed',
             changedBy: userId,
           },
@@ -673,7 +673,7 @@ export class BookingsService {
 
         return u;
       } catch (error) {
-        // Prisma error P2025 means Record to update not found (meaning already claimed or not pending)
+        // Prisma error P2025 means Record to update not found (meaning already claimed or not claimable)
         if (
           error.code === 'P2025' ||
           (error.meta &&

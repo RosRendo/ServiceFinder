@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { ManagementDataGrid, ColumnDef } from "@/components/admin/ManagementDataGrid";
 import { StatusPill } from "@/components/admin/StatusPill";
 import { ConfirmationDialog, ReasonOption } from "@/components/admin/ConfirmationDialog";
 import { UserDrawer, UserRow } from "@/components/drawers/UserDrawer";
 import { CreateUserDrawer } from "@/components/drawers/CreateUserDrawer";
-import { Download, Plus, Ban, Trash2, Eye } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import api from "@/lib/api/client";
@@ -29,7 +28,6 @@ const SUSPEND_REASONS: ReasonOption[] = [
 ];
 
 export default function UsersPage() {
-  const router = useRouter();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -42,7 +40,6 @@ export default function UsersPage() {
 
   // Moderation Dialog
   const [suspendTarget, setSuspendTarget] = useState<UserRow | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -74,18 +71,6 @@ export default function UsersPage() {
       fetchUsers();
     } catch {
       toast.error("Failed to suspend user.");
-    }
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deleteTarget) return;
-    try {
-      await api.delete(`/users/${deleteTarget.id}`);
-      toast.success(`User ${deleteTarget.fullName || deleteTarget.email} deleted.`);
-      setDeleteTarget(null);
-      fetchUsers();
-    } catch {
-      toast.error("Failed to delete user.");
     }
   };
 

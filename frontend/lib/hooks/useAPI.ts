@@ -149,6 +149,11 @@ export function useAPI<T = any>(
     }
   }, [formattedEndpoint, skip, cache, retry, onSuccess, onError]);
 
+  const refetch = useCallback(async () => {
+    cachedData.current.delete(formattedEndpoint);
+    await fetchData();
+  }, [fetchData, formattedEndpoint]);
+
   useEffect(() => {
     if (!skip) {
       fetchData();
@@ -165,7 +170,7 @@ export function useAPI<T = any>(
     data,
     loading,
     error,
-    refetch: fetchData,
+    refetch,
   };
 }
 

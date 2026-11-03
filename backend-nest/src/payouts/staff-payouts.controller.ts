@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PayoutsService } from './payouts.service';
+import { RequestStaffPayoutDto } from './dto/request-staff-payout.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -48,13 +49,13 @@ export class StaffPayoutsController {
   @ApiOperation({ summary: 'Request a payout' })
   async requestPayout(
     @Request() req: any,
-    @Body() body: { amount: number; method: string },
+    @Body() dto: RequestStaffPayoutDto,
   ) {
     const staffId = await this.getStaffId(req);
     return this.payoutsService.requestStaffPayout(
       staffId,
-      body.amount,
-      body.method,
+      dto.amount,
+      dto.method,
     );
   }
 

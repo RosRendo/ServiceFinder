@@ -96,7 +96,7 @@ function CompanyDashboardContent() {
     window.history.replaceState(null, "", url);
   };
 
-  const fetchData = async (silent = false) => {
+  const fetchData = async (silent = false): Promise<boolean> => {
     if (!silent) setLoading(true);
     try {
       const [metricsRes, bookingsRes, staffRes] = await Promise.all([
@@ -104,8 +104,12 @@ function CompanyDashboardContent() {
         api.get("/bookings?limit=10").catch(() => null),
         api.get("/companies/my-company/staff").catch(() => null)
       ]);
-      
-      if (metricsRes) setMetrics(metricsRes.data.data || metricsRes.data);
+
+      let mainSuccess = false;
+      if (metricsRes) {
+        setMetrics(metricsRes.data.data || metricsRes.data);
+        mainSuccess = true;
+      }
       if (bookingsRes) {
         const payload = bookingsRes.data.data || bookingsRes.data;
         setRecentBookings(payload.bookings || []);
@@ -114,8 +118,15 @@ function CompanyDashboardContent() {
         const payload = staffRes.data.data || staffRes.data;
         setStaffList(payload.staff || payload || []);
       }
+      if (!mainSuccess) {
+        throw new Error("Primary metrics fetch failed");
+      }
+      return mainSuccess;
     } catch {
-      toast({ title: "Error", description: "Failed to load dashboard data.", variant: "destructive" });
+      if (!silent) {
+        toast({ title: "Error", description: "Failed to load dashboard data.", variant: "destructive" });
+      }
+      return false;
     } finally {
       if (!silent) setLoading(false);
     }
@@ -127,8 +138,12 @@ function CompanyDashboardContent() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchData(true);
-    toast({ title: "Dashboard Refreshed", description: "Live operational data synchronized." });
+    const ok = await fetchData(true);
+    if (ok) {
+      toast({ title: "Dashboard Refreshed", description: "Live operational data synchronized." });
+    } else {
+      toast({ title: "Refresh failed", description: "Could not fetch the latest dashboard data.", variant: "destructive" });
+    }
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
@@ -164,86 +179,95 @@ function CompanyDashboardContent() {
         revenue: Number(d.value || d.actualValue || 0),
       }));
     }
-    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    const base = Number(metrics?.revenue || 0) * 0.14;
-    return days.map((day) => ({ day, revenue: Math.round(base) }));
+    return [];
   }, [metrics]);
 
   // Today vs Weekly numbers
   const totalRevenue = Number(metrics?.revenue || 0);
   const todayEstimatedRevenue = useMemo(() => {
     const todayOrders = todayBookings.filter((b: any) => b.status === "completed");
-    const earned = todayOrders.reduce((acc, b) => acc + Number(b.companyEarnings || b.totalPrice || 0), 0);
-    return earned > 0 ? earned : (totalRevenue * 0.12);
-  }, [todayBookings, totalRevenue]);
+    return todayOrders.reduce((acc, b) => acc + Number(b.companyEarnings || b.totalPrice || 0), 0);
+  }, [todayBookings]);
+
+  const ratingLabel =
+    metrics?.averageRating && Number(metrics.averageRating) > 0
+      ? `${Number(metrics.averageRating).toFixed(1)} / 5.0`
+      : "—";
+  const totalReviews = Number(metrics?.totalReviews ?? 0);
+  const growthLabel =
+    metrics?.revenueGrowth != null
+      ? `${Number(metrics.revenueGrowth) > 0 ? "+" : ""}${Number(metrics.revenueGrowth)}% vs last month`
+      : "No comparison data";
+  const completionRateLabel =
+    metrics?.completionRate != null ? `${metrics.completionRate}% fulfillment rate` : "Fulfillment rate unavailable";
 
   const kpis = {
     today: [
-      { 
-        label: "Today's Net Volume", 
-        value: `$${todayEstimatedRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-        subtext: "Real-time earnings today", 
-        up: true, 
-        icon: TrendingUp, 
-        badge: "Today" 
+      {
+        label: "Today's Net Volume",
+        value: `$${todayEstimatedRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        subtext: "Real-time earnings today",
+        up: true,
+        icon: TrendingUp,
+        badge: "Today"
       },
-      { 
-        label: "Active In-Flight", 
-        value: (activeJobsCount || Number(metrics?.activeBookings || 0)).toString(), 
-        subtext: "Jobs currently underway", 
-        up: true, 
-        icon: Activity, 
-        badge: "Live" 
+      {
+        label: "Active In-Flight",
+        value: (activeJobsCount || Number(metrics?.activeBookings || 0)).toString(),
+        subtext: "Jobs currently underway",
+        up: true,
+        icon: Activity,
+        badge: "Live"
       },
-      { 
-        label: "Field Staff On-Duty", 
-        value: activeStaffCount.toString(), 
-        subtext: `${staffList.length} registered technicians`, 
-        up: true, 
-        icon: Users, 
-        badge: "Active" 
+      {
+        label: "Field Staff On-Duty",
+        value: activeStaffCount.toString(),
+        subtext: `${staffList.length} registered technicians`,
+        up: true,
+        icon: Users,
+        badge: "Active"
       },
-      { 
-        label: "Customer Rating", 
-        value: metrics?.averageRating ? `${metrics.averageRating.toFixed(1)} / 5.0` : "4.9 / 5.0", 
-        subtext: `${metrics?.totalReviews || 18} verified ratings`, 
-        up: true, 
-        icon: Star, 
-        badge: "CSAT" 
+      {
+        label: "Customer Rating",
+        value: ratingLabel,
+        subtext: totalReviews > 0 ? `${totalReviews} verified ratings` : "No verified ratings yet",
+        up: true,
+        icon: Star,
+        badge: "CSAT"
       },
     ],
     weekly: [
-      { 
-        label: "7-Day Gross Volume", 
-        value: `$${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-        subtext: "+12.4% vs last week", 
-        up: true, 
-        icon: TrendingUp, 
-        badge: "7 Days" 
+      {
+        label: "7-Day Gross Volume",
+        value: `$${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        subtext: growthLabel,
+        up: true,
+        icon: TrendingUp,
+        badge: "7 Days"
       },
-      { 
-        label: "Weekly Orders", 
-        value: Number(metrics?.completedCount || recentBookings.length || 0).toString(), 
-        subtext: `${metrics?.completionRate || 98}% fulfillment rate`, 
-        up: true, 
-        icon: CalendarClock, 
-        badge: "Success" 
+      {
+        label: "Weekly Orders",
+        value: Number(metrics?.completedCount || recentBookings.length || 0).toString(),
+        subtext: completionRateLabel,
+        up: true,
+        icon: CalendarClock,
+        badge: "Success"
       },
-      { 
-        label: "Total Workforce", 
-        value: staffList.length.toString(), 
-        subtext: `${activeStaffCount} ready for dispatch`, 
-        up: true, 
-        icon: Users, 
-        badge: "Team" 
+      {
+        label: "Total Workforce",
+        value: staffList.length.toString(),
+        subtext: `${activeStaffCount} ready for dispatch`,
+        up: true,
+        icon: Users,
+        badge: "Team"
       },
-      { 
-        label: "Overall CSAT", 
-        value: metrics?.averageRating ? `${metrics.averageRating.toFixed(1)} / 5.0` : "4.9 / 5.0", 
-        subtext: "Top-tier service quality", 
-        up: true, 
-        icon: Star, 
-        badge: "Rated" 
+      {
+        label: "Overall CSAT",
+        value: ratingLabel,
+        subtext: totalReviews > 0 ? `From ${totalReviews} verified ratings` : "No review data yet",
+        up: true,
+        icon: Star,
+        badge: "Rated"
       },
     ]
   };

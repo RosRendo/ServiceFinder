@@ -66,6 +66,73 @@ export class ReviewsService {
     return { success: true, reviews: formatted };
   }
 
+  async getMeReviews(userId: string, page = 1, limit = 10) {
+    const skip = (Number(page) - 1) * Number(limit);
+    const where = { customerId: BigInt(userId) };
+
+    const [reviews, total] = await Promise.all([
+      this.prisma.review.findMany({
+        where,
+        skip: Number(skip),
+        take: Number(limit),
+        include: {
+          customer: { select: { id: true, fullName: true, avatar: true } },
+          booking: {
+            select: {
+              id: true,
+              bookingDate: true,
+              service: { select: { id: true, name: true } },
+              company: { select: { id: true, name: true } },
+            },
+          },
+          staff: { select: { id: true, user: { select: { fullName: true } } } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.review.count({ where }),
+    ]);
+
+    const formatted = reviews.map((r) => ({
+      ...r,
+      id: r.id.toString(),
+      bookingId: r.bookingId.toString(),
+      customerId: r.customerId.toString(),
+      staffId: r.staffId?.toString(),
+      customer: {
+        ...r.customer,
+        id: r.customer.id.toString(),
+      },
+      booking: {
+        ...r.booking,
+        id: r.booking.id.toString(),
+        company: {
+          ...r.booking.company,
+          id: r.booking.company.id.toString(),
+        },
+        service: {
+          ...r.booking.service,
+          id: r.booking.service.id.toString(),
+        },
+      },
+      staff: r.staff
+        ? {
+            ...r.staff,
+            id: r.staff.id.toString(),
+          }
+        : null,
+    }));
+
+    return {
+      reviews: formatted,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit)),
+      },
+    };
+  }
+
   async getAllReviews(query: any) {
     const { companyId, customerId, staffId, page = 1, limit = 10 } = query;
     const skip = (Number(page) - 1) * Number(limit);

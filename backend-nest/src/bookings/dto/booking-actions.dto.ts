@@ -1,8 +1,9 @@
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsIn } from 'class-validator';
+import { ALL_VALID_TARGET_STATUSES } from '../../common/status-transitions.util';
 
 export class UpdateBookingStatusDto {
   @IsString()
-  @IsNotEmpty()
+  @IsIn(ALL_VALID_TARGET_STATUSES)
   status: string;
 }
 

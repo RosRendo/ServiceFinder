@@ -27,6 +27,11 @@ const widthMap = {
   full: "w-full max-w-[100vw] sm:w-[92vw]",
 };
 
+let drawerSeq = 0;
+const drawerStack: number[] = [];
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+
 export function BaseDrawer({
   open,
   onClose,
@@ -41,15 +46,61 @@ export function BaseDrawer({
   className,
 }: BaseDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+  const instanceId = useRef(++drawerSeq);
 
-  // Close on Escape
+  // Close on Escape, only when this drawer is the top layer
   useEffect(() => {
+    if (!open) return;
+    drawerStack.push(instanceId.current);
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && open) onClose();
+      if (e.key === "Escape" && drawerStack[drawerStack.length - 1] === instanceId.current) onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => {
+      const idx = drawerStack.indexOf(instanceId.current);
+      if (idx !== -1) drawerStack.splice(idx, 1);
+      window.removeEventListener("keydown", handler);
+    };
+  }, [open, onClose]);
+
+  // Focus the panel on open, restore focus on close/unmount
+  useEffect(() => {
+    if (!open) return;
+    previouslyFocused.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    drawerRef.current?.focus();
+    return () => {
+      const prev = previouslyFocused.current;
+      if (prev && prev.isConnected) prev.focus();
+    };
+  }, [open]);
+
+  // Trap focus inside the panel while open
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const panel = drawerRef.current;
+      if (!panel) return;
+      const focusable = panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || !panel.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !panel.contains(active)) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
+  }, [open]);
 
   // Lock body scroll when open
   useEffect(() => {
@@ -80,6 +131,7 @@ export function BaseDrawer({
         ref={drawerRef}
         role="dialog"
         aria-modal="true"
+        tabIndex={-1}
         className={cn(
           "fixed right-0 top-0 bottom-0 z-50 flex flex-col bg-background border-l border-border shadow-2xl h-[100dvh]",
           "transition-transform duration-300 ease-out font-sans",

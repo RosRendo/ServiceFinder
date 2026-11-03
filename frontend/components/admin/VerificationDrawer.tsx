@@ -45,10 +45,7 @@ export function VerificationDrawer({
   const handleApprove = async () => {
     setIsSubmitting(true);
     try {
-      await api.patch(`/admin/companies/${company.id}/verify`, {
-        status: 'verified',
-        verificationNotes: 'Approved during document inspection.',
-      });
+      await api.post(`/admin/companies/${company.id}/verify`);
       toast.success(`${company.name} verified successfully`);
       onVerified();
       onClose();
@@ -64,9 +61,8 @@ export function VerificationDrawer({
     try {
       const reasonObj = REJECT_REASONS.find((r) => r.code === rejectReason);
       const combinedNotes = `${reasonObj?.label || rejectReason}${rejectNotes ? ` - ${rejectNotes}` : ''}`;
-      await api.patch(`/admin/companies/${company.id}/verify`, {
-        status: 'rejected',
-        rejectionReason: combinedNotes,
+      await api.post(`/admin/companies/${company.id}/reject`, {
+        reason: combinedNotes,
       });
       toast.success(`${company.name} verification rejected`);
       onVerified();

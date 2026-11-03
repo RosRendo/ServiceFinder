@@ -147,6 +147,59 @@ describe('ReviewsService', () => {
     });
   });
 
+  describe('getMeReviews', () => {
+    it('should return reviews for the current user with pagination', async () => {
+      mockPrismaService.review.findMany.mockResolvedValueOnce([
+        {
+          id: 5n,
+          bookingId: 100n,
+          customerId: 1n,
+          staffId: 2n,
+          companyRating: 4,
+          customer: { id: 1n, fullName: 'Test User', avatar: null },
+          booking: {
+            id: 100n,
+            bookingDate: new Date(),
+            service: { id: 3n, name: 'Haircut' },
+            company: { id: 2n, name: 'Best Co' },
+          },
+          staff: { id: 2n, user: { fullName: 'Staff Member' } },
+        },
+      ]);
+      mockPrismaService.review.count.mockResolvedValueOnce(1);
+
+      const result = await service.getMeReviews('1', 1, 10);
+
+      expect(mockPrismaService.review.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { customerId: 1n },
+          skip: 0,
+          take: 10,
+        }),
+      );
+      expect(result.reviews).toHaveLength(1);
+      expect(result.reviews[0].id).toBe('5');
+      expect(result.reviews[0].booking.id).toBe('100');
+      expect(result.pagination).toEqual({
+        total: 1,
+        page: 1,
+        limit: 10,
+        pages: 1,
+      });
+    });
+
+    it('should return empty reviews with zero pagination when user has none', async () => {
+      mockPrismaService.review.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.review.count.mockResolvedValueOnce(0);
+
+      const result = await service.getMeReviews('1', 1, 10);
+
+      expect(result.reviews).toHaveLength(0);
+      expect(result.pagination.total).toBe(0);
+      expect(result.pagination.pages).toBe(0);
+    });
+  });
+
   describe('deleteReview', () => {
     it('should throw NotFoundException if review not found', async () => {
       mockPrismaService.review.findUnique.mockResolvedValueOnce(null);

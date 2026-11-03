@@ -342,6 +342,7 @@ export class AuthService {
         phone: true,
         role: true,
         status: true,
+        mfaEnabled: true,
         lastLoginAt: true,
         createdAt: true,
         updatedAt: true,

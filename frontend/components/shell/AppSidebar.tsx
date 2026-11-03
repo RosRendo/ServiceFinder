@@ -79,7 +79,6 @@ function buildAdminNav(unreadCount: number, unreadMessagesCount: number): NavGro
         { name: "Service Types", href: "/admin/service-types", icon: Wrench },
         { name: "Campaigns", href: "/admin/broadcasts", icon: Sparkles },
         { name: "Promo Codes", href: "/admin/promotions", icon: Tag },
-        { name: "Featured Listings", href: "/admin/featured", icon: Star },
       ],
     },
     {

@@ -67,7 +67,7 @@ export function AIAssistant() {
         onClick={() => setOpen(true)}
         className={cn(
           "fixed bottom-6 right-6 z-50 flex items-center gap-2 h-11 pl-3 pr-4 rounded-full",
-          "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-elevated",
+          "bg-primary text-primary-foreground shadow-elevated",
           "hover:scale-105 transition-all duration-200 group",
           open && "hidden"
         )}
@@ -80,8 +80,8 @@ export function AIAssistant() {
       {open && (
         <div className="fixed bottom-6 right-6 z-50 w-[380px] max-h-[560px] flex flex-col rounded-2xl border border-border bg-background shadow-elevated overflow-hidden">
           {/* Header */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-gradient-to-r from-violet-600/10 to-indigo-600/10">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/60">
+            <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
               <Bot className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1">
@@ -121,7 +121,7 @@ export function AIAssistant() {
                   )}
                 >
                   {msg.role === "ai" && (
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mr-2 mt-1 shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center mr-2 mt-1 shrink-0">
                       <Sparkles className="w-3 h-3 text-white" />
                     </div>
                   )}
@@ -143,14 +143,14 @@ export function AIAssistant() {
             )}
             {loading && (
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0">
+                <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
                   <Sparkles className="w-3 h-3 text-white" />
                 </div>
                 <div className="flex gap-1 px-3 py-2 rounded-xl bg-muted">
                   {[0, 1, 2].map((i) => (
                     <span
                       key={i}
-                      className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce"
+                      className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-pulse"
                       style={{ animationDelay: `${i * 150}ms` }}
                     />
                   ))}

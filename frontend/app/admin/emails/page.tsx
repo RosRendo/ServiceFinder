@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import api from "@/lib/api/client";
+import { EmptyState } from "@/components/admin/EmptyState";
 import { cn } from "@/lib/utils";
 
 export default function EmailManagementPage() {
@@ -35,30 +36,11 @@ export default function EmailManagementPage() {
       const res = await api.get("/admin/emails");
       const data = res.data?.data || res.data;
       const list = Array.isArray(data) ? data : [];
-      if (list.length === 0) {
-        // Fallback default templates
-        const defaults = [
-          { id: 1, name: "Booking Confirmation", description: "Sent to customer when payment succeeds", subject: "Your ServiceFinder booking #{{bookingId}} is confirmed", body: "<h2>Booking Confirmed</h2><p>Dear {{customerName}}, your booking with {{companyName}} is confirmed for {{scheduledDate}}.</p>", status: "active", variables: ["bookingId", "customerName", "companyName", "scheduledDate"] },
-          { id: 2, name: "Technician Dispatched", description: "Triggered when crew begins travel", subject: "Technician {{staffName}} is on the way", body: "<h2>Technician Dispatched</h2><p>Hello {{customerName}}, {{staffName}} has departed and will arrive shortly.</p>", status: "active", variables: ["customerName", "staffName"] },
-          { id: 3, name: "Dispute Claim Opened", description: "Notifies customer and merchant of new claim", subject: "Dispute filed for Booking #{{bookingId}}", body: "<h2>Dispute Notice</h2><p>A mediation request has been submitted. Our compliance team will audit the transaction.</p>", status: "active", variables: ["bookingId"] },
-        ];
-        setTemplates(defaults);
-        setSelectedTemplateId(1);
-      } else {
-        setTemplates(list);
-        if (!selectedTemplateId) {
-          setSelectedTemplateId(list[0].id);
-        }
-      }
+      setTemplates(list);
+      setSelectedTemplateId(list[0]?.id ?? null);
     } catch {
-      // Use defaults if endpoint empty
-      const defaults = [
-        { id: 1, name: "Booking Confirmation", description: "Sent to customer when payment succeeds", subject: "Your ServiceFinder booking #{{bookingId}} is confirmed", body: "<h2>Booking Confirmed</h2><p>Dear {{customerName}}, your booking with {{companyName}} is confirmed for {{scheduledDate}}.</p>", status: "active", variables: ["bookingId", "customerName", "companyName", "scheduledDate"] },
-        { id: 2, name: "Technician Dispatched", description: "Triggered when crew begins travel", subject: "Technician {{staffName}} is on the way", body: "<h2>Technician Dispatched</h2><p>Hello {{customerName}}, {{staffName}} has departed and will arrive shortly.</p>", status: "active", variables: ["customerName", "staffName"] },
-        { id: 3, name: "Dispute Claim Opened", description: "Notifies customer and merchant of new claim", subject: "Dispute filed for Booking #{{bookingId}}", body: "<h2>Dispute Notice</h2><p>A mediation request has been submitted. Our compliance team will audit the transaction.</p>", status: "active", variables: ["bookingId"] },
-      ];
-      setTemplates(defaults);
-      setSelectedTemplateId(1);
+      setTemplates([]);
+      toast.error("Failed to load email templates.");
     } finally {
       setLoading(false);
     }
@@ -89,20 +71,24 @@ export default function EmailManagementPage() {
     setSelectedTemplateId(id);
   };
 
-  const handleCreateTemplate = () => {
-    const newId = Date.now();
-    const newTemplate = {
-      id: newId,
-      name: "Custom Transactional Notice",
-      description: "Custom platform notification template",
-      subject: "Important update regarding your account",
-      body: "<h2>Notice from ServiceFinder</h2><p>Dear {{customerName}},</p><p>We wanted to update you on your recent activity.</p>",
-      status: "active",
-      variables: ["customerName"]
-    };
-    setTemplates(prev => [newTemplate, ...prev]);
-    setSelectedTemplateId(newId);
-    toast.success("New template draft created.");
+  const handleCreateTemplate = async () => {
+    try {
+      const res = await api.post("/admin/emails", {
+        templateId: `custom_${Date.now()}`,
+        name: "Custom Transactional Notice",
+        description: "Custom platform notification template",
+        subject: "Important update regarding your account",
+        body: "<h2>Notice from ServiceFinder</h2><p>Dear {{customerName}},</p><p>We wanted to update you on your recent activity.</p>",
+        status: "active",
+        variables: ["customerName"],
+      });
+      const created = res.data?.data || res.data;
+      if (created?.id) setSelectedTemplateId(created.id);
+      await fetchTemplates();
+      toast.success("New template created.");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to create template.");
+    }
   };
 
   const handleSave = async () => {
@@ -112,9 +98,8 @@ export default function EmailManagementPage() {
       await api.patch(`/admin/emails/${currentTemplate.id}`, formData);
       toast.success("Email template saved successfully.");
       setTemplates(prev => prev.map(t => t.id === currentTemplate.id ? { ...t, ...formData } : t));
-    } catch {
-      setTemplates(prev => prev.map(t => t.id === currentTemplate.id ? { ...t, ...formData } : t));
-      toast.success("Template saved locally.");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to save email template.");
     } finally {
       setSaving(false);
     }
@@ -129,8 +114,8 @@ export default function EmailManagementPage() {
         testEmail: testEmail || undefined,
       });
       toast.success(`Test email dispatched to ${testEmail || "admin inbox"}.`);
-    } catch {
-      toast.success(`Test email dispatched to ${testEmail || "admin inbox"}.`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to send test email.");
     }
   };
 
@@ -182,9 +167,18 @@ export default function EmailManagementPage() {
               </div>
             ) : (
               <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-                {templates
-                  .filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map(t => (
+                {templates.length === 0 ? (
+                  <EmptyState
+                    title="No templates yet"
+                    description="Create your first transactional email template to get started."
+                    actionLabel="Create Template"
+                    onActionClick={handleCreateTemplate}
+                    className="p-6"
+                  />
+                ) : (
+                  templates
+                    .filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map(t => (
                     <button
                       key={t.id}
                       onClick={() => handleSelectTemplate(t.id)}
@@ -202,7 +196,7 @@ export default function EmailManagementPage() {
                       </div>
                       <span className={`text-[11px] line-clamp-1 ${selectedTemplateId === t.id ? "text-muted-foreground/50" : "text-muted-foreground"}`}>{t.description}</span>
                     </button>
-                  ))}
+                  )))}
               </div>
             )}
           </div>

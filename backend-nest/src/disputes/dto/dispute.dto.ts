@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsArray,
   IsIn,
+  MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -46,4 +47,10 @@ export class ResolveDisputeDto {
   @ApiPropertyOptional({ example: 50.0 })
   @IsOptional()
   refundAmount?: number;
+
+  @ApiPropertyOptional({ example: 'Verified with both parties via email.' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
 }

@@ -43,13 +43,23 @@ export default function CompanyReportsPage({ hideHeader = false }: { hideHeader?
           `"${b.id}","${b.customer?.fullName || ''}","${b.service?.name || ''}","${b.status}","${b.bookingDate}",${b.totalPrice}`
         );
         csvContent = header + lines.join("\n");
+      } else if (reportType.includes("Popularity")) {
+        const res = await api.get("/companies/my-company/revenue");
+        const payload = res.data?.data || res.data;
+        const serviceList = payload.serviceData || [];
+        const header = "Service,Revenue,Share %\n";
+        const lines = serviceList.map((s: any) =>
+          `"${s.name || ''}",${s.revenue || 0},${(s.percentage || 0).toFixed(1)}`
+        );
+        if (!serviceList.length) lines.push('"No completed services in this period",0,0.0');
+        csvContent = header + lines.join("\n");
       } else if (reportType.includes("Staff")) {
         const res = await api.get("/companies/my-company/staff");
         const payload = res.data?.data || res.data;
         const staffList = Array.isArray(payload) ? payload : (payload.staff || []);
         const header = "Staff ID,Name,Email,Working Status,Completed Jobs,Rating\n";
         const lines = staffList.map((s: any) =>
-          `"${s.id}","${s.fullName || ''}","${s.email || ''}","${s.workingStatus || s.status || ''}",${s.jobsCompleted || 0},${s.rating || 5.0}`
+          `"${s.id}","${s.fullName || ''}","${s.email || ''}","${s.workingStatus || s.status || ''}",${s.jobsCompleted || 0},${s.rating ?? 0}`
         );
         csvContent = header + lines.join("\n");
       } else {
@@ -57,7 +67,7 @@ export default function CompanyReportsPage({ hideHeader = false }: { hideHeader?
         const lines = [
           `"Total Bookings",${metrics?.completedBookings || 0}`,
           `"Active Staff",${metrics?.activeStaff || 0}`,
-          `"Average Rating",${metrics?.avgRating || 5.0}`,
+          `"Average Rating",${metrics?.avgRating ?? 0}`,
           `"Current Month Revenue",${metrics?.revenue || 0}`
         ];
         csvContent = header + lines.join("\n");

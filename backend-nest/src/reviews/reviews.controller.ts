@@ -35,6 +35,19 @@ export class ReviewsController {
     return this.reviewsService.getAllReviews(query);
   }
 
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get signed-in user reviews (paginated)' })
+  @ApiResponse({ status: 200, description: 'Return reviews for the current user.' })
+  getMyMeReviews(
+    @Request() req,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
+    return this.reviewsService.getMeReviews(req.user.id, page, limit);
+  }
+
   @Get('my-reviews')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

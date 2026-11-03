@@ -422,7 +422,10 @@ export class AdminService {
       companiesGrowth,
       avgBookingValue:
         totalBookings > 0 ? Math.round(totalRevenue / totalBookings) : 0,
-      conversionRate: 18.2,
+      conversionRate:
+        totalBookings > 0
+          ? Number(((completedBookings / totalBookings) * 100).toFixed(1))
+          : 0,
       completedBookings,
       cancelledBookings,
       openTickets,
@@ -1408,9 +1411,13 @@ export class AdminService {
   }
 
   async getBroadcasts() {
-    return (this.prisma as any).broadcast.findMany({
+    const broadcasts = await (this.prisma as any).broadcast.findMany({
       orderBy: { sentAt: 'desc' },
     });
+    return broadcasts.map((b: any) => ({
+      ...b,
+      openRate: null,
+    }));
   }
 
   async createBroadcast(dto: {
@@ -1448,7 +1455,6 @@ export class AdminService {
         message: dto.message,
         audience: dto.audience,
         sentCount,
-        openRate: Math.floor(Math.random() * 30) + 40,
         status: 'sent',
       },
     });

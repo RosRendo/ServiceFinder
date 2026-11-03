@@ -327,7 +327,7 @@ export default function AdminCompanyDetailPage({ params }: { params: Promise<{ i
                 <TabsTrigger 
                   key={tab.id} 
                   value={tab.id}
-                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground font-bold tracking-wider uppercase text-[11px] rounded-none px-0 h-11 transition-colors"
+                  className="data-[state=active]:bg-accent data-[state=active]:text-foreground text-muted-foreground font-bold tracking-wider uppercase text-[11px] rounded-lg px-3 h-9 transition-colors"
                 >
                   {tab.label}
                 </TabsTrigger>

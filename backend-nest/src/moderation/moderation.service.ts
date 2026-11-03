@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -60,16 +60,74 @@ export class ModerationService {
   }
 
   async applyAction(id: number, action: string) {
-    const newStatus =
-      action === 'resolve'
-        ? 'resolved'
-        : action === 'dismiss'
-          ? 'dismissed'
-          : 'resolved';
-    const updated = await this.prisma.moderationLog.update({
+    const log = await this.prisma.moderationLog.findUnique({
       where: { id: BigInt(id) },
-      data: { status: newStatus },
     });
-    return { success: true, id: updated.id.toString(), status: updated.status };
+    if (!log) throw new NotFoundException('Moderation log not found');
+
+    if (action === 'dismiss') {
+      const updated = await this.prisma.moderationLog.update({
+        where: { id: log.id },
+        data: { status: 'dismissed' },
+      });
+      return {
+        success: true,
+        id: updated.id.toString(),
+        status: updated.status,
+        effect: 'dismissed',
+        entitySuspended: false,
+      };
+    }
+
+    if (action === 'ban') {
+      const isUserTarget = log.entityType === 'user';
+      let entitySuspended = false;
+
+      if (isUserTarget) {
+        const suspended = await this.prisma.user.update({
+          where: { id: BigInt(log.entityId) },
+          data: { status: 'suspended' },
+          select: { id: true, status: true },
+        });
+        entitySuspended = suspended.status === 'suspended';
+
+        await this.prisma.auditLog.create({
+          data: {
+            action: 'STATUS_CHANGE_SUSPENDED - Moderation ban',
+            entityType: 'User',
+            entityId: BigInt(log.entityId),
+          },
+        });
+      }
+
+      const updated = await this.prisma.moderationLog.update({
+        where: { id: log.id },
+        data: { status: 'resolved' },
+      });
+
+      return {
+        success: true,
+        id: updated.id.toString(),
+        status: updated.status,
+        effect: entitySuspended ? 'user_suspended' : 'logged_only',
+        entitySuspended,
+        message: entitySuspended
+          ? 'User has been suspended'
+          : 'Ban logged only: target is not a user account',
+      };
+    }
+
+    const updated = await this.prisma.moderationLog.update({
+      where: { id: log.id },
+      data: { status: 'resolved' },
+    });
+    return {
+      success: true,
+      id: updated.id.toString(),
+      status: updated.status,
+      effect: 'logged_only',
+      entitySuspended: false,
+      message: 'Content removal logged only: content deleted separately',
+    };
   }
 }

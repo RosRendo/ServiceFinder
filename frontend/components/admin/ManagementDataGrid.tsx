@@ -126,6 +126,38 @@ export function ManagementDataGrid<T>({
     }
   };
 
+  const getSortValue = useCallback(
+    (col: ColumnDef<T>, row: T) => {
+      if (col.accessorFn) return col.accessorFn(row);
+      if (col.accessorKey != null) return row[col.accessorKey];
+      return (row as any)[col.id];
+    },
+    []
+  );
+
+  const sortedData = useMemo(() => {
+    if (!sortColumn) return data;
+    const col = columns.find((c) => c.id === sortColumn);
+    if (!col) return data;
+    const dir = sortDirection === 'asc' ? 1 : -1;
+    return [...data].sort((a, b) => {
+      const av = getSortValue(col, a);
+      const bv = getSortValue(col, b);
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+  }, [data, columns, sortColumn, sortDirection, getSortValue]);
+
+  const handleRowKeyDown = (e: React.KeyboardEvent, row: T) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onRowClick?.(row);
+    }
+  };
+
   const activePage = currentPage || page || 1;
   const activeTotal = totalCount ?? totalItems ?? data.length;
   const totalPages = Math.max(1, Math.ceil(activeTotal / pageSize));
@@ -245,6 +277,7 @@ export function ManagementDataGrid<T>({
                 value={internalSearch}
                 onChange={(e) => setInternalSearch(e.target.value)}
                 placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
                 className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-border bg-card text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground/50 transition"
               />
             </div>
@@ -282,6 +315,7 @@ export function ManagementDataGrid<T>({
             {/* 1. Desktop & Tablet Multi-Column DataGrid View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
+                {title && <caption className="sr-only">{title}</caption>}
                 <thead>
                   <tr className="management-table-header border-b border-border bg-muted/40">
                     {hasSelectionSupport && (
@@ -299,28 +333,38 @@ export function ManagementDataGrid<T>({
                     )}
                     {columns.map((col) => {
                       const sortable = col.isSortable || col.sortable;
+                      const isActive = sortColumn === col.id;
                       return (
                         <th
                           key={col.id}
+                          scope="col"
                           style={{ width: col.width }}
-                          onClick={() => handleSort(col.id, col.isSortable, col.sortable)}
+                          aria-sort={sortable && isActive ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}
                           className={cn(
                             'py-2.5 px-3 select-none text-[11px] font-semibold text-muted-foreground uppercase tracking-wider',
                             sortable && 'cursor-pointer hover:text-foreground',
                             col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
                           )}
                         >
-                          <div
-                            className={cn(
-                              'inline-flex items-center gap-1',
-                              col.align === 'right' && 'justify-end',
-                              col.align === 'center' && 'justify-center'
-                            )}
-                          >
-                            <span>{col.header}</span>
-                            {sortable && (
+                          {sortable ? (
+                            <button
+                              type="button"
+                              onClick={() => handleSort(col.id, col.isSortable, col.sortable)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  handleSort(col.id, col.isSortable, col.sortable);
+                                }
+                              }}
+                              className={cn(
+                                'inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground',
+                                col.align === 'right' && 'justify-end',
+                                col.align === 'center' && 'justify-center'
+                              )}
+                            >
+                              <span>{col.header}</span>
                               <span className="text-muted-foreground">
-                                {sortColumn === col.id ? (
+                                {isActive ? (
                                   sortDirection === 'asc' ? (
                                     <ChevronUp className="h-3 w-3 text-foreground" />
                                   ) : (
@@ -330,15 +374,25 @@ export function ManagementDataGrid<T>({
                                   <ChevronsUpDown className="h-3 w-3 opacity-40" />
                                 )}
                               </span>
-                            )}
-                          </div>
+                            </button>
+                          ) : (
+                            <div
+                              className={cn(
+                                'inline-flex items-center gap-1',
+                                col.align === 'right' && 'justify-end',
+                                col.align === 'center' && 'justify-center'
+                              )}
+                            >
+                              <span>{col.header}</span>
+                            </div>
+                          )}
                         </th>
                       );
                     })}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border text-xs">
-                  {data.map((row, idx) => {
+                  {sortedData.map((row, idx) => {
                     const rowId = resolveRowId(row, idx);
                     const isSelected = activeSelectedSet.has(rowId);
                     return (
@@ -381,7 +435,7 @@ export function ManagementDataGrid<T>({
 
             {/* 2. Responsive Mobile/Small Tablet Vertical Collapse View (T032) */}
             <div className="block md:hidden divide-y divide-border">
-              {data.map((row, idx) => {
+              {sortedData.map((row, idx) => {
                 const rowId = resolveRowId(row, idx);
                 const isSelected = activeSelectedSet.has(rowId);
                 const criticalCols = columns.filter((c) => c.priority === 'critical' || !c.priority);
@@ -391,7 +445,12 @@ export function ManagementDataGrid<T>({
                 return (
                   <div
                     key={rowId}
+                    role={onRowClick ? 'button' : undefined}
+                    tabIndex={onRowClick ? 0 : undefined}
                     onClick={() => onRowClick?.(row)}
+                    onKeyDown={(e) => {
+                      if (onRowClick) handleRowKeyDown(e, row);
+                    }}
                     className={cn(
                       'p-4 space-y-3 transition-colors hover:bg-muted/20',
                       onRowClick && 'cursor-pointer',

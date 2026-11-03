@@ -92,6 +92,9 @@ export function CommandPalette({ open, onClose, role }: CommandPaletteProps) {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div
         className="relative w-full max-w-[600px] mx-4 bg-background border border-border rounded-2xl shadow-elevated overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search input */}
@@ -102,6 +105,9 @@ export function CommandPalette({ open, onClose, role }: CommandPaletteProps) {
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelected(0); }}
             placeholder="Search or run a command..."
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="command-palette-list"
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
           />
           <kbd className="hidden sm:flex items-center gap-1 text-[11px] font-medium text-muted-foreground border border-border rounded px-1.5 py-0.5">
@@ -110,7 +116,7 @@ export function CommandPalette({ open, onClose, role }: CommandPaletteProps) {
         </div>
 
         {/* Results */}
-        <div className="max-h-[400px] overflow-y-auto py-2">
+        <div className="max-h-[400px] overflow-y-auto py-2" role="listbox" id="command-palette-list">
           {filtered.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">No results for "{query}"</p>
           ) : (
@@ -128,6 +134,8 @@ export function CommandPalette({ open, onClose, role }: CommandPaletteProps) {
                     return (
                       <button
                         key={item.id}
+                        role="option"
+                        aria-selected={isSelected}
                         onMouseEnter={() => setSelected(idx)}
                         onClick={() => item.action()}
                         className={cn(

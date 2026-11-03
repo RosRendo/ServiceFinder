@@ -107,7 +107,7 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
   const [metrics, setMetrics] = useState<MetricState | null>(null);
   const [revenue, setRevenue] = useState<RevenueState | null>(null);
 
-  const loadData = async (silent = false) => {
+  const loadData = async (silent = false): Promise<boolean> => {
     if (!silent) setLoading(true);
     try {
       const [metricsRes, revenueRes] = await Promise.allSettled([
@@ -121,12 +121,20 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
       if (revenueRes.status === "fulfilled") {
         setRevenue(revenueRes.value.data?.data || revenueRes.value.data);
       }
+
+      const anySuccess =
+        metricsRes.status === "fulfilled" || revenueRes.status === "fulfilled";
+      if (!anySuccess) {
+        throw new Error("All analytics requests failed");
+      }
+      return anySuccess;
     } catch {
       toast({
         title: "Error Loading Analytics",
         description: "Failed to fetch analytics datasets.",
         variant: "destructive",
       });
+      return false;
     } finally {
       if (!silent) setLoading(false);
     }
@@ -138,11 +146,13 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await loadData(true);
-    toast({
-      title: "Data Refreshed",
-      description: "Business analytics synced with live operations.",
-    });
+    const ok = await loadData(true);
+    if (ok) {
+      toast({
+        title: "Data Refreshed",
+        description: "Business analytics synced with live operations.",
+      });
+    }
     setTimeout(() => setIsRefreshing(false), 600);
   };
 
@@ -155,8 +165,8 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
       ["Platform Fee", `$${(revenue?.breakdown?.platformFee ?? 0).toFixed(2)}`],
       ["Completed Bookings", `${metrics?.completedCount ?? 0}`],
       ["Active Bookings", `${metrics?.activeBookings ?? 0}`],
-      ["Fulfillment Rate", `${metrics?.completionRate ?? 100}%`],
-      ["Average Rating", `${(metrics?.averageRating ?? 5).toFixed(1)} / 5.0`],
+      ["Fulfillment Rate", metrics?.completionRate != null ? `${metrics.completionRate}%` : "No data"],
+      ["Average Rating", metrics?.averageRating ? `${metrics.averageRating.toFixed(1)} / 5.0` : "No data"],
       ["Total Reviews", `${metrics?.totalReviews ?? 0}`],
     ];
     const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
@@ -170,27 +180,22 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
     toast({ title: "Report Exported", description: "CSV analytics report downloaded." });
   };
 
-  // Synthesize metrics
+  // Real metrics only — no synthesized values
   const totalGross = Number(revenue?.breakdown?.gross ?? metrics?.revenue ?? 0);
-  const totalNet = Number(revenue?.breakdown?.net ?? totalGross * 0.85);
+  const totalNet = revenue?.breakdown?.net != null ? Number(revenue.breakdown.net) : null;
   const activeBookings = Number(metrics?.activeBookings ?? 0);
   const completedCount = Number(metrics?.completedCount ?? 0);
-  const completionRate = Number(metrics?.completionRate ?? 98);
-  const averageRating = Number(metrics?.averageRating ?? 4.9);
-  const totalReviews = Number(metrics?.totalReviews ?? 18);
+  const completionRate = metrics?.completionRate;
+  const averageRating = metrics?.averageRating ? Number(metrics.averageRating) : null;
+  const totalReviews = Number(metrics?.totalReviews ?? 0);
 
   // Daily trend
   const trendData = useMemo(() => {
     if (revenue?.trendData && revenue.trendData.length > 0) {
       return revenue.trendData;
     }
-    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    return days.map((day) => ({
-      day,
-      gross: Math.round(totalGross * 0.14),
-      net: Math.round(totalNet * 0.14),
-    }));
-  }, [revenue, totalGross, totalNet]);
+    return [];
+  }, [revenue]);
 
   // Status breakdown
   const statusList = useMemo(() => {
@@ -208,24 +213,13 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
 
   const totalStatusVolume = statusList.reduce((acc, curr) => acc + curr.value, 0) || 1;
 
-  // Services breakdown
+  // Services breakdown (real revenue data only)
   const servicesList = useMemo(() => {
     if (revenue?.serviceData && revenue.serviceData.length > 0) {
       return revenue.serviceData;
     }
-    if (metrics?.serviceBreakdown && metrics.serviceBreakdown.length > 0) {
-      return metrics.serviceBreakdown.map((s) => ({
-        name: s.name,
-        revenue: s.value * 85,
-        percentage: Math.round((s.value / (completedCount || 1)) * 100),
-      }));
-    }
-    return [
-      { name: "Standard Cleaning", revenue: totalGross * 0.45, percentage: 45 },
-      { name: "Deep Sanitization", revenue: totalGross * 0.35, percentage: 35 },
-      { name: "AC Maintenance", revenue: totalGross * 0.2, percentage: 20 },
-    ];
-  }, [revenue, metrics, totalGross, completedCount]);
+    return [];
+  }, [revenue]);
 
   // Staff leaderboard
   const staffList = useMemo(() => {
@@ -270,20 +264,23 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
         )}
 
         <div className="flex items-center gap-2.5 flex-wrap self-end sm:self-auto">
-          {/* Unified Segmented Timeframe Selector */}
-          <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 shadow-xs">
+          {/* Unified Segmented Timeframe Selector (disabled — API retraining not yet supported) */}
+          <div
+            className="flex items-center bg-muted/50 border border-border rounded-xl p-1 shadow-xs opacity-60 pointer-events-none select-none"
+            title="Coming soon"
+          >
             {(["7", "30", "90", "365"] as const).map((t) => (
               <button
                 key={t}
-                onClick={() => setTimeframe(t)}
+                disabled
                 className={cn(
-                  "px-3 py-1 text-xs font-bold rounded-lg transition-all",
-                  timeframe === t 
-                    ? "bg-card text-foreground shadow-xs border border-border" 
+                  "px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-not-allowed",
+                  timeframe === t
+                    ? "bg-card text-foreground shadow-xs border border-border"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                {t === "7" ? "7D" : t === "30" ? "30D" : t === "90" ? "90D" : "1Y"}
+                {t === "7" ? "7D" : t === "30" ? "30D" : t === "90" ? "90D" : "365D"}
               </button>
             ))}
           </div>
@@ -321,7 +318,7 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
               <TrendingUp className="w-3.5 h-3.5 text-muted-foreground" /> Gross Volume
             </span>
             <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border uppercase tracking-wider">
-              {timeframe}D
+              All Time
             </span>
           </div>
           <p className="text-2xl sm:text-3xl font-bold font-mono text-foreground tracking-tight">
@@ -329,9 +326,13 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
           </p>
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-1.5 border-t border-border/60">
             <span>Net Take-Home:</span>
-            <span className="font-bold font-mono text-foreground">
-              ${totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
+            {totalNet != null ? (
+              <span className="font-bold font-mono text-foreground">
+                ${totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            ) : (
+              <span className="font-bold text-muted-foreground">—</span>
+            )}
           </div>
         </div>
 
@@ -342,7 +343,7 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
               <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" /> Completed Orders
             </span>
             <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border uppercase tracking-wider">
-              {completionRate}% Rate
+              {completionRate != null ? `${completionRate}% Rate` : "No Data"}
             </span>
           </div>
           <p className="text-2xl sm:text-3xl font-bold font-mono text-foreground tracking-tight">
@@ -350,7 +351,7 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
           </p>
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-1.5 border-t border-border/60">
             <span>Fulfillment Quality:</span>
-            <span className="font-bold text-foreground">{completionRate}% On-Time</span>
+            <span className="font-bold text-foreground">{completionRate != null ? `${completionRate}% On-Time` : "—"}</span>
           </div>
         </div>
 
@@ -385,7 +386,7 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
           </div>
           <div className="flex items-baseline gap-2">
             <p className="text-2xl sm:text-3xl font-bold font-mono text-foreground tracking-tight">
-              {averageRating.toFixed(1)}
+              {averageRating != null ? averageRating.toFixed(1) : "—"}
             </p>
             <span className="text-xs text-muted-foreground font-semibold">/ 5.0</span>
           </div>
@@ -528,15 +529,27 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
                       </div>
                       <div className="flex justify-between items-center py-1">
                         <span className="text-muted-foreground font-semibold">Platform Fee Deduction</span>
-                        <span className="font-bold text-rose-500 font-mono">-${(revenue?.breakdown?.platformFee ?? (totalGross * 0.1)).toFixed(2)}</span>
+                        {revenue?.breakdown?.platformFee != null ? (
+                          <span className="font-bold text-rose-500 font-mono">-${Number(revenue.breakdown.platformFee).toFixed(2)}</span>
+                        ) : (
+                          <span className="font-bold text-muted-foreground font-mono">—</span>
+                        )}
                       </div>
                       <div className="flex justify-between items-center py-1">
                         <span className="text-muted-foreground font-semibold">Workforce Payout Estimate</span>
-                        <span className="font-bold text-muted-foreground font-mono">-${(revenue?.breakdown?.staffPayout ?? (totalNet * 0.6)).toFixed(2)}</span>
+                        {revenue?.breakdown?.staffPayout != null ? (
+                          <span className="font-bold text-muted-foreground font-mono">-${Number(revenue.breakdown.staffPayout).toFixed(2)}</span>
+                        ) : (
+                          <span className="font-bold text-muted-foreground font-mono">—</span>
+                        )}
                       </div>
                       <div className="flex justify-between items-center pt-2.5 border-t border-border font-bold">
                         <span className="text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider text-[10px]">Net Retained Margin</span>
-                        <span className="text-emerald-600 dark:text-emerald-400 text-base font-mono font-bold">${totalNet.toFixed(2)}</span>
+                        {totalNet != null ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 text-base font-mono font-bold">${totalNet.toFixed(2)}</span>
+                        ) : (
+                          <span className="text-muted-foreground text-base font-mono font-bold">—</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -567,10 +580,12 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Top Field Technician</p>
                     <p className="text-sm font-bold text-foreground truncate mt-0.5">
-                      {staffList[0]?.name || "Assigned Technicians"}
+                      {staffList[0]?.name || "No staff data yet"}
                     </p>
                     <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                      {staffList[0]?.jobs || completedCount} orders completed · ${(staffList[0]?.revenue || totalGross).toFixed(2)} volume
+                      {staffList[0]
+                        ? `${staffList[0].jobs} orders completed · $${Number(staffList[0].revenue).toFixed(2)} volume`
+                        : "Staff metrics populate as orders complete"}
                     </p>
                   </div>
                 </div>
@@ -583,10 +598,12 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Top Revenue Category</p>
                     <p className="text-sm font-bold text-foreground truncate mt-0.5">
-                      {servicesList[0]?.name || "Core Services"}
+                      {servicesList[0]?.name || "No service revenue data yet"}
                     </p>
                     <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                      {servicesList[0]?.percentage || 45}% of total volume
+                      {servicesList[0]?.percentage != null
+                        ? `${Math.round(servicesList[0].percentage)}% of total volume`
+                        : "Populates as completed orders accumulate"}
                     </p>
                   </div>
                 </div>
@@ -685,11 +702,6 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-
-                <div className="p-3 bg-muted/30 border border-border rounded-xl flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground font-semibold">Peak Demand Period:</span>
-                  <span className="font-bold text-foreground">Weekend Prime Time</span>
-                </div>
               </div>
 
             </div>
@@ -779,7 +791,14 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
                 </div>
 
                 <div className="h-[250px] w-full relative flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
+                  {servicesList.length === 0 ? (
+                    <div className="text-center space-y-1.5 py-10">
+                      <Briefcase className="w-8 h-8 text-muted-foreground/30 mx-auto" />
+                      <p className="text-sm font-bold text-foreground">No service revenue data yet</p>
+                      <p className="text-xs text-muted-foreground">Populates as completed orders accumulate.</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie 
                         data={servicesList} 
@@ -797,7 +816,8 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
                       </Pie>
                       <RechartsTooltip content={<GlassmorphicTooltip />} />
                     </PieChart>
-                  </ResponsiveContainer>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </div>
 
@@ -813,23 +833,29 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
                 </div>
 
                 <div className="divide-y divide-border">
-                  {servicesList.map((svc, idx) => (
-                    <div key={svc.name} className="py-2.5 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div 
-                          className="w-3 h-3 rounded-md shrink-0" 
-                          style={{ backgroundColor: PALETTE[idx % PALETTE.length] }} 
-                        />
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-foreground truncate">{svc.name}</p>
-                          <p className="text-[11px] text-muted-foreground">{svc.percentage}% of total volume</p>
-                        </div>
-                      </div>
-                      <span className="font-mono text-xs font-bold text-foreground shrink-0">
-                        ${Number(svc.revenue).toFixed(2)}
-                      </span>
+                  {servicesList.length === 0 ? (
+                    <div className="py-10 text-center text-xs text-muted-foreground">
+                      No per-service revenue recorded yet.
                     </div>
-                  ))}
+                  ) : (
+                    servicesList.map((svc, idx) => (
+                      <div key={svc.name} className="py-2.5 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className="w-3 h-3 rounded-md shrink-0"
+                            style={{ backgroundColor: PALETTE[idx % PALETTE.length] }}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-foreground truncate">{svc.name}</p>
+                            <p className="text-[11px] text-muted-foreground">{Math.round(svc.percentage)}% of total volume</p>
+                          </div>
+                        </div>
+                        <span className="font-mono text-xs font-bold text-foreground shrink-0">
+                          ${Number(svc.revenue).toFixed(2)}
+                        </span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -855,49 +881,36 @@ export default function CompanyAnalyticsPage({ hideHeader = false }: { hideHeade
 
                 <div className="text-center py-4 space-y-2">
                   <p className="text-5xl font-bold font-mono text-foreground tracking-tight">
-                    {averageRating.toFixed(1)}
+                    {averageRating != null ? averageRating.toFixed(1) : "—"}
                   </p>
                   <div className="flex justify-center items-center gap-1">
                     {[1, 2, 3, 4, 5].map((s) => (
-                      <Star 
-                        key={s} 
-                        className={cn("w-4 h-4", s <= Math.round(averageRating) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30")} 
+                      <Star
+                        key={s}
+                        className={cn("w-4 h-4", averageRating != null && s <= Math.round(averageRating) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30")}
                       />
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground font-mono">
-                    Calculated from {totalReviews} verified reviews
+                    {totalReviews > 0
+                      ? `Calculated from ${totalReviews} verified review${totalReviews === 1 ? "" : "s"}`
+                      : "No verified reviews yet"}
                   </p>
-                </div>
-
-                <div className="bg-muted/40 border border-border rounded-xl p-3 text-center text-xs text-foreground font-semibold">
-                  98.4% Positive Sentiment Ratio
                 </div>
               </div>
 
-              {/* Quality Rating Distribution */}
+              {/* Quality Rating Breakdown — unavailable until per-attribute review data exists */}
               <div className="lg:col-span-7 bg-card rounded-2xl border border-border p-5 sm:p-6 shadow-xs space-y-4">
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border pb-3">
                   <ShieldCheck className="w-4 h-4 text-muted-foreground" /> Service Quality Attributes
                 </h3>
 
-                <div className="space-y-4 pt-2">
-                  {[
-                    { label: "Punctuality & Arrival Time", score: 98, rating: "4.9" },
-                    { label: "Execution Quality & Cleanliness", score: 96, rating: "4.8" },
-                    { label: "Staff Professionalism", score: 99, rating: "5.0" },
-                    { label: "Value for Money & Pricing", score: 94, rating: "4.7" },
-                  ].map((attr) => (
-                    <div key={attr.label} className="space-y-1.5">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-bold text-foreground">{attr.label}</span>
-                        <span className="font-mono font-bold text-foreground">{attr.rating} / 5.0</span>
-                      </div>
-                      <div className="w-full bg-muted/60 h-1.5 rounded-full overflow-hidden">
-                        <div className="h-full bg-foreground rounded-full transition-all" style={{ width: `${attr.score}%` }} />
-                      </div>
-                    </div>
-                  ))}
+                <div className="py-12 text-center space-y-2">
+                  <ShieldCheck className="w-10 h-10 text-muted-foreground/30 mx-auto" />
+                  <p className="text-sm font-bold text-foreground">No attribute breakdown available yet</p>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    Quality metrics require per-attribute review data, which is not collected yet. Only aggregate ratings are shown here.
+                  </p>
                 </div>
               </div>
 

@@ -49,7 +49,7 @@ export default function CompanyServicesPage() {
   const handleToggleActive = async (s: any, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await api.patch(`/companies/my-company/services/${s.id}`, {
+      await api.put(`/companies/my-company/services/${s.id}`, {
         isActive: !s.isActive,
       });
       toast({ title: "Updated", description: `Service ${!s.isActive ? "activated" : "deactivated"}` });

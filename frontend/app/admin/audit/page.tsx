@@ -85,9 +85,9 @@ export default function AuditLogsPage() {
       }
 
       const normalized: AuditLog[] = rawList.map((item: any) => {
-        const actor = item.actor || item.user?.fullName || item.user?.email || "System";
-        const actorRole = item.actorRole || item.user?.role || "system";
-        const targetType = item.targetType || item.entityType || "system";
+        const actor = item.actor || item.user?.fullName || item.user?.email || "Unknown";
+        const actorRole = item.actorRole || item.user?.role || "unknown";
+        const targetType = item.targetType || item.entityType || "unknown";
         const target = item.target || (item.entityId ? `${targetType} #${item.entityId}` : targetType);
         const description = item.description || (
           item.action === "user_login" ? `${actor} logged in` :
@@ -104,8 +104,8 @@ export default function AuditLogsPage() {
           target,
           targetType,
           description,
-          ipAddress: item.ipAddress || "127.0.0.1",
-          createdAt: item.createdAt || new Date().toISOString(),
+          ipAddress: item.ipAddress || "—",
+          createdAt: item.createdAt || "",
         };
       });
 
@@ -250,7 +250,7 @@ export default function AuditLogsPage() {
       cell: ({ row }) => (
         <div className="flex flex-col gap-0.5">
           <div className="text-xs font-semibold text-foreground">
-            {row.createdAt ? `${new Date(row.createdAt).toLocaleDateString()} ${new Date(row.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "-"}
+            {row.createdAt ? `${new Date(row.createdAt).toLocaleDateString()} ${new Date(row.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "—"}
           </div>
           <code className="text-[10px] font-mono text-muted-foreground">
             {row.ipAddress}

@@ -30,7 +30,9 @@ export class InstantRequestsController {
   }
 
   @Get('company-feed')
-  @ApiOperation({ summary: 'Company fetches open instant requests in their service area' })
+  @ApiOperation({
+    summary: 'Company fetches open instant requests in their service area',
+  })
   getCompanyFeed(@CurrentUser() user: any) {
     return this.instantRequestsService.getCompanyFeed(BigInt(user.id));
   }
@@ -45,17 +47,30 @@ export class InstantRequestsController {
     const companyId = await this.instantRequestsService.resolveCompanyId(
       BigInt(user.id),
     );
-    return this.instantRequestsService.submitBid(
-      companyId,
-      BigInt(id),
-      dto,
-    );
+    return this.instantRequestsService.submitBid(companyId, BigInt(id), dto);
   }
 
   @Get(':id/bids')
   @ApiOperation({ summary: 'Get current bids submitted for a request' })
   getRequestBids(@Param('id') id: string) {
     return this.instantRequestsService.getRequestBids(BigInt(id));
+  }
+
+  @Get(':id/status')
+  @ApiOperation({
+    summary: 'Customer polls the current match state of their request',
+  })
+  getStatus(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.instantRequestsService.getStatus(BigInt(id), BigInt(user.id));
+  }
+
+  @Post(':id/decline')
+  @ApiOperation({
+    summary:
+      'Matched company declines the auto-assigned job (system re-matches next nearest)',
+  })
+  decline(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.instantRequestsService.decline(BigInt(id), BigInt(user.id));
   }
 
   @Post(':id/select')

@@ -60,7 +60,9 @@ export class InstantRequestsGateway {
   broadcastNewRequest(request: any) {
     this.server.emit('new_instant_request', request);
     if (process.env.NODE_ENV === 'development') {
-      this.logger.log(`📣 Broadcast new_instant_request: ${JSON.stringify(request.id)}`);
+      this.logger.log(
+        `📣 Broadcast new_instant_request: ${JSON.stringify(request.id)}`,
+      );
     }
   }
 

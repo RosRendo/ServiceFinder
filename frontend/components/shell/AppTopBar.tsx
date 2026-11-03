@@ -158,13 +158,14 @@ export function AppTopBar({ onCommandPaletteOpen, role }: AppTopBarProps) {
         onClick={() => setTheme(isDark ? "light" : "dark")}
         className="w-9 h-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/60 transition-colors cursor-pointer"
         title={isDark ? "Switch to light theme" : "Switch to dark theme"}
+        aria-label="Toggle theme"
       >
         {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
       </button>
 
       {/* Notifications */}
-      <Link href={role === "admin" ? "/admin/broadcasts" : "/company/notifications"}>
-        <button
+      <Link href={role === "admin" ? "/admin/broadcasts" : "/company/notifications"} aria-label="Notifications">
+        <span
           className="relative w-9 h-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/60 transition-colors cursor-pointer"
           title="Notifications"
         >
@@ -172,7 +173,7 @@ export function AppTopBar({ onCommandPaletteOpen, role }: AppTopBarProps) {
           {unreadCount > 0 && (
             <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary ring-2 ring-background" />
           )}
-        </button>
+        </span>
       </Link>
     </div>
   );

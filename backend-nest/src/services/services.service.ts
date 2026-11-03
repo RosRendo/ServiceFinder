@@ -119,9 +119,16 @@ export class ServicesService {
               id: true,
               name: true,
               city: true,
+              logoUrl: true,
               verificationStatus: true,
               latitude: true,
               longitude: true,
+              completedJobs: true,
+              isInsured: true,
+              completionRate: true,
+              ratingSummary: {
+                select: { averageRating: true, totalReviews: true },
+              },
             },
           },
           serviceType: {
@@ -172,6 +179,10 @@ export class ServicesService {
           name: service.company.name,
           city: service.company.city,
           verificationStatus: service.company.verificationStatus,
+          rating: service.company.ratingSummary?.averageRating
+            ? Number(service.company.ratingSummary.averageRating)
+            : null,
+          reviewCount: service.company.ratingSummary?.totalReviews || 0,
           latitude: service.company.latitude
             ? Number(service.company.latitude)
             : null,

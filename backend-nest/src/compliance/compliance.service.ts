@@ -8,7 +8,12 @@ export class ComplianceService {
   async getReports(status?: string) {
     const where: any = {};
     if (status && status !== 'all') {
-      const dbStatus = status === 'pending_review' ? 'pending' : status;
+      const dbStatus =
+        status === 'pending_review'
+          ? 'pending'
+          : status === 'approved'
+            ? 'verified'
+            : status;
       where.status = dbStatus;
     }
 

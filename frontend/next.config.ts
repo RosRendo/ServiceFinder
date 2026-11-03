@@ -1,10 +1,18 @@
 
 import type { NextConfig } from "next";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://servicefinder.dashboardkiller.online';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "https://servicefinder.dashboardkiller.online/api/:path*",
+      },
+    ];
+  },
   // Enable standalone output mode during Docker build only to keep Vercel compatibility
   ...(process.env.NEXT_STANDALONE === 'true' ? { output: 'standalone' } : {}),
   compress: true,

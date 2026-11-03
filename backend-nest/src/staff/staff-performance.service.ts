@@ -142,7 +142,7 @@ export class StaffPerformanceService {
         weeklyChart,
         walletBalance: Number(staffRecord.walletBalance || 0),
         pendingBalance: Number(pendingBalance || 0),
-        responseRate: 100,
+        responseRate: null,
       },
     };
   }
