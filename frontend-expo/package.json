@@ -24,7 +24,7 @@
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
     "@sentry/react-native": "~8.28.0",
-    "@shopify/flash-list": "2.3.2",
+    "@shopify/flash-list": "2.3.3",
     "axios": "^1.15.2",
     "babel-preset-expo": "~58.0.0",
     "date-fns": "^4.2.0",
