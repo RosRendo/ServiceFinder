@@ -150,8 +150,8 @@ importers:
         specifier: ^4.0.1
         version: 4.0.1
       posthog-node:
-        specifier: ^5.38.5
-        version: 5.61.1(@opentelemetry/api@1.9.1)(rxjs@7.8.2)
+        specifier: ^5.63.0
+        version: 5.63.0(@opentelemetry/api@1.9.1)(rxjs@7.8.2)
       prisma:
         specifier: ^5.22.0
         version: 5.22.0
@@ -1333,11 +1333,11 @@ packages:
     resolution: {integrity: sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA==}
     engines: {node: ^14.18.0 || >=16.0.0}
 
-  '@posthog/core@1.62.0':
-    resolution: {integrity: sha512-KjNwGC7s0141wnWWHubNMdg1lOhZjqKRw2OTNstuzdVvNDfvv2RbFJQSSvvABmbCmTXwlMpdnbb/M/aAigDnNQ==}
+  '@posthog/core@1.64.0':
+    resolution: {integrity: sha512-D284VHRgqw2AilzNOmpI4a2rmKrC+4b1xB1Z+p3edwlA1gGKpHxM0PwfB3Jz+TBxXP1uU3ceJ4dwYinzOkqscg==}
 
-  '@posthog/types@1.419.0':
-    resolution: {integrity: sha512-XX7zRYt/vK8AzaD6V+oDquAzacZf5exJv971dja9En8Qf6g84Qvc3rpT0w6hDYYLWrjaSSkdjFfvvoXI0ouJDg==}
+  '@posthog/types@1.421.0':
+    resolution: {integrity: sha512-KP34CqgRYYyp3wU77OixL0URb2ildKM+QxBOXtQ4YYaa1ARTt3looxkn/w8gwKo6gWZg2VW/DgSoqAW4XeDAPQ==}
 
   '@prisma/client@5.22.0':
     resolution: {integrity: sha512-M0SVXfyHnQREBKxCgyo7sffrKttwE6R8PMq330MIUF0pTwjUhLbW84pFDlf06B27XyCR++VtjugEnIHdr07SVA==}
@@ -3837,8 +3837,8 @@ packages:
     resolution: {integrity: sha512-40QW5YalBNfQo5yRYmiw7Yz6TKKVr3h6970B2YE+3fQpsWcrbj1PzJgxeJ19DRQjhMbKPIuMY8rFaXc8moolVw==}
     engines: {node: '>=10.13.0'}
 
-  posthog-node@5.61.1:
-    resolution: {integrity: sha512-Az2H3hHyxxZ5PQpQAQEoJfa9FrLsM4OnuyIQwzi9hei5mtN0/mepw1yvLtAmPAbEkC6+muWXiBShBnVMKeBSXw==}
+  posthog-node@5.63.0:
+    resolution: {integrity: sha512-pTMk4eKVlt73VGVOWYM/w3Vscrt4eKUFRS/5BzSFasHFUfZ7bxeuE6mFKsTLyoNhmdifeS0IAMg7X/leTw1qqw==}
     engines: {node: ^20.20.0 || >=22.22.0}
     peerDependencies:
       '@opentelemetry/api': ^1.2.0
@@ -5901,11 +5901,11 @@ snapshots:
 
   '@pkgr/core@0.3.6': {}
 
-  '@posthog/core@1.62.0':
+  '@posthog/core@1.64.0':
     dependencies:
-      '@posthog/types': 1.419.0
+      '@posthog/types': 1.421.0
 
-  '@posthog/types@1.419.0': {}
+  '@posthog/types@1.421.0': {}
 
   '@prisma/client@5.22.0(prisma@5.22.0)':
     optionalDependencies:
@@ -8796,9 +8796,9 @@ snapshots:
 
   pngjs@5.0.0: {}
 
-  posthog-node@5.61.1(@opentelemetry/api@1.9.1)(rxjs@7.8.2):
+  posthog-node@5.63.0(@opentelemetry/api@1.9.1)(rxjs@7.8.2):
     dependencies:
-      '@posthog/core': 1.62.0
+      '@posthog/core': 1.64.0
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
       rxjs: 7.8.2
