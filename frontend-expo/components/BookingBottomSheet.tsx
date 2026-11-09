@@ -8,6 +8,20 @@ import ScaleButton from './ScaleButton';
 
 const T = Theme.colors;
 
+const fmtLocalDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+const to24h = (label: string) => {
+  const m = label.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = m[2];
+  const isPM = m[3].toUpperCase() === 'PM';
+  if (isPM && h !== 12) h += 12;
+  if (!isPM && h === 12) h = 0;
+  return `${String(h).padStart(2, '0')}:${min}`;
+};
+
 interface BookingBottomSheetProps {
   visible: boolean;
   onClose: () => void;
@@ -29,7 +43,7 @@ export default function BookingBottomSheet({ visible, onClose, serviceId, price 
       if (i === 0) label = 'Today';
       else if (i === 1) label = 'Tomorrow';
       else label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      arr.push({ label, value: d.toISOString() });
+      arr.push({ label, value: fmtLocalDate(d) });
     }
     return arr;
   }, []);
@@ -46,7 +60,9 @@ export default function BookingBottomSheet({ visible, onClose, serviceId, price 
   }, []);
   
   const [date, setDate] = useState(dates[1].label); // Default Tomorrow
+  const [dateValue, setDateValue] = useState(dates[1].value); // ISO YYYY-MM-DD
   const [time, setTime] = useState(times[1]); // Default 10:00 AM
+  const [timeValue, setTimeValue] = useState(to24h(times[1])); // 24h HH:mm
 
   const isCustomDate = !dates.some(d => d.label === date);
   const isCustomTime = !times.includes(time);
@@ -58,6 +74,7 @@ export default function BookingBottomSheet({ visible, onClose, serviceId, price 
     setShowDatePicker(false);
     const formattedDate = selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     setDate(formattedDate);
+    setDateValue(fmtLocalDate(selectedDate));
   };
 
   const onTimeConfirm = (selectedDate: Date) => {
@@ -65,8 +82,9 @@ export default function BookingBottomSheet({ visible, onClose, serviceId, price 
     let h = selectedDate.getHours();
     const m = selectedDate.getMinutes();
     const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12 || 12;
-    setTime(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${ampm}`);
+    const h12 = h % 12 || 12;
+    setTime(`${h12.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${ampm}`);
+    setTimeValue(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
   };
 
   const onDateCancel = () => setShowDatePicker(false);
@@ -91,9 +109,10 @@ export default function BookingBottomSheet({ visible, onClose, serviceId, price 
   const handleCheckout = () => {
     onClose();
     // Pass temp state to checkout via query params (no ghost bookings in DB!)
+    // dateISO/timeISO are the source of truth; label strings are for display only.
     router.push({
       pathname: '/(customer)/checkout',
-      params: { serviceId, date, time, price }
+      params: { serviceId, date, dateISO: dateValue, time, timeISO: timeValue || '', price }
     });
   };
 
@@ -152,7 +171,7 @@ export default function BookingBottomSheet({ visible, onClose, serviceId, price 
 
           <ScaleButton onPress={handleCheckout}>
             <View style={s.checkoutBtn}>
-              <Text style={s.checkoutBtnText}>Checkout • ${price}</Text>
+              <Text style={s.checkoutBtnText}>Checkout • ${Number(price).toFixed(2)}</Text>
               <MaterialIcons name="arrow-forward" size={18} color="#FFF" />
             </View>
           </ScaleButton>

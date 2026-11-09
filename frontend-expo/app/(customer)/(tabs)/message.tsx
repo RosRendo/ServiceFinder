@@ -1,6 +1,6 @@
 import React, { useState, useCallback , useEffect, useRef} from "react";
 import {
-  ScrollView, Text, View, TouchableOpacity, TextInput,
+  ScrollView, Text, View, TouchableOpacity, TextInput, Alert,
   ActivityIndicator, RefreshControl, StyleSheet, Platform, Animated, Easing
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -75,6 +75,27 @@ export default function MessagesScreen() {
     }
   }, [load, isGuest]));
 
+  // Chat is only ever started with a provider the customer has booked with.
+  const handleCompose = useCallback(async () => {
+    try {
+      const res = await api.get("/api/bookings", { params: { limit: 10 } });
+      const raw = res.data?.data?.data || res.data?.data || res.data || [];
+      const list = Array.isArray(raw) ? raw : [];
+      const recent = list.find((b: any) => b?.company?.id);
+      if (recent?.company?.id) {
+        router.push(`/(customer)/messages/new?companyId=${recent.company.id}` as any);
+        return;
+      }
+      throw new Error("no-bookings");
+    } catch {
+      Alert.alert(
+        "No one to chat with yet",
+        "You can message a provider once you book a service.",
+        [{ text: "Cancel", style: "cancel" }, { text: "Explore", onPress: () => router.push("/(customer)/(tabs)/explore" as any) }]
+      );
+    }
+  }, [router]);
+
   if (isGuest) {
     return <GuestCTA title="Log in to chat" subtitle="Message your service providers to ask questions or discuss your bookings." icon="message-text-outline" />;
   }
@@ -97,7 +118,8 @@ export default function MessagesScreen() {
         </View>
         <TouchableOpacity
           style={s.composeBtn}
-          onPress={() => router.push("/(customer)/messages/new" as any)}
+          onPress={handleCompose}
+          accessibilityLabel="Start a chat"
         >
           <MaterialCommunityIcons name="pencil-plus-outline" size={22} color={T.accent} />
         </TouchableOpacity>

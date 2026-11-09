@@ -261,7 +261,14 @@ function BookingCard({ booking, onCancel, index }: { booking: Booking; onCancel:
                   </TouchableOpacity>
                 )}
                 {(booking.status?.toLowerCase() === "cancelled" || booking.status?.toLowerCase() === "rejected") && (
-                  <TouchableOpacity style={[s.actionBtnPrimary, { backgroundColor: T.accentMid }]} hitSlop={10} onPress={(e) => { e.stopPropagation(); router.push(`/(customer)/booking/${booking.id}` as any); }}>
+                  <TouchableOpacity style={[s.actionBtnPrimary, { backgroundColor: T.accentMid }]} hitSlop={10} onPress={(e) => {
+                    e.stopPropagation();
+                    if (booking.service?.id) {
+                      router.push(`/(customer)/service/${booking.service.id}` as any);
+                    } else {
+                      router.push(`/(customer)/booking/${booking.id}` as any);
+                    }
+                  }}>
                     <Text style={s.actionBtnPrimaryText}>Rebook</Text>
                   </TouchableOpacity>
                 )}

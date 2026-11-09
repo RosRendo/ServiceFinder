@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo, useRef, useState } from "react";
+import React, { useEffect, useCallback, useMemo, useRef } from "react";
 import {
   ScrollView,
   Text,
@@ -12,7 +12,6 @@ import {
   Platform,
   FlatList,
   ActivityIndicator,
-  Dimensions,
 } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -26,7 +25,6 @@ import FadeIn from "@/components/FadeIn";
 import ScaleButton from "@/components/ScaleButton";
 import { Theme } from "@/constants/theme";
 import * as Location from "expo-location";
-import { SearchDiscoverySvg } from "@/components/svg";
 import {
   AirconCategorySvg,
   PlumbingCategorySvg,
@@ -36,7 +34,6 @@ import {
   MovingCategorySvg,
 } from "@/components/svg/CategoryMarks";
 
-const { width } = Dimensions.get("window");
 const T = Theme.colors;
 
 // ─── TRADE THEMES (Pastel Plates & Semantic Telemetry) ─────────────────
@@ -251,20 +248,6 @@ function CategorySkeleton() {
   );
 }
 
-function ServiceCardSkeleton() {
-  return (
-    <View style={{ flexDirection: "row", paddingHorizontal: 24, gap: 12 }}>
-      {[...Array(3)].map((_, i) => (
-        <View key={i} style={{ width: 168, gap: 10 }}>
-          <Skeleton width={168} height={110} radius={18} />
-          <Skeleton width={120} height={12} radius={6} />
-          <Skeleton width={80} height={10} radius={5} />
-        </View>
-      ))}
-    </View>
-  );
-}
-
 function PressCard({ onPress, style, children }: {
   onPress: () => void; style?: any; children: React.ReactNode;
 }) {
@@ -291,7 +274,6 @@ export default function Home() {
   const { user } = useAuthStore();
   const {
     categories,
-    trendingServices,
     recommendedServices,
     activeBooking,
     isLoading,
@@ -300,8 +282,6 @@ export default function Home() {
     error,
     fetchHomeData,
     loadMoreServices,
-    topCompanies,
-    sponsoredCompanies,
   } = useCustomerHomeStore();
 
   const fetchLocationAndData = useCallback(async () => {
@@ -339,79 +319,12 @@ export default function Home() {
     ? `${(user as any).city}${(user as any).state ? ", " + (user as any).state : ""}`
     : "Phnom Penh";
 
-  const [selectedPopularCategory, setSelectedPopularCategory] = useState("All");
-
-  const popularFilterChips = useMemo(() => {
-    const base = ["All"];
-    categories.slice(0, 4).forEach((c) => base.push(c.name));
-    return base;
-  }, [categories]);
-
-  const filteredPopularServices = useMemo(() => {
-    if (selectedPopularCategory === "All") return trendingServices;
-    return trendingServices.filter((st) => {
-      const catName = (st.serviceType?.category?.name || "").toLowerCase();
-      const typeName = (st.serviceType?.name || "").toLowerCase();
-      const serviceName = (st.name || "").toLowerCase();
-      const target = selectedPopularCategory.toLowerCase();
-      return catName.includes(target) || typeName.includes(target) || serviceName.includes(target);
-    });
-  }, [selectedPopularCategory, trendingServices]);
-
   const greeting = useMemo(() => {
     const h = new Date().getHours();
     if (h < 12) return t('home.goodMorning', 'Good morning');
     if (h < 18) return t('home.goodAfternoon', 'Good afternoon');
     return t('home.goodEvening', 'Good evening');
   }, [t]);
-
-  // Spotlight carousel items (clean, light verified partners)
-  const spotlightItems = useMemo(() => {
-    if (sponsoredCompanies && sponsoredCompanies.length > 0) {
-      return sponsoredCompanies.map((co) => ({
-        id: co.id,
-        title: co.name,
-        subtitle: co.description || "Verified provider on ServiceFinder",
-        image: co.coverImageUrl || co.logoUrl,
-        badge: "VERIFIED ELITE",
-        hasRating: !!co.ratingSummary?.averageRating,
-        rating: co.ratingSummary?.averageRating ? Number(co.ratingSummary.averageRating).toFixed(1) : null,
-        reviews: co.ratingSummary?.totalReviews ?? 0,
-        route: `/(customer)/company/${co.id}`,
-      }));
-    }
-
-    if (topCompanies && topCompanies.length > 0) {
-      return topCompanies.slice(0, 3).map((co) => ({
-        id: co.id,
-        title: co.name,
-        subtitle: co.description || "Verified provider on ServiceFinder",
-        image: co.coverImageUrl || co.logoUrl,
-        badge: "FEATURED PARTNER",
-        hasRating: !!co.ratingSummary?.averageRating,
-        rating: co.ratingSummary?.averageRating ? Number(co.ratingSummary.averageRating).toFixed(1) : null,
-        reviews: co.ratingSummary?.totalReviews ?? 0,
-        route: `/(customer)/company/${co.id}`,
-      }));
-    }
-
-    return [] as { id: any; title: any; subtitle: any; image: any; badge: string; hasRating: boolean; rating: string | null; reviews: number; route: string }[];
-  }, [sponsoredCompanies, topCompanies]);
-
-  const spotlightRef = useRef<any>(null);
-  const [spotlightIndex, setSpotlightIndex] = useState(0);
-
-  useEffect(() => {
-    if (activeBooking || spotlightItems.length === 0) return;
-    const interval = setInterval(() => {
-      setSpotlightIndex((prev) => {
-        const next = (prev + 1) % spotlightItems.length;
-        spotlightRef.current?.scrollTo({ x: next * (width - 48 + 12), animated: true });
-        return next;
-      });
-    }, 4500);
-    return () => clearInterval(interval);
-  }, [activeBooking, spotlightItems]);
 
   return (
     <SafeAreaView style={s.root}>
@@ -479,51 +392,33 @@ export default function Home() {
               </PressCard>
             </View>
 
-            {/* ─── SECTION 2: DUAL SPEED-DIAL (URGENT VS SCHEDULED) ── */}
+            {/* ─── SECTION 2: PRIMARY BOOKING ENTRY (map-based) ─────── */}
             <View style={{ paddingHorizontal: 24, marginTop: 18 }}>
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                {/* 1. Live Urgent Pro */}
-                <TouchableOpacity
-                  style={s.urgentActionCard}
-                  activeOpacity={0.88}
-                  onPress={() => router.push("/(customer)/map-view?mode=instant" as any)}
-                >
-                  <View style={s.urgentBadgeRow}>
-                    <View style={s.urgentPulseDot} />
-                    <Text style={s.urgentBadgeText}>
-                      {t("instantBooking.urgentProBadge", "15–30M ARRIVAL")}
-                    </Text>
+              <PressCard onPress={() => router.push("/(customer)/map-view" as any)}>
+                <View style={s.bookEntryCard}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.bookEntryTitle}>{t('home.bookService', 'Book a Service')}</Text>
+                    <Text style={s.bookEntrySub}>See pros on your map — tap one and book now or schedule</Text>
+                    <View style={s.bookEntryPill}>
+                      <Text style={s.bookEntryPillText}>{t('home.startBooking', 'Start Booking')}</Text>
+                      <MaterialIcons name="arrow-forward" size={14} color="#FFFFFF" />
+                    </View>
                   </View>
-                  <Text style={s.actionCardTitle}>Urgent Pro</Text>
-                  <Text style={s.actionCardSubtitle}>Nearest tech arrives on live map</Text>
-                  <View style={s.actionPillAmber}>
-                    <MaterialCommunityIcons name="lightning-bolt" size={13} color="#D97706" />
-                    <Text style={s.actionPillAmberText}>Live Dispatch</Text>
-                    <MaterialIcons name="chevron-right" size={14} color="#D97706" />
+                  <View style={s.bookEntryIconBox}>
+                    <MaterialCommunityIcons name="map-marker-radius" size={30} color="#0A192F" />
                   </View>
-                </TouchableOpacity>
+                </View>
+              </PressCard>
 
-                {/* 2. Schedule Ahead */}
-                <TouchableOpacity
-                  style={s.scheduleActionCard}
-                  activeOpacity={0.88}
-                  onPress={() => router.push("/(customer)/(tabs)/explore" as any)}
-                >
-                  <View style={s.scheduleBadgeRow}>
-                    <MaterialCommunityIcons name="calendar-month-outline" size={12} color="#0284C7" />
-                    <Text style={s.scheduleBadgeText}>
-                      {t("instantBooking.exploreProBadge", "APPOINTMENT")}
-                    </Text>
-                  </View>
-                  <Text style={s.actionCardTitle}>Schedule Ahead</Text>
-                  <Text style={s.actionCardSubtitle}>Pick date, pro & custom package</Text>
-                  <View style={s.actionPillSlate}>
-                    <MaterialCommunityIcons name="calendar-check" size={13} color="#0F172A" />
-                    <Text style={s.actionPillSlateText}>Browse Catalog</Text>
-                    <MaterialIcons name="chevron-right" size={14} color="#0F172A" />
-                  </View>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={s.instantLink}
+                activeOpacity={0.8}
+                onPress={() => router.push("/(customer)/map-view?mode=instant" as any)}
+              >
+                <MaterialCommunityIcons name="lightning-bolt" size={13} color="#D97706" />
+                <Text style={s.instantLinkText}>Need help now? Pro in 15–30 mins</Text>
+                <MaterialIcons name="chevron-right" size={14} color="#D97706" />
+              </TouchableOpacity>
             </View>
 
             {/* ─── SECTION 3: ACTIVE BOOKING LIVE PULSE (IF ACTIVE) ─── */}
@@ -615,198 +510,6 @@ export default function Home() {
               )}
             </View>
 
-            {/* ─── SECTION 5: SPOTLIGHT PARTNER (Clean Branded Showcase) ── */}
-            {!activeBooking && !isLoading && spotlightItems.length === 0 && (
-              <View style={{ marginTop: 28, paddingHorizontal: 24 }}>
-                <View style={s.spotlightEmpty}>
-                  <SearchDiscoverySvg size={80} />
-                  <Text style={s.spotlightEmptyTitle}>No featured providers yet</Text>
-                  <Text style={s.spotlightEmptySub}>Explore the full catalog to find verified providers near you.</Text>
-                </View>
-              </View>
-            )}
-
-            {!activeBooking && spotlightItems.length > 0 && (
-              <View style={{ marginTop: 28 }}>
-                <View style={s.sectionHeader}>
-                  <View>
-                    <Text style={s.sectionTitle}>Featured Partner</Text>
-                    <Text style={s.sectionSubtitle}>Vetted top-tier company in your district</Text>
-                  </View>
-                </View>
-
-                <ScrollView
-                  ref={spotlightRef}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 12, gap: 12 }}
-                  snapToInterval={width - 48 + 12}
-                  decelerationRate="fast"
-                  snapToAlignment="start"
-                  onMomentumScrollEnd={(e) => {
-                    const newIndex = Math.round(e.nativeEvent.contentOffset.x / (width - 48 + 12));
-                    setSpotlightIndex(newIndex);
-                  }}
-                >
-                  {spotlightItems.map((item) => (
-                    <PressCard
-                      key={item.id.toString()}
-                      onPress={() => router.push(item.route as any)}
-                      style={{ width: width - 48 }}
-                    >
-                      <View style={s.spotlightCard}>
-                        <View style={s.spotlightTopRow}>
-                          <View style={s.spotlightBadge}>
-                            <MaterialIcons name="verified" size={12} color="#2563EB" />
-                            <Text style={s.spotlightBadgeText}>{item.badge}</Text>
-                          </View>
-                        </View>
-
-                        <View style={s.spotlightBodyRow}>
-                          {item.image ? (
-                            <Image
-                              source={{ uri: item.image }}
-                              style={s.spotlightImage}
-                              contentFit="cover"
-                            />
-                          ) : (
-                            <MaterialCommunityIcons name="storefront-outline" size={40} color="#2563EB" style={[s.spotlightImage, { textAlignVertical: "center", textAlign: "center" }]} />
-                          )}
-                          <View style={{ flex: 1, marginLeft: 14, justifyContent: "center" }}>
-                            <Text style={s.spotlightTitle} numberOfLines={1}>{item.title}</Text>
-                            <Text style={s.spotlightSubtitle} numberOfLines={2}>{item.subtitle}</Text>
-                            {item.hasRating && (
-                              <View style={s.spotlightRatingRow}>
-                                <MaterialIcons name="star" size={13} color="#F59E0B" />
-                                <Text style={s.spotlightRatingText}>{item.rating}</Text>
-                                <Text style={s.spotlightReviewsText}>({item.reviews} completed)</Text>
-                              </View>
-                            )}
-                          </View>
-                        </View>
-
-                        <View style={s.spotlightFooterRow}>
-                          <Text style={s.spotlightFooterHint}>KHQR payments supported</Text>
-                          <View style={s.spotlightActionBtn}>
-                            <Text style={s.spotlightActionText}>View Profile</Text>
-                            <MaterialIcons name="chevron-right" size={14} color="#0A192F" />
-                          </View>
-                        </View>
-                      </View>
-                    </PressCard>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
-            {/* ─── SECTION 6: POPULAR SERVICES (Tactile Visual Cards) ─── */}
-            <View style={{ marginTop: 32 }}>
-              <View style={s.sectionHeader}>
-                <View>
-                  <Text style={s.sectionTitle}>Popular Services</Text>
-                  <Text style={s.sectionSubtitle}>Top requested trades around {locationLabel}</Text>
-                </View>
-                <TouchableOpacity onPress={() => router.push("/(customer)/(tabs)/explore" as any)}>
-                  <Text style={s.seeAllLink}>{t('home.seeAll', 'See all')}</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Filter Chips */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 24, marginVertical: 12, gap: 8 }}
-              >
-                {popularFilterChips.map((chip) => {
-                  const active = selectedPopularCategory === chip;
-                  return (
-                    <TouchableOpacity
-                      key={chip}
-                      onPress={() => setSelectedPopularCategory(chip)}
-                      style={[s.filterChip, active && s.filterChipActive]}
-                    >
-                      <Text style={[s.filterChipText, active && s.filterChipTextActive]}>
-                        {chip}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-
-              {isLoading && trendingServices.length === 0 ? (
-                <View style={{ marginTop: 10 }}><ServiceCardSkeleton /></View>
-              ) : filteredPopularServices.length === 0 ? (
-                <Text style={s.emptyFilterText}>
-                  No active services found in this category.
-                </Text>
-              ) : (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 6, gap: 14, paddingBottom: 6 }}
-                >
-                  {filteredPopularServices.map((st, i) => {
-                    const theme = getTradeTheme(st.serviceType?.name || st.name);
-                    return (
-                      <FadeIn key={st.id} delay={i * 80}>
-                        <PressCard onPress={() => router.push(`/(customer)/service/${st.id}` as any)}>
-                          <View style={s.tactileCard}>
-                            {/* Visual Media Header */}
-                            <View style={[s.tactileMediaBox, { backgroundColor: theme.bg }]}>
-                              {st.image ? (
-                                <Image source={{ uri: st.image }} style={StyleSheet.absoluteFill} contentFit="cover" />
-                              ) : (
-                                <View style={s.tactileGlyphWrap}>
-                                  <MaterialCommunityIcons name={theme.icon as any} size={32} color={theme.accent} />
-                                </View>
-                              )}
-
-                              {/* Telemetry Chip */}
-                              <View style={s.tactileTelemetryPill}>
-                                <View style={[s.telemetryDotSmall, { backgroundColor: theme.accent }]} />
-                                <Text style={s.tactileTelemetryText}>{theme.tag}</Text>
-                              </View>
-
-                              {/* Rating Badge */}
-                              {(st.company as any)?.ratingSummary && (
-                                <View style={s.tactileRatingPill}>
-                                  <MaterialIcons name="star" size={10} color="#F59E0B" />
-                                  <Text style={s.tactileRatingText}>
-                                    {Number((st.company as any).ratingSummary.averageRating).toFixed(1)}
-                                  </Text>
-                                </View>
-                              )}
-                            </View>
-
-                            {/* Card Body */}
-                            <View style={s.tactileBody}>
-                              <Text style={[s.tactileCatTag, { color: theme.accent }]} numberOfLines={1}>
-                                {(st.serviceType?.category?.name || "Service").toUpperCase()}
-                              </Text>
-                              <Text style={s.tactileTitle} numberOfLines={2}>{st.name}</Text>
-                              <Text style={s.tactileCompany} numberOfLines={1}>
-                                {st.company?.name || 'Verified Provider'}
-                              </Text>
-
-                              <View style={s.tactileFooterRow}>
-                                <View>
-                                  <Text style={s.tactileFromText}>From</Text>
-                                  <Text style={s.tactilePriceText}>${st.basePrice}</Text>
-                                </View>
-                                <View style={s.tactileArrowBtn}>
-                                  <MaterialIcons name="arrow-forward" size={14} color="#0A192F" />
-                                </View>
-                              </View>
-                            </View>
-                          </View>
-                        </PressCard>
-                      </FadeIn>
-                    );
-                  })}
-                </ScrollView>
-              )}
-            </View>
-
             {/* ─── SECTION 7: RECOMMENDED SERVICES (Vertical Feed) ───── */}
             {recommendedServices.length > 0 && (
               <View style={{ marginTop: 36, paddingHorizontal: 24, paddingBottom: 14 }}>
@@ -873,53 +576,6 @@ export default function Home() {
             {isLoadingMore && (
               <View style={{ paddingVertical: 20 }}>
                 <ActivityIndicator color={T.accent} />
-              </View>
-            )}
-
-            {/* Elite Partners Rail */}
-            {topCompanies?.length > 0 && (
-              <View style={{ marginTop: 24, paddingBottom: 24 }}>
-                <View style={s.sectionHeader}>
-                  <View>
-                    <Text style={s.sectionTitle}>Elite Partners</Text>
-                    <Text style={s.sectionSubtitle}>Licensed and background-checked businesses</Text>
-                  </View>
-                </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 14, gap: 12 }}
-                >
-                  {topCompanies.map((company, i) => (
-                    <FadeIn key={company.id} delay={i * 80}>
-                      <PressCard onPress={() => router.push(`/(customer)/company/${company.id}` as any)}>
-                        <View style={s.elitePartnerCard}>
-                          <Image
-                            source={{ uri: company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${company.name}` }}
-                            style={s.eliteLogo}
-                            contentFit="cover"
-                          />
-                          <View style={{ flex: 1 }}>
-                            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                              <Text style={s.eliteName} numberOfLines={1}>{company.name}</Text>
-                              <MaterialIcons name="verified" size={13} color="#2563EB" />
-                            </View>
-                            <Text style={s.eliteCity} numberOfLines={1}>{company.city || 'Phnom Penh'}</Text>
-                            <View style={s.eliteRatingRow}>
-                              <MaterialIcons name="star" size={12} color="#F59E0B" />
-                              <Text style={s.eliteRatingNum}>
-                                {company.ratingSummary?.averageRating ? Number(company.ratingSummary.averageRating).toFixed(1) : "New"}
-                              </Text>
-                              {!!company.ratingSummary?.totalReviews && (
-                                <Text style={s.eliteRatingCount}>({company.ratingSummary.totalReviews})</Text>
-                              )}
-                            </View>
-                          </View>
-                        </View>
-                      </PressCard>
-                    </FadeIn>
-                  ))}
-                </ScrollView>
               </View>
             )}
 
@@ -1079,112 +735,73 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // Dual Action Cards
-  urgentActionCard: {
-    flex: 1,
-    backgroundColor: "#FFFBEB",
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#FDE68A",
-    ...CARD_SHADOW,
-  },
-  urgentBadgeRow: {
+  // Primary Booking Entry Card
+  bookEntryCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 100,
-    alignSelf: "flex-start",
-    marginBottom: 8,
-  },
-  urgentPulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#D97706",
-  },
-  urgentBadgeText: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: "#92400E",
-    letterSpacing: 0.5,
-  },
-  scheduleActionCard: {
-    flex: 1,
+    gap: 12,
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 22,
+    padding: 18,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     ...CARD_SHADOW,
   },
-  scheduleBadgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#F0F9FF",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 100,
-    alignSelf: "flex-start",
-    marginBottom: 8,
-  },
-  scheduleBadgeText: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: "#0369A1",
-    letterSpacing: 0.5,
-  },
-  actionCardTitle: {
-    fontSize: 16,
+  bookEntryTitle: {
+    fontSize: 20,
     fontWeight: "800",
     color: "#0F172A",
-    letterSpacing: -0.2,
+    letterSpacing: -0.4,
   },
-  actionCardSubtitle: {
-    fontSize: 11,
+  bookEntrySub: {
+    fontSize: 12,
     color: "#64748B",
     marginTop: 3,
-    lineHeight: 15,
+    lineHeight: 16,
   },
-  actionPillAmber: {
+  bookEntryPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-    marginTop: 12,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    gap: 6,
+    marginTop: 14,
+    backgroundColor: "#0A192F",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 100,
     alignSelf: "flex-start",
-    borderWidth: 0.5,
-    borderColor: "#FDE68A",
   },
-  actionPillAmberText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#D97706",
+  bookEntryPillText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
-  actionPillSlate: {
-    flexDirection: "row",
+  bookEntryIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: "#F1F5F9",
     alignItems: "center",
-    gap: 3,
-    marginTop: 12,
-    backgroundColor: "#F8FAFC",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-    borderWidth: 0.5,
+    justifyContent: "center",
+    borderWidth: 1,
     borderColor: "#E2E8F0",
   },
-  actionPillSlateText: {
-    fontSize: 11,
+  instantLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 12,
+    alignSelf: "center",
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    backgroundColor: "#FFFBEB",
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+  instantLinkText: {
+    fontSize: 12,
     fontWeight: "700",
-    color: "#0F172A",
+    color: "#92400E",
   },
 
   // Active Booking Live Pulse
@@ -1324,263 +941,6 @@ const s = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Spotlight Partner Card
-  spotlightCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    ...CARD_SHADOW,
-  },
-  spotlightTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  spotlightBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#EFF6FF",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 0.5,
-    borderColor: "#DBEAFE",
-  },
-  spotlightBadgeText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#1E40AF",
-    letterSpacing: 0.5,
-  },
-  spotlightEmpty: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    paddingVertical: 28,
-    alignItems: "center",
-    ...CARD_SHADOW,
-  },
-  spotlightEmptyTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#0F172A",
-    marginTop: 12,
-  },
-  spotlightEmptySub: {
-    fontSize: 12,
-    color: "#64748B",
-    marginTop: 4,
-    textAlign: "center",
-    paddingHorizontal: 24,
-  },
-  spotlightBodyRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  spotlightImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: "#EFF6FF",
-  },
-  spotlightTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#0F172A",
-  },
-  spotlightSubtitle: {
-    fontSize: 12,
-    color: "#64748B",
-    marginTop: 2,
-    lineHeight: 16,
-  },
-  spotlightRatingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginTop: 4,
-  },
-  spotlightRatingText: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#0F172A",
-  },
-  spotlightReviewsText: {
-    fontSize: 11,
-    color: "#94A3B8",
-  },
-  spotlightFooterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-  },
-  spotlightFooterHint: {
-    fontSize: 11,
-    color: "#94A3B8",
-    fontWeight: "500",
-  },
-  spotlightActionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    backgroundColor: "#F1F5F9",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  spotlightActionText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#0A192F",
-  },
-
-  // Popular Filters
-  filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 100,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  filterChipActive: {
-    backgroundColor: "#0A192F",
-    borderColor: "#0A192F",
-  },
-  filterChipText: {
-    fontSize: 12,
-    color: "#64748B",
-    fontWeight: "600",
-  },
-  filterChipTextActive: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  emptyFilterText: {
-    fontSize: 13,
-    color: "#94A3B8",
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-  },
-
-  // Tactile Service Card (Horizontal)
-  tactileCard: {
-    width: 172,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    ...CARD_SHADOW,
-  },
-  tactileMediaBox: {
-    width: 172,
-    height: 108,
-    position: "relative",
-  },
-  tactileGlyphWrap: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  tactileTelemetryPill: {
-    position: "absolute",
-    bottom: 8,
-    left: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.94)",
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  telemetryDotSmall: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-  },
-  tactileTelemetryText: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: "#0F172A",
-    letterSpacing: 0.2,
-  },
-  tactileRatingPill: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    backgroundColor: "rgba(255, 255, 255, 0.94)",
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  tactileRatingText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#0F172A",
-  },
-  tactileBody: {
-    padding: 12,
-  },
-  tactileCatTag: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-  },
-  tactileTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#0F172A",
-    lineHeight: 18,
-    marginTop: 3,
-  },
-  tactileCompany: {
-    fontSize: 11,
-    color: "#64748B",
-    marginTop: 2,
-  },
-  tactileFooterRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-  },
-  tactileFromText: {
-    fontSize: 9,
-    color: "#94A3B8",
-    fontWeight: "600",
-  },
-  tactilePriceText: {
-    fontSize: 15,
-    fontWeight: "900",
-    color: "#0A192F",
-    letterSpacing: -0.3,
-  },
-  tactileArrowBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#F1F5F9",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
   // Recommended Row Card (Vertical Feed)
   recRowCard: {
     flexDirection: "row",
@@ -1661,52 +1021,6 @@ const s = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: "#0A192F",
-  },
-
-  // Elite Partners Rail
-  elitePartnerCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    width: 220,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    ...CARD_SHADOW,
-  },
-  eliteLogo: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: "#F1F5F9",
-  },
-  eliteName: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#0F172A",
-    flex: 1,
-  },
-  eliteCity: {
-    fontSize: 11,
-    color: "#64748B",
-    marginTop: 1,
-  },
-  eliteRatingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginTop: 4,
-  },
-  eliteRatingNum: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#0F172A",
-  },
-  eliteRatingCount: {
-    fontSize: 10,
-    color: "#94A3B8",
   },
 
   // Trust Strip Card

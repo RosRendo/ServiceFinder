@@ -186,24 +186,48 @@ export default function CompanyDetailScreen() {
   return (
     <View style={s.root}>
       {/* ── FLOATING OVERLAY HEADER ───────────────────────────────── */}
-      <View style={[s.floatingHeader, { paddingTop: Math.max(insets.top, 12) }]}>
-        <TouchableOpacity onPress={() => router.back()} style={s.iconBtn}>
-          <MaterialIcons name="arrow-back" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
+      <View style={s.floatingHeaderRow}>
+        <Animated.View
+          style={[s.floatingHeaderBg, {
+            backgroundColor: scrollY.interpolate({
+              inputRange: [130, 190],
+              outputRange: ['rgba(10, 25, 47, 0)', 'rgba(10, 25, 47, 1)'],
+              extrapolate: 'clamp',
+            }),
+          }, { paddingTop: Math.max(insets.top, 12) }]}
+        >
+          <Animated.Text
+            style={[s.floatingHeaderTitle, {
+              opacity: scrollY.interpolate({
+                inputRange: [140, 180],
+                outputRange: [0, 1],
+                extrapolate: 'clamp',
+              }),
+            }]}
+            numberOfLines={1}
+          >
+            {company.name}
+          </Animated.Text>
+        </Animated.View>
+        <View style={[s.floatingHeaderContent, { paddingTop: Math.max(insets.top, 12) }]}>
+          <TouchableOpacity onPress={() => router.back()} style={s.iconBtn} accessibilityRole="button" accessibilityLabel="Go back">
+            <MaterialIcons name="arrow-back" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
 
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <TouchableOpacity onPress={() => Share.share({ message: `Check out ${company?.name} on Service Finder!` })} style={s.iconBtn}>
-            <MaterialIcons name="share" size={18} color="#FFFFFF" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleSaveToggle} disabled={isSaving} style={s.iconBtn}>
-            <MaterialCommunityIcons name={isSaved ? "heart" : "heart-outline"} size={20} color={isSaved ? "#EF4444" : "#FFFFFF"} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity onPress={() => Share.share({ message: `Check out ${company?.name} on Service Finder!` })} style={s.iconBtn} accessibilityRole="button" accessibilityLabel="Share">
+              <MaterialIcons name="share" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleSaveToggle} disabled={isSaving} style={s.iconBtn} accessibilityRole="button" accessibilityLabel={isSaved ? "Remove from saved" : "Save provider"}>
+              <MaterialCommunityIcons name={isSaved ? "heart" : "heart-outline"} size={20} color={isSaved ? "#EF4444" : "#FFFFFF"} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={{ paddingBottom: 150 }}
         stickyHeaderIndices={[1]}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={loadCompany} colors={[T.primary]} tintColor={T.primary} />}
         onScroll={Animated.event(
@@ -212,8 +236,8 @@ export default function CompanyDetailScreen() {
         )}
         scrollEventThrottle={16}
       >
-        {/* INDEX 0: HERO & INFO */}
-        <View style={{ paddingBottom: 16 }}>
+        {/* INDEX 0: HERO & IDENTITY */}
+        <View style={{ paddingBottom: 8 }}>
           {/* Parallax Hero Image */}
           <Animated.View style={[s.heroContainer, {
             transform: [{
@@ -234,7 +258,6 @@ export default function CompanyDetailScreen() {
               <Image source={{ uri: heroImage }} style={StyleSheet.absoluteFill} contentFit="cover" />
             ) : (
               <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0B132B', overflow: 'hidden' }]}>
-                {/* Decorative ambient lighting elements */}
                 <View style={{ position: 'absolute', top: -50, right: -50, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(59, 130, 246, 0.18)' }} />
                 <View style={{ position: 'absolute', bottom: -30, left: -30, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(16, 185, 129, 0.12)' }} />
                 <View style={{ position: 'absolute', top: 50, right: 30, opacity: 0.10 }}>
@@ -242,75 +265,90 @@ export default function CompanyDetailScreen() {
                 </View>
               </View>
             )}
-            <View style={s.heroOverlay} />
+            {/* Reading scrim */}
+            <View style={s.heroScrim} />
+            {/* Identity over hero */}
+            <View style={s.heroIdentity}>
+              <View style={s.heroNameRow}>
+                <Text style={s.heroName} numberOfLines={2}>{company.name}</Text>
+                {company.verificationStatus === 'verified' && (
+                  <View style={s.verifiedChip}>
+                    <MaterialIcons name="verified" size={13} color="#93C5FD" />
+                    <Text style={s.verifiedChipText}>Verified</Text>
+                  </View>
+                )}
+              </View>
+              <View style={s.heroMetaRow}>
+                <MaterialCommunityIcons name="map-marker-outline" size={14} color="rgba(255,255,255,0.75)" />
+                <Text style={s.heroMetaText}>
+                  {company.city || "Local Service Provider"}
+                  {company.establishedYear ? ` · Since ${company.establishedYear}` : ""}
+                  {isInsured ? " · Insured" : ""}
+                </Text>
+              </View>
+            </View>
           </Animated.View>
 
-          {/* Logo & Title Row */}
-          <View style={s.headerInfoBox}>
+          {/* Overlapping logo */}
+          <View style={s.logoRow}>
             <View style={s.logoWrapper}>
               {logoImage ? (
                 <Image source={{ uri: logoImage }} style={s.logoImg} />
               ) : (
-                <InitialsAvatar name={company.name} size={74} radius={20} />
+                <InitialsAvatar name={company.name} size={76} radius={22} />
               )}
-            </View>
-            <View style={{ flex: 1, paddingBottom: 4 }}>
-              <View style={s.titleRow}>
-                <Text style={s.companyName} numberOfLines={1}>{company.name}</Text>
-                {company.verificationStatus === 'verified' && (
-                  <MaterialIcons name="verified" size={18} color={T.blue} />
-                )}
-              </View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <MaterialCommunityIcons name="map-marker-outline" size={14} color={T.text3} />
-                <Text style={s.locationText}>{company.city || "Local Service Provider"}</Text>
-              </View>
             </View>
           </View>
 
-          {/* Trust Metrics Bento Grid */}
+          {/* Trust Metrics Band */}
           <View style={s.bentoContainer}>
             <View style={s.trustMetrics}>
               <View style={s.trustItem}>
-                <View style={[s.metricIconWrap, { backgroundColor: "rgba(245, 158, 11, 0.08)" }]}>
-                  <MaterialIcons name="star" size={18} color={T.gold} />
+                <View style={s.trustIconRow}>
+                  <MaterialIcons name="star" size={16} color={T.gold} />
+                  <Text style={s.trustVal}>{rating}</Text>
                 </View>
-                <Text style={s.trustVal}>{rating}</Text>
                 <Text style={s.trustLabel}>{reviewCount > 0 ? `${reviewCount} reviews` : "Verified Pro"}</Text>
               </View>
-              
+
               <View style={s.metricDivider} />
 
               <View style={s.trustItem}>
-                <View style={[s.metricIconWrap, { backgroundColor: "rgba(10, 25, 47, 0.06)" }]}>
-                  <MaterialIcons name="work" size={18} color={T.primary} />
+                <View style={s.trustIconRow}>
+                  <MaterialIcons name="work" size={16} color={T.primaryMid} />
+                  <Text style={s.trustVal}>{completedJobs > 1000 ? `${(completedJobs / 1000).toFixed(1)}k+` : completedJobs}</Text>
                 </View>
-                <Text style={s.trustVal}>{completedJobs > 1000 ? `${(completedJobs / 1000).toFixed(1)}k+` : completedJobs}</Text>
                 <Text style={s.trustLabel}>{completedJobs > 0 ? "Jobs done" : "Active & Ready"}</Text>
               </View>
 
               <View style={s.metricDivider} />
 
               <View style={s.trustItem}>
-                <View style={[s.metricIconWrap, { backgroundColor: isInsured ? "rgba(16, 185, 129, 0.08)" : "rgba(37, 99, 235, 0.08)" }]}>
-                  <MaterialIcons name={isInsured ? "shield" : "check-circle"} size={18} color={isInsured ? T.success : T.blue} />
+                <View style={s.trustIconRow}>
+                  <MaterialIcons name={isInsured ? "shield" : "check-circle"} size={16} color={isInsured ? T.success : T.primaryMid} />
+                  <Text style={s.trustVal}>{isInsured ? "Insured" : `${completionRate}%`}</Text>
                 </View>
-                <Text style={s.trustVal}>{isInsured ? "Insured" : `${completionRate}%`}</Text>
                 <Text style={s.trustLabel}>{isInsured ? "Protected" : "Completion"}</Text>
               </View>
             </View>
           </View>
         </View>
 
-        {/* INDEX 1: STICKY TAB BAR */}
+        {/* INDEX 1: STICKY SEGMENTED TABS */}
         <View style={s.stickyTabBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabsScroll}>
+          <View style={s.segmentWrap}>
             {TABS.map((tab) => (
-              <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)} style={[s.tabItem, activeTab === tab && s.tabItemActive]}>
-                <Text style={[s.tabText, activeTab === tab && s.tabTextActive]}>{tab}</Text>
+              <TouchableOpacity
+                key={tab}
+                onPress={() => setActiveTab(tab)}
+                style={[s.segmentItem, activeTab === tab && s.segmentItemActive]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === tab }}
+              >
+                <Text style={[s.segmentText, activeTab === tab && s.segmentTextActive]}>{tab}</Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </View>
         </View>
 
         {/* INDEX 2: TAB CONTENT */}
@@ -321,8 +359,11 @@ export default function CompanyDetailScreen() {
             <View style={s.tabSection}>
               {services.length === 0 ? (
                 <View style={s.emptyState}>
-                  <Text style={s.emptyIcon}>🛠️</Text>
+                  <View style={s.emptyIconCircle}>
+                    <MaterialCommunityIcons name="tools" size={30} color={T.text3} />
+                  </View>
                   <Text style={s.emptyText}>No services available right now.</Text>
+                  <Text style={s.emptySubText}>Check back soon or try another provider.</Text>
                 </View>
               ) : (
                 <View style={s.serviceList}>
@@ -334,27 +375,33 @@ export default function CompanyDetailScreen() {
                         style={s.serviceCard}
                         activeOpacity={0.7}
                         onPress={() => router.push(`/(customer)/service/${service.id}` as any)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`View ${service.name}, from $${Number(service.basePrice).toFixed(0)}`}
                       >
                         <View style={s.serviceInfo}>
-                          <Text style={s.serviceTitle}>{service.name}</Text>
-                          
+                          <Text style={s.serviceTitle} numberOfLines={2}>{service.name}</Text>
                           <View style={s.serviceMetaRow}>
-                            <View style={s.durationPill}>
-                              <MaterialCommunityIcons name="clock-outline" size={11} color={T.text2} />
-                              <Text style={s.durationText}>{service.durationMin} mins</Text>
-                            </View>
-                            <View style={s.pricePill}>
-                              <Text style={s.pricePillText}>${Number(service.basePrice).toFixed(0)}</Text>
-                            </View>
+                            <MaterialCommunityIcons name="clock-outline" size={12} color={T.text3} />
+                            <Text style={s.serviceMetaText}>{service.durationMin} mins</Text>
+                            {service.isActive && (
+                              <>
+                                <View style={s.metaDot} />
+                                <Text style={s.serviceMetaGreen}>Available</Text>
+                              </>
+                            )}
                           </View>
-
-                          {service.description && (
+                          {service.description ? (
                             <Text style={s.serviceDesc} numberOfLines={2}>{service.description}</Text>
-                          )}
-
+                          ) : null}
                           <View style={s.serviceFooterRow}>
-                            <Text style={s.viewDetailsLink}>View Details</Text>
-                            <MaterialIcons name="chevron-right" size={15} color={T.primary} />
+                            <View>
+                              <Text style={s.serviceFromLabel}>from</Text>
+                              <Text style={s.servicePrice}>${Number(service.basePrice).toFixed(0)}</Text>
+                            </View>
+                            <View style={s.viewChip}>
+                              <Text style={s.viewChipText}>View</Text>
+                              <MaterialIcons name="chevron-right" size={14} color={T.text2} />
+                            </View>
                           </View>
                         </View>
 
@@ -381,9 +428,16 @@ export default function CompanyDetailScreen() {
                   <View style={s.reviewsSummaryLeft}>
                     <Text style={s.ratingMassive}>{rating}</Text>
                     <View style={s.starsRow}>
-                      {[1, 2, 3, 4, 5].map(i => <MaterialIcons key={i} name="star" size={14} color={T.gold} />)}
+                      {[1, 2, 3, 4, 5].map(i => (
+                        <MaterialIcons
+                          key={i}
+                          name={i <= Math.round(Number(rating)) ? "star" : "star-outline"}
+                          size={14}
+                          color={T.gold}
+                        />
+                      ))}
                     </View>
-                    <Text style={s.reviewCountLabel}>Based on {reviewCount} reviews</Text>
+                    <Text style={s.reviewCountLabel}>Based on {reviewCount} verified bookings</Text>
                   </View>
                   <View style={s.reviewsSummaryRight}>
                     {ratingCounts.map(({ star, count }) => (
@@ -404,14 +458,15 @@ export default function CompanyDetailScreen() {
                   return (
                     <View key={review.id} style={[s.reviewCard, { marginBottom: 14 }]}>
                       <View style={s.reviewHeader}>
-                        <InitialsAvatar name={review.customer?.fullName || "Customer"} size={40} radius={14} />
+                        <InitialsAvatar name={review.customer?.fullName || "Customer"} size={40} radius={13} />
                         <View style={{ flex: 1 }}>
-                          <Text style={s.reviewName} numberOfLines={1}>{review.customer?.fullName || "Customer"} <Text style={{ fontSize: 11, color: T.success, fontWeight: "600" }}>(Verified)</Text></Text>
-                          <View style={{ flexDirection: 'row', marginTop: 2 }}>
+                          <Text style={s.reviewName} numberOfLines={1}>{review.customer?.fullName || "Customer"}</Text>
+                          <View style={s.reviewStarsRow}>
                             {[...Array(5)].map((_, i) => <MaterialIcons key={i} name={i < stars ? "star" : "star-outline"} size={12} color={T.gold} />)}
+                            <Text style={s.reviewVerified}>· Verified booking</Text>
                           </View>
                         </View>
-                        <Text style={s.reviewDate}>{new Date(review.createdAt).toLocaleDateString()}</Text>
+                        <Text style={s.reviewDate}>{new Date(review.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</Text>
                       </View>
                       {review.companyComment && (
                         <Text style={s.reviewBody}>{review.companyComment}</Text>
@@ -421,8 +476,11 @@ export default function CompanyDetailScreen() {
                 })
               ) : (
                 <View style={s.emptyState}>
-                  <Text style={s.emptyIcon}>⭐</Text>
+                  <View style={s.emptyIconCircle}>
+                    <MaterialCommunityIcons name="star-outline" size={30} color={T.text3} />
+                  </View>
                   <Text style={s.emptyText}>No reviews yet.</Text>
+                  <Text style={s.emptySubText}>Be the first to book and rate this provider.</Text>
                 </View>
               )}
             </View>
@@ -432,7 +490,7 @@ export default function CompanyDetailScreen() {
           {activeTab === TABS[2] && (
             <View style={s.tabSection}>
 
-              {/* Gallery Mini */}
+              {/* Gallery */}
               <Text style={s.aboutTitle}>Service Showcase</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
                 {services.filter((s: any) => s.image).map((s: any) => (
@@ -441,41 +499,37 @@ export default function CompanyDetailScreen() {
                 {heroImage && <Image source={{ uri: heroImage }} style={s.galleryImg} />}
               </ScrollView>
 
-              <View style={s.divider} />
-
               {/* Company Info */}
               <Text style={s.aboutTitle}>About provider</Text>
               <Text style={s.aboutDesc}>
                 {company.description || "A highly rated service provider dedicated to quality and customer satisfaction."}
               </Text>
 
-              <View style={s.infoList}>
+              <View style={s.infoListCard}>
                 {company.establishedYear && (
-                  <View style={s.infoRow}>
-                    <View style={s.iconCircle}><MaterialIcons name="event" size={18} color={T.primary} /></View>
+                  <View style={[s.infoRow, s.infoRowBordered]}>
+                    <View style={s.iconCircle}><MaterialIcons name="event" size={16} color={T.primaryMid} /></View>
                     <Text style={s.infoText}>Established in {company.establishedYear}</Text>
                   </View>
                 )}
-                <View style={s.infoRow}>
-                  <View style={s.iconCircle}><MaterialIcons name="location-on" size={18} color={T.primary} /></View>
+                <View style={[s.infoRow, s.infoRowBordered]}>
+                  <View style={s.iconCircle}><MaterialIcons name="location-on" size={16} color={T.primaryMid} /></View>
                   <Text style={s.infoText}>{company.address ? `${company.address}, ${company.city}` : company.city}</Text>
                 </View>
                 {company.phone && (
                   <View style={s.infoRow}>
-                    <View style={s.iconCircle}><MaterialIcons name="phone" size={18} color={T.primary} /></View>
+                    <View style={s.iconCircle}><MaterialIcons name="phone" size={16} color={T.primaryMid} /></View>
                     <Text style={s.infoText}>{company.phone}</Text>
                   </View>
                 )}
               </View>
 
-              <View style={s.divider} />
-
               {/* Location/Map placeholder */}
               {company.coverageRadiusKm ? (
                 <>
-                  <Text style={s.aboutTitle}>Service Coverage Area</Text>
+                  <Text style={[s.aboutTitle, { marginTop: 24 }]}>Service Coverage Area</Text>
                   <View style={s.mapPlaceholder}>
-                    <MaterialIcons name="map" size={28} color={T.primary} style={{ marginBottom: 4 }} />
+                    <MaterialIcons name="map" size={26} color={T.primaryMid} style={{ marginBottom: 4 }} />
                     <Text style={s.mapText}>Serves up to {company.coverageRadiusKm} km from {company.city}</Text>
                   </View>
                 </>
@@ -486,8 +540,8 @@ export default function CompanyDetailScreen() {
         </View>
       </Animated.ScrollView>
 
-      {/* ── STICKY FOOTER ─────────────────────────────────────── */}
-      <View style={s.stickyFooter}>
+      {/* ── STICKY FOOTER (floating navy bar) ───────────────────── */}
+      <View pointerEvents="box-none" style={[s.stickyFooter, { bottom: Platform.OS === 'ios' ? 10 : 10 }]}>
         <View>
           <Text style={s.footerLabel}>Starting at</Text>
           <Text style={s.footerPrice}>{lowestPrice !== null ? `$${lowestPrice.toFixed(0)}` : 'Free Quote'}</Text>
@@ -514,52 +568,60 @@ const s = StyleSheet.create({
   centerRoot: { flex: 1, backgroundColor: T.bg, alignItems: "center", justifyContent: "center", gap: 12 },
   errorText: { color: T.error, fontSize: 16, fontWeight: '600', marginTop: 12 },
 
-  // Floating Overlaid Circular Action Buttons
-  floatingHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12, backgroundColor: 'transparent' },
-  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: "rgba(10, 25, 47, 0.4)", borderWidth: 1, borderColor: "rgba(255,255,255,0.15)", ...CARD_SHADOW },
+  // Floating header that fills navy on scroll
+  floatingHeaderRow: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 },
+  floatingHeaderBg: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(10, 25, 47, 0)' },
+  floatingHeaderTitle: { position: 'absolute', bottom: 0, left: 0, right: 0, textAlign: 'center', fontSize: 16, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.3 },
+  floatingHeaderContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12, backgroundColor: 'transparent' },
+  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: "rgba(10, 25, 47, 0.42)", borderWidth: 1, borderColor: "rgba(255,255,255,0.16)", ...CARD_SHADOW },
 
-  // Hero Area
-  heroContainer: { height: 240, backgroundColor: T.primary },
-  heroOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(10, 25, 47, 0.15)' },
+  // Hero
+  heroContainer: { height: 250, backgroundColor: T.primary },
+  heroScrim: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(10, 25, 47, 0.45)' },
+  heroIdentity: { position: 'absolute', left: 24, right: 24, bottom: 0, paddingBottom: 58 },
+  heroNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  heroName: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', flexShrink: 1, letterSpacing: -0.6, textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
+  verifiedChip: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
+  verifiedChipText: { fontSize: 10, fontWeight: '800', color: '#BFDBFE', letterSpacing: 0.3 },
+  heroMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  heroMetaText: { fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
 
-  // Overlapping Identity Box
-  headerInfoBox: { paddingHorizontal: 24, flexDirection: 'row', alignItems: 'flex-end', gap: 16, marginTop: -36 },
-  logoWrapper: { width: 80, height: 80, borderRadius: 20, backgroundColor: T.surface, borderWidth: 3, borderColor: T.surface, ...CARD_SHADOW, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  // Overlapping logo
+  logoRow: { paddingHorizontal: 24, marginTop: -38, marginBottom: 4 },
+  logoWrapper: { width: 76, height: 76, borderRadius: 22, backgroundColor: T.surface, borderWidth: 3, borderColor: T.surface, ...CARD_SHADOW, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   logoImg: { width: '100%', height: '100%' },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  companyName: { fontSize: 22, fontWeight: '800', color: T.text1, flexShrink: 1, letterSpacing: -0.5 },
-  locationText: { fontSize: 13, color: T.text2, fontWeight: '600' },
 
-  // Bento Trust Box
-  bentoContainer: { paddingHorizontal: 20, marginTop: 16 },
-  trustMetrics: { flexDirection: 'row', backgroundColor: T.surface, borderRadius: 20, paddingVertical: 14, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW, alignItems: 'center' },
+  // Trust band
+  bentoContainer: { paddingHorizontal: 20, marginTop: 10 },
+  trustMetrics: { flexDirection: 'row', backgroundColor: T.surface, borderRadius: 18, paddingVertical: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW, alignItems: 'center' },
   trustItem: { flex: 1, flexBasis: 0, minWidth: 0, alignItems: 'center' },
-  metricDivider: { width: 1, height: 32, backgroundColor: T.border, alignSelf: 'center', opacity: 0.8 },
-  metricIconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  trustVal: { fontSize: 15, fontWeight: '800', color: T.text1, letterSpacing: -0.3 },
-  trustLabel: { fontSize: 10, color: T.text3, fontWeight: '600', textTransform: "uppercase", marginTop: 2 },
+  trustIconRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 },
+  metricDivider: { width: 1, height: 30, backgroundColor: T.border, alignSelf: 'center', opacity: 0.8 },
+  trustVal: { fontSize: 18, fontWeight: '800', color: T.text1, letterSpacing: -0.4 },
+  trustLabel: { fontSize: 10, color: T.text3, fontWeight: '600', textTransform: "uppercase", letterSpacing: 0.4, marginTop: 2 },
 
-  // Sticky Tab Bar
-  stickyTabBar: { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, zIndex: 10 },
-  tabsScroll: { paddingHorizontal: 16 },
-  tabItem: { paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 2, borderBottomColor: "transparent" },
-  tabItemActive: { borderBottomColor: T.primary },
-  tabText: { fontSize: 14, fontWeight: "700", color: T.text3 },
-  tabTextActive: { color: T.primary },
+  // Sticky segmented tabs
+  stickyTabBar: { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, zIndex: 10, paddingVertical: 10, paddingHorizontal: 16 },
+  segmentWrap: { flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 14, padding: 4 },
+  segmentItem: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  segmentItemActive: { backgroundColor: T.primary },
+  segmentText: { fontSize: 13.5, fontWeight: '700', color: T.text2 },
+  segmentTextActive: { color: '#FFFFFF' },
 
   // Tab Content Wrapper
   tabContentWrapper: { minHeight: 600, backgroundColor: T.bg },
   tabSection: { padding: 20 },
-  emptyState: { alignItems: "center", paddingVertical: 40 },
-  emptyIcon: { fontSize: 40, marginBottom: 12 },
-  emptyText: { fontSize: 14, color: T.text3, fontWeight: "600" },
+  emptyState: { alignItems: "center", paddingVertical: 44 },
+  emptyIconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  emptyText: { fontSize: 15, color: T.text2, fontWeight: "800" },
+  emptySubText: { fontSize: 13, color: T.text3, fontWeight: "500", marginTop: 4 },
 
   // Services Cards
   serviceList: { gap: 14 },
   serviceCard: {
     flexDirection: 'row',
     backgroundColor: T.surface,
-    borderRadius: 20,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
     borderColor: T.border,
@@ -568,39 +630,26 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   serviceInfo: { flex: 1 },
-  serviceTitle: { fontSize: 16, fontWeight: '800', color: T.text1, marginBottom: 6, letterSpacing: -0.2 },
-  serviceMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  durationPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: T.bg,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 0.5,
-    borderColor: T.border,
-  },
-  durationText: { fontSize: 11, fontWeight: '600', color: T.text2 },
-  pricePill: {
-    backgroundColor: 'rgba(10, 25, 47, 0.06)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  pricePillText: { fontSize: 12, fontWeight: '800', color: T.primary },
-  serviceDesc: { fontSize: 12, color: T.text3, lineHeight: 16, marginBottom: 10 },
-  serviceFooterRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  viewDetailsLink: { fontSize: 12, fontWeight: '700', color: T.primary },
-  serviceImg: { width: 80, height: 80, borderRadius: 16, backgroundColor: T.bg },
-  serviceIconBox: { width: 80, height: 80, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  serviceTitle: { fontSize: 16, fontWeight: '800', color: T.text1, marginBottom: 6, letterSpacing: -0.2, lineHeight: 21 },
+  serviceMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  serviceMetaText: { fontSize: 12, fontWeight: '600', color: T.text3 },
+  metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: T.text3 },
+  serviceMetaGreen: { fontSize: 12, fontWeight: '700', color: T.success },
+  serviceDesc: { fontSize: 13, color: T.text3, lineHeight: 18, marginBottom: 12 },
+  serviceFooterRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
+  serviceFromLabel: { fontSize: 10, fontWeight: '700', color: T.text3, textTransform: 'uppercase', letterSpacing: 0.5 },
+  servicePrice: { fontSize: 20, fontWeight: '900', color: T.text1, letterSpacing: -0.5, marginTop: 1 },
+  viewChip: { flexDirection: 'row', alignItems: 'center', gap: 1, backgroundColor: '#F1F5F9', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
+  viewChipText: { fontSize: 12.5, fontWeight: '700', color: T.text2 },
+  serviceImg: { width: 88, height: 88, borderRadius: 14, backgroundColor: T.bg },
+  serviceIconBox: { width: 88, height: 88, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 
   // Reviews Summary
-  reviewsSummaryCard: { backgroundColor: T.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: T.border, flexDirection: "row", gap: 24, marginBottom: 20, ...CARD_SHADOW },
+  reviewsSummaryCard: { backgroundColor: T.surface, borderRadius: 18, padding: 20, borderWidth: 1, borderColor: T.border, flexDirection: "row", gap: 24, marginBottom: 20, ...CARD_SHADOW },
   reviewsSummaryLeft: { alignItems: "center", justifyContent: "center" },
   ratingMassive: { fontSize: 40, fontWeight: "900", color: T.text1, letterSpacing: -1 },
   starsRow: { flexDirection: "row", gap: 2, marginVertical: 4 },
-  reviewCountLabel: { fontSize: 11, fontWeight: "700", color: T.text3 },
+  reviewCountLabel: { fontSize: 11, fontWeight: "700", color: T.text3, textAlign: 'center', width: 110 },
   reviewsSummaryRight: { flex: 1, gap: 6, justifyContent: 'center' },
   barRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   barLabel: { fontSize: 11, fontWeight: "700", color: T.text3, width: 8 },
@@ -608,28 +657,30 @@ const s = StyleSheet.create({
   barFill: { height: '100%', backgroundColor: T.gold, borderRadius: 3 },
 
   // Review List
-  reviewCard: { backgroundColor: T.surface, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  reviewCard: { backgroundColor: T.surface, padding: 18, borderRadius: 18, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  reviewName: { fontSize: 15, fontWeight: '800', color: T.text1 },
-  reviewDate: { fontSize: 12, color: T.text3, fontWeight: '600' },
-  reviewBody: { fontSize: 13, color: T.text2, lineHeight: 20 },
+  reviewName: { fontSize: 14.5, fontWeight: '800', color: T.text1 },
+  reviewStarsRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  reviewVerified: { fontSize: 10.5, fontWeight: '600', color: T.text3 },
+  reviewDate: { fontSize: 11.5, color: T.text3, fontWeight: '600' },
+  reviewBody: { fontSize: 13.5, color: T.text2, lineHeight: 20 },
 
   // About Tab
   aboutTitle: { fontSize: 16, fontWeight: '800', color: T.text1, marginBottom: 16, letterSpacing: -0.3 },
   galleryImg: { width: 140, height: 100, borderRadius: 12, backgroundColor: T.bg, borderWidth: 1, borderColor: T.border },
-  divider: { height: 1, backgroundColor: T.border, marginVertical: 20 },
   aboutDesc: { fontSize: 14, color: T.text2, lineHeight: 22, marginBottom: 20 },
-  infoList: { gap: 12 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  iconCircle: { width: 36, height: 36, borderRadius: 10, backgroundColor: T.inputBg, alignItems: 'center', justifyContent: 'center' },
-  infoText: { fontSize: 14, fontWeight: '700', color: T.text1 },
-  mapPlaceholder: { width: '100%', height: 120, backgroundColor: T.inputBg, borderRadius: 20, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  infoListCard: { backgroundColor: T.surface, borderRadius: 18, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW, paddingHorizontal: 16 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
+  infoRowBordered: { borderBottomWidth: 1, borderBottomColor: T.border },
+  iconCircle: { width: 34, height: 34, borderRadius: 10, backgroundColor: T.inputBg, alignItems: 'center', justifyContent: 'center' },
+  infoText: { fontSize: 13.5, fontWeight: '700', color: T.text1, flex: 1 },
+  mapPlaceholder: { width: '100%', height: 110, backgroundColor: T.surface, borderRadius: 18, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center', gap: 4, marginBottom: 20, ...CARD_SHADOW },
   mapText: { fontSize: 13, fontWeight: '700', color: T.text2 },
 
-  // Sticky Checkout Footer
-  stickyFooter: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: T.surface, borderTopWidth: 1, borderTopColor: T.border, paddingHorizontal: 24, paddingTop: 16, paddingBottom: Platform.OS === 'ios' ? 34 : 20, flexDirection: "row", justifyContent: "space-between", alignItems: "center", ...CARD_SHADOW },
-  footerLabel: { fontSize: 10, fontWeight: "800", color: T.text3, letterSpacing: 0.8, textTransform: 'uppercase' },
-  footerPrice: { fontSize: 24, fontWeight: "900", color: T.primary, letterSpacing: -0.5 },
-  footerBtn: { backgroundColor: T.primary, paddingHorizontal: 32, paddingVertical: 16, borderRadius: 16, ...CARD_SHADOW },
-  footerBtnText: { fontSize: 16, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
+  // Sticky Checkout Footer — floating navy bar
+  stickyFooter: { position: "absolute", bottom: 12, left: 16, right: 16, backgroundColor: T.primary, borderRadius: 18, paddingHorizontal: 20, paddingVertical: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center", ...CARD_SHADOW },
+  footerLabel: { fontSize: 10, fontWeight: "800", color: 'rgba(255,255,255,0.65)', letterSpacing: 0.8, textTransform: 'uppercase' },
+  footerPrice: { fontSize: 22, fontWeight: "900", color: '#FFFFFF', letterSpacing: -0.5 },
+  footerBtn: { backgroundColor: '#FFFFFF', paddingHorizontal: 26, paddingVertical: 13, borderRadius: 14 },
+  footerBtnText: { fontSize: 15, fontWeight: "800", color: T.primary, letterSpacing: 0.2 },
 });

@@ -47,6 +47,7 @@ export interface ExploreCompany {
   coverImageUrl?: string;
   cardHighlights?: string[];
   verificationStatus?: string;
+  isSponsored?: boolean;
   distance?: number;
   ratingSummary?: {
     averageRating: number;
@@ -113,17 +114,22 @@ export const useExploreStore = create<ExploreStore>((set, get) => ({
   fetchExploreData: async (filters: any = {}) => {
     set({ isLoading: true, error: null, page: 1, hasMore: true });
     try {
-      const [categoriesRes, servicesRes, companiesRes] = await Promise.all([
+      const [categoriesRes, servicesRes, companiesRes, sponsoredRes] = await Promise.all([
         api.get('/api/categories'),
         api.get('/api/services', { params: { page: 1, limit: 20, ...filters } }),
         api.get('/api/companies', { params: { ...filters } }),
+        api.get('/api/companies/sponsored', { params: { ...filters } }).catch(() => ({ data: [] })),
       ]);
 
       const newServices = extractArray(servicesRes.data);
+      const sponsored = extractArray(sponsoredRes.data).map((c: any) => ({ ...c, isSponsored: true }));
+      const sponsoredIds = new Set(sponsored.map((c: any) => String(c.id)));
+      const regular = extractArray(companiesRes.data)
+        .filter((c: any) => !sponsoredIds.has(String(c.id)));
       set({
         categories: extractArray(categoriesRes.data),
         services: newServices,
-        companies: extractArray(companiesRes.data),
+        companies: [...sponsored, ...regular],
         hasMore: newServices.length === 20,
         isLoading: false,
       });

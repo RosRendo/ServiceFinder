@@ -229,6 +229,12 @@ function CompanyCard({ company, onPress }: { company: ExploreCompany; onPress: (
             {company.city}
             {company.description ? ` · ${company.description}` : ""}
           </Text>
+          {/* Sponsored badge */}
+          {company.isSponsored && (
+            <View style={[s.tag, { backgroundColor: "#FFFBEB", borderColor: "#FDE68A" }]}>
+              <Text style={[s.tagText, { color: "#92400E" }]}>FEATURED</Text>
+            </View>
+          )}
           {/* Secondary Highlight tags */}
           {highlights.length > 1 && (
             <View style={s.tagsRow}>
