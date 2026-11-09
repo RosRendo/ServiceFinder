@@ -12,14 +12,6 @@ export interface Category {
   useImageAsBadge?: boolean;
 }
 
-export interface ServiceType {
-  id: string;
-  name: string;
-  slug: string;
-  icon?: string;
-  description?: string;
-}
-
 export interface Service {
   id: string;
   name: string;
@@ -35,35 +27,17 @@ export interface Service {
   };
 }
 
-export interface Company {
-  id: string;
-  name: string;
-  city: string;
-  logoUrl?: string;
-  coverImageUrl?: string;
-  description: string;
-  cardHighlights?: string[];
-  ratingSummary?: {
-    averageRating: number;
-    totalReviews: number;
-  };
-}
-
 interface CustomerHomeStore {
   categories: Category[];
-  serviceTypes: ServiceType[];
   activeBooking: any | null; // For State-Driven Home
-  trendingServices: Service[];
   recommendedServices: Service[];
-  topCompanies: Company[];
-  sponsoredCompanies: Company[];
-  
+
   // Status
   isLoading: boolean;
   isLoadingMore: boolean;
   isBackgroundRefreshing: boolean;
   error: string | null;
-  
+
   // Pagination
   page: number;
   hasMore: boolean;
@@ -72,7 +46,7 @@ interface CustomerHomeStore {
   loadMoreServices: () => Promise<void>;
 }
 
-const HOME_CACHE_KEY = 'cache:customer_home_v1';
+const HOME_CACHE_KEY = 'cache:customer_home_v2';
 
 const extractArray = (data: any): any[] => {
   if (Array.isArray(data)) return data;
@@ -94,12 +68,8 @@ const extractArray = (data: any): any[] => {
 
 export const useCustomerHomeStore = create<CustomerHomeStore>((set, get) => ({
   categories: [],
-  serviceTypes: [],
   activeBooking: null,
-  trendingServices: [],
   recommendedServices: [],
-  topCompanies: [],
-  sponsoredCompanies: [],
   isLoading: false,
   isLoadingMore: false,
   isBackgroundRefreshing: false,
@@ -120,11 +90,7 @@ export const useCustomerHomeStore = create<CustomerHomeStore>((set, get) => ({
           if (cached?.categories?.length > 0) {
             set({
               categories: cached.categories || [],
-              serviceTypes: cached.serviceTypes || [],
-              trendingServices: cached.trendingServices || [],
               recommendedServices: cached.recommendedServices || [],
-              topCompanies: cached.topCompanies || [],
-              sponsoredCompanies: cached.sponsoredCompanies || [],
               isLoading: false,
               isBackgroundRefreshing: true,
             });
@@ -153,38 +119,21 @@ export const useCustomerHomeStore = create<CustomerHomeStore>((set, get) => ({
         : Promise.resolve({ data: [] });
 
       // Execute all API requests in parallel with silent fallbacks
-      const [
-        categoriesRes,
-        serviceTypesRes,
-        servicesRes,
-        bookingsRes,
-        companiesRes,
-        sponsoredRes,
-      ] = await Promise.all([
+      const [categoriesRes, servicesRes, bookingsRes] = await Promise.all([
         api.get('/api/categories').catch(() => ({ data: [] })),
-        api.get('/api/service-types').catch(() => ({ data: [] })),
         api.get('/api/services', { params: servicesParams }).catch(() => ({ data: [] })),
         bookingsPromise,
-        api.get('/api/companies').catch(() => ({ data: [] })),
-        api.get('/api/companies/sponsored').catch(() => ({ data: [] })),
       ]);
 
       const categories = extractArray(categoriesRes.data);
-      const serviceTypes = extractArray(serviceTypesRes.data);
       const services = extractArray(servicesRes.data);
       const allBookings = extractArray(bookingsRes.data);
       const activeBooking = allBookings.find((b: any) => ['confirmed', 'in_progress'].includes(b.status)) || null;
-      const topCompanies = extractArray(companiesRes.data);
-      const sponsoredCompanies = extractArray(sponsoredRes.data);
 
       const nextPayload = {
         categories: categories.length > 0 ? categories : get().categories,
-        serviceTypes: serviceTypes.length > 0 ? serviceTypes : get().serviceTypes,
         activeBooking,
-        trendingServices: services.length > 0 ? services.slice(0, 5) : get().trendingServices,
-        recommendedServices: services.length > 0 ? services.slice(5, 15) : get().recommendedServices,
-        topCompanies: topCompanies.length > 0 ? topCompanies : get().topCompanies,
-        sponsoredCompanies: sponsoredCompanies.length > 0 ? sponsoredCompanies : get().sponsoredCompanies,
+        recommendedServices: services.length > 0 ? services.slice(5) : get().recommendedServices,
         hasMore: false,
         isLoading: false,
         isBackgroundRefreshing: false,
@@ -197,11 +146,7 @@ export const useCustomerHomeStore = create<CustomerHomeStore>((set, get) => ({
         HOME_CACHE_KEY,
         JSON.stringify({
           categories: nextPayload.categories,
-          serviceTypes: nextPayload.serviceTypes,
-          trendingServices: nextPayload.trendingServices,
           recommendedServices: nextPayload.recommendedServices,
-          topCompanies: nextPayload.topCompanies,
-          sponsoredCompanies: nextPayload.sponsoredCompanies,
         })
       ).catch(() => {});
     } catch (error: any) {

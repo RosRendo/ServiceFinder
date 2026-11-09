@@ -136,19 +136,19 @@ export default function ServiceDetailScreen() {
 
   return (
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
-      {/* HEADER */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <MaterialIcons name="arrow-back" size={24} color={T.text1} />
+      {/* FLOATING OVERLAY ACTIONS */}
+      <View style={s.floatingHeader}>
+        <TouchableOpacity onPress={() => router.back()} style={s.actionBtn} accessibilityRole="button" accessibilityLabel="Go back">
+          <MaterialIcons name="arrow-back" size={20} color={T.text1} />
         </TouchableOpacity>
-        <Text style={s.headerTitle} numberOfLines={1}>{service.serviceType?.name || 'Service Details'}</Text>
-        <TouchableOpacity onPress={handleSaveToggle} disabled={isSaving} style={s.backBtn}>
-          <MaterialCommunityIcons name={isSaved ? "heart" : "heart-outline"} size={22} color={isSaved ? "#ED6B6B" : T.text1} />
+        <Text style={s.floatingKicker}>{service.serviceType?.name || 'Service'}</Text>
+        <TouchableOpacity onPress={handleSaveToggle} disabled={isSaving} style={s.actionBtn} accessibilityRole="button" accessibilityLabel={isSaved ? "Remove from saved" : "Save service"}>
+          <MaterialCommunityIcons name={isSaved ? "heart" : "heart-outline"} size={20} color={isSaved ? "#EF4444" : T.text1} />
         </TouchableOpacity>
       </View>
 
-      <Animated.ScrollView 
-        contentContainerStyle={{ paddingBottom: 120 }} 
+      <Animated.ScrollView
+        contentContainerStyle={{ paddingBottom: 130 }}
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -156,7 +156,7 @@ export default function ServiceDetailScreen() {
         )}
         scrollEventThrottle={16}
       >
-        {/* PARALLAX HERO IMAGE */}
+        {/* EDGE-TO-EDGE PARALLAX HERO */}
         <Animated.View style={[s.heroContainer, {
           transform: [{
             translateY: scrollY.interpolate({
@@ -179,67 +179,70 @@ export default function ServiceDetailScreen() {
               contentFit="cover"
             />
           ) : (
-            <View style={[s.heroImage, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1F5F9' }]}>
-              <MaterialCommunityIcons name="image-outline" size={44} color={T.text3} />
+            <View style={[s.heroImage, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#E2E8F0' }]}>
+              <MaterialCommunityIcons name="image-outline" size={44} color="#94A3B8" />
+            </View>
+          )}
+          <View style={s.heroScrim} />
+          {/* Price anchored on the hero */}
+          <View style={s.heroPricePill}>
+            <View>
+              <Text style={s.heroPriceLabel}>from</Text>
+              <Text style={s.heroPriceValue}>${service.basePrice}</Text>
+            </View>
+          </View>
+          {service.isActive && (
+            <View style={s.heroAvailability}>
+              <MaterialIcons name="bolt" size={12} color="#16A34A" />
+              <Text style={s.heroAvailabilityText}>Available Today</Text>
             </View>
           )}
         </Animated.View>
 
-        {/* 1 & 2. WHAT AM I BUYING & HOW MUCH? */}
+        {/* TITLE BLOCK */}
         <View style={s.infoSection}>
-          <View style={s.titleRow}>
-            <Text style={s.serviceTitle}>{service.name}</Text>
-          </View>
-          
-          <View style={s.keyMetricsRow}>
-            <View style={s.metricPill}>
-              <Text style={s.metricPrice}>${service.basePrice}</Text>
-            </View>
-            <View style={s.metricPillLight}>
-              <MaterialIcons name="star" size={16} color="#F59E0B" />
-              <Text style={s.metricText}>
-                {service.company?.rating ? Number(service.company.rating).toFixed(1) : "New"} 
-                {service.company?.reviewCount ? ` (${service.company.reviewCount} reviews)` : ""}
-              </Text>
-            </View>
+          <Text style={s.serviceKicker} numberOfLines={1}>{service.serviceType?.name || ''}</Text>
+          <Text style={s.serviceTitle}>{service.name}</Text>
+          <View style={s.metaRow}>
             {service.durationMin ? (
-              <View style={s.metricPillLight}>
-                <MaterialCommunityIcons name="clock-outline" size={16} color={T.text2} />
-                <Text style={s.metricText}>{service.durationMin} mins</Text>
+              <View style={s.metaItem}>
+                <MaterialCommunityIcons name="clock-outline" size={14} color={T.text3} />
+                <Text style={s.metaItemText}>{service.durationMin} mins</Text>
               </View>
             ) : null}
+            <View style={s.metaItem}>
+              <MaterialIcons name="star" size={14} color="#F59E0B" />
+              <Text style={s.metaItemText}>
+                {service.company?.rating ? Number(service.company.rating).toFixed(1) : "New"}
+                {service.company?.reviewCount ? ` (${service.company.reviewCount})` : ""}
+              </Text>
+            </View>
           </View>
 
-          {/* 6. WHY SHOULD I TRUST IT? (Trust Badges) */}
+          {/* Trust chips */}
           <View style={s.trustBadgesContainer}>
             {service.company?.verificationStatus === 'verified' && (
               <View style={[s.trustBadge, { backgroundColor: '#EFF6FF' }]}>
-                <MaterialIcons name="verified" size={14} color="#3B82F6" />
+                <MaterialIcons name="verified" size={13} color="#3B82F6" />
                 <Text style={[s.trustBadgeText, { color: '#1D4ED8' }]}>Verified Provider</Text>
               </View>
             )}
             {service.company?.completionRate !== undefined && (
               <View style={[s.trustBadge, { backgroundColor: '#ECFDF5' }]}>
-                <MaterialIcons name="check-circle" size={14} color="#10B981" />
+                <MaterialIcons name="check-circle" size={13} color="#10B981" />
                 <Text style={[s.trustBadgeText, { color: '#047857' }]}>{Number(service.company.completionRate).toFixed(0)}% Completion</Text>
               </View>
             )}
             {service.company?.completedJobs > 0 && (
-              <View style={[s.trustBadge, { backgroundColor: '#F3F4F6' }]}>
-                <MaterialIcons name="work" size={14} color={T.text2} />
-                <Text style={[s.trustBadgeText, { color: T.text2 }]}>{service.company.completedJobs}+ Jobs</Text>
+              <View style={[s.trustBadge, { backgroundColor: '#F1F5F9' }]}>
+                <MaterialIcons name="work" size={13} color="#475569" />
+                <Text style={[s.trustBadgeText, { color: '#475569' }]}>{service.company.completedJobs}+ Jobs</Text>
               </View>
             )}
             {service.company?.isInsured && (
               <View style={[s.trustBadge, { backgroundColor: '#FEF2F2' }]}>
-                <MaterialIcons name="shield" size={14} color="#EF4444" />
+                <MaterialIcons name="shield" size={13} color="#EF4444" />
                 <Text style={[s.trustBadgeText, { color: '#B91C1C' }]}>Insured</Text>
-              </View>
-            )}
-            {service.isActive && (
-              <View style={[s.trustBadge, { backgroundColor: '#F0FDF4' }]}>
-                <MaterialIcons name="bolt" size={14} color="#16A34A" />
-                <Text style={[s.trustBadgeText, { color: '#15803D' }]}>Available Today</Text>
               </View>
             )}
           </View>
@@ -254,7 +257,9 @@ export default function ServiceDetailScreen() {
             <View style={s.featureList}>
               {service.checklist.map((feature: any, i: number) => (
                 <View key={i} style={s.featureItem}>
-                  <MaterialIcons name="check" size={20} color={T.text1} />
+                  <View style={s.featureCheckDisc}>
+                    <MaterialIcons name="check" size={13} color="#0A192F" />
+                  </View>
                   <Text style={s.featureText}>{feature.text || feature}</Text>
                 </View>
               ))}
@@ -267,27 +272,30 @@ export default function ServiceDetailScreen() {
         {/* 4. WHO IS PROVIDING IT? */}
         <View style={s.section}>
           <Text style={s.sectionTitle}>Provided By</Text>
-          <View style={s.providerCard}>
-            <Image 
-              source={{ uri: service.company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${service.company.name}` }} 
-              style={s.companyLogo} 
+          <TouchableOpacity
+            style={s.providerCard}
+            onPress={() => router.push(`/(customer)/company/${service.company.id}` as any)}
+            accessibilityRole="button"
+            accessibilityLabel={`View provider ${service.company.name}`}
+          >
+            <Image
+              source={{ uri: service.company.logoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${service.company.name}` }}
+              style={s.companyLogo}
             />
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Text style={s.companyName}>{service.company.name}</Text>
-                {service.company.verificationStatus === 'verified' && <MaterialIcons name="verified" size={16} color="#3B82F6" />}
+                <Text style={s.companyName} numberOfLines={1}>{service.company.name}</Text>
+                {service.company.verificationStatus === 'verified' && <MaterialIcons name="verified" size={15} color="#3B82F6" />}
               </View>
-              <Text style={s.companyMeta}>
-                {service.company.city || "Local Area"} • {service.company.rating ? `${service.company.rating} ★ (${service.company.reviewCount})` : 'New'}
+              <Text style={s.companyMeta} numberOfLines={1}>
+                {service.company.city || "Local Area"} · {service.company.rating ? `${Number(service.company.rating).toFixed(1)} ★ (${service.company.reviewCount || 0})` : 'New'}
               </Text>
             </View>
-            <TouchableOpacity 
-              style={s.viewCompanyBtn}
-              onPress={() => router.push(`/(customer)/company/${service.company.id}` as any)}
-            >
-              <Text style={s.viewCompanyText}>VIEW</Text>
-            </TouchableOpacity>
-          </View>
+            <View style={s.viewChip}>
+              <Text style={s.viewChipText}>View profile</Text>
+              <MaterialIcons name="chevron-right" size={14} color={T.text2} />
+            </View>
+          </TouchableOpacity>
         </View>
 
         <View style={s.divider} />
@@ -426,13 +434,19 @@ export default function ServiceDetailScreen() {
         )}
       </Animated.ScrollView>
 
-      {/* FLOATING ACTION BAR */}
-      <View style={s.fabContainer}>
-        <ScaleButton onPress={() => setSheetVisible(true)}>
-          <View style={s.fabBtn}>
-            <Text style={s.fabBtnText}>BOOK NOW</Text>
+      {/* FLOATING ACTION BAR (navy pill, matching company detail) */}
+      <View style={s.fabContainer} pointerEvents="box-none">
+        <View style={s.fabBar}>
+          <View style={{ paddingLeft: 4 }}>
+            <Text style={s.fabPriceLabel}>from</Text>
+            <Text style={s.fabPrice}>${service.basePrice}</Text>
           </View>
-        </ScaleButton>
+          <ScaleButton onPress={() => setSheetVisible(true)}>
+            <View style={s.fabBtn}>
+              <Text style={s.fabBtnText}>Book Now</Text>
+            </View>
+          </ScaleButton>
+        </View>
       </View>
 
       {/* BOTTOM SHEET MODAL */}
@@ -449,51 +463,55 @@ export default function ServiceDetailScreen() {
 const s = StyleSheet.create({
   centerRoot: { flex: 1, backgroundColor: T.bg, alignItems: 'center', justifyContent: 'center' },
   root: { flex: 1, backgroundColor: T.bg },
-  
-  // Header
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
-  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: T.text1 },
-  
-  // Hero
-  heroContainer: { marginHorizontal: 20, marginTop: 8, height: 220, borderRadius: 16, overflow: 'hidden', backgroundColor: T.surface },
+
+  // Floating overlay actions
+  floatingHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 8 : 12, paddingBottom: 10, backgroundColor: 'transparent' },
+  actionBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  floatingKicker: { fontSize: 12, fontWeight: '800', color: T.text2, textTransform: 'uppercase', letterSpacing: 0.4 },
+
+  // Edge-to-edge hero
+  heroContainer: { height: 270, backgroundColor: '#E2E8F0', overflow: 'hidden' },
   heroImage: { ...StyleSheet.absoluteFill },
-  
-  // Info Section
+  heroScrim: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(10, 25, 47, 0.28)' },
+  heroPricePill: { position: 'absolute', left: 20, bottom: 20, backgroundColor: 'rgba(255,255,255,0.97)', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8, ...CARD_SHADOW },
+  heroPriceLabel: { fontSize: 9.5, fontWeight: '800', color: T.text3, textTransform: 'uppercase', letterSpacing: 0.6 },
+  heroPriceValue: { fontSize: 19, fontWeight: '900', color: T.text1, letterSpacing: -0.5, lineHeight: 22 },
+  heroAvailability: { position: 'absolute', right: 20, bottom: 20, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6 },
+  heroAvailabilityText: { fontSize: 11, fontWeight: '800', color: '#15803D' },
+
+  // Title block
   infoSection: { padding: 24, paddingTop: 20 },
-  titleRow: { marginBottom: 12 },
-  serviceTitle: { fontSize: 26, fontWeight: '900', color: T.text1, lineHeight: 32 },
-  
-  keyMetricsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  metricPill: { backgroundColor: T.text1, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  metricPrice: { color: T.surface, fontSize: 16, fontWeight: '800' },
-  metricPillLight: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  metricText: { fontSize: 14, fontWeight: '700', color: T.text1 },
+  serviceKicker: { fontSize: 11, fontWeight: '800', color: T.primaryMid, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 },
+  serviceTitle: { fontSize: 26, fontWeight: '900', color: T.text1, lineHeight: 32, letterSpacing: -0.6, marginBottom: 10 },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginBottom: 16 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  metaItemText: { fontSize: 13.5, fontWeight: '700', color: T.text2 },
 
   // Trust Badges
   trustBadgesContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  trustBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
+  trustBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   trustBadgeText: { fontSize: 12, fontWeight: '700' },
 
-  divider: { height: 8, backgroundColor: '#F3F4F6' },
-  
+  divider: { height: 1, backgroundColor: T.border, marginHorizontal: 24 },
+
   section: { padding: 24 },
-  sectionTitle: { fontSize: 20, fontWeight: '800', color: T.text1, marginBottom: 16 },
-  
+  sectionTitle: { fontSize: 19, fontWeight: '800', color: T.text1, marginBottom: 16, letterSpacing: -0.4 },
+
   // Features
-  featureList: { gap: 16 },
+  featureList: { gap: 12 },
   featureItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  featureText: { flex: 1, fontSize: 16, color: T.text1, fontWeight: '500', lineHeight: 22 },
+  featureCheckDisc: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  featureText: { flex: 1, fontSize: 15.5, color: T.text1, fontWeight: '500', lineHeight: 22 },
 
   // Provider
-  providerCard: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  companyLogo: { width: 48, height: 48, borderRadius: 12, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
-  companyName: { fontSize: 16, fontWeight: '800', color: T.text1 },
-  companyMeta: { fontSize: 13, color: T.text2, marginTop: 4, fontWeight: '500' },
-  viewCompanyBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
-  viewCompanyText: { fontSize: 12, fontWeight: '700', color: T.text1 },
+  providerCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, backgroundColor: T.surface, borderRadius: 16, borderWidth: 1, borderColor: T.border, ...CARD_SHADOW },
+  companyLogo: { width: 52, height: 52, borderRadius: 13, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
+  companyName: { fontSize: 15.5, fontWeight: '800', color: T.text1 },
+  companyMeta: { fontSize: 12.5, color: T.text2, marginTop: 3, fontWeight: '500' },
+  viewChip: { flexDirection: 'row', alignItems: 'center', gap: 1, backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10 },
+  viewChipText: { fontSize: 12, fontWeight: '700', color: T.text2 },
 
-  // Policies Redesign — Unified Premium Trust Card
+  // Guarantee
   guaranteeSection: {
     paddingHorizontal: 24,
     paddingVertical: 14,
@@ -554,8 +572,8 @@ const s = StyleSheet.create({
   },
 
   // Other Providers
-  otherProviderCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, backgroundColor: T.surface, borderRadius: 12, borderWidth: 1, borderColor: T.border },
-  otherLogo: { width: 40, height: 40, borderRadius: 8, backgroundColor: T.bg },
+  otherProviderCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, backgroundColor: T.surface, borderRadius: 14, borderWidth: 1, borderColor: T.border },
+  otherLogo: { width: 40, height: 40, borderRadius: 10, backgroundColor: T.bg },
   otherName: { fontSize: 15, fontWeight: '700', color: T.text1 },
   otherMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   otherMeta: { fontSize: 12, color: T.text2, fontWeight: '500' },
@@ -569,10 +587,13 @@ const s = StyleSheet.create({
   crossSellTitle: { fontSize: 13, fontWeight: '700', color: T.text1, marginBottom: 8, lineHeight: 18, height: 36 },
   crossSellPrice: { fontSize: 14, fontWeight: '800', color: T.accent },
 
-  // FAB
-  fabContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24, backgroundColor: T.surface, borderTopWidth: 1, borderColor: T.border, ...CARD_SHADOW },
-  fabBtn: { backgroundColor: T.accent, borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
-  fabBtnText: { color: '#FFF', fontSize: 16, fontWeight: '900', letterSpacing: 0.5 },
-  
+  // Floating navy action bar
+  fabContainer: { position: 'absolute', left: 16, right: 16, bottom: Platform.OS === 'ios' ? 12 : 10 },
+  fabBar: { backgroundColor: T.primary, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...CARD_SHADOW },
+  fabPriceLabel: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.6 },
+  fabPrice: { fontSize: 20, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.5, lineHeight: 24 },
+  fabBtn: { backgroundColor: '#FFFFFF', borderRadius: 14, paddingHorizontal: 28, paddingVertical: 13, alignItems: 'center' },
+  fabBtnText: { color: T.primary, fontSize: 15, fontWeight: '800', letterSpacing: 0.2 },
+
   errorText: { color: T.error, fontSize: 16, fontWeight: '600' }
 });

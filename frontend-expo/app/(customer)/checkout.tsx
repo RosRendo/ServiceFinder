@@ -28,17 +28,32 @@ const CARD_SHADOW = Platform.select({
   android: { elevation: 2 },
 });
 
+const to24Hour = (label?: string | null) => {
+  if (!label) return null;
+  const m = label.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  if (m[4]) {
+    const pm = m[4].toUpperCase() === 'PM';
+    if (pm && h !== 12) h += 12;
+    if (!pm && h === 12) h = 0;
+  }
+  return `${String(h).padStart(2, '0')}:${m[2]}`;
+};
+
 export default function CheckoutScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { location } = useCurrentLocation(true);
   
   // Accept EITHER an existing bookingId OR temp params from BottomSheet
-  const { bookingId, serviceId, date, time, price, companyId, isInstant, companyName, serviceName } = useLocalSearchParams<{ 
+  const { bookingId, serviceId, date, dateISO, time, timeISO, price, companyId, isInstant, companyName, serviceName } = useLocalSearchParams<{ 
     bookingId?: string; 
     serviceId?: string; 
     date?: string; 
+    dateISO?: string;
     time?: string; 
+    timeISO?: string;
     price?: string;
     companyId?: string; 
     isInstant?: string;
@@ -54,6 +69,7 @@ export default function CheckoutScreen() {
   // UI State
   const [loading, setLoading] = useState(!!bookingId || !!serviceId);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("Booking successful!");
   const [isProcessing, setIsProcessing] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   
@@ -141,6 +157,7 @@ export default function CheckoutScreen() {
           if (b.status === "confirmed") {
             setKhqrString(null);
             setPollingActive(false);
+            setSuccessMessage("Payment received!");
             setShowSuccess(true);
           }
         } catch (err) {
@@ -239,11 +256,15 @@ export default function CheckoutScreen() {
       }
       
       try {
+        // Source of truth: ISO values handed over by the bottom sheet.
+        // Fall back to the legacy label strings only for old deep-links.
         const bd = new Date();
         const localDateString = `${bd.getFullYear()}-${String(bd.getMonth() + 1).padStart(2, '0')}-${String(bd.getDate()).padStart(2, '0')}`;
-        
         let resolvedDate = localDateString;
-        if (date && !date.toLowerCase().includes("today") && !date.toLowerCase().includes("tomorrow")) {
+        if (dateISO && !isNaN(new Date(dateISO).getTime())) {
+          const parsed = new Date(dateISO);
+          resolvedDate = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+        } else if (date && !date.toLowerCase().includes("today") && !date.toLowerCase().includes("tomorrow")) {
           const parsed = new Date(date);
           if (!isNaN(parsed.getTime())) {
             resolvedDate = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
@@ -254,13 +275,31 @@ export default function CheckoutScreen() {
           resolvedDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
         }
 
+        // startTime must be machine-readable 24h "HH:mm"
+        const resolvedTime = timeISO || to24Hour(time) || "10:00";
+
+        // Never fabricate an address: the user must set one explicitly.
+        if (!hasAddress) {
+          setIsProcessing(false);
+          Alert.alert(
+            "Set your location",
+            "Add where the service should happen so the provider knows where to go.",
+            [{ text: "Set Location", onPress: () => {
+              setPinLat(displayLat);
+              setPinLng(displayLng);
+              setShowAddressPicker(true);
+            } }, { text: "Not now", style: "cancel" }]
+          );
+          return;
+        }
+
         const resolvedCompanyId = service?.companyId || service?.company?.id || companyId || "";
         const res = await api.post("/api/bookings", {
           serviceId, 
           companyId: resolvedCompanyId, 
           bookingDate: resolvedDate,
-          startTime: time || "10:00", 
-          serviceAddress: displayAddress || "Customer Location, Phnom Penh",
+          startTime: resolvedTime, 
+          serviceAddress: displayAddress,
           latitude: displayLat,
           longitude: displayLng,
         });
@@ -281,6 +320,7 @@ export default function CheckoutScreen() {
           method: 'cash',
         });
         if (res.data?.success) {
+          setSuccessMessage("Booking confirmed! Pay your provider after the service.");
           setShowSuccess(true);
         } else {
           setPayError(res.data?.message || "Failed to confirm cash booking.");
@@ -687,8 +727,8 @@ export default function CheckoutScreen() {
               <ActivityIndicator color="#FFF" />
             ) : (
               <>
-                <Text style={s.payBtnText}>Pay ${total.toFixed(2)}</Text>
-                <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
+                <Text style={s.payBtnText}>{hasAddress ? `Pay $${total.toFixed(2)}` : "Set Your Location"}</Text>
+                <MaterialIcons name={hasAddress ? "arrow-forward" : "add-location-alt"} size={20} color="#FFF" />
               </>
             )}
           </View>
@@ -742,6 +782,7 @@ export default function CheckoutScreen() {
 
       <SuccessOverlay 
         visible={showSuccess} 
+        message={successMessage}
         onFinish={() => {
           setShowSuccess(false);
           const finalBookingId = booking?.id || bookingId;

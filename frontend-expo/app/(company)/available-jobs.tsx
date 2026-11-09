@@ -27,12 +27,14 @@ export default function AvailableJobsScreen() {
     else setLoading(true);
 
     try {
-      // Fetch pending/unassigned bookings for staff's company
-      const res = await api.get("/api/bookings?status=pending");
+      // Fetch bookings for staff's company (pending + confirmed incl. instant auto-matches)
+      const res = await api.get("/api/bookings");
       const data = res.data?.data || res.data;
       const bookings = data?.bookings || data || [];
-      // Filter only unassigned ones
-      const unassigned = bookings.filter((b: any) => !b.assignedStaffId);
+      // Filter only claimable ones: unassigned pending or confirmed
+      const unassigned = bookings.filter(
+        (b: any) => !b.assignedStaffId && ["pending", "confirmed"].includes(b.status)
+      );
       setJobs(unassigned);
     } catch (error: any) {
       console.error("Failed to fetch available jobs", error);

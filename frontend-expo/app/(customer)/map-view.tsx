@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   TextInput,
   FlatList,
   Dimensions,
+  Modal,
   Pressable,
   ActivityIndicator,
   Linking,
@@ -57,6 +58,7 @@ export interface CompanyPin {
   categorySlugs?: string[];
   categorySlug?: string;
   serviceTypes?: any[];
+  services?: { id: string; name: string; basePrice?: number }[];
 }
 
 const CATEGORIES = [
@@ -69,15 +71,16 @@ const CATEGORIES = [
   { id: "home",       label: "Home Service", icon: "home-outline",    slug: "home",       color: "#8b5cf6" },
 ];
 
-interface Bid {
-  id: string;
+interface MatchResult {
+  bookingId: string;
+  companyId: string;
   companyName: string;
   rating: number;
-  priceEstimate: string;
-  eta: string;
-  distance: string;
-  latitude?: number;
-  longitude?: number;
+  etaMinutes: number;
+  distanceKm: number | null;
+  totalPrice: number;
+  companyLatitude: number | null;
+  companyLongitude: number | null;
 }
 
 function PulsingDriverMarker({ color = '#2563EB', etaText }: { color?: string; etaText?: string }) {
@@ -212,13 +215,13 @@ export default function MasterMapViewScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Instant Request Stage State (1: Pick Service | 2: Problem | 3: Confirm | 4: Radar | 5: Bids)
+  // Instant Request Stage State (1: Pick & Describe | 4: Auto-match radar | 5: Matched)
   const [instantStage, setInstantStage] = useState<number>(1);
   const [instantService, setInstantService] = useState<{ id: string; label: string } | null>(null);
   const [instantDesc, setInstantDesc] = useState("");
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
-  const [bids, setBids] = useState<Bid[]>([]);
-  const [selectedBidIdx, setSelectedBidIdx] = useState(0);
+  const [matched, setMatched] = useState<MatchResult | null>(null);
+  const [noMatch, setNoMatch] = useState(false);
   const [isDispatching, setIsDispatching] = useState(false);
 
   // Radar matching animations
@@ -324,6 +327,16 @@ export default function MasterMapViewScreen() {
             verified: c.verificationStatus === "verified" || c.verified,
             categorySlugs: slugs,
             categorySlug: slugs[0] || "other",
+            services: Array.isArray(c.services)
+              ? c.services
+                  .filter((sv: any) => sv.isActive !== false)
+                  .map((sv: any) => ({
+                    id: sv.id?.toString(),
+                    name: sv.name,
+                    basePrice: sv.basePrice != null ? Number(sv.basePrice) : undefined,
+                  }))
+                  .filter((sv: any) => sv.id && sv.name)
+              : [],
           };
         });
         setCompanies(pins);
@@ -361,43 +374,21 @@ export default function MasterMapViewScreen() {
     }
   }, [appMode, instantStage]);
 
-  // 4. WebSocket Listener for Instant Request Bids
+  // 4. Radar status rotation + safety timeout while waiting for auto-match
   useEffect(() => {
-    if (appMode !== "instant" || (instantStage !== 4 && instantStage !== 5)) return;
-    if (!activeRequestId) return;
+    if (appMode !== "instant" || instantStage !== 4) return;
 
-    let socket: Socket | null = null;
-    let timers: any[] = [];
-
-    socket = io(SOCKET_URL || API_URL, { transports: ["websocket"] });
-    socket.on("connect", () => {
-      socket?.emit("join_instant_request", { requestId: activeRequestId });
-    });
-
-    socket.on("bid_received", (newBid: any) => {
-      setBids((prev) => {
-        if (prev.some((b) => b.id === newBid.id)) return prev;
-        const updated = [...prev, newBid];
-        return updated.sort((a, b) => (parseInt(a.eta) || 999) - (parseInt(b.eta) || 999));
-      });
-      setInstantStage(5);
-    });
-
-    if (instantStage === 4) {
-      const stages = [
-        { time: 0, text: "Scanning 3km radius..." },
-        { time: 4000, text: "Expanding search to 5km..." },
-        { time: 8000, text: "Contacting top-rated pros within 10km..." },
-      ];
-      timers = stages.map((st) => setTimeout(() => setRadarStatusText(st.text), st.time));
-    }
+    const stages = [
+      { time: 0, text: "Scanning nearest verified pros..." },
+      { time: 3000, text: "Matching the closest available pro..." },
+      { time: 7000, text: "Still searching — expanding radius..." },
+    ];
+    const timers = stages.map((st) => setTimeout(() => setRadarStatusText(st.text), st.time));
+    const timeout = setTimeout(() => setNoMatch(true), 12000);
 
     return () => {
-      if (socket) {
-        socket?.emit?.("leave_instant_request", { requestId: activeRequestId });
-        socket.disconnect?.();
-      }
       timers.forEach(clearTimeout);
+      clearTimeout(timeout);
     };
   }, [appMode, instantStage, activeRequestId]);
 
@@ -490,12 +481,12 @@ export default function MasterMapViewScreen() {
   const handleDirectCompanyDispatch = async (company: CompanyPin) => {
     try {
       setIsDispatching(true);
+      setSelectedCompany(company);
+      setAppMode("instant");
+      setInstantStage(4);
       const catId = company.categorySlug || "cleaning";
       const found = CATEGORIES.find((c) => catId.includes(c.id)) || CATEGORIES[1];
       setInstantService({ id: found.id, label: found.label });
-      setAppMode("instant");
-      setInstantStage(4);
-      setSelectedCompany(company);
 
       const response = await api.post("/api/instant-requests", {
         serviceCategory: found.label,
@@ -509,9 +500,20 @@ export default function MasterMapViewScreen() {
       const responseData = response.data?.data || response.data;
       const reqId = responseData?.request?.id;
       if (!reqId) throw new Error("Invalid request response");
+      setActiveRequestId(String(reqId));
 
-      setActiveRequestId(reqId);
-      centerMapCamera(mapViewRef, { latitude: company.lat, longitude: company.lng }, 0.018, 800);
+      const m: MatchResult | null = responseData?.matched ?? null;
+      if (m) {
+        setMatched(m);
+        setActiveBookingId(m.bookingId);
+        setInstantStage(5);
+        centerMapCamera(
+          mapViewRef,
+          { latitude: m.companyLatitude ?? company.lat, longitude: m.companyLongitude ?? company.lng },
+          0.02,
+          800,
+        );
+      }
     } catch (err: any) {
       Alert.alert("Error", err?.response?.data?.message || err.message || "Failed to dispatch request");
       setInstantStage(1);
@@ -520,12 +522,13 @@ export default function MasterMapViewScreen() {
     }
   };
 
-  // Launch Instant Request Dispatch
+  // Launch Instant Request — server auto-matches the nearest pro
   const handleLaunchInstantRequest = async () => {
     if (!instantService) return;
     const finalDesc = instantDesc.trim() || `Urgent ${instantService.label} request`;
     try {
       setIsDispatching(true);
+      setNoMatch(false);
       const response = await api.post("/api/instant-requests", {
         serviceCategory: instantService.label,
         description: finalDesc,
@@ -537,39 +540,131 @@ export default function MasterMapViewScreen() {
       const responseData = response.data?.data || response.data;
       const reqId = responseData?.request?.id;
       if (!reqId) throw new Error("Invalid request response");
-
-      setActiveRequestId(reqId);
+      setActiveRequestId(String(reqId));
       setInstantStage(4);
-      centerMapCamera(mapViewRef, userLoc, 0.018, 800);
+
+      const m: MatchResult | null = responseData?.matched ?? null;
+      if (m) {
+        setMatched(m);
+        setActiveBookingId(m.bookingId);
+        setInstantStage(5);
+        const mLat = m.companyLatitude ?? userLoc.latitude;
+        const mLng = m.companyLongitude ?? userLoc.longitude;
+        if (m.companyLatitude != null && m.companyLongitude != null) {
+          centerMapCamera(mapViewRef, { latitude: mLat, longitude: mLng }, 0.02, 800);
+        } else {
+          centerMapCamera(mapViewRef, userLoc, 0.018, 800);
+        }
+      }
     } catch (err: any) {
       Alert.alert("Error", err?.response?.data?.message || err.message || "Failed to submit request");
+      setInstantStage(1);
     } finally {
       setIsDispatching(false);
     }
   };
 
-  // Select Bid Offer & Route to Checkout
-  const handleSelectBid = async () => {
-    if (bids.length === 0) return;
-    const selected = bids[selectedBidIdx];
+  // Cancel the matched instant request (booking not paid yet)
+  const handleCancelInstant = async () => {
+    if (!matched) {
+      setInstantStage(1);
+      return;
+    }
     try {
       setIsDispatching(true);
-      const res = await api.post(`/api/instant-requests/${activeRequestId}/select`, {
-        bidId: selected.id,
+      await api.patch(`/api/bookings/${matched.bookingId}/cancel`, {
+        reason: "Customer cancelled the instant request before payment",
       });
-      const bId = res.data?.data?.bookingId || res.data?.bookingId;
-      if (bId) {
-        setActiveBookingId(bId);
-        router.push({
-          pathname: "/(customer)/checkout" as any,
-          params: { bookingId: bId, isInstant: "true" },
-        });
-      }
+      setMatched(null);
+      setActiveBookingId(null);
+      setActiveRequestId(null);
+      setInstantDesc("");
+      setInstantStage(1);
     } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.message || err.message || "Failed to select provider");
+      Alert.alert("Error", err?.response?.data?.message || err.message || "Could not cancel the request");
     } finally {
       setIsDispatching(false);
     }
+  };
+
+  // Continue matched booking to escrow checkout
+  const handleMatchedContinue = () => {
+    if (!matched) return;
+    router.push({
+      pathname: "/(customer)/checkout" as any,
+      params: { bookingId: matched.bookingId, isInstant: "true" },
+    });
+  };
+
+  // ── Schedule a visit with a pinned company (from the map) ──
+  const fmtLocalDate = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  const scheduleDates = useMemo(() => {
+    const arr: { label: string; value: string }[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      arr.push({
+        label: i === 0 ? "Today" : i === 1 ? "Tomorrow" : d.toLocaleDateString("en-US", { weekday: "short", day: "numeric" }),
+        value: fmtLocalDate(d),
+      });
+    }
+    return arr;
+  }, []);
+
+  const scheduleTimes = useMemo(() => {
+    const arr: { label: string; value: string }[] = [];
+    for (let h = 8; h <= 18; h += 2) {
+      const ampm = h >= 12 ? "PM" : "AM";
+      const hour = h > 12 ? h - 12 : h;
+      arr.push({ label: `${hour}:00 ${ampm}`, value: `${String(h).padStart(2, "0")}:00` });
+    }
+    return arr;
+  }, []);
+
+  const [scheduleVisible, setScheduleVisible] = useState(false);
+  const [scheduleServiceIdx, setScheduleServiceIdx] = useState(0);
+  const [scheduleDateIdx, setScheduleDateIdx] = useState(0);
+  const [scheduleTimeIdx, setScheduleTimeIdx] = useState(1); // default 10:00 AM
+
+  const scheduleCompany = selectedCompany;
+  const scheduleService = scheduleCompany?.services?.[scheduleServiceIdx] || null;
+
+  const openScheduleFor = (company: CompanyPin) => {
+    const svc = company.services || [];
+    if (svc.length === 0) {
+      Alert.alert(
+        "No listed services",
+        "This pro hasn't listed bookable services yet — book them instantly instead, or view their profile.",
+        [
+          { text: "View Profile", onPress: () => router.push(`/(customer)/company/${company.id}` as any) },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+      return;
+    }
+    setScheduleServiceIdx(0);
+    setScheduleDateIdx(0);
+    setScheduleTimeIdx(1);
+    setScheduleVisible(true);
+  };
+
+  const handleScheduleConfirm = () => {
+    if (!scheduleCompany || !scheduleService) return;
+    setScheduleVisible(false);
+    router.push({
+      pathname: "/(customer)/checkout" as any,
+      params: {
+        serviceId: scheduleService.id,
+        companyId: scheduleCompany.id,
+        date: scheduleDates[scheduleDateIdx].label,
+        dateISO: scheduleDates[scheduleDateIdx].value,
+        time: scheduleTimes[scheduleTimeIdx].label,
+        timeISO: scheduleTimes[scheduleTimeIdx].value,
+        price: scheduleService.basePrice != null ? String(scheduleService.basePrice) : "",
+      },
+    });
   };
 
   const getPinColor = (slug: string) => {
@@ -710,8 +805,7 @@ export default function MasterMapViewScreen() {
               <Marker coordinate={targetCustomerLoc} title="Your Service Destination">
                 <CustomerDestinationMarker label="Your Location" />
               </Marker>
-
-              {/* Provider Pins in Explore & Instant Mode (Stages 1-4) */}
+              {/* Provider Pins (Explore & Instant stages 1-4) */}
               {(appMode === "explore" || (appMode === "instant" && instantStage <= 4)) &&
                 filteredCompanies.map((c) => {
                   const isSelected = selectedCompany?.id === c.id;
@@ -723,12 +817,6 @@ export default function MasterMapViewScreen() {
                       onPress={(e) => {
                         e.stopPropagation();
                         setSelectedCompany(c);
-                        if (appMode === "instant") {
-                          const catId = c.categorySlug || "cleaning";
-                          const found = CATEGORIES.find((cat) => catId.includes(cat.id)) || CATEGORIES[1];
-                          setInstantService({ id: found.id, label: found.label });
-                          setInstantStage(2);
-                        }
                         centerMapCamera(mapViewRef, { latitude: c.lat, longitude: c.lng }, 0.018, 600);
                       }}
                     >
@@ -737,22 +825,25 @@ export default function MasterMapViewScreen() {
                   );
                 })}
 
-              {/* Bid Pins in Instant Request Mode (Stage 5) */}
-              {appMode === "instant" &&
-                instantStage === 5 &&
-                bids.map((b, i) => {
-                  const bLat = b.latitude ?? (userLoc.latitude + 0.006 * (i + 1));
-                  const bLng = b.longitude ?? (userLoc.longitude + 0.004 * (i + 1));
-                  const isSelected = selectedBidIdx === i;
-                  return (
-                    <Marker key={b.id} coordinate={{ latitude: bLat, longitude: bLng }} onPress={() => setSelectedBidIdx(i)}>
-                      <View style={[s.bidBadge, isSelected && s.bidBadgeActive]}>
-                        <Text style={[s.bidPrice, isSelected && { color: "#FFF" }]}>{b.priceEstimate}</Text>
-                        <Text style={[s.bidEta, isSelected && { color: "rgba(255,255,255,0.85)" }]}>{b.eta}m</Text>
-                      </View>
-                    </Marker>
-                  );
-                })}
+              {/* Matched pro marker (Instant stage 5 — auto-dispatch winner) */}
+              {appMode === "instant" && instantStage === 5 && matched && (
+                <Marker
+                  coordinate={{
+                    latitude: matched.companyLatitude ?? userLoc.latitude,
+                    longitude: matched.companyLongitude ?? userLoc.longitude,
+                  }}
+                  title={matched.companyName}
+                >
+                  <View style={s.matchedPinWrap}>
+                    <View style={s.matchedPin}>
+                      <MaterialCommunityIcons name="lightning-bolt" size={17} color="#FFF" />
+                    </View>
+                    <View style={s.matchedPinLabel}>
+                      <Text style={s.matchedPinText}>{matched.etaMinutes} min</Text>
+                    </View>
+                  </View>
+                </Marker>
+              )}
 
               {/* Turn-by-Turn Road Route Polyline in Tracking Mode */}
               {appMode === "tracking" && effectiveRouteCoordinates.length > 1 && (
@@ -835,29 +926,122 @@ export default function MasterMapViewScreen() {
 
                 <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
                   <TouchableOpacity
-                    style={s.previewProfileBtn}
-                    onPress={() => router.push(`/(customer)/company/${selectedCompany.id}` as any)}
-                  >
-                    <Text style={s.previewProfileText}>View Profile</Text>
-                    <MaterialIcons name="arrow-forward" size={14} color="#FFF" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={s.previewUrgentBtn}
+                    style={s.previewNowBtn}
                     onPress={() => handleDirectCompanyDispatch(selectedCompany)}
                     disabled={isDispatching}
                   >
                     {isDispatching ? (
-                      <ActivityIndicator size="small" color={T.accent} />
+                      <ActivityIndicator size="small" color="#92400E" />
                     ) : (
                       <>
-                        <MaterialCommunityIcons name="lightning-bolt" size={16} color={T.accent} />
-                        <Text style={s.previewUrgentText}>{t("instantBooking.requestThisPro", "ហៅជាងនេះភ្លាម")}</Text>
+                        <MaterialCommunityIcons name="lightning-bolt" size={15} color="#92400E" />
+                        <Text style={s.previewNowText}>Book Now</Text>
                       </>
                     )}
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    style={s.previewScheduleBtn}
+                    onPress={() => openScheduleFor(selectedCompany)}
+                  >
+                    <MaterialCommunityIcons name="calendar-clock" size={15} color="#FFFFFF" />
+                    <Text style={s.previewScheduleText}>Schedule</Text>
+                  </TouchableOpacity>
                 </View>
+
+                <TouchableOpacity
+                  style={s.previewProfileLink}
+                  onPress={() => router.push(`/(customer)/company/${selectedCompany.id}` as any)}
+                >
+                  <Text style={s.previewProfileLinkText}>View full profile & packages</Text>
+                  <MaterialIcons name="chevron-right" size={14} color={T.text3} />
+                </TouchableOpacity>
               </View>
             )}
+
+            {/* ── Schedule-a-visit Sheet (Date & Time booking from the map) ── */}
+            <Modal visible={scheduleVisible && !!scheduleCompany} animationType="slide" transparent>
+              <View style={s.scheduleOverlay}>
+                <TouchableOpacity style={s.scheduleBackdrop} activeOpacity={1} onPress={() => setScheduleVisible(false)} />
+                <ScrollView style={s.scheduleSheet} contentContainerStyle={{ paddingBottom: 32 }} bounces={false}>
+                  <View style={s.scheduleHandle} />
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.scheduleTitle}>Schedule a Visit</Text>
+                      <Text style={s.scheduleSubtitle} numberOfLines={1}>
+                        {scheduleCompany?.name} · ★ {scheduleCompany?.rating.toFixed(1)}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setScheduleVisible(false)} style={s.scheduleCloseBtn}>
+                      <MaterialIcons name="close" size={20} color={T.text2} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={s.scheduleLabel}>1 · What do you need?</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 6 }}>
+                    {(scheduleCompany?.services || []).map((sv, i) => {
+                      const active = i === scheduleServiceIdx;
+                      return (
+                        <TouchableOpacity
+                          key={sv.id}
+                          style={[s.schedServiceCard, active && s.schedCardActive]}
+                          onPress={() => setScheduleServiceIdx(i)}
+                        >
+                          <Text style={[s.schedServiceName, active && s.schedCardTextActive]} numberOfLines={2}>
+                            {sv.name}
+                          </Text>
+                          {sv.basePrice != null && (
+                            <Text style={[s.schedServicePrice, active && s.schedCardTextActive]}>
+                              from ${sv.basePrice.toFixed(2)}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+
+                  <Text style={s.scheduleLabel}>2 · When?</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+                    {scheduleDates.map((d, i) => {
+                      const active = i === scheduleDateIdx;
+                      return (
+                        <TouchableOpacity
+                          key={d.value}
+                          style={[s.schedChip, active && s.schedChipActive]}
+                          onPress={() => setScheduleDateIdx(i)}
+                        >
+                          <Text style={[s.schedChipText, active && s.schedChipTextActive]}>{d.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4, marginTop: 4 }}>
+                    {scheduleTimes.map((tm, i) => {
+                      const active = i === scheduleTimeIdx;
+                      return (
+                        <TouchableOpacity
+                          key={tm.value}
+                          style={[s.schedChip, active && s.schedChipActive]}
+                          onPress={() => setScheduleTimeIdx(i)}
+                        >
+                          <Text style={[s.schedChipText, active && s.schedChipTextActive]}>{tm.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+
+                  <TouchableOpacity style={s.schedConfirmBtn} onPress={handleScheduleConfirm}>
+                    <Text style={s.schedConfirmText}>
+                      Continue{scheduleService?.basePrice != null ? ` • $${scheduleService.basePrice.toFixed(2)}` : ""}
+                    </Text>
+                    <MaterialIcons name="arrow-forward" size={18} color="#FFF" />
+                  </TouchableOpacity>
+                  <Text style={s.schedFootnote}>
+                    The company confirms your request and sends a staff member. Pay safely in escrow after the visit.
+                  </Text>
+                </ScrollView>
+              </View>
+            </Modal>
 
             {/* ── Floating "Need Help Now" FAB Button (In Explore Mode) ── */}
             {appMode === "explore" && !selectedCompany && (
@@ -899,64 +1083,70 @@ export default function MasterMapViewScreen() {
                 </View>
                 <MaterialIcons name="chevron-right" size={14} color={T.text3} />
                 <View style={[s.stepChip, instantStage >= 5 && s.stepChipActive]}>
-                  <MaterialCommunityIcons name="chat-processing-outline" size={12} color={instantStage >= 5 ? T.accent : T.text3} />
+                  <MaterialCommunityIcons name="credit-card-check-outline" size={12} color={instantStage >= 5 ? T.accent : T.text3} />
                   <Text style={[s.stepChipText, instantStage >= 5 && s.stepChipTextActive]}>
-                    3. {t("instantBooking.step3", "ជជែក/ខល")}
+                    3. {t("instantBooking.step3", "បញ្ជាក់និងបង់")}
                   </Text>
                 </View>
               </View>
             )}
 
-            {/* ── INSTANT STAGE 1: PICK URGENT SERVICE ── */}
+            {/* ── INSTANT STAGE 1: PICK SERVICE + DESCRIBE (merged) ── */}
             {appMode === "instant" && instantStage === 1 && (
               <View style={{ gap: 12 }}>
-                {selectedCompany ? (
-                  <View style={{ backgroundColor: T.accentLight, padding: 12, borderRadius: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-                      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: T.accent, alignItems: "center", justifyContent: "center" }}>
-                        <Text style={{ color: "#FFF", fontWeight: "900" }}>{selectedCompany.name.charAt(0)}</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 13, fontWeight: "800", color: T.text1 }} numberOfLines={1}>Direct: {selectedCompany.name}</Text>
-                        <Text style={{ fontSize: 11, color: T.text2 }}>★ {selectedCompany.rating.toFixed(1)} · {selectedCompany.city || "Local Pro"}</Text>
-                      </View>
-                    </View>
-                    <TouchableOpacity
-                      style={{ backgroundColor: T.accent, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
-                      onPress={() => handleDirectCompanyDispatch(selectedCompany)}
-                      disabled={isDispatching}
-                    >
-                      <Text style={{ color: "#FFF", fontSize: 12, fontWeight: "800" }}>{t("instantBooking.requestThisPro", "ហៅជាង")}</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View>
-                    <Text style={s.sheetTitle}>
-                      {t("instantBooking.urgentProTitle", "ហៅជាងបន្ទាន់")} • {t("instantBooking.step1", "ជ្រើសរើសសេវាកម្ម")}
-                    </Text>
-                    <Text style={s.sheetSubtitle}>
-                      {t("instantBooking.urgentProDesc", "ជាងនៅជិតអ្នកមកដល់លឿន • មិនទាន់គិតលុយទេ")}
-                    </Text>
-                  </View>
-                )}
+                <View>
+                  <Text style={s.sheetTitle}>
+                    {t("instantBooking.urgentProTitle", "ហៅជាងបន្ទាន់")} • {t("instantBooking.step1", "ជ្រើសរើសសេវាកម្ម")}
+                  </Text>
+                  <Text style={s.sheetSubtitle}>
+                    {t("instantBooking.urgentProDesc", "ជាងនៅជិតអ្នកមកដល់លឿន • មិនទាន់គិតលុយទេ")}
+                  </Text>
+                </View>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 6 }}>
-                  {CATEGORIES.filter((c) => c.id !== "all").map((cat) => (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={s.serviceCard}
-                      onPress={() => {
-                        setInstantService({ id: cat.id, label: cat.label });
-                        setInstantStage(2);
-                      }}
-                    >
-                      <View style={[s.serviceIconBox, { backgroundColor: cat.color + "15" }]}>
-                        <MaterialCommunityIcons name={cat.icon as any} size={28} color={cat.color} />
-                      </View>
-                      <Text style={s.serviceCardLabel}>{cat.label}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  {CATEGORIES.filter((c) => c.id !== "all").map((cat) => {
+                    const active = instantService?.id === cat.id;
+                    return (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[s.serviceCard, active && s.serviceCardActive]}
+                        onPress={() => setInstantService({ id: cat.id, label: cat.label })}
+                      >
+                        <View style={[s.serviceIconBox, active && { backgroundColor: cat.color }]}>
+                          <MaterialCommunityIcons name={cat.icon as any} size={28} color={active ? "#FFF" : cat.color} />
+                        </View>
+                        <Text style={[s.serviceCardLabel, active && { color: cat.color, fontWeight: "800" }]}>{cat.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
+
+                <TextInput
+                  style={s.textArea}
+                  placeholder="e.g. Pipe leaking under kitchen sink, AC not cooling (optional)..."
+                  placeholderTextColor={T.text3}
+                  multiline
+                  numberOfLines={2}
+                  value={instantDesc}
+                  onChangeText={setInstantDesc}
+                />
+
+                <TouchableOpacity
+                  style={[s.primaryBtn, (!instantService || isDispatching) && { backgroundColor: T.border }]}
+                  onPress={handleLaunchInstantRequest}
+                  disabled={!instantService || isDispatching}
+                >
+                  {isDispatching ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <>
+                      <Text style={s.primaryBtnText}>
+                        {t("instantBooking.findNearbyPros", "ស្វែងរកជាងឥឡូវនេះ (Find Available Pros)")}
+                      </Text>
+                      <MaterialIcons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 6 }} />
+                    </>
+                  )}
+                </TouchableOpacity>
 
                 {/* Reassurance Banner for Cambodia Users */}
                 <View style={s.reassuranceBanner}>
@@ -973,150 +1163,118 @@ export default function MasterMapViewScreen() {
               </View>
             )}
 
-            {/* ── INSTANT STAGE 2: PROBLEM DETAILS ── */}
-            {appMode === "instant" && instantStage === 2 && (
-              <View style={{ gap: 12 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                  <View>
-                    <Text style={s.sheetTitle}>Describe the issue</Text>
-                    <Text style={s.sheetSubtitle}>{selectedCompany ? `Direct to ${selectedCompany.name}` : `Category: ${instantService?.label}`}</Text>
+            {/* ── INSTANT STAGE 4: AUTO-MATCH RADAR (waiting / no-match) ── */}
+            {appMode === "instant" && instantStage === 4 && (
+              <View style={{ alignItems: "center", paddingVertical: 12, gap: 8 }}>
+                {noMatch ? (
+                  <>
+                    <MaterialCommunityIcons name="map-search-outline" size={30} color={T.text3} />
+                    <Text style={s.sheetTitle}>No pro available right now</Text>
+                    <Text style={s.radarText}>
+                      All nearby {instantService?.label?.toLowerCase() || ""} pros are busy. Try again in a moment, or browse the map and schedule with a specific pro.
+                    </Text>
+                    <TouchableOpacity
+                      style={s.primaryBtn}
+                      onPress={() => {
+                        setNoMatch(false);
+                        setInstantStage(1);
+                      }}
+                    >
+                      <Text style={s.primaryBtnText}>Try again</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={s.cancelBtn}
+                      onPress={() => {
+                        setNoMatch(false);
+                        setAppMode("explore");
+                        setInstantStage(1);
+                        setSelectedCompany(null);
+                      }}
+                    >
+                      <Text style={s.cancelText}>Browse pros on map</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <ActivityIndicator size="small" color={T.accent} />
+                    <Text style={s.sheetTitle}>Finding your nearest pro...</Text>
+                    <Text style={s.radarText}>{radarStatusText}</Text>
+                    <TouchableOpacity style={s.cancelBtn} onPress={() => setInstantStage(1)}>
+                      <Text style={s.cancelText}>Cancel search</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            )}
+
+            {/* ── INSTANT STAGE 5: MATCHED PRO (auto-dispatch winner) ── */}
+            {appMode === "instant" && instantStage === 5 && matched && (
+              <View style={{ gap: 10 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <Text style={s.sheetTitle} numberOfLines={1}>Pro Matched</Text>
+                  <View style={s.matchedFlag}>
+                    <MaterialCommunityIcons name="handshake" size={13} color="#059669" />
+                    <Text style={s.matchedFlagText}>AUTO-DISPATCH</Text>
                   </View>
-                  {selectedCompany && (
-                    <View style={{ backgroundColor: T.accentLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                      <Text style={{ color: T.accent, fontSize: 11, fontWeight: "800" }}>Direct Pro</Text>
-                    </View>
-                  )}
                 </View>
-                <TextInput
-                  style={s.textArea}
-                  placeholder={selectedCompany ? `e.g. Urgent help needed from ${selectedCompany.name}...` : "e.g. Pipe leaking under kitchen sink, AC not cooling..."}
-                  placeholderTextColor={T.text3}
-                  multiline
-                  numberOfLines={3}
-                  value={instantDesc}
-                  onChangeText={setInstantDesc}
-                />
-                <TouchableOpacity
-                  style={s.primaryBtn}
-                  onPress={() => {
-                    if (selectedCompany) {
-                      handleDirectCompanyDispatch(selectedCompany);
-                    } else {
-                      setInstantStage(3);
-                    }
-                  }}
-                  disabled={isDispatching}
-                >
+
+                <View style={s.matchedCard}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <View style={s.matchedAvatar}>
+                      <Text style={s.matchedAvatarText}>{matched.companyName.charAt(0)}</Text>
+                    </View>
+                    <View style={{ flex: 1, paddingLeft: 12 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={s.matchedName} numberOfLines={1}>{matched.companyName}</Text>
+                        <MaterialCommunityIcons name="shield-check" size={14} color={T.success} />
+                      </View>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+                        <MaterialIcons name="star" size={12} color="#f59e0b" />
+                        <Text style={s.matchedMeta}>{matched.rating.toFixed(1)} · nearest available pro</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={s.matchedChipsRow}>
+                    <View style={s.matchedChip}>
+                      <MaterialIcons name="timer" size={13} color={T.accent} />
+                      <Text style={s.matchedChipText}>ETA {matched.etaMinutes} min</Text>
+                    </View>
+                    {matched.distanceKm != null && (
+                      <View style={s.matchedChip}>
+                        <MaterialIcons name="near-me" size={13} color={T.accent} />
+                        <Text style={s.matchedChipText}>
+                          {matched.distanceKm < 1 ? `${Math.round(matched.distanceKm * 1000)} m` : `${matched.distanceKm.toFixed(1)} km`}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={s.matchedChip}>
+                      <MaterialIcons name="payments" size={13} color={T.accent} />
+                      <Text style={s.matchedChipText}>${matched.totalPrice.toFixed(2)}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <TouchableOpacity style={s.primaryBtn} onPress={handleMatchedContinue} disabled={isDispatching}>
                   {isDispatching ? (
                     <ActivityIndicator color="#FFF" />
                   ) : (
                     <>
-                      <Text style={s.primaryBtnText}>
-                        {selectedCompany ? `${t("instantBooking.requestThisPro", "ហៅជាងនេះភ្លាម")} (Direct)` : `${t("common.continue", "បន្ត • Continue")}`}
-                      </Text>
+                      <Text style={s.primaryBtnText}>{t("instantBooking.payAfterDone", "ជ្រើសរើស • ទូទាត់ក្រោយពេលធ្វើរួច")}</Text>
                       <MaterialIcons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 6 }} />
                     </>
                   )}
                 </TouchableOpacity>
-              </View>
-            )}
-
-            {/* ── INSTANT STAGE 3: CONFIRM DISPATCH ── */}
-            {appMode === "instant" && instantStage === 3 && (
-              <View style={{ gap: 12 }}>
-                <View>
-                  <Text style={s.sheetTitle}>{t("instantBooking.findNearbyPros", "ស្វែងរកជាងនៅជិតអ្នក • Find Nearby Pros")}</Text>
-                  <Text style={s.sheetSubtitle}>{t("instantBooking.broadcastSub", "យើងនឹងស្វែងរក និងជូនដំណឹងដល់ជាងជំនាញនៅជិតអ្នក 5-10km")}</Text>
-                </View>
-                <View style={s.summaryCard}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <MaterialCommunityIcons name="toolbox-outline" size={18} color={T.accent} />
-                    <Text style={s.summaryText}>{instantService?.label}</Text>
-                  </View>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <MaterialCommunityIcons name="clock-fast" size={18} color={T.success} />
-                    <Text style={s.summaryText}>{t("instantBooking.arrivalEstimate", "មកដល់ក្នុង 15-30 នាទី (Arrives in 15-30 mins)")}</Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={[s.primaryBtn, isDispatching && { backgroundColor: T.border }]}
-                  onPress={handleLaunchInstantRequest}
-                  disabled={isDispatching}
-                >
-                  {isDispatching ? (
-                    <ActivityIndicator color="#FFF" />
-                  ) : (
-                    <Text style={s.primaryBtnText}>{t("instantBooking.findNearbyPros", "ស្វែងរកជាងឥឡូវនេះ (Find Available Pros)")}</Text>
-                  )}
+                <TouchableOpacity style={s.cancelBtn} onPress={handleCancelInstant} disabled={isDispatching}>
+                  <Text style={s.cancelText}>Cancel request</Text>
                 </TouchableOpacity>
-              </View>
-            )}
 
-            {/* ── INSTANT STAGE 4: RADAR MATCHING ── */}
-            {appMode === "instant" && instantStage === 4 && (
-              <View style={{ alignItems: "center", paddingVertical: 12, gap: 8 }}>
-                <ActivityIndicator size="small" color={T.accent} />
-                <Text style={s.sheetTitle}>Broadcasting Request...</Text>
-                <Text style={s.radarText}>{radarStatusText}</Text>
-                <TouchableOpacity style={s.cancelBtn} onPress={() => setInstantStage(1)}>
-                  <Text style={s.cancelText}>Cancel Search</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* ── INSTANT STAGE 5: BID SELECTION ── */}
-            {appMode === "instant" && instantStage === 5 && (
-              <View style={{ gap: 10 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                  <Text style={s.sheetTitle}>Offers Received ({bids.length})</Text>
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: T.accent }}>Fastest ETA</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                  <MaterialCommunityIcons name="shield-check" size={14} color="#059669" />
+                  <Text style={{ fontSize: 11, color: "#059669", fontWeight: "600" }}>
+                    {t("instantBooking.freeToRequest", "មិនទាន់កាត់ប្រាក់ទេ • បញ្ជាក់តម្លៃផ្ទាល់")}
+                  </Text>
                 </View>
-
-                {bids.length === 0 ? (
-                  <View style={{ paddingVertical: 20, alignItems: "center" }}>
-                    <ActivityIndicator size="small" color={T.accent} />
-                    <Text style={{ color: T.text2, marginTop: 8 }}>Waiting for provider bids...</Text>
-                  </View>
-                ) : (
-                  <>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingVertical: 4 }}>
-                      {bids.map((b, idx) => {
-                        const isSelected = selectedBidIdx === idx;
-                        return (
-                          <TouchableOpacity
-                            key={b.id}
-                            style={[s.bidCard, isSelected && s.bidCardSelected]}
-                            onPress={() => setSelectedBidIdx(idx)}
-                          >
-                            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                              <Text style={s.bidCardName} numberOfLines={1}>{b.companyName}</Text>
-                              <Text style={s.bidCardPrice}>{b.priceEstimate}</Text>
-                            </View>
-                            <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
-                              <View style={s.bidTag}>
-                                <MaterialIcons name="star" size={12} color="#f59e0b" />
-                                <Text style={s.bidTagText}>{b.rating}</Text>
-                              </View>
-                              <View style={s.bidTag}>
-                                <MaterialIcons name="timer" size={12} color={T.accent} />
-                                <Text style={s.bidTagText}>{b.eta} mins</Text>
-                              </View>
-                            </View>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </ScrollView>
-                    <TouchableOpacity style={s.primaryBtn} onPress={handleSelectBid} disabled={isDispatching}>
-                      {isDispatching ? <ActivityIndicator color="#FFF" /> : <Text style={s.primaryBtnText}>{t("instantBooking.payAfterDone", "ជ្រើសរើស • ទូទាត់ក្រោយពេលធ្វើរួច")}</Text>}
-                    </TouchableOpacity>
-                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, marginTop: 4 }}>
-                      <MaterialCommunityIcons name="shield-check" size={14} color="#059669" />
-                      <Text style={{ fontSize: 11, color: "#059669", fontWeight: "600" }}>
-                        {t("instantBooking.freeToRequest", "មិនទាន់កាត់ប្រាក់ទេ • បញ្ជាក់តម្លៃផ្ទាល់")}
-                      </Text>
-                    </View>
-                  </>
-                )}
               </View>
             )}
 
@@ -1326,28 +1484,111 @@ const s = StyleSheet.create({
   previewName: { fontSize: 15, fontWeight: "800", color: T.text1 },
   previewRating: { fontSize: 12, fontWeight: "700", color: T.text1 },
   previewMeta: { fontSize: 12, color: T.text2, fontWeight: "500" },
-  previewProfileBtn: {
-    flex: 1.2,
-    height: 40,
+  previewNowBtn: {
+    flex: 1,
+    height: 44,
     borderRadius: 12,
-    backgroundColor: T.accent,
+    backgroundColor: "#FEF3C7",
+    borderWidth: 1,
+    borderColor: "#FDE68A",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: 5,
   },
-  previewProfileText: { fontSize: 13, fontWeight: "800", color: "#FFF" },
-  previewUrgentBtn: {
+  previewNowText: { fontSize: 13, fontWeight: "800", color: "#92400E" },
+  previewScheduleBtn: {
     flex: 1,
-    height: 40,
+    height: 44,
     borderRadius: 12,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    backgroundColor: "#0A192F",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+  },
+  previewScheduleText: { fontSize: 13, fontWeight: "800", color: "#FFFFFF" },
+  previewProfileLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    paddingVertical: 4,
+  },
+  previewProfileLinkText: { fontSize: 12, fontWeight: "600", color: T.text3 },
+
+  // Schedule-a-visit Sheet
+  scheduleOverlay: { flex: 1, justifyContent: "flex-end" },
+  scheduleBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)" },
+  scheduleSheet: {
+    maxHeight: "82%",
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  scheduleHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#E2E8F0",
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  scheduleTitle: { fontSize: 20, fontWeight: "800", color: T.text1, letterSpacing: -0.3 },
+  scheduleSubtitle: { fontSize: 12, color: T.text3, marginTop: 2, fontWeight: "600" },
+  scheduleCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
   },
-  previewUrgentText: { fontSize: 13, fontWeight: "700", color: T.accent },
+  scheduleLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: T.text3,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginTop: 18,
+    marginBottom: 6,
+  },
+  schedServiceCard: {
+    width: 150,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
+  },
+  schedServiceName: { fontSize: 13, fontWeight: "800", color: T.text1, lineHeight: 18 },
+  schedServicePrice: { fontSize: 12, fontWeight: "700", color: T.accent, marginTop: 6 },
+  schedCardActive: { borderColor: "#0A192F", backgroundColor: "#F0F4F8" },
+  schedCardTextActive: { color: "#0A192F" },
+  schedChip: {
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
+  },
+  schedChipActive: { backgroundColor: "#0A192F", borderColor: "#0A192F" },
+  schedChipText: { fontSize: 12, fontWeight: "700", color: T.text2 },
+  schedChipTextActive: { color: "#FFFFFF" },
+  schedConfirmBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#0A192F",
+    borderRadius: 16,
+    padding: 18,
+    marginTop: 20,
+  },
+  schedConfirmText: { fontSize: 15, fontWeight: "800", color: "#FFFFFF" },
+  schedFootnote: { fontSize: 11, color: T.text3, textAlign: "center", marginTop: 12, lineHeight: 16 },
 
   // Instant FAB
   instantFab: {
@@ -1453,6 +1694,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
+  serviceCardActive: { borderWidth: 2, borderColor: T.accent, paddingVertical: 9 },
   serviceIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 6 },
   serviceCardLabel: { fontSize: 11, fontWeight: "700", color: T.text1, textAlign: "center" },
 
@@ -1477,8 +1719,6 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   primaryBtnText: { color: "#FFF", fontSize: 14, fontWeight: "800" },
-  summaryCard: { backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 14, padding: 12, gap: 6 },
-  summaryText: { fontSize: 13, color: T.text1, fontWeight: "600" },
 
   // Radar in Stage 4
   radarContainer: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center" },
@@ -1488,17 +1728,21 @@ const s = StyleSheet.create({
   cancelBtn: { height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "#FEE2E2", width: "100%", marginTop: 4 },
   cancelText: { color: "#EF4444", fontSize: 13, fontWeight: "700" },
 
-  // Bid Badges
-  bidBadge: { backgroundColor: "#FFF", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1.5, borderColor: T.accent, flexDirection: "row", gap: 4, elevation: 3 },
-  bidBadgeActive: { backgroundColor: T.accent },
-  bidPrice: { fontSize: 12, fontWeight: "800", color: T.accent },
-  bidEta: { fontSize: 10, fontWeight: "700", color: T.text3 },
-  bidCard: { width: 180, backgroundColor: "#F8FAFC", borderRadius: 14, padding: 12, borderWidth: 1.5, borderColor: "#E2E8F0" },
-  bidCardSelected: { borderColor: T.accent, backgroundColor: T.accent + "08" },
-  bidCardName: { fontSize: 13, fontWeight: "800", color: T.text1, flex: 1 },
-  bidCardPrice: { fontSize: 14, fontWeight: "900", color: T.accent, marginLeft: 6 },
-  bidTag: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#FFF", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: "#E2E8F0" },
-  bidTagText: { fontSize: 11, fontWeight: "700", color: T.text1 },
+  // Matched pro (Stage 5 auto-dispatch)
+  matchedPinWrap: { alignItems: "center", elevation: 6 },
+  matchedPin: { width: 38, height: 38, borderRadius: 19, backgroundColor: T.accent, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "#FFF" },
+  matchedPinLabel: { backgroundColor: "#0F172A", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4 },
+  matchedPinText: { color: "#FFF", fontSize: 11, fontWeight: "800" },
+  matchedFlag: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#ECFDF5", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  matchedFlagText: { fontSize: 10, fontWeight: "900", color: "#059669", letterSpacing: 0.5 },
+  matchedCard: { backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 16, padding: 12 },
+  matchedAvatar: { width: 42, height: 42, borderRadius: 12, backgroundColor: T.accent, alignItems: "center", justifyContent: "center" },
+  matchedAvatarText: { color: "#FFF", fontSize: 16, fontWeight: "900" },
+  matchedName: { fontSize: 14, fontWeight: "800", color: T.text1, flex: 1 },
+  matchedMeta: { fontSize: 11, color: T.text2, fontWeight: "600" },
+  matchedChipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+  matchedChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#FFF", paddingHorizontal: 9, paddingVertical: 5, borderRadius: 9, borderWidth: 1, borderColor: "#E2E8F0" },
+  matchedChipText: { fontSize: 12, fontWeight: "800", color: T.text1 },
 
   // Tracking Action Row
   trackBadge: { backgroundColor: T.accent, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },

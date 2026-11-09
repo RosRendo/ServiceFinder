@@ -158,7 +158,7 @@
     "noResultsFound": "No results found",
     "noConversationsYet": "No conversations yet",
     "noConversationsMatching": "No conversations matching \"{{term}}\"",
-    "tapMessageToStart": "Tap \"Message\" on a company profile to start a conversation.",
+    "tapMessageToStart": "You can message a provider after you book a service.",
     "unknown": "Unknown",
     "provider": "Provider",
     "you": "You: ",

@@ -61,9 +61,10 @@ function FloatingTabBar({ state, descriptors, navigation, t }: any) {
               key={tab.name}
               onPress={onPress}
               activeOpacity={0.75}
-              style={nb.tab}
+              style={[nb.tab, !isFocused && nb.tabInactive]}
               accessibilityRole="button"
               accessibilityState={{ selected: isFocused }}
+              accessibilityLabel={tab.label}
             >
               <Animated.View style={[nb.iconWrap, isFocused && nb.iconWrapActive, { transform: [{ scale: scales[index] }] }]}>
                 <MaterialCommunityIcons
@@ -73,6 +74,7 @@ function FloatingTabBar({ state, descriptors, navigation, t }: any) {
                 />
                 {isFocused && <Text style={nb.label}>{tab.label}</Text>}
               </Animated.View>
+              {!isFocused && <Text style={nb.labelInactive} numberOfLines={1}>{tab.label}</Text>}
             </TouchableOpacity>
           );
         })}
@@ -99,9 +101,11 @@ const nb = StyleSheet.create({
     borderWidth: 1, borderColor: NAV.border,
   },
   tab: { alignItems: 'center', justifyContent: 'center', flex: 1, paddingVertical: 4 },
+  tabInactive: { gap: 1 },
   iconWrap: { alignItems: 'center', justifyContent: 'center', borderRadius: 20, paddingVertical: 7, paddingHorizontal: 10, minWidth: 44 },
   iconWrapActive: { backgroundColor: NAV.pill, flexDirection: 'row', gap: 6, paddingHorizontal: 14, borderRadius: 20 },
   label: { fontSize: 12, fontWeight: '700', color: NAV.active, letterSpacing: -0.2 },
+  labelInactive: { fontSize: 10, fontWeight: '600', color: NAV.inactive, letterSpacing: 0.1, maxWidth: 64 },
 });
 
 export default function CustomerTabsLayout() {
